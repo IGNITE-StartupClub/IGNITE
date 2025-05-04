@@ -8,6 +8,10 @@
   color-scheme: light dark;
   interpolate-size: allow-keywords;
 
+  body {
+    background-color: var(--background-100);
+  }
+
   @each $color, $shades in $colors {
     @each $shade, $value in $shades {
       --#{$color}-#{$shade}: #{$value};

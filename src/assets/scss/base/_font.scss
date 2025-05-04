@@ -5,55 +5,56 @@
 @use 'breakpoint' as *;
 
 @font-face {
-  font-family: 'Open Sans';
+  font-family: 'Inter';
   src:
-    local('Open Sans ExtraBold'),
-    local('OpenSans-ExtraBold'),
-    url('/fonts/OpenSans-ExtraBold.woff2') format('woff2'),
-    url('/fonts/OpenSans-ExtraBold.woff') format('woff');
-  font-weight: bold;
+    local('Inter ExtraBold'),
+    local('Inter-ExtraBold'),
+    url('/fonts/Inter-ExtraBold.woff2') format('woff2'),
+    url('/fonts/Inter-ExtraBold.woff') format('woff');
+  font-weight: 800;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Open Sans';
+  font-family: 'Inter';
   src:
-    local('Open Sans Bold'),
-    local('OpenSans-Bold'),
-    url('/fonts/OpenSans-Bold.woff2') format('woff2'),
-    url('/fonts/OpenSans-Bold.woff') format('woff');
-  font-weight: bold;
+    local('Inter Bold'),
+    local('Inter-Bold'),
+    url('/fonts/Inter-Bold.woff2') format('woff2'),
+    url('/fonts/Inter-Bold.woff') format('woff');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Open Sans';
+  font-family: 'Inter';
   src:
-    local('Open Sans Italic'),
-    local('OpenSans-Italic'),
-    url('/fonts/OpenSans-Italic.woff2') format('woff2'),
-    url('/fonts/OpenSans-Italic.woff') format('woff');
-  font-weight: normal;
+    local('Inter Italic'),
+    local('Inter-Italic'),
+    url('/fonts/Inter-Italic.woff2') format('woff2'),
+    url('/fonts/Inter-Italic.woff') format('woff');
+  font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Open Sans';
+  font-family: 'Inter';
   src:
-    local('Open Sans Regular'),
-    local('OpenSans-Regular'),
-    url('/fonts/OpenSans-Regular.woff2') format('woff2'),
-    url('/fonts/OpenSans-Regular.woff') format('woff');
-  font-weight: normal;
+    local('Inter Regular'),
+    local('Inter-Regular'),
+    url('/fonts/Inter-Regular.woff2') format('woff2'),
+    url('/fonts/Inter-Regular.woff') format('woff');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 body {
   font-family: var(--font-family-default);
+  color: white;
   text-shadow: rgba(0, 0, 0, 0.01) 0 0 1px;
   text-rendering: optimizeLegibility;
   font-synthesis: none;
@@ -64,16 +65,16 @@ body {
   -webkit-font-smoothing: antialiased;
 
   a:not(.button) {
-    color: var(--action-color);
+    color: white;
     text-decoration: underline;
 
     &:visited {
-      color: var(--action-color);
+      color: white;
     }
 
     &:hover,
     &:focus {
-      color: var(--action-color-state);
+      color: var(--secondary-100);
       text-decoration: none;
     }
   }

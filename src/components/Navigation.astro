@@ -3,13 +3,14 @@ import ResponsiveToggle from './ResponsiveToggle.astro'
 import { DarkMode } from 'accessible-astro-components'
 import { Image } from 'astro:assets'
 import logo from '../assets/img/logo.svg'
+import Logo from '../components/Logo.astro'
+import { Icon } from 'astro-icon/components'
 ---
 
 <div id="main-navigation" class="is-desktop py-8">
   <div class="container">
     <a href="/" class="flex items-center gap-2 !no-underline">
-      <Image src={logo} alt="Your Logo" width="47" height="37" />
-      <span class="font-bold">Accessible Astro</span>
+      <Logo color="white" name="IGNITE"/>
     </a>
     <div class="wrapper">
       <nav class="desktop-menu" aria-label="Main navigation desktop">
@@ -17,8 +18,10 @@ import logo from '../assets/img/logo.svg'
           <slot />
         </ul>
       </nav>
-      <DarkMode />
-      <ResponsiveToggle />
+      <ResponsiveToggle/>
+      <a class="button secondary size-small" href="/mitmachen">
+        Mitmachen
+      </a>
     </div>
     <nav class="mobile-menu" aria-label="Main navigation mobile">
       <ul class="menu">
@@ -30,190 +33,198 @@ import logo from '../assets/img/logo.svg'
 
 <script>
   document.addEventListener('astro:page-load', () => {
-    // variables
-    const mainNav = document.querySelector('#main-navigation')
-    const mainMenu = mainNav.querySelector('ul')
-    const dropdownMenus = [...document.querySelectorAll('.has-dropdown button')]
+    // Variables
+    const mainNav = document.querySelector('#main-navigation');
+    const mainMenu = mainNav.querySelector('ul');
+    const dropdownMenus = [...document.querySelectorAll('.has-dropdown button')];
 
-    // functions
+    // Set Active Menu Item
     const setActiveMenuItem = () => {
-      const mobileDesktopMenus = mainNav.querySelectorAll('nav > ul')
-      const currenPathname = window.location.pathname
+      const mobileDesktopMenus = mainNav.querySelectorAll('nav > ul');
+      const currentPathname = window.location.pathname;
 
       mobileDesktopMenus.forEach((menu) => {
-        const menuItems = [...menu.querySelectorAll('a:not([rel*="external"])')] as HTMLAnchorElement[]
+        const menuItems = [...menu.querySelectorAll('a:not([rel*="external"])')] as HTMLAnchorElement[];
 
         menuItems.forEach((menuItem) => {
-          if (currenPathname.includes(menuItem.pathname.replaceAll('/', '')) && menuItem.textContent !== 'Home') {
-            menuItem.classList.add('is-active')
-            menuItem.setAttribute('aria-current', 'page')
-          } else if (menuItem.textContent === 'Home' && currenPathname === '/') {
-            menuItem.classList.add('is-active')
-            menuItem.setAttribute('aria-current', 'page')
+          if (currentPathname.includes(menuItem.pathname.replaceAll('/', '')) && menuItem.textContent !== 'Startseite') {
+            menuItem.classList.add('is-active');
+            menuItem.setAttribute('aria-current', 'page');
+          } else if (menuItem.textContent === 'Startseite' && currentPathname === '/') {
+            menuItem.classList.add('is-active');
+            menuItem.setAttribute('aria-current', 'page');
           }
-        })
-      })
-    }
+        });
+      });
+    };
 
+    // Check Menu Size for Mobile/Desktop Toggle
     const checkMenuSize = () => {
-      const mainNavWidth = mainNav.getBoundingClientRect().width
-      const desktopMenuWidth = document.querySelector('.desktop-menu').getBoundingClientRect().width
-      const logoWidthBuffer = 300
-      const totalMenuWidth = Math.round(desktopMenuWidth) + logoWidthBuffer
+      const mainNavWidth = mainNav.getBoundingClientRect().width;
+      const desktopMenuWidth = document.querySelector('.desktop-menu').getBoundingClientRect().width;
+      const logoWidthBuffer = 300;
+      const totalMenuWidth = Math.round(desktopMenuWidth) + logoWidthBuffer;
 
       if (totalMenuWidth >= mainNavWidth) {
-        mainNav.classList.remove('is-desktop')
-        mainNav.classList.add('is-mobile')
+        mainNav.classList.remove('is-desktop');
+        mainNav.classList.add('is-mobile');
       } else if (totalMenuWidth <= mainNavWidth) {
-        mainNav.classList.add('is-desktop')
-        mainNav.classList.remove('is-mobile')
+        mainNav.classList.add('is-desktop');
+        mainNav.classList.remove('is-mobile');
       }
-    }
+    };
 
+    // Helper function to check if an element is out of viewport
     const isOutOfViewport = (element) => {
-      const elementBounds = element.getBoundingClientRect()
-      return elementBounds.right > (window.innerWidth || document.documentElement.clientWidth)
-    }
+      const elementBounds = element.getBoundingClientRect();
+      return elementBounds.right > (window.innerWidth || document.documentElement.clientWidth);
+    };
 
+    // Open dropdown menu
     const openDropdownMenu = (dropdownMenu) => {
-      const dropdownList = dropdownMenu.parentNode.querySelector('ul')
+      const dropdownList = dropdownMenu.parentNode.querySelector('ul');
 
-      dropdownMenu.classList.add('show')
-      dropdownMenu.setAttribute('aria-expanded', 'true')
+      dropdownMenu.classList.add('show');
+      dropdownMenu.setAttribute('aria-expanded', 'true');
 
       if (isOutOfViewport(dropdownList)) {
-        dropdownList.style.left = 'auto'
+        dropdownList.style.left = 'auto';
       }
-    }
+    };
 
+    // Close dropdown menu
     const closeDropdownMenu = (dropdownMenu) => {
-      dropdownMenu.classList.remove('show')
-      dropdownMenu.setAttribute('aria-expanded', 'false')
-    }
+      dropdownMenu.classList.remove('show');
+      dropdownMenu.setAttribute('aria-expanded', 'false');
+    };
 
+    // Close all dropdown menus
     const closeAllDropdownMenus = () => {
-      for (let i = 0; i < dropdownMenus.length; i++) {
-        closeDropdownMenu(dropdownMenus[i])
-      }
-    }
+      dropdownMenus.forEach((dropdownMenu) => {
+        closeDropdownMenu(dropdownMenu);
+      });
+    };
 
+    // Toggle dropdown visibility
     const toggleDropdownMenu = (event) => {
       if (event.target.getAttribute('aria-expanded') === 'false') {
-        closeAllDropdownMenus()
-        openDropdownMenu(event.target)
+        closeAllDropdownMenus();
+        openDropdownMenu(event.target);
       } else {
-        closeDropdownMenu(event.target)
+        closeDropdownMenu(event.target);
       }
-    }
+    };
 
-    // execution
+    // Keyboard navigation for menu
     mainMenu &&
       mainMenu.addEventListener('keydown', (event) => {
-        const element = event.target as Element
-        const currentMenuItem = element.closest('li')
-        const menuItems = [...mainMenu.querySelectorAll('.menu-item')]
-        const currentDropdownMenu = element.closest('.has-dropdown button')
-        const currentDropdownMenuItem = element.closest('.has-dropdown li')
-        const currentIndex = menuItems.findIndex((item) => item === currentMenuItem)
+        const element = event.target as Element;
+        const currentMenuItem = element.closest('li');
+        const menuItems = [...mainMenu.querySelectorAll('.menu-item')];
+        const currentDropdownMenu = element.closest('.has-dropdown button');
+        const currentDropdownMenuItem = element.closest('.has-dropdown li');
+        const currentIndex = menuItems.findIndex((item) => item === currentMenuItem);
 
-        const key = event.key
-        let targetItem
+        const key = event.key;
+        let targetItem;
 
         if (key === 'ArrowRight') {
           if (menuItems.indexOf(currentMenuItem) === menuItems.length - 1) {
-            targetItem = menuItems[0]
+            targetItem = menuItems[0];
           } else {
-            targetItem = menuItems[currentIndex + 1]
+            targetItem = menuItems[currentIndex + 1];
           }
         }
 
         if (key === 'ArrowLeft') {
           if (menuItems.indexOf(currentMenuItem) === 0) {
-            targetItem = menuItems[menuItems.length - 1]
+            targetItem = menuItems[menuItems.length - 1];
           } else {
-            targetItem = menuItems[currentIndex - 1]
+            targetItem = menuItems[currentIndex - 1];
           }
         }
 
         if (key === 'Escape') {
-          targetItem = menuItems[0]
+          targetItem = menuItems[0];
         }
 
         if (currentDropdownMenu) {
-          const firstDropdownItem = currentDropdownMenu.nextElementSibling.querySelector('li')
+          const firstDropdownItem = currentDropdownMenu.nextElementSibling.querySelector('li');
 
           if (key === 'ArrowDown') {
-            event.preventDefault()
-            openDropdownMenu(currentDropdownMenu)
-            targetItem = firstDropdownItem
+            event.preventDefault();
+            openDropdownMenu(currentDropdownMenu);
+            targetItem = firstDropdownItem;
           }
 
           if (key === 'Escape') {
-            closeDropdownMenu(currentDropdownMenu)
+            closeDropdownMenu(currentDropdownMenu);
           }
         }
 
         if (currentDropdownMenuItem) {
-          const currentDropdownList = currentDropdownMenuItem.parentNode
-          const dropdownMenuItems = [...currentDropdownList.querySelectorAll('li')]
-          const currentIndex = dropdownMenuItems.findIndex((item) => item === currentDropdownMenuItem)
+          const currentDropdownList = currentDropdownMenuItem.parentNode;
+          const dropdownMenuItems = [...currentDropdownList.querySelectorAll('li')];
+          const currentIndex = dropdownMenuItems.findIndex((item) => item === currentDropdownMenuItem);
 
           if (key === 'ArrowDown') {
-            event.preventDefault()
+            event.preventDefault();
 
             if (dropdownMenuItems.indexOf(currentDropdownMenuItem as HTMLLIElement) === dropdownMenuItems.length - 1) {
-              targetItem = dropdownMenuItems[0]
+              targetItem = dropdownMenuItems[0];
             } else {
-              targetItem = dropdownMenuItems[currentIndex + 1]
+              targetItem = dropdownMenuItems[currentIndex + 1];
             }
           }
 
           if (key === 'ArrowUp') {
-            event.preventDefault()
+            event.preventDefault();
 
             if (dropdownMenuItems.indexOf(currentDropdownMenuItem as HTMLLIElement) === 0) {
-              targetItem = dropdownMenuItems[dropdownMenuItems.length - 1]
+              targetItem = dropdownMenuItems[dropdownMenuItems.length - 1];
             } else {
-              targetItem = dropdownMenuItems[currentIndex - 1]
+              targetItem = dropdownMenuItems[currentIndex - 1];
             }
           }
 
           if (key === 'Escape') {
-            const currentDropdownMenu = (currentDropdownList as Element).previousElementSibling
-            targetItem = currentDropdownMenu.parentNode
-            closeAllDropdownMenus()
+            const currentDropdownMenu = (currentDropdownList as Element).previousElementSibling;
+            targetItem = currentDropdownMenu.parentNode;
+            closeAllDropdownMenus();
           }
 
           if (key === 'Tab') {
-            const currentDropdownMenu = (currentDropdownList as Element).previousElementSibling
+            const currentDropdownMenu = (currentDropdownList as Element).previousElementSibling;
 
             if (dropdownMenuItems.indexOf(currentDropdownMenuItem as HTMLLIElement) === dropdownMenuItems.length - 1) {
-              closeDropdownMenu(currentDropdownMenu)
+              closeDropdownMenu(currentDropdownMenu);
             }
           }
         }
 
         if (targetItem) {
-          targetItem.querySelector('a, button, input').focus()
+          targetItem.querySelector('a, button, input').focus();
         }
-      })
+      });
 
+    // Dropdown click event
     dropdownMenus &&
       dropdownMenus.forEach((dropdownMenu) => {
-        dropdownMenu.addEventListener('click', toggleDropdownMenu)
-      })
+        dropdownMenu.addEventListener('click', toggleDropdownMenu);
+      });
 
-    setActiveMenuItem()
-    checkMenuSize()
+    // Initialize the menu and check menu size
+    setActiveMenuItem();
+    checkMenuSize();
 
-    window.addEventListener('resize', checkMenuSize)
+    window.addEventListener('resize', checkMenuSize);
     window.addEventListener('click', (event) => {
-      const element = event.target as Element
+      const element = event.target as Element;
       if (!element.hasAttribute('aria-haspopup') && !element.classList.contains('submenu-item')) {
-        closeAllDropdownMenus()
+        closeAllDropdownMenus();
       }
-    })
-  })
+    });
+  });
 </script>
 
 <style lang="scss" is:global>
@@ -284,17 +295,6 @@ import logo from '../assets/img/logo.svg'
           text-decoration: none;
         }
 
-        a:hover,
-        a:focus,
-        .is-active,
-        .has-dropdown > button:hover,
-        .has-dropdown > button:focus {
-          text-decoration: underline;
-          text-decoration-style: wavy;
-          text-decoration-thickness: 1px;
-          text-underline-offset: 7px;
-        }
-
         .is-active {
           font-weight: bold;
         }
@@ -332,10 +332,10 @@ import logo from '../assets/img/logo.svg'
         margin-top: -1px;
         border: none;
         padding: 0;
-        color: var(--action-color);
+        color: var(--neutral-100);
 
         &:hover {
-          color: var(--action-color-state);
+          color: var(--secondary-100);
 
           &::after {
             border-color: var(--action-color-state);
@@ -347,7 +347,7 @@ import logo from '../assets/img/logo.svg'
           margin-top: -0.25rem;
           border-width: 0.2em 0.2em 0 0;
           border-style: solid;
-          border-color: var(--action-color);
+          border-color: var(--neutral-100);
           width: 0.85rem;
           height: 0.75em;
           content: '';

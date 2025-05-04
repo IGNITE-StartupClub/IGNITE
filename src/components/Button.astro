@@ -1,0 +1,49 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface ButtonSpec {
+  icon?: string;
+  text: string;
+  href: string;
+  class?: string;
+}
+
+// Erwartet ein Array von Button-Spezifikationen; 
+// Beispiel: [{ icon: "ion:reader-outline", text: "Kennenlernen", href: "https://...", class: "secondary" }]
+const { buttons = [] } = Astro.props as { buttons: ButtonSpec[] };
+---
+
+<div class="button-group">
+  {buttons.map((btn) => (
+    <a class={`button ${btn.class ?? ""} ${btn.icon ? "has-icon" : ""}`} href={btn.href}>
+      {btn.icon && <Icon name={btn.icon}/>}
+      {btn.text}
+    </a>
+  ))}
+</div>
+
+<style lang="scss">
+.button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Grundstyles für den Button */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  font-weight: bold;
+  text-decoration: none;
+  border: 3px solid transparent;  /* Kann überschrieben werden */
+  border-radius: 100vw;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+/* Falls ein Button ein Icon hat, wird ein Abstand zwischen Icon & Text gesetzt */
+.has-icon {
+  gap: 0.5rem;
+}
+</style>

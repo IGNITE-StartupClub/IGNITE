@@ -4,41 +4,143 @@ import { Icon } from 'astro-icon/components'
 const { src = '/astronaut-hero-img.webp' } = Astro.props
 ---
 
-<section class="hero my-24">
-  <div class="container">
-    <div class="grid grid-cols-1 items-center gap-24 lg:grid-cols-2">
-      <div class="flex flex-col items-center gap-8 md:items-start">
-        <h1 class="text-center text-6xl md:text-left lg:text-8xl">
-          <slot><span class="text-gradient">Accessible</span> Starter for Astro</slot>
+<section class="hero my-24 relative overflow-hidden">
+  <!-- Blurred Dots -->
+  <div class="blurred-dots">
+    <div class="dot dot-purple"></div>
+    <div class="dot dot-pink"></div>
+  </div>
+
+  <div class="container relative z-10">
+    <div class="grid grid-cols-1 items-center gap-24">
+      <div class="flex flex-col items-center gap-8">
+        <h1 class="text-center text-4xl lg:text-7xl">
+          <slot>
+            <span class="text-gradient">Gründungsfunken</span> an der Leuphana Unviersität
+          </slot>
         </h1>
         <div class="flex flex-col gap-3 min-[500px]:flex-row">
-          <a class="button has-icon" href="https://github.com/incluud/accessible-astro-starter">
-            <Icon name="ion:star-outline" />
-            Star on GitHub
+          <a class="button secondary has-icon" href="https://github.com/incluud/accessible-astro-starter">
+            <Icon name="ion:reader-outline" />
+            Kennenlernen
           </a>
           <a class="button has-icon color-secondary" href="https://accessible-astro.incluud.dev/">
-            <Icon name="ion:bookmark-outline" />
-            Read the Docs
+            <Icon name="ion:chatbubbles-outline" />
+            Erstgespräch buchen!
           </a>
         </div>
       </div>
-      <img class="hidden lg:block" src={src} alt="" decoding="async" />
+      <!-- <img class="hidden lg:block" src={src} alt="" decoding="async" /> -->
     </div>
   </div>
 </section>
 
 <style lang="scss">
+  :global(section) {
+    z-index: -1;
+  }
+
   .text-gradient {
-    background: linear-gradient(315deg, var(--primary-200) 25%, var(--secondary-500));
+    background: linear-gradient(
+      315deg,
+        var(--primary-400),
+        var(--secondary-500)
+      );
     background-clip: border-box;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   :global(.darkmode .text-gradient) {
-    background: linear-gradient(315deg, var(--primary-200) 25%, var(--secondary-400));
+    background: linear-gradient(
+      315deg,
+      var(--primary-200) 25%,
+      var(--secondary-400)
+    );
     background-clip: border-box;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  /* Hero-Section sollte relative sein, damit die Dots absolut platziert werden können */
+  .hero {
+    position: relative;
+    overflow: visible;
+  }
+
+  /* Container für unsere Dots im Hintergrund */
+  .blurred-dots {
+    position: absolute;
+    inset: 0; /* top: 0; right: 0; bottom: 0; left: 0; */
+    z-index: -1; /* Hinter den Inhalt legen */
+  }
+
+  /* Basis-Styles für beide Dots */
+  .dot {
+    z-index: -10;
+    position: absolute;
+    width: 20vw;
+    height: 20vw;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.6; // Anpassbar je nach gewünschter Intensität
+    animation-duration: 60s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  /* Erster Dot: Violetter Farbton */
+  .dot-purple {
+    background: #9b5de5; // Beispiel-Farbwert (purple)
+    top: -15%;
+    left: 15%;
+    animation-name: move-purple;
+  }
+
+  /* Zweiter Dot: Pinker Farbton */
+  .dot-pink {
+    background: #f15bb5; // Beispiel-Farbwert (pink)
+    bottom: -15%;
+    right: 15%;
+    animation-name: move-pink;
+    animation-delay: 5s; /* Startet leicht zeitversetzt */
+  }
+
+  /* Keyframes für Dot 1 */
+  @keyframes move-purple {
+    0% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(50px, 20px);
+    }
+    50% {
+      transform: translate(100px, -20px);
+    }
+    75% {
+      transform: translate(70px, 30px);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+
+  /* Keyframes für Dot 2 */
+  @keyframes move-pink {
+    0% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(-50px, -30px);
+    }
+    50% {
+      transform: translate(-100px, 10px);
+    }
+    75% {
+      transform: translate(-60px, -50px);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
   }
 </style>

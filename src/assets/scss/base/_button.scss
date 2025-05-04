@@ -6,13 +6,14 @@
   display: inline-block;
   padding: 0.75rem 1rem;
   font-weight: bold;
-  text-decoration: none;
+  text-decoration: none;  
   text-align: center;
-  color: var(--neutral-900);
+  color: var(--primary-900);
   background-color: var(--primary-100);
   border: 3px solid var(--primary-100);
-  border-radius: 3px;
+  border-radius: 100vw;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
 
   &:hover,
   &:focus {
@@ -28,17 +29,25 @@
   &.color-secondary {
     background-color: var(--secondary-100);
     border-color: (var(--secondary-100));
+    color: var(--neutral-100);
 
     &:hover,
     &:focus {
       background-color: var(--secondary-400);
       border-color: var(--secondary-400);
     }
+
+    &.has-icon {
+      [data-icon] {
+        color: var(--neutral-100);
+      }
+    }
   }
 
+  // Weitere Farbvarianten
   &.color-neutral {
     background-color: var(--neutral-500);
-    border-color: (var(--neutral-500));
+    border-color: var(--neutral-500);
 
     &:hover,
     &:focus {
@@ -49,7 +58,7 @@
 
   &.color-info {
     background-color: var(--info-300);
-    border-color: (var(--info-300));
+    border-color: var(--info-300);
 
     &:hover,
     &:focus {
@@ -60,7 +69,7 @@
 
   &.color-success {
     background-color: var(--success-400);
-    border-color: (var(--success-400));
+    border-color: var(--success-400);
 
     &:hover,
     &:focus {
@@ -71,7 +80,7 @@
 
   &.color-warning {
     background-color: var(--warning-400);
-    border-color: (var(--warning-400));
+    border-color: var(--warning-400);
 
     &:hover,
     &:focus {
@@ -82,7 +91,7 @@
 
   &.color-error {
     background-color: var(--error-300);
-    border-color: (var(--error-300));
+    border-color: var(--error-300);
 
     &:hover,
     &:focus {
@@ -91,6 +100,7 @@
     }
   }
 
+  // Größenvarianten
   &.size-tiny {
     padding: 0.125rem 0.25rem;
     font-size: 0.75rem;
@@ -120,6 +130,7 @@
     width: 100%;
   }
 
+  // Typ-Variante: type-secondary (evtl. für Textlinks ohne Border)
   &.type-secondary {
     background-color: transparent;
 
@@ -129,6 +140,7 @@
     }
   }
 
+  // Icon-Handling im Button
   &.has-icon {
     display: flex;
     align-items: center;
@@ -137,6 +149,45 @@
     [data-icon] {
       height: auto;
       width: 30px;
+      color: var(--neutral-900);
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Secondary Button mit ausschließlich einem gradienten, abgerundeten Border
+  // ---------------------------------------------------------------
+  &.secondary {
+    // Legen wir zunächst die gewünschte Border-Dicke fest
+    $border: 3px; 
+    background-color: var(--dark-100); 
+    color: white;
+    // Verwende einen transparenten Border statt "none"
+    border: solid $border transparent;
+    border-radius: 100vw;
+    // Damit der Button-Inhalt nicht in den Border-Bereich hineinragt
+    background-clip: padding-box;
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      // Negative Margin gleich der Border-Dicke, sodass der Gradient nur als Rand sichtbar wird
+      margin: -$border;
+      border-radius: inherit;
+      background: linear-gradient(
+        to right,
+        var(--primary-500),
+        var(--secondary-100)
+      );
+      z-index: -1;
+    }
+
+    [data-icon] {
+      color: white;
     }
   }
 }

@@ -4,128 +4,104 @@ import Hero from '../components/Hero.astro'
 import Feature from '../components/Feature.astro'
 import Counter from '../components/Counter.astro'
 import ContentMedia from '../components/ContentMedia.astro'
+import { Icon } from 'astro-icon/components'
 import { Accordion, AccordionItem } from 'accessible-astro-components'
+import Button from '../components/Button.astro'
 ---
 
 <DefaultLayout title="Home">
   <Hero />
   <section class="my-64">
     <div class="container">
-      <h2 class="mb-16 text-6xl">Features</h2>
+      <h2 class="mb-16 text-6xl">Was wir machen</h2>
       <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
-        <Feature icon="mdi:tailwind" title="Tailwind CSS">
-          Use the power of Tailwind to greatly improve your productivity and enhance your developer workflow.
+        <Feature icon="ion:diamond-outline" title="Workshops & Events">
+          Wir lernen gemeinsam von Expert:innen & Peer-to-Peer über Startups und Entrepreneurship.
         </Feature>
-        <Feature icon="mdi:wheelchair-accessibility" title="a11y Components">
-          17 components and counting, all tried and tested for the most optimal accessible experience for your visitors.
+        <Feature icon="ion:document-attach-outline" title="Fact-Sheet">
+          Wir analysieren die Angebote zum Thema Entrepreneurship an der Leuphana Universität.
         </Feature>
-        <Feature icon="mdi:looks" title="Prettier">
-          Less worry about formatting your code, let the Astro Prettier integration do the heavy lifting.
+        <Feature icon="ion:flame-outline" title="Hackathon">
+          Wir veranstalten einen Hackathon, um innovative Ideen zu entwickeln und zu testen.
+          Wir organisieren 2-3 tägige Events, um in kurzer Zeit Startup Ideen auszuarbeiten.
         </Feature>
-        <Feature icon="mdi:eslint" title="ESLint">
-          Lint your code with strict a11y settings to ensure you stay on track with the WCAG standards.
+        <Feature icon="ion:mic-outline" title="IGNITE Podcast">
+          Im Utopia interviewen wir Startup Gründende und Leuphana Alumni.
         </Feature>
-        <Feature icon="mdi:book-open-page-variant" title="Blog">
-          This theme comes with a fully integrated blog, dynamic pages and SEO optimization.
+        <Feature icon="ion:people-outline" title="Community">
+          Wir verbinden Studierende, Alumni und Gründende mit dem Ziel, ein starkes Netzwerk aufzubauen.
         </Feature>
-        <Feature icon="mdi:language-markdown" title="Markdown & MDX">
-          Easily use .md and .mdx pages to build your websites or use it with Netlify CMS.
-        </Feature>
-        <Feature icon="mdi:theme-light-dark" title="Dark mode">
-          Fully integrated Dark mode gives your users the choice for their favorite viewing mode.
-        </Feature>
-        <Feature icon="mdi:cog" title="Design System">
-          The theme offers some very handy utilities to help you build your website faster.
-        </Feature>
-        <Feature icon="mdi:lighthouse" title="Lighthouse Scores">
-          Excellent lighthouse scores means your website will load faster and get better SEO rankings.
+        <Feature icon="ion:cash-outline" title="IGNITE Stipedium">
+          Wir ermöglichen angehendenden Gründenden einen Co-Working Platz und Förderung im Utopia.
         </Feature>
       </div>
     </div>
   </section>
-  <ContentMedia imgSrc="/accessible-components.webp">
-    <h2>Accessible Components</h2>
+  <ContentMedia imgSrc="/accessible-components.webp" title="Neuigkeiten">
+    <h2>Unser Vorstand</h2>
     <p class="text-2xl">
-      This theme provides plenty of tried and tested Accessible Astro Components. Some are native to this theme and a
-      lot of others are integrated using a <a href="https://github.com/markteekman/accessible-astro-components"
-        >separate package</a
-      >. They'll get you up and running in building an accessible solution for your visitors.
+      Unser neuer Vorstand wurde gewählt: Linus Heidemann (Präsident), Emma, Ole, Cornelis & Silas Kruckenberg (Generalsekretär).
     </p>
+    <a class="button secondary has-icon max-w-max" href="/team">
+      <Icon name="ion:reader-outline" />
+      Das Team
+    </a>
+
   </ContentMedia>
-  <ContentMedia imgSrc="/wcag-compliant.webp" reverseImg={true}>
-    <h2>WCAG 2.2 AA Compliant</h2>
+  <!-- <ContentMedia imgSrc="/wcag-compliant.webp" reverseImg={true}>
+    <h2>Absichtserklärung</h2>
     <p class="text-2xl">
-      Using semantic HTML, landmarks, skip links, screen reader friendly content, aria-labels, keyboard accessible
-      navigation and components, clear outlines and tab indicators and the right color contrast, you're more certain of
-      reaching WCAG AA compliance.
+      Ganz im Sinne der führenden Hochschulen setzen auch wir uns dafür ein, Gründungsgeist und Startup-Kultur an der Leuphana aktiv zu leben und langfristig zu etablieren. Bereits über 50 Uni-Mitglieder haben unsere Absichtserklärung unterzeichnet – sei dabei und gestalte mit uns die Gründerlandschaft von morgen!
     </p>
-  </ContentMedia>
+
+    <a class="button secondary has-icon max-w-max" href="/team">
+      <Icon name="ion:pencil-outline" />
+      Jetzt lesen!
+    </a>
+
+  </ContentMedia> -->
   <section class="my-64">
     <div class="container grid grid-cols-1 gap-12 md:grid-cols-2">
       <div class="flex flex-col items-start gap-4">
         <h2 class="text-6xl">FAQ</h2>
         <p class="text-2xl">
-          This section demonstrates how to effectively use the Accordion component to organize and display frequently
-          asked questions in an accessible and user-friendly way.
+          Häufig gestellte Fragen zu IGNITE.
         </p>
-        <a class="button" href="/faq">Contact support team</a>
+        <a class="button color-secondary" href="/faq">Nimm Kontakt auf!</a>
       </div>
       <div class="space-content">
         <Accordion>
-          <AccordionItem name="exclusive" title="What is WCAG and why is it important?" open>
+          <AccordionItem name="exclusive" title="Warum IGNITE?">
             <p>
-              WCAG (Web Content Accessibility Guidelines) is a set of internationally recognized standards for web
-              accessibility. Following WCAG ensures your website is usable by people with various disabilities,
-              including visual, auditory, physical, and cognitive impairments. It's important not just for
-              accessibility, but also for legal compliance, SEO, and reaching a wider audience.
+              Weil wir als Brücke zwischen Leuphana und der Startup-Szene hands-on Erfahrungen, ein starkes Netzwerk und echte Mitgestaltungschancen bieten – hier entsteht deine Gründerzukunft.
             </p>
           </AccordionItem>
-          <AccordionItem name="exclusive" title="What's the difference between ARIA labels and alt text?">
+          <AccordionItem name="exclusive" title="Welche Erwartungen stellen wir an die Mitglieder?" open>
             <p>
-              Alt text is specifically for describing images to screen reader users, while ARIA labels (aria-label,
-              aria-labelledby) can describe any element on a page. Alt text is HTML's native way to provide alternative
-              text for images, while ARIA labels are part of the ARIA specification that helps make dynamic content and
-              advanced UI controls more accessible.
+              Der durchschnittliche Aufwand liegt bei etwa 3–5 Stunden pro Woche – je nach Projektphase etwas mehr oder weniger. Wir erwarten regelmäßige Teilnahme an Team-Meetings, aktive Projektarbeit und proaktive Kommunikation.
             </p>
           </AccordionItem>
-          <AccordionItem name="exclusive" title="Why is keyboard navigation important?">
+          <AccordionItem name="exclusive" title="Wie profitiere ich von meinem Ehrenamt?">
             <p>
-              Keyboard navigation is essential for users who can't use a mouse, including people with motor
-              disabilities, visual impairments, or those who simply prefer keyboard controls. A website should be fully
-              operable using only a keyboard, with visible focus indicators and logical tab order. This includes being
-              able to access all interactive elements and navigate through content efficiently.
+              Du erhältst exklusiven Zugang zu Unternehmen, Gründer:innen, Investor:innen und Alumni, nimmst an praxisorientierten Workshops teil und erhältst individuelles Feedback in Mentoring-Sessions.
             </p>
           </AccordionItem>
-          <AccordionItem name="exclusive" title="What is a sufficient color contrast ratio?">
+          <AccordionItem name="exclusive" title="Wie läuft der Bewerbungs- und Onboarding-Prozess ab?">
             <p>
-              According to WCAG 2.2 AA standards, text should have a minimum contrast ratio of 4.5:1 against its
-              background for regular text, and 3:1 for large text (18pt or 14pt bold). For non-text elements like icons
-              or buttons, a minimum ratio of 3:1 is required. This ensures content is readable for users with visual
-              impairments or color blindness.
+              Du füllst das Online-Formular auf unserer Website aus, bekommst eine Rückmeldung per E-Mail mit Einladung zum persönlichen Gespräch und startest nach positiver Entscheidung mit einem strukturierten Onboarding.
             </p>
           </AccordionItem>
-          <AccordionItem name="exclusive" title="How do I make custom components accessible?">
+          <AccordionItem name="exclusive" title="Welche Rollen und Gremien gibt es innerhalb der Initiative?">
             <p>
-              To make custom components accessible, focus on these key aspects: use semantic HTML where possible,
-              implement proper keyboard support, add appropriate ARIA attributes, manage focus when needed, and ensure
-              adequate color contrast. Always test with screen readers and keyboard navigation. Consider using
-              established design patterns from the <a href="https://www.w3.org/WAI/ARIA/apg/patterns/"
-                >ARIA Authoring Practices Guide</a
-              >.
+              Wir haben ein fünfköpfiges Präsidium (Präsident, Vize, CFO, COO, CTO) und arbeiten in projektbezogenen Teams (z. B. Marketing, Event, Community), die jeweils eigene Koordinator:innen wählen.
+            </p>
+          </AccordionItem>
+          <AccordionItem name="exclusive" title="Gibt es Möglichkeiten, Erfahrungspunkte oder Referenzen für Studium und Lebenslauf zu sammeln?">
+            <p>
+              Ja, dein Engagement wird auf Wunsch im Transcript of Records anerkannt, und du kannst Empfehlungsschreiben von Mentor:innen sowie Projektzertifikate erhalten.
             </p>
           </AccordionItem>
         </Accordion>
-      </div>
-    </div>
-  </section>
-  <section class="mb-32 mt-64">
-    <div class="container">
-      <h2 class="mb-16 text-6xl">Counters</h2>
-      <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4">
-        <Counter count="520" title="Stars" sub="On GitHub" />
-        <Counter count="17" title="Accessible" sub="Components" />
-        <Counter count="500" title="Commits" sub="Merged" />
-        <Counter count="18+" title="Months" sub="Since launch" />
       </div>
     </div>
   </section>

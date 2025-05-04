@@ -39,15 +39,14 @@ const { icon = 'mdi:rocket', title = 'Title' } = Astro.props
 
     &::before {
       inset: 0;
-      background-color: var(--neutral-100);
-      border: 3px solid var(--neutral-700);
+      background-color: var(--dark-100);
+      border: 3px solid var(--gradient-100);
       border-radius: 1rem;
-      box-shadow: 0 0 0 6px var(--neutral-100);
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
       z-index: 1;
     }
 
     &::after {
-      background-color: var(--action-color);
       inset: 1rem -0.85rem -0.85rem 1rem;
       border-radius: 1rem;
       z-index: 0;
@@ -60,8 +59,4 @@ const { icon = 'mdi:rocket', title = 'Title' } = Astro.props
     color: var(--action-color);
   }
 
-  :global(.darkmode .feature::before) {
-    background-color: var(--dark-100);
-    box-shadow: 0 0 0 6px var(--dark-100);
-  }
 </style>

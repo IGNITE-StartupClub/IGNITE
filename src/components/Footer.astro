@@ -1,18 +1,168 @@
 ---
-import CallToAction from './CallToAction.astro'
-
-const currentYear = new Date().getFullYear()
+const currentYear = new Date().getFullYear();
+import { Icon } from 'astro-icon/components'
+import Logo from "./Logo.astro";
 ---
 
-<footer>
-  <CallToAction />
-  <section class="py-8">
-    <div class="container">
-      <p>
-        &copy; {currentYear} - Starter Theme for <a href="https://astro.build/">Astro</a>. Made with ❤️ by <a
-          href="https://github.com/markteekman">Mark Teekman</a
-        >.
-      </p>
+<footer class="site-footer" role="contentinfo">
+  <div class="container">
+    <!-- Grid mit Branding, Navigation und Social Links -->
+    <div class="footer-grid">
+      <!-- Branding / Kurzinfo -->
+      <div class="footer-branding">
+        <div>
+        <Logo
+        name="IGNITE"
+        color="white"/>
+      </div>
+        <p class="footer-description">
+          Startup Initiative an der Leuphana Universität Lüneburg. Wir sind die Anlaufstelle für alle Gründungsinteressierten
+        </p>
+      </div>
+
+      <!-- Navigation (Impressum, Datenschutz etc.) -->
+      <nav class="footer-nav" aria-label="Footer Navigation">
+        <ul>
+          <li><a href="/impressum">Impressum</a></li>
+          <li><a href="/datenschutz">Datenschutz</a></li>
+          <li><a href="/kontakt">Kontakt</a></li>
+          <li><a href="/sitemap">Sitemap</a></li>
+        </ul>
+      </nav>
+
+      <!-- Social Media (Beispiel: Twitter, GitHub, LinkedIn) -->
+      <div class="footer-social">
+        <ul>
+          <li><Icon name="ion:logo-instagram" /><a href="https://www.instagram.com/ignite.lueneburg/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+          <li><Icon name="ion:logo-linkedin" /><a href="https://www.linkedin.com/company/ignite-leuphana/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+        </ul>
+      </div>
     </div>
-  </section>
+
+    <!-- Unterer Bereich des Footers -->
+    <div class="footer-bottom">
+      <p>&copy; {currentYear} – IGNITE Startup Club Lüneburg. Alle Rechte vorbehalten. V0</p>
+    </div>
+  </div>
 </footer>
+
+<style lang="scss">
+/* Basisstil für den Footer */
+.site-footer {
+  background: var(--dark-100);
+  color: var(--neutral-100);
+  padding: 3rem 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+
+  a {
+    color: #f4f4f4;
+    text-decoration: none;
+    transition: color 0.3s ease;
+
+    &:hover,
+    &:focus {
+      color: #00aaff;
+      text-decoration: underline;
+    }
+  }
+}
+
+/* Zentrierter Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Grid für den Hauptinhalt des Footers */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+    text-align: left;
+    align-items: start;
+  }
+}
+
+/* Branding und Kurzinfo */
+.footer-branding {
+  display: flex;
+  gap: 20px;
+  flex-direction: column;  
+  align-items: left;      
+  justify-content: center; 
+  text-align: left;        
+
+  @media (max-width: 768px) {
+    align-items: center;
+    text-align: center;   
+  }
+
+
+  .footer-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+  
+  .footer-description {
+    font-size: 1rem;
+    color: #cccccc;
+  }
+}
+
+/* Navigation im Footer */
+.footer-nav {
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+  }
+}
+
+/* Social Media Links */
+.footer-social {
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+      justify-content: flex-start;
+    }
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    a {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+}
+
+/* Unterer Bereich des Footers */
+.footer-bottom {
+  border-top: 1px solid #444;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+</style>
