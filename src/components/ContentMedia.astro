@@ -9,7 +9,7 @@ const { imgSrc,
         reverseImg = false } = Astro.props
 ---
 
-<section class="my-64">
+<section class="my-12">
   <div class="container">
     {title && (
       <h2 class="text-4xl md:text-6xl my-12">{title}</h2>
@@ -17,7 +17,7 @@ const { imgSrc,
 
     <div class="grid grid-cols-1 gap-24 md:grid-cols-2">
       {!reverseImg && imgSrc && (
-        <Media class="rounded-lg" src={imgSrc} />
+        <Media class="rounded-lg" src={imgSrc}/>
       )}
       
       <div class="space-content flex flex-col justify-center">
@@ -25,7 +25,7 @@ const { imgSrc,
       </div>
 
       {reverseImg && imgSrc && (
-        <Media class="rounded-lg" src={imgSrc} />
+        <Media class="rounded-lg" src={imgSrc} ratio='4:3' loading='lazy'/>
       )}
     </div>
 

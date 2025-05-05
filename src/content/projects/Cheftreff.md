@@ -3,6 +3,7 @@ title: Ignite beim ChefTreff 2025
 author: Ignite Team
 description: Rückblick auf zwei inspirierende Tage voller Gründergeist, Innovation und Austausch beim ChefTreff 2025 in Hamburg
 image: /news/cheftreff.jpg
+date: 2025-04-26
 ---
 
 Für zwei Tage brachte die Messe ChefTreff wieder rund 5.000 Besucher:innen, Unternehmer:innen und Gründungsinteressierte in die Handelskammer nach Hamburg. Wir von Ignite waren mit rund zehn Engagierten vor Ort und konnten jede Menge Eindrücke sammeln, spannende Gespräche führen und Teil eines großartigen Programms sein.

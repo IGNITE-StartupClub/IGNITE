@@ -37,7 +37,8 @@ const { Content } = await render(project)
   <section class="my-12">
     <div class="container">
       <h1>{project.data.title}</h1><br />
-      <p>By author: {project.data.author}</p>
+      <p>Author: {project.data.author} - {new Date(project.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
+      </p>
     </div>
   </section>
   <section class="my-12">
