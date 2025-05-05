@@ -273,6 +273,12 @@ export default function Questionnaire({ initialPosition = '' }) {
           color: var(--neutral-500);
           cursor: not-allowed;
         }
+        /* Light Mode Anpassungen */
+        @media (prefers-color-scheme: light) {
+          input, textarea {
+            color: black; /* Schriftfarbe im Light Mode */
+          }
+        }
       `}</style>
     </form>
   );

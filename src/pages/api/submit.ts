@@ -1,8 +1,8 @@
-import type { APIRoute } from 'astro';
+import { APIRoute } from 'astro';
 import { MongoClient } from 'mongodb';
 import crypto from 'crypto';
-import 'dotenv/config'
-import nodemailer from 'nodemailer';  // Für den Versand von E-Mails
+import 'dotenv/config';
+import nodemailer from 'nodemailer';
 
 const uri = process.env.MONGODB_URI!;
 const secret = process.env.ENCRYPTION_SECRET!;
@@ -18,7 +18,7 @@ function encrypt(text: string) {
   return iv.toString('hex') + ':' + enc + ':' + tag.toString('hex');
 }
 
-// Funktion zum Senden der E-Mail
+// Funktion zum Senden der E-Mail für Bewerbungen
 const sendFormEmail = async (data: any) => {
   const transporter = nodemailer.createTransport({
     service: "Gmail",
@@ -26,15 +26,14 @@ const sendFormEmail = async (data: any) => {
     port: 465,
     secure: true,
     auth: {
-      user: process.env.GMAIL_USER,  // Dein Gmail-Benutzername
-      pass: process.env.GMAIL_APP_PASSWORD,  // Dein Gmail-App-Passwort
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
     },
   });
 
-
   const mailOptions = {
-    from: process.env.GMAIL_USER,  // Der Absender der E-Mail
-    to: `${process.env.EMAIL_RECIPIENT_1},${process.env.EMAIL_RECIPIENT_2}`,  // Die Empfänger-Adresse für die Formulardaten
+    from: process.env.GMAIL_USER,
+    to: `${process.env.EMAIL_RECIPIENT_1},${process.env.EMAIL_RECIPIENT_2}`,
     subject: 'Neue Bewerbung eingegangen',
     html: `
       <h2>Neue Bewerbung:</h2>
@@ -47,7 +46,7 @@ const sendFormEmail = async (data: any) => {
       <p><strong>Vorname:</strong> ${data.name}</p>
       <p><strong>Nachname:</strong> ${data.lastname}</p>
       <p><strong>E-Mail:</strong> ${data.email}</p>
-    `,  // HTML-Format für die E-Mail
+    `,
   };
 
   try {
@@ -58,26 +57,59 @@ const sendFormEmail = async (data: any) => {
   }
 };
 
-// Funktion zum Senden einer Fehler-E-Mail
-const sendErrorEmail = async (errorMessage: string) => {
+// Funktion zum Senden der E-Mail für Kontaktformulare
+const sendContactFormEmail = async (data: any) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',  // Gmail als Service
+    service: "Gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.GMAIL_USER,  // Dein Gmail-Benutzername
-      pass: process.env.GMAIL_APP_PASSWORD,  // Dein Gmail-App-Passwort (aus Schritt 2)
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
     },
   });
 
   const mailOptions = {
-    from: process.env.GMAIL_USER,  // Der Absender der E-Mail
-    to: emailRecipient,  // Die Empfänger-Adresse für Fehler
+    from: process.env.GMAIL_USER,
+    to: `${process.env.EMAIL_RECIPIENT_1},${process.env.EMAIL_RECIPIENT_2}`,
+    subject: 'Neue Kontaktanfrage',
+    html: `
+      <h2>Neue Kontaktanfrage:</h2>
+      <p><strong>Vorname:</strong> ${data.name}</p>
+      <p><strong>Nachname:</strong> ${data.lastname}</p>
+      <p><strong>E-Mail:</strong> ${data.email}</p>
+      <p><strong>Nachricht:</strong> ${data.message}</p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Kontaktformular-E-Mail gesendet.');
+  } catch (err) {
+    console.error('Fehler beim Senden der Kontaktformular-E-Mail:', err);
+  }
+};
+
+const sendErrorEmail = async (errorMessage: string) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: emailRecipient,
     subject: 'Fehler bei der Datenbankanfrage',
     html: `
       <p><strong>Ein Fehler ist aufgetreten:</strong></p>
       <p>${errorMessage}</p>
       <p><strong>Bitte überprüfe die Datenbankverbindung oder die API-Konfiguration.</strong></p>
       <p><i>Dies ist eine automatisch generierte E-Mail, bitte nicht antworten.</i></p>
-    `,  // HTML-Format für die E-Mail
+    `,
   };
 
   try {
@@ -92,33 +124,33 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const data = await request.json();
 
-    // Verschlüsselung der übermittelten Daten
-    const payload = {
-      q1: encrypt(data.q1),
-      q2: encrypt(data.q2),
-      name: encrypt(data.name),
-      lastname: encrypt(data.lastname),
-      email: encrypt(data.email),
-      createdAt: new Date(),
-    };
+    if (data.message) {
+      // Kontaktformular
+      await sendContactFormEmail(data);
+    } else {
+      // Bewerbungsformular
+      const payload = {
+        q1: encrypt(data.q1),
+        q2: encrypt(data.q2),
+        name: encrypt(data.name),
+        lastname: encrypt(data.lastname),
+        email: encrypt(data.email),
+        createdAt: new Date(),
+      };
 
-    // MongoDB-Daten speichern
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db(process.env.MONGODB_DB || 'ignite');
-    await db.collection('applicant').insertOne(payload);
-    await client.close();
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db(process.env.MONGODB_DB || 'ignite');
+      await db.collection('applicant').insertOne(payload);
+      await client.close();
 
-    // E-Mail senden
-    await sendFormEmail(data);
+      await sendFormEmail(data);
+    }
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
   } catch (error) {
     console.error('Fehler bei der Datenbankanfrage:', error);
-
-    // Fehler-E-Mail senden
     await sendErrorEmail(error.message);
-
     return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 });
   }
 };

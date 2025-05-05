@@ -1,0 +1,47 @@
+---
+import DefaultLayout from '../layouts/DefaultLayout.astro';
+import Contact from '../components/Contact.jsx';
+import CallToAction from '../components/CallToAction.astro';
+
+const initialPosition = Astro.url.searchParams.get('position') || '';
+export const prerender = false;
+---
+
+<DefaultLayout>
+  <main class="mitmachen-container">
+    <h1>Schreib' uns!</h1>
+    <p class="intro">
+      Bei Fragen oder Anregungen kannst du uns jederzeit über das Kontaktformular erreichen.
+    </p>
+    <Contact client:load />
+    <CallToAction />
+
+  </main>
+
+  <style lang="css">
+    .mitmachen-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      font-family: var(--font-sans);
+      color: var(--color-text);
+    }
+    .intro {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    h1, h2 { 
+      color: var(--color-primary);
+    }
+    .form-section {
+      margin-top: 3rem;
+    }
+    #application-form {
+      margin: 2rem 0 2rem 0;
+    }
+    .text-wrapper {
+      margin-bottom: 2rem;
+    }
+    /* CSS-Variablen im globalen Stylesheet definiert */
+  </style>
+</DefaultLayout>

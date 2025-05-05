@@ -42,12 +42,13 @@ export default function OpenPositions() {
           gap: var(--spacing-md, 1.5rem);
         }
         .job-card {
-          background: var(--neutral-200);
-          border-radius: var(--radius-lg, 16px);
+          background-color: var(--dark-100);
+          border: 3px solid var(--gradient-100);
+          border-radius: 1rem;
+          box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .image-wrapper {
           position: relative;
@@ -93,12 +94,12 @@ export default function OpenPositions() {
         .job-title {
           margin: 0;
           font-size: var(--text-lg, 1.125rem);
-          color: var(--primary-500);
+          color: var(--neutral-200);
         }
         .job-desc {
           margin: 0;
           font-size: var(--text-sm, 0.875rem);
-          color: var(--neutral-700);
+          color: var(--neutral-400);
         }
       `}</style>
     </div>
