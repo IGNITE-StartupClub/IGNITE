@@ -12,6 +12,10 @@ export default defineConfig({
   compressHTML: true,
   output: 'server',
 
+  experimental: {
+    session: process.env.NODE_ENV === 'development',  // Enable sessions only in development
+  },
+
   integrations: [
     react(),
     mdx(),

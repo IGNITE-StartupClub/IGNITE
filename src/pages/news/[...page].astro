@@ -39,6 +39,7 @@ const { page } = Astro.props
                 url={'/news/' + project.id}
                 title={project.data.title}
                 footer={'Author: ' + project.data.author}
+                img={project.data.image}
               >
                 {project.data.description}
               </Card>

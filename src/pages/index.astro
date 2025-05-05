@@ -4,6 +4,7 @@ import Hero from '../components/Hero.astro'
 import Feature from '../components/Feature.astro'
 import Counter from '../components/Counter.astro'
 import ContentMedia from '../components/ContentMedia.astro'
+import News from '../components/news.astro'
 import { Icon } from 'astro-icon/components'
 import { Accordion, AccordionItem } from 'accessible-astro-components'
 import Button from '../components/Button.astro'
@@ -13,7 +14,7 @@ import Button from '../components/Button.astro'
   <Hero />
   <section class="my-64">
     <div class="container">
-      <h2 class="mb-16 text-6xl">Was wir machen</h2>
+      <h2 class="mb-16 text-4xl md:text-6xl">Was wir machen</h2>
       <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
         <Feature icon="ion:diamond-outline" title="Workshops & Events">
           Wir lernen gemeinsam von Expert:innen & Peer-to-Peer über Startups und Entrepreneurship.
@@ -37,17 +38,19 @@ import Button from '../components/Button.astro'
       </div>
     </div>
   </section>
-  <ContentMedia imgSrc="/accessible-components.webp" title="Neuigkeiten">
+  <section>
+  <News />
+  <ContentMedia imgSrc="/accessible-components.webp" title="Neuigkeiten" cta="Mehr lesen!" cta_link="/news">
     <h2>Unser Vorstand</h2>
     <p class="text-2xl">
       Unser neuer Vorstand wurde gewählt: Linus Heidemann (Präsident), Emma, Ole, Cornelis & Silas Kruckenberg (Generalsekretär).
     </p>
-    <a class="button secondary has-icon max-w-max" href="/team">
+    <a class="button has-icon max-w-max" href="/team">
       <Icon name="ion:reader-outline" />
       Das Team
     </a>
-
   </ContentMedia>
+</section>
   <!-- <ContentMedia imgSrc="/wcag-compliant.webp" reverseImg={true}>
     <h2>Absichtserklärung</h2>
     <p class="text-2xl">

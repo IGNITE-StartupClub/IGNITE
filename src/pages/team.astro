@@ -5,7 +5,6 @@ import { teams } from '../data/teams.js' // Importiere die Team-Daten
 
 const prerender = true
 ---
-
 <DefaultLayout title="Team" description="Das Team des IGNITE Startup Club Lüneburg">
   <div class="container">
     <div class="space-content my-12">
@@ -13,7 +12,7 @@ const prerender = true
       <p class="text-2xl mt-4">Lerne das talentierte Team kennen, das den IGNITE Startup Club Lüneburg vorantreibt. Jeder von uns trägt mit einzigartigen Fähigkeiten und einer gemeinsamen Vision bei, um die nächste Generation von Unternehmern zu unterstützen.</p>
       
       <div class="team-sections">
-        {teams.map((team) => (
+        {teams.map((team, teamIndex) => (
           <section class="team-section my-12">
             <h2 class="text-3xl font-semibold mt-8">{team.name}</h2>
             <p class="text-lg mt-2">{team.description}</p>
@@ -27,17 +26,18 @@ const prerender = true
                   <div class="job-info">
                     <span class="category-pill">{member.position}</span>
                     <span>
-                    <h3 class="job-title">{member.name}</h3>
-                    <p class="job-desc">{member.description}</p>
-                  </span>
+                      <h3 class="job-title">{member.name}</h3>
+                      <p class="job-desc">{member.description}</p>
+                    </span>
                     
                     {/* Dynamischer Trigger für das Modal */}
                     <a 
                       class="button color-secondary" 
-                      id={`modal-trigger-${index}`}
-                      data-member-index={index} 
+                      id={`modal-trigger-${teamIndex}-${index}`} 
+                      data-member-index={`${teamIndex}-${index}`}
                     >
-                    Mehr lesen</a>                  
+                      Mehr lesen
+                    </a>
                   </div>
                 </div>
               ))}
@@ -49,11 +49,11 @@ const prerender = true
   </div>
 
   {/* Modal */}
-  {teams.map((team) => (
+  {teams.map((team, teamIndex) => (
     team.members.map((member, index) => (
       <Modal
-        key={index}
-        triggerId={`modal-trigger-${index}`}
+        key={`${teamIndex}-${index}`} // Unique key based on team and member index
+        triggerId={`modal-trigger-${teamIndex}-${index}`} // Match trigger ID
         title={member.name}
       >
         <p>{member.description}</p>

@@ -1,18 +1,40 @@
 ---
 import { Media } from 'accessible-astro-components'
+import { Icon } from 'astro-icon/components'
 
-const { imgSrc, title, reverseImg = false } = Astro.props
+const { imgSrc, 
+        title,
+        cta,
+        cta_link,
+        reverseImg = false } = Astro.props
 ---
 
 <section class="my-64">
   <div class="container">
-    <h2 class="text-6xl my-12">{title}</h2>
+    {title && (
+      <h2 class="text-4xl md:text-6xl my-12">{title}</h2>
+    )}
+
     <div class="grid grid-cols-1 gap-24 md:grid-cols-2">
-      {!reverseImg ? <Media class="rounded-lg" src={imgSrc} /> : ''}
+      {!reverseImg && imgSrc && (
+        <Media class="rounded-lg" src={imgSrc} />
+      )}
+      
       <div class="space-content flex flex-col justify-center">
         <slot />
       </div>
-      {reverseImg ? <Media class="rounded-lg" src={imgSrc} /> : ''}
+
+      {reverseImg && imgSrc && (
+        <Media class="rounded-lg" src={imgSrc} />
+      )}
     </div>
+
+    {cta && cta_link && (
+      <div class="flex flex-col items-center justify-center mt-12">
+        <a class="button size-large secondary has-icon" href={cta_link}>
+          <Icon name="ion:reader-outline" />{cta}
+        </a>
+      </div>
+    )}
   </div>
 </section>
