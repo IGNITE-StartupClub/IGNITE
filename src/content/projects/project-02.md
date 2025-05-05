@@ -1,21 +1,17 @@
 ---
-title: Sign Language Bridge
-author: Jane Smith
-description: An AI-powered real-time sign language translation system that enables seamless communication between deaf and hearing individuals
+title: Kick-off von Ignite
+author: Joshua Biron, Martin Auer & Silas Kruckenberg
+description: Rückblick auf das Kick-off Event von Ignite, das die Grundlage für eine neue Startup-Initiative an der Leuphana Universität legt
 ---
 
-## Project Overview
+Am 10.12.24 luden Joshua Biron, Martin Auer und Silas Kruckenberg zum Kick-off Event von **Ignite** ins **Utopia** ein. Rund 35 Studierende, die sich für Startup und Entrepreneurship interessieren, folgten der Einladung und kamen zusammen, um mehr über die neue Initiative zu erfahren.
 
-Sign Language Bridge revolutionizes communication for the deaf community by providing real-time translation between sign language and spoken/written language. Using advanced computer vision and natural language processing, the system captures sign language gestures and converts them into text or speech, while also translating spoken words into animated sign language.
+In ihrer Eröffnungsrede erklärten die Gründer, warum sie eine Initiative wie Ignite an der Leuphana für so wichtig halten: „Als wir angefangen haben zu studieren, hätten wir uns eine solche Initiative gewünscht“, so Joshua. Die Idee war, eine Anlaufstelle für Gründungsinteressierte zu schaffen, vor allem für diejenigen, die in ihren Studiengängen bisher wenig Berührungspunkte mit Unternehmertum hatten. Dabei ist es den Initiatoren besonders wichtig, Studierende aus allen Fachrichtungen anzusprechen und nicht nur diejenigen, die Wirtschaft oder International Business and Entrepreneurship (IBAE) studieren.
 
-## Technical Challenges
+Die drei Gründer machten auch deutlich, warum sie in Lüneburg und an der Leuphana großes Potenzial sehen. Einerseits bieten die vielen Professuren im Bereich Entrepreneurship hervorragende Chancen, andererseits ist Lüneburg durch die gute Anbindung an die Metropolregion Hamburg und das gut vernetzte Gründungsökosystem ein idealer Standort. Auch Initiativen wie das **Utopia**, die **WLG** und die **IHK** bieten wertvolle Unterstützung für Gründer. Besonders hervorheben sie die interdisziplinäre Ausrichtung der Leuphana, die für diverse Gründungsteams einen echten Vorteil darstellt.
 
-The biggest hurdle was developing a system that could accurately capture and interpret the nuanced movements of sign language in real-time, including facial expressions and hand positions. We implemented a novel approach using 3D motion tracking and contextual understanding to achieve high accuracy in varied lighting conditions.
+Im Anschluss stellten die Gründer die Vision von Ignite und die drei Hauptziele der Initiative vor: Entrepreneurship fördern, eine Community aus den ambitioniertesten unternehmerischen Talenten aufzubauen und als Interessenvertretung für das Thema an der Universität zu fungieren. Dabei betonten sie, dass es ihnen wichtig sei, die Teilnehmer aktiv in den Aufbau und die Gestaltung der Initiative einzubinden. „Wir wollen nicht einfach vorgeben, wie Ignite aussehen soll, es soll zu **eurer** Initiative werden. Wir möchten nur den Impuls geben – Eure Ideen sind gefragt!“
 
-## Testimonial
+Eine Keynote von **Dr. Markus Lemmens**, Leiter der Kommunikation an der Leuphana, rundete den Abend ab. Dr. Lemmens teilte seine eigenen unternehmerischen Erfahrungen und erklärte, warum er die Initiative für unterstützenswert hält. Spontan gab es auch einen Pitch von **Leon Reumschüssel**, dem Co-Gründer des Lüneburger AI-Startups **Presada**, der betonte, wie wichtig Netzwerke wie Ignite für die Gründung und den Erfolg eines Unternehmens sein können.
 
-> "Sign Language Bridge has transformed how I communicate with my hearing colleagues. It's like having a skilled interpreter available 24/7, giving me true independence in professional settings."
->
-> - David Chen, Software Engineer
-
-The project is currently expanding to support more sign languages and developing specialized vocabularies for professional environments.
+Der Abend klang entspannt bei kühlen Getränken, tollen Gesprächen und Musik aus. Es war ein inspirierender Start für die Initiative, und wir freuen uns auf alles, was noch kommt!

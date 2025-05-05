@@ -12,11 +12,6 @@ export default defineConfig({
   compressHTML: true,
   output: 'server',
 
-  // Enable experimental session support
-  experimental: {
-    session: true,  // Add this line
-  },
-
   integrations: [
     react(),
     mdx(),
