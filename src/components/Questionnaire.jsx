@@ -2,23 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { positions } from '../data/jobs.js';
 
 export default function Questionnaire({ initialPosition = '' }) {
-  // Wenn initialPosition gesetzt, ab Schritt 3 starten (Intro + Position werden übersprungen)
   const startStep = initialPosition ? 3 : 1;
   const [step, setStep] = useState(startStep);
   const [data, setData] = useState({
     position: initialPosition,
-    q1: '', // Was reizt dich…
-    q2: '', // Welche Erfahrungen…
-    q3: '', // Welche konkreten Stärken…
-    q4: '', // Wie viel Zeit…
-    q5: '', // Wie gehst du mit Struktur-Unsicherheit um?
+    q1: '',
+    q2: '',
+    q3: '',
+    q4: '',
+    q5: '',
     name: '',
     lastname: '',
     email: '',
   });
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false); // 👈 hinzugefügt
 
-  // Hydrate initialPosition nach Client-Load
   useEffect(() => {
     if (initialPosition) {
       setData(d => ({ ...d, position: initialPosition }));
@@ -33,17 +32,22 @@ export default function Questionnaire({ initialPosition = '' }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setLoading(true); // 👈 Start Loading
+
     await fetch('/api/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+
+    setLoading(false); // 👈 Stop Loading
     setDone(true);
   };
 
   if (done) {
     return <p>Danke für deine Bewerbung! Wir melden uns bald bei dir.</p>;
   }
+
 
   return (
     <form
@@ -206,9 +210,14 @@ export default function Questionnaire({ initialPosition = '' }) {
               required
             />
           </label>
-          <button type="submit" className="button secondary">
-            Absenden
+          <button
+            type="submit"
+            className="button secondary"
+            disabled={loading}
+          >
+            {loading ? 'Wird gesendet...' : 'Absenden'}
           </button>
+
         </>
       )}
 

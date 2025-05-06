@@ -8,34 +8,45 @@ import Footer from '../components/Footer.astro'
 
 const {
   title = 'IGNITE Startup Club Lueneburg',
-  description,
+  description = 'IGNITE ist die studentische Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.',
   url = Astro.site,
-  image = '/favicon.svg',
+  image = '/og-image.jpg',
   author = 'IGNITE Startup Club Lueneburg',
 } = Astro.props
 ---
 
-<html lang="en" dir="ltr">
+<html lang="de" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="og:image" content="https://ignite-startupclub.de/og-image.jpg" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
-    <link rel="sitemap" href="/sitemap-index.xml" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32">
+    <!-- SEO Meta -->
     <Seo
       title={title}
       description={description}
       url={url}
       image={image}
       author={author}
-      keywords={["Startup", "Lüneburg", "Student Initative", "Leuphana", "University", "Lueneburg", "Entrepreneurship", "Innovation", "Business", "Networking", "Mentoring", "Support", "Community", "Events", "Workshops", "Resources", "Funding", "Incubator", "Accelerator", "Pitching", "Business Plan", "Startup Culture"]}/>
+      keywords={["Startup", "Lüneburg", "Studentische Initiative", "Leuphana", "Universität", "Entrepreneurship", "Innovation", "Business", "Netzwerk", "Mentoring", "Community", "Workshops", "Pitch", "Gründung"]}/>
     <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Sitemap -->
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
   </head>
   <body>
     <Header />
@@ -44,7 +55,6 @@ const {
     </main>
     <Footer />
     <style lang="scss" is:global>
-      // theme settings
       :root {
         --radius-small: 3px;
         --radius-large: 6px;
@@ -52,7 +62,6 @@ const {
         --font-measure: 70ch;
         --font-family-default: 'Open Sans', sans-serif;
         --font-family-special: 'Open Sans', sans-serif;
-        // light theme
         --font-color: var(--neutral-100);
         --action-color: var(--secondary-100);
         --action-color-state: var(--secondary-500);
@@ -61,7 +70,6 @@ const {
         --neutral-background: var(--neutral-900);
       }
 
-      // dark color scheme overrides
       .darkmode {
         --font-color: var(--neutral-100);
         --action-color: var(--secondary-100);
@@ -71,7 +79,6 @@ const {
         --neutral-background: var(--neutral-900);
       }
 
-      // sticky footer on low content pages
       html,
       body {
         height: 100%;
