@@ -13,10 +13,32 @@ import sitemap from 'astro-sitemap';
 export default defineConfig({
   compressHTML: true,
   output: 'server',
+  site: 'https://ignite-startupclub.de',
 
   integrations: [react(), mdx(), icon(), tailwind({
     applyBaseStyles: false,
-  }), compress(), sitemap()],
+  }), compress(),
+  sitemap({
+    customPages: [
+      'https://ignite-startupclub.de/mitmachen',
+    ],
+    changefreq: 'weekly',
+    priority: 0.7,
+    lastmod: new Date().toISOString(),
+    serialize(item) {
+      if (item.url.endsWith('/')) {
+        item.url = item.url.slice(0, -1);
+      }
+      return item;
+    },
+    i18n: {
+      defaultLocale: 'de',
+      locales: {
+        de: 'de-DE',
+      }
+    }
+  })
+],
 
   vite: {
     css: {
