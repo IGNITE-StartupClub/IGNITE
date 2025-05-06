@@ -8,7 +8,7 @@ import Footer from '../components/Footer.astro'
 
 const {
   title = 'IGNITE Startup Club Lueneburg',
-  description = 'Die Startup-Initiative der Leuphana Universität Lüneburg',
+  description,
   url = Astro.site,
   image = '/favicon.svg',
   author = 'IGNITE Startup Club Lueneburg',
@@ -23,7 +23,14 @@ const {
 
     <!-- favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32">
     <Seo
+      title={title}
+      description={description}
+      url={url}
+      image={image}
+      author={author}
       keywords={["Startup", "Lüneburg", "Student Initative", "Leuphana", "University", "Lueneburg", "Entrepreneurship", "Innovation", "Business", "Networking", "Mentoring", "Support", "Community", "Events", "Workshops", "Resources", "Funding", "Incubator", "Accelerator", "Pitching", "Business Plan", "Startup Culture"]}/>
     <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
   </head>

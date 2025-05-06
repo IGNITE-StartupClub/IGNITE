@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal } from 'accessible-astro-components'
 import { positions } from '../data/jobs.js'; // Importiere die Liste der offenen Stellen
 // Exportiere die Liste, damit sie auch im Questionnaire genutzt werden kann
+const date = new Date();
 
 
 export default function OpenPositions() {
@@ -23,18 +24,10 @@ export default function OpenPositions() {
             <h3 className="job-title">{job.title}</h3>
             <p className="job-desc">{job.description}</p>
 
-            {/* Führe zum Formular mit vorausgewählter Position und scroll zum Formular */}
-            {/* <a
-              href={`/mitmachen?position=${job.id}#application-form`}
-              className="button color-secondary"
-            >
-              Jetzt bewerben
-            </a> */}
 
           </div>
         </article>
       ))}
-
 <style>{`
         .positions-grid {
           display: grid;
@@ -103,5 +96,42 @@ export default function OpenPositions() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function JobStructuredData() {
+  const jobsAsLD = positions.map((job) => ({
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description,
+    datePosted: new Date().toISOString().split('T')[0], // heute
+    validThrough: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    employmentType: "VOLUNTEER", 
+    hiringOrganization: {
+      "@type": "Organization",
+      name: "IGNITE Startup Club Lüneburg",
+      sameAs: "https://ignite-startupclub.de",
+      logo: "https://ignite-startupclub.de/favicon.svg"
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Lüneburg",
+        addressCountry: "DE"
+      }
+    },
+    identifier: {
+      "@type": "PropertyValue",
+      name: "IGNITE",
+      value: job.id
+    }
+  }));
+
+  return (
+    <script type="application/ld+json" suppressHydrationWarning>
+      {JSON.stringify(jobsAsLD.length === 1 ? jobsAsLD[0] : jobsAsLD)}
+    </script>
   );
 }
