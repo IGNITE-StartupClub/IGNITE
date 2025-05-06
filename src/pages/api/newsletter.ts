@@ -71,11 +71,5 @@ export const POST: APIRoute = async ({ request }) => {
   if (error) {
     return new Response(JSON.stringify({ message: 'Fehler beim E-Mail-Versand.' }), { status: 500 });
   }
-  const client = new MongoClient(uri);
-  await client.connect();
-  const db = client.db(process.env.MONGODB_DB || 'ignite');
-  await db.collection('email').insertOne({email});
-  await client.close();
-
   return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
 };
