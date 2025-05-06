@@ -8,6 +8,7 @@ export const teams = [
           position: 'Präsident',
           photo: '/team/',
           description: 'Linus Heidemann ist der Präsident von IGNITE und kümmert sich um die strategische Planung.',
+          long_description: 'Linus Heidemann ist der Präsident von IGNITE und kümmert sich um die strategische Planung. Er ist verantwortlich für die Organisation und Koordination des Teams sowie für die Kommunikation mit externen Partnern.',
         },
         {
           name: 'Emma Siemer',
