@@ -57,40 +57,6 @@ const sendFormEmail = async (data: any) => {
   }
 };
 
-// Funktion zum Senden der E-Mail für Kontaktformulare
-const sendContactFormEmail = async (data: any) => {
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to: `${process.env.EMAIL_RECIPIENT_1},${process.env.EMAIL_RECIPIENT_2}`,
-    subject: 'Neue Kontaktanfrage',
-    html: `
-      <h2>Neue Kontaktanfrage:</h2>
-      <p><strong>Vorname:</strong> ${data.name}</p>
-      <p><strong>Nachname:</strong> ${data.lastname}</p>
-      <p><strong>E-Mail:</strong> ${data.email}</p>
-      <p><strong>Nachricht:</strong> ${data.message}</p>
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Kontaktformular-E-Mail gesendet.');
-  } catch (err) {
-    console.error('Fehler beim Senden der Kontaktformular-E-Mail:', err);
-  }
-};
-
 const sendErrorEmail = async (errorMessage: string) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -124,10 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const data = await request.json();
 
-    if (data.message) {
-      // Kontaktformular
-      await sendContactFormEmail(data);
-    } else {
+    if (data) {
       // Bewerbungsformular
       const payload = {
         q1: encrypt(data.q1),

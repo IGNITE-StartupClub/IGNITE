@@ -3,6 +3,7 @@ import DefaultLayout from '../../layouts/DefaultLayout.astro'
 import { Breadcrumbs, BreadcrumbsItem } from 'accessible-astro-components'
 import { getCollection, render } from 'astro:content'
 import type { CollectionEntry } from 'astro:content'
+import Image from 'astro/components/Image.astro'
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects')
@@ -37,12 +38,21 @@ const { Content } = await render(project)
   <section class="my-12">
     <div class="container">
       <h1>{project.data.title}</h1><br />
-      <p>Author: {project.data.author} - {new Date(project.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
-    </div>
+      <div class="image-wrapper">
+        <Image 
+        src={project.data.image}
+        alt={project.data.title + ' - Image'}
+        class="rounded-lg shadow-lg"
+        width={1200}
+        height={100}
+        loading="lazy"/>
+      </div>
+      </div>
   </section>
   <section class="my-12">
     <div class="space-content container">
+      <p class="my-6">Author: {project.data.author} - {new Date(project.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
       <Content />
     </div>
   </section>
@@ -62,5 +72,16 @@ const { Content } = await render(project)
     @media (min-width: 950px) {
       grid-template-columns: repeat(3, 1fr);
     }
+  }
+  .image-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+  }
+  .image-wrapper img {
+    top: 0;
+    position: absolute;
+    width: 100%; height: 100%;
+    object-fit: cover;
   }
 </style>

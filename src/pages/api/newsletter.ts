@@ -1,9 +1,21 @@
 import { APIRoute } from 'astro';
 import { Resend } from 'resend';
+import { MongoClient } from 'mongodb';
+import crypto from 'crypto';
 import 'dotenv/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const uri = process.env.MONGODB_URI!;
+const secret = process.env.ENCRYPTION_SECRET!;
 
+function encrypt(text: string) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(secret, 'hex'), iv);
+  let enc = cipher.update(text, 'utf8', 'hex');
+  enc += cipher.final('hex');
+  const tag = cipher.getAuthTag();
+  return iv.toString('hex') + ':' + enc + ':' + tag.toString('hex');
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const { email } = await request.json();
@@ -59,6 +71,11 @@ export const POST: APIRoute = async ({ request }) => {
   if (error) {
     return new Response(JSON.stringify({ message: 'Fehler beim E-Mail-Versand.' }), { status: 500 });
   }
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db(process.env.MONGODB_DB || 'ignite');
+  await db.collection('email').insertOne({email});
+  await client.close();
 
   return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
 };

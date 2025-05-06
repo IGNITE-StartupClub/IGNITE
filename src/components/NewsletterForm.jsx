@@ -90,6 +90,12 @@ export default function NewsletterForm() {
           color: red;
           font-size: 0.9rem;
         }
+        /* Light Mode Anpassungen */
+        @media (prefers-color-scheme: light) {
+          input, textarea {
+            color: black; /* Schriftfarbe im Light Mode */
+          }
+        }
       `}</style>
     </form>
   );
