@@ -28,3 +28,5 @@ package-lock.json
 
 # astro build files
 .astro
+# Local Netlify folder
+.netlify

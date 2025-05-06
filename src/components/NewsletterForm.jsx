@@ -78,14 +78,6 @@ export default function NewsletterForm() {
           border-radius: 4px;
           border: 1px solid #ccc;
         }
-        button {
-          background-color: var(--primary-color, #8C3974);
-          color: white;
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          border: none;
-          cursor: pointer;
-        }
         button[disabled] {
           opacity: 0.6;
           cursor: not-allowed;

@@ -27,6 +27,10 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { email } = await request.json();
 
+    console.log('📨 Versand an: ', email);
+    console.log('✉️ GMAIL_USER:', process.env.GMAIL_USER);
+    console.log('✉️ GMAIL_PASS length:', process.env.GMAIL_APP_PASSWORD?.length);
+
     // === 1. Validierung ===
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
