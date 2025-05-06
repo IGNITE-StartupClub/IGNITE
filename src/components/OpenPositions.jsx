@@ -99,7 +99,7 @@ export default function OpenPositions() {
   );
 }
 
-export default function JobStructuredData() {
+export function JobStructuredData() {
   const jobsAsLD = positions.map((job) => ({
     "@context": "https://schema.org",
     "@type": "JobPosting",
