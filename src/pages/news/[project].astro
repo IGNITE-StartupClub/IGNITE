@@ -25,7 +25,11 @@ const { project } = Astro.props
 const { Content } = await render(project)
 ---
 
-<DefaultLayout title={project.data.title} description={project.data.body} url={project.data.title}>
+<DefaultLayout
+  title={project.data.title}
+  description={project.data.description || project.data.title} 
+  url={project.slug || project.id}
+/>
   <div class="container">
     <div class="mt-12">
       <Breadcrumbs>
