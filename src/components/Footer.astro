@@ -2,6 +2,8 @@
 const currentYear = new Date().getFullYear();
 import { Icon } from 'astro-icon/components'
 import Logo from "./Logo.astro";
+import Newsletter from "../components/NewsletterForm";
+
 ---
 
 <footer class="site-footer" role="contentinfo">
@@ -28,15 +30,15 @@ import Logo from "./Logo.astro";
           <li><a href="/kontakt">Kontakt</a></li>
           <li><a href="/team">Team</a></li>
         </ul>
+        <div class="footer-social">
+          <ul>
+            <li><Icon name="ion:logo-instagram" /><a href="https://www.instagram.com/ignite.lueneburg/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+            <li><Icon name="ion:logo-linkedin" /><a href="https://www.linkedin.com/company/ignite-leuphana/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+          </ul>
+        </div>
       </nav>
-
+      <Newsletter  client:load/>
       <!-- Social Media (Beispiel: Twitter, GitHub, LinkedIn) -->
-      <div class="footer-social">
-        <ul>
-          <li><Icon name="ion:logo-instagram" /><a href="https://www.instagram.com/ignite.lueneburg/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-          <li><Icon name="ion:logo-linkedin" /><a href="https://www.linkedin.com/company/ignite-leuphana/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
-        </ul>
-      </div>
     </div>
 
     <!-- Unterer Bereich des Footers -->

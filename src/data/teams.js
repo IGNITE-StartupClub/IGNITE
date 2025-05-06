@@ -6,25 +6,19 @@ export const teams = [
         {
           name: 'Linus Heidemann',
           position: 'Präsident',
-          photo: '/team/silas.jpg',
+          photo: '/team/',
           description: 'Linus Heidemann ist der Präsident von IGNITE und kümmert sich um die strategische Planung.',
         },
         {
           name: 'Emma Siemer',
           position: 'Vize-Präsidentin',
-          photo: '/images/team/laura.jpg', 
+          photo: '/team/', 
           description: 'Emma Siemer ist die Vize-Präsidentin von IGNITE und kümmert sich um die strategische Planung.',
         },
         {
           name: 'Cornelis Ebel',
           position: 'Schatzmeister',
-          photo: '/team/laura.jpg', 
-          description: 'Emma Siemer ist die Vize-Präsidentin von IGNITE und kümmert sich um die strategische Planung.',
-        },
-        {
-          name: 'Ole Koesling',
-          position: 'Schatzmeister',
-          photo: '/team/laura.jpg', 
+          photo: '/team/', 
           description: 'Emma Siemer ist die Vize-Präsidentin von IGNITE und kümmert sich um die strategische Planung.',
         },
         {
@@ -32,6 +26,12 @@ export const teams = [
           position: 'General Sekretär',
           photo: '/team/silas.jpg', 
           description: 'Silas Kruckenberg ist der General Sekretär von IGNITE und kümmert sich um die strategische Planung.',
+        },
+        {
+          name: 'Ole Koesling',
+          position: 'Vize-General Sekretär',
+          photo: '/team/', 
+          description: 'Emma Siemer ist die Vize-Präsidentin von IGNITE und kümmert sich um die strategische Planung.',
         }
       ]
     },
@@ -48,7 +48,7 @@ export const teams = [
         {
           name: 'Laura Beispiel',
           position: 'Event Coordinator',
-          photo: '/images/team/laura.jpg', 
+          photo: '/team/', 
           description: 'Laura organisiert unsere Events und ist für den Ablauf verantwortlich.',
         }
       ]
