@@ -1,6 +1,7 @@
 ---
 import '@astrojs/tailwind/base.css'
 import '../assets/scss/globals.scss'
+import { Seo } from "astro-seo-meta"
 import SiteMeta from '../components/SiteMeta.astro'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
@@ -9,7 +10,7 @@ const {
   title = 'IGNITE Startup Club Lueneburg',
   description = 'Die Startup-Initiative der Leuphana Universität Lüneburg',
   url = Astro.site,
-  image = 'social-preview-image.png',
+  image = '/favicon.svg',
   author = 'IGNITE Startup Club Lueneburg',
 } = Astro.props
 ---
@@ -22,7 +23,8 @@ const {
 
     <!-- favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-
+    <Seo
+      keywords={["Startup", "Lüneburg", "Student Initative", "Leuphana", "University", "Lueneburg", "Entrepreneurship", "Innovation", "Business", "Networking", "Mentoring", "Support", "Community", "Events", "Workshops", "Resources", "Funding", "Incubator", "Accelerator", "Pitching", "Business Plan", "Startup Culture"]}/>
     <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
   </head>
   <body>

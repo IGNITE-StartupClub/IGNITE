@@ -7,20 +7,16 @@ import react from '@astrojs/react';
 
 import netlify from '@astrojs/netlify';
 
+import sitemap from 'astro-sitemap';
+
 // https://astro.build/config
 export default defineConfig({
   compressHTML: true,
   output: 'server',
 
-  integrations: [
-    react(),
-    mdx(),
-    icon(),
-    tailwind({
-      applyBaseStyles: false,
-    }),
-    compress(),
-  ],
+  integrations: [react(), mdx(), icon(), tailwind({
+    applyBaseStyles: false,
+  }), compress(), sitemap()],
 
   vite: {
     css: {
