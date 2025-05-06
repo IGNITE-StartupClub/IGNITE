@@ -14,7 +14,7 @@ const { src = '/astronaut-hero-img.webp' } = Astro.props
   <div class="container relative z-10">
     <div class="grid grid-cols-1 items-center gap-24">
       <div class="flex flex-col items-center gap-8">
-        <h1 class="text-center text-4xl lg:text-7xl">
+        <h1 class="text-center text-4xl sm:text-5xl lg:text-7xl">
           <slot>
             Dein <span class="text-gradient">Gründungsfunken</span> an der Leuphana Universität
           </slot>
@@ -41,21 +41,23 @@ const { src = '/astronaut-hero-img.webp' } = Astro.props
   }
 
   .text-gradient {
-    background: linear-gradient(
-      315deg,
-        var(--primary-400),
-        var(--secondary-500)
-      );
-    background-clip: border-box;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  color: var(--primary-400); // Fallback
+  background: linear-gradient(
+    315deg,
+    var(--primary-400),
+    var(--secondary-500)
+  );
+  background-clip: border-box;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 
   :global(.darkmode .text-gradient) {
     background: linear-gradient(
       315deg,
-      var(--primary-200) 25%,
-      var(--secondary-400)
+      var(--primary-500) 25%,
+      var(--secondary-300)
     );
     background-clip: border-box;
     -webkit-background-clip: text;
@@ -75,36 +77,55 @@ const { src = '/astronaut-hero-img.webp' } = Astro.props
     z-index: -1; /* Hinter den Inhalt legen */
   }
 
-  /* Basis-Styles für beide Dots */
-  .dot {
-    z-index: -10;
-    position: absolute;
-    width: 20vw;
-    height: 20vw;
-    border-radius: 50%;
+ /* Basis-Styles für beide Dots */
+.dot {
+  z-index: -10;
+  position: absolute;
+  width: 20vw;
+  height: 20vw;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.6;
+  animation-duration: 60s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+
+  @media (max-width: 768px) {
+    width: 45vw;
+    height: 45vw;
     filter: blur(100px);
-    opacity: 0.6; // Anpassbar je nach gewünschter Intensität
-    animation-duration: 60s;
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
+    opacity: 0.8;
   }
+}
 
-  /* Erster Dot: Violetter Farbton */
-  .dot-purple {
-    background: #9b5de5; // Beispiel-Farbwert (purple)
-    top: -15%;
-    left: 15%;
-    animation-name: move-purple;
-  }
+/* Erster Dot: Violett */
+.dot-purple {
+  background: #9b5de5;
+  top: -15%;
+  left: 15%;
+  animation-name: move-purple;
 
-  /* Zweiter Dot: Pinker Farbton */
-  .dot-pink {
-    background: #f15bb5; // Beispiel-Farbwert (pink)
-    bottom: -15%;
-    right: 15%;
-    animation-name: move-pink;
-    animation-delay: 5s; /* Startet leicht zeitversetzt */
+  @media (max-width: 768px) {
+    top: -10%;
+    right: -10%;
+    left: auto; // überschreibt das "left" der Desktop-Ansicht
   }
+}
+
+/* Zweiter Dot: Pink */
+.dot-pink {
+  background: #f15bb5;
+  bottom: -15%;
+  right: 15%;
+  animation-name: move-pink;
+  animation-delay: 5s;
+
+  @media (max-width: 768px) {
+    bottom: -10%;
+    left: -10%;
+    right: auto; // überschreibt das "right" der Desktop-Ansicht
+  }
+}
 
   /* Keyframes für Dot 1 */
   @keyframes move-purple {
