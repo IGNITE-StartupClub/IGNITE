@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 
 export default function NewsletterForm() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState(null); // null | 'success' | 'error'
+  const [status, setStatus] = useState(null); // 'success' | 'error' | null
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setStatus(null);
 
     try {
       const res = await fetch('/api/newsletter', {
@@ -25,6 +28,8 @@ export default function NewsletterForm() {
     } catch (err) {
       console.error(err);
       setStatus('error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,18 +37,29 @@ export default function NewsletterForm() {
     <form onSubmit={handleSubmit} className="newsletter-form width-full">
       <label>
         <h3>Werde Teil der Community</h3>
-        <p>Du erhälst eine E-Mail mit einem Einladungslink</p>
+        <p>Du erhältst eine E-Mail mit einem Einladungslink</p>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="dein@email.de"
-          className='w-full my-4 border-radius-4px border-1px-solid-#ccc'
+          className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+          disabled={loading}
         />
       </label>
-      <a className="button color-secondary" type="submit">Jetzt beitreten</a>
-      <p className="text-neutral-500">Mit dem Absenden deiner Email Adresse stimmst du unserer Datenschutzvereinbarung zu</p>
+
+      <button
+        type="submit"
+        className="button color-secondary"
+        disabled={loading}
+      >
+        {loading ? 'Wird gesendet...' : 'Jetzt beitreten'}
+      </button>
+
+      <p className="text-neutral-500">
+        Mit dem Absenden deiner Email-Adresse stimmst du unserer Datenschutzvereinbarung zu.
+      </p>
 
       {status === 'success' && <p className="success">Danke für deine Anmeldung!</p>}
       {status === 'error' && <p className="error">Da ging etwas schief. Bitte versuch’s später erneut.</p>}
@@ -62,11 +78,25 @@ export default function NewsletterForm() {
           border-radius: 4px;
           border: 1px solid #ccc;
         }
+        button {
+          background-color: var(--primary-color, #8C3974);
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+        }
+        button[disabled] {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
         .success {
           color: green;
+          font-size: 0.9rem;
         }
         .error {
           color: red;
+          font-size: 0.9rem;
         }
       `}</style>
     </form>
