@@ -2,13 +2,19 @@ import { APIRoute } from 'astro';
 import { MongoClient } from 'mongodb';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+
+// Sicherstellen, dass .env geladen ist (nur lokal nötig)
 import 'dotenv/config';
 
-const uri = process.env.MONGODB_URI!;
-const secret = process.env.ENCRYPTION_SECRET!;
+// === Environment-Vars sicher abrufen ===
+const uri = process.env.MONGODB_URI;
+const secret = process.env.ENCRYPTION_SECRET;
 const dbName = process.env.MONGODB_DB || 'ignite';
+const gmailUser = process.env.GMAIL_USER;
+const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
 function encrypt(text: string) {
+  if (!secret) throw new Error('ENCRYPTION_SECRET is missing');
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(secret, 'hex'), iv);
   let enc = cipher.update(text, 'utf8', 'hex');
@@ -21,27 +27,43 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { email } = await request.json();
 
-    if (!email || !email.includes('@')) {
-      return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse' }), { status: 400 });
+    // === 1. Validierung ===
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
+    }
+
+    // === 2. Mongo speichern ===
+    if (!uri || !secret) {
+      console.error('❌ MongoDB URI oder ENCRYPTION_SECRET fehlt in .env');
+      return new Response(JSON.stringify({ message: 'Server-Konfiguration unvollständig.' }), { status: 500 });
     }
 
     const encryptedEmail = encrypt(email);
     const client = new MongoClient(uri);
     await client.connect();
     const db = client.db(dbName);
-    await db.collection('newsletter').insertOne({ email: encryptedEmail, createdAt: new Date() });
+    await db.collection('newsletter').insertOne({
+      email: encryptedEmail,
+      createdAt: new Date(),
+    });
     await client.close();
+
+    // === 3. E-Mail senden ===
+    if (!gmailUser || !gmailPass) {
+      console.error('❌ GMAIL Zugangsdaten fehlen in .env');
+      return new Response(JSON.stringify({ message: 'E-Mail-Versand nicht konfiguriert.' }), { status: 500 });
+    }
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: gmailUser,
+        pass: gmailPass,
       },
     });
 
     const mailOptions = {
-      from: process.env.GMAIL_USER,
+      from: gmailUser,
       to: email,
       subject: 'Willkommen beim IGNITE Startup Club!',
       html: `
@@ -85,8 +107,12 @@ export const POST: APIRoute = async ({ request }) => {
     await transporter.sendMail(mailOptions);
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
-  } catch (error) {
-    console.error('Newsletter Fehler:', error);
-    return new Response(JSON.stringify({ message: 'Interner Fehler beim Speichern oder Senden.' }), { status: 500 });
+
+  } catch (error: any) {
+    console.error('❌ Newsletter Fehler:', error);
+    return new Response(
+      JSON.stringify({ message: 'Interner Fehler beim Speichern oder Senden.' }),
+      { status: 500 }
+    );
   }
 };
