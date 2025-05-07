@@ -19,12 +19,9 @@ export default defineConfig({
     applyBaseStyles: false,
   }), compress(),
   sitemap({
-    customPages: [
-      'https://ignite-startupclub.de/mitmachen',
-    ],
     changefreq: 'weekly',
     priority: 0.7,
-    lastmod: new Date().toISOString(),
+    lastmod: new Date(),
     serialize(item) {
       if (item.url.endsWith('/')) {
         item.url = item.url.slice(0, -1);
