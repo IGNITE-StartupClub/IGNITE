@@ -5,7 +5,15 @@ export const positions = [
       category: 'Community',
       team: 'IGNITE Community',
       title: 'Event- & Community Manager',
-      description: 'Plane Workshops & Netzwerk-Events für Studierende.',
+      description: 'Plane Workshops & Netzwerk-Events für Studierende. Wir suchen eine/n kreativen Kopf, der/die gerne mit Menschen arbeitet, selbstorganisiert ist und Lust hat, die Community zu gestalten.',
+    },
+    {
+      id: 'Coorporate-Events-Manager',
+      image: '', 
+      category: 'Community',
+      team: 'IGNITE Community',
+      title: 'Coorporate-Events Manager',
+      description: 'Plane Workshops & Netzwerk-Events zusammen mit Unternehmen aus der Region. Wir suchen hier eine/n kreativen Kopf, der/ die sich einerseits mit dem Relations-Team abstimmt, aber auch selbstständig Firmenworkshops plant.',
     },
     {
       id: 'Content-Creator',
@@ -13,7 +21,7 @@ export const positions = [
       category: 'Content',
       team: 'IGNITE Marketing',
       title: 'Content Creator',
-      description: 'Erstelle Posts, Grafiken und Videos rund ums Thema Entrepreneurship.',
+      description: 'Erstelle Posts, Grafiken und Videos rund ums Thema Entrepreneurship. Zusammen mit unserem Marketing-Team entwickelst du kreative Ideen, um unsere Community zu erreichen und zu begeistern. Du bist kreativ, hast ein Gespür für Trends und bist sicher im Umgang mit Social Media? Dann bewirb dich jetzt!',
     },
     {
       id: 'Partnership-Sponsorship',
@@ -21,6 +29,14 @@ export const positions = [
       category: 'Partnership',
       team: 'IGNITE Relations',
       title: 'Partnership & Sponsorship',
-      description: 'Gewinne Kooperationspartner und baue unsere Finanzen mit auf.',
+      description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
+    },
+    {
+      id: 'Partnership-Sponsorship',
+      image: '',
+      category: 'Partnership',
+      team: 'IGNITE Relations',
+      title: 'Partnership & Sponsorship',
+      description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
     },
   ];
