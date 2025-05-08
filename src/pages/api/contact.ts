@@ -46,7 +46,7 @@ const sendConfirmationEmail = async (email: string, name?: string) => {
     html: `
       <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
         <h2 style="color: #8C3974;">Danke für deine Nachricht 🙌</h2>
-        <p>Hallo${name ? ` ${name}` : ''},</p>
+        <p>Hallo${name ?` ${name}` : ''},</p>
         <p>vielen Dank für deine Kontaktanfrage. Wir kümmern uns um dein Anliegen und antworten dir so schnell wie möglich.</p>
 
         <p style="margin-top: 2rem;">In der Zwischenzeit kannst du unserer WhatsApp-Community beitreten:</p>
