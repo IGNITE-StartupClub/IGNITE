@@ -78,9 +78,9 @@ export const POST: APIRoute = async ({ request }) => {
       </p>
 
       <p style="font-size: 0.9rem;">
-        Bei Fragen oder Anregungen kannst du dich jederzeit an uns wenden:
-        <br /><strong>Silas Kruckenberg</strong>
-        <br /><a href="mailto:silas.kruckenberg@stud.leuphana.de">silas.kruckenberg@stud.leuphana.de</a>
+          Bei Fragen kannst du jederzeit an uns schreiben:
+          <br /><strong>IGNITE Startup Club Lüneburg</strong>
+          <br /><a href="mailto:ignite-startupclub@gmail.com">E-Mail schreiben</a>
       </p>
 
       <p style="font-size: 0.85rem; color: #aaa;">Diese E-Mail wurde automatisch versendet.</p>

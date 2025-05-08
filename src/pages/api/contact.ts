@@ -1,37 +1,41 @@
 import { APIRoute } from 'astro';
-import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import 'dotenv/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendContactFormEmail = async (data: any) => {
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
+  const recipients = [process.env.EMAIL_RECIPIENT_1, process.env.EMAIL_RECIPIENT_2]
+  .filter(Boolean) as string[];
 
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to: process.env.EMAIL_RECIPIENT,
-    subject: 'Neue Kontaktanfrage',
+  if (!recipients || recipients.length === 0) {
+    throw new Error('Keine gültigen Empfängeradressen definiert.');
+  }
+
+  await resend.emails.send({
+    from: 'kontakt@ignite-startupclub.de',
+    to: recipients,
+    subject: 'Neue Kontaktanfrage über das Formular',
     html: `
-      <h2>Neue Kontaktanfrage:</h2>
-      <p><strong>Anliegen:</strong> ${data.topic}</p>
-      <p><strong>Vorname:</strong> ${data.name}</p>
-      <p><strong>Nachname:</strong> ${data.lastname}</p>
-      <p><strong>E-Mail:</strong> ${data.email}</p>
-      <p><strong>Nachricht:</strong> ${data.message}</p>
-    `,
-  };
+      <div style="font-family: Inter, sans-serif; background-color: #ffffff; padding: 2rem; border-radius: 8px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee;">
+        <h2 style="color: #8C3974; margin-bottom: 1rem;">📩 Neue Kontaktanfrage</h2>
+        <table style="width: 100%; line-height: 1.6;">
+          <tr><td><strong>Anliegen:</strong></td><td>${data.topic}</td></tr>
+          <tr><td><strong>Vorname:</strong></td><td>${data.name}</td></tr>
+          <tr><td><strong>Nachname:</strong></td><td>${data.lastname}</td></tr>
+          <tr><td><strong>E-Mail:</strong></td><td>${data.email}</td></tr>
+        </table>
 
-  await transporter.sendMail(mailOptions);
+        <div style="margin-top: 1.5rem;">
+          <p style="margin: 0 0 0.5rem 0;"><strong>Nachricht:</strong></p>
+          <p style="background-color: #f5f5f5; padding: 1rem; border-radius: 6px; white-space: pre-wrap;">${data.message}</p>
+        </div>
+
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #ddd;" />
+        <p style="font-size: 0.85rem; color: #888;">Diese Nachricht wurde automatisch über das Kontaktformular auf der Website gesendet.</p>
+      </div>
+    `,
+  });
 };
 
 const sendConfirmationEmail = async (email: string, name?: string) => {
@@ -43,7 +47,7 @@ const sendConfirmationEmail = async (email: string, name?: string) => {
       <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
         <h2 style="color: #8C3974;">Danke für deine Nachricht 🙌</h2>
         <p>Hallo${name ? ` ${name}` : ''},</p>
-        <p>vielen Dank für deine Kontaktanfrage. Wir kümmert uns um dein Anliegen und antworten dir so schnell wie möglich.</p>
+        <p>vielen Dank für deine Kontaktanfrage. Wir kümmern uns um dein Anliegen und antworten dir so schnell wie möglich.</p>
 
         <p style="margin-top: 2rem;">In der Zwischenzeit kannst du unserer WhatsApp-Community beitreten:</p>
 
@@ -67,8 +71,8 @@ const sendConfirmationEmail = async (email: string, name?: string) => {
 
         <p style="font-size: 0.9rem;">
           Bei Fragen kannst du jederzeit an uns schreiben:
-          <br /><strong>Silas Kruckenberg</strong>
-          <br /><a href="mailto:silas.kruckenberg@stud.leuphana.de">silas.kruckenberg@stud.leuphana.de</a>
+          <br /><strong>IGNITE Startup Club Lüneburg</strong>
+          <br /><a href="mailto:ignite-startupclub@gmail.com">E-Mail schreiben</a>
         </p>
 
         <p style="font-size: 0.85rem; color: #aaa;">Diese E-Mail wurde automatisch versendet.</p>
