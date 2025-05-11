@@ -2,6 +2,7 @@
 import DefaultLayout from "../layouts/DefaultLayout.astro"
 import { Modal } from 'accessible-astro-components'
 import { teams } from '../data/teams.js' // Importiere die Team-Daten
+import { Icon } from "astro-icon/components"
 
 const prerender = true
 ---
@@ -24,10 +25,18 @@ const prerender = true
                     <img src={member.photo} alt={member.name} />
                   </div>
                   <div class="job-info">
-                    <span class="category-pill">{member.position}</span>
+                    <div class="flex flex-wrap gap-2">
+                      {(Array.isArray(member.position) ? member.position : [member.position]).map((pos, posIndex) => (
+                        <span 
+                          class="category-pill"
+                        >
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
                     <span>
                       <h3 class="job-title">{member.name}</h3>
-                      <p class="job-desc">{member.description}</p>
+                      <p class="job-desc line-clamp-2">{member.description}</p>
                     </span>
                     
                     {/* Dynamischer Trigger für das Modal */}
@@ -51,13 +60,46 @@ const prerender = true
   {/* Modal */}
   {teams.map((team, teamIndex) => (
     team.members.map((member, index) => (
-      <Modal
-        key={`${teamIndex}-${index}`} // Unique key based on team and member index
-        triggerId={`modal-trigger-${teamIndex}-${index}`} // Match trigger ID
-        title={member.name}
-      >
-        <p>{member.description}</p>
-      </Modal>
+    <Modal
+      key={`${teamIndex}-${index}`}
+      triggerId={`modal-trigger-${teamIndex}-${index}`}
+      title={member.name}
+    >
+      <div class="modal-body">
+        <div class="flex flex-wrap gap-2">
+                      {(Array.isArray(member.position) ? member.position : [member.position]).map((pos, posIndex) => (
+                        <span 
+                          class="category-pill"
+                        >
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
+          </div>
+        </div>
+
+        <p class="modal-description">{member.long_description}</p>
+
+        <div class="mt-auto flex justify-end">
+          <div class="flex gap-4">
+            <a 
+              href={`mailto:${member.email}`} 
+              title="E-Mail senden" 
+              class="p-2 rounded-full hover:bg-gray-100 transition"
+            >
+              <Icon name="mdi:email" class="w-7 h-7 text-black" />
+            </a>
+            <a 
+              href={member.linkedin} 
+              target="_blank" 
+              title="LinkedIn-Profil" 
+              class="p-2 rounded-full hover:bg-gray-100 transition"
+            >
+              <Icon name="mdi:linkedin" class="w-7 h-7 text-black" />
+            </a>
+          </div>
+        </div>
+    </Modal>
     ))
   ))}
 </DefaultLayout>
@@ -75,11 +117,10 @@ const prerender = true
     .job-card {
       background: var(--dark-100);
       border-radius: var(--radius-lg, 16px);
-      border: 1px solid var(--neutral-300);
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
     }
 
     .image-wrapper {

@@ -195,3 +195,22 @@
 .darkmode .button.type-secondary {
   color: var(--neutral-100);
 }
+
+@media (hover: hover) {
+  .tertiary {
+    width: 100%;
+    text-align: left;
+    background: linear-gradient(
+      to right,
+      var(--primary-500),
+      var(--secondary-100)
+    );
+    background-size: 200% auto;
+    background-position: left center;
+    transition: background-position 2s ease, text-align 2s ease;
+  }
+
+  .tertiary:hover {
+    background-position: right center;
+  }
+}

@@ -1,10 +1,13 @@
 ---
-title: Ignite beim ChefTreff 2025
-id: Workshop
-author: Ignite Team
-description: Rückblick auf zwei inspirierende Tage voller Gründergeist, Innovation und Austausch beim ChefTreff 2025 in Hamburg
-image: /news/cheftreff.jpg
-date: 2025-04-26
+title: "Cheftreff Workshop"
+description: "Ein exklusiver Workshop für Führungskräfte rund um digitale Transformation."
+image: "/images/cheftreff.jpg"
+author: "Anna Müller"
+author_title: "LeadershipGarage Lüneburg"
+avatar: "/images/anna.jpg"
+date: "2025-06-10"
+time: "18:00"
+register_url: "https://example.com/anmeldung"
 ---
 
 Für zwei Tage brachte die Messe ChefTreff wieder rund 5.000 Besucher:innen, Unternehmer:innen und Gründungsinteressierte in die Handelskammer nach Hamburg. Wir von Ignite waren mit rund zehn Engagierten vor Ort und konnten jede Menge Eindrücke sammeln, spannende Gespräche führen und Teil eines großartigen Programms sein.

@@ -22,19 +22,20 @@ const { imgSrc,
       
       <div class="space-content flex flex-col justify-center">
         <slot />
+        {cta && cta_link && (
+          <div class="flex flex-col items-start justify-center my-24">
+            <a class="button size-large secondary has-icon" href={cta_link}>
+              <Icon name="ion:reader-outline" />{cta}
+            </a>
+          </div>
+        )}
       </div>
 
       {reverseImg && imgSrc && (
         <Media class="rounded-lg" src={imgSrc} ratio='4:3' loading='lazy'/>
       )}
+
     </div>
 
-    {cta && cta_link && (
-      <div class="flex flex-col items-center justify-center mt-12">
-        <a class="button size-large secondary has-icon" href={cta_link}>
-          <Icon name="ion:reader-outline" />{cta}
-        </a>
-      </div>
-    )}
   </div>
 </section>
