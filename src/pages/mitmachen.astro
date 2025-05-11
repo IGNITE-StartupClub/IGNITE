@@ -1,64 +1,153 @@
 ---
-import DefaultLayout from '../layouts/DefaultLayout.astro';
-import OpenPositions from '../components/OpenPositions.jsx';
-import Questionnaire from '../components/Questionnaire.jsx';
-import CallToAction from '../components/CallToAction.astro';
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import OpenPositions from '../components/OpenPositions.jsx'
+import Questionnaire from '../components/Questionnaire.jsx'
+import CallToAction from '../components/CallToAction.astro'
 
-const initialPosition = Astro.url.searchParams.get('position') || '';
-export const prerender = false;
+const initialPosition = Astro.url.searchParams.get('position') || ''
+export const prerender = false
 ---
 
-<DefaultLayout title="Mitmachen" description="Wir freuen uns auf dich im Team von IGNITE - deinem Startup Netzwerk in Lüneburg!">
-  <main class="mitmachen-container">
-    <h1>Mitmachen im IGNITE Startup Club Lüneburg</h1>
-    <p class="intro">
-      IGNITE Startup Club Lüneburg ist eine studentische Initiative für Startups und Unternehmertum. 
-      Gemeinsam fördern wir Gründungsgeist, vernetzen Talente und setzen nachhaltige Projekte um.
-    </p>
+<DefaultLayout
+  title="Mitmachen"
+  description="Wir freuen uns auf dich im Team von IGNITE - deinem Startup Netzwerk in Lüneburg!"
+>
+  <!-- 2) Farbgradient-Overlay (z-0) -->
+  <div
+    class="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-[var(--primary-500)] via-[var(--secondary-200)] to-[#13111A]"
+  >
+  </div>
 
-    <!-- 1) Offene Positionen -->
-    <section aria-labelledby="open-positions">
-      <h2 id="open-positions">Offene Positionen</h2>
+  <main class="mitmachen-container">
+    <!-- HERO -->
+    <section id="hero" class="relative flex h-[75vh] w-full justify-center overflow-hidden text-white">
+      <!-- 4) Content nach vorne holen (z-10) -->
+      <div class="animate-fade-in relative z-10 mx-auto max-w-xl space-y-6 px-6 text-center">
+        <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
+          Bist du bereit,<br />
+          deine <span class="text-secondary-100">Startup-Reise</span> zu starten?
+        </h1>
+        <p class="text-base text-gray-100 sm:text-lg md:text-xl">
+          Werde Teil des IGNITE Startup Club Lüneburg! Wir vernetzen kreative Köpfe, fördern deine Ideen und setzen
+          gemeinsam coole Projekte um.
+        </p>
+        <a href="#Bewerbung" class="button secondary js-scroll-center"> Jetzt bewerben! </a>
+      </div>
+
+      <!-- Scroll-Cue ebenfalls oben (z-10) -->
+      <div class="absolute bottom-10 z-10 animate-bounce text-3xl">↓</div>
+    </section>
+
+    <!-- OFFENE POSITIONEN (sichtbar, da z-Index kleiner als Content, aber höher als Overlays) -->
+    <section id="open-positions" class="relative z-10 py-16">
+      <h2 class="text-primary mb-6 text-3xl font-extrabold sm:text-4xl">Offene Positionen</h2>
       <OpenPositions />
     </section>
 
     <section id="application-form" class="form-section">
       <div class="text-wrapper">
-      <h2>Jetzt bewerben!</h2>
-      <p>Bewirb dich jetzt ganz einfach und schnell mit diesem Bewerbungsformular.</p>
-    </div>
-      <!-- Client-seitig laden, damit React initialPosition auswertet -->
-      <Questionnaire client:load initialPosition={initialPosition} />
+        <h2>Jetzt bewerben!</h2>
+        <p>Bewirb dich jetzt ganz einfach und schnell mit diesem Bewerbungsformular.</p>
+      </div>
+      <section id="Bewerbung">
+        <!-- Client-seitig laden, damit React initialPosition auswertet -->
+        <Questionnaire client:load initialPosition={initialPosition} />
+      </section>
     </section>
 
     <CallToAction />
-
   </main>
-
-  <style lang="css">
-    .mitmachen-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      font-family: var(--font-sans);
-      color: var(--color-text);
-    }
-    .intro {
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-    h1, h2 { 
-      color: var(--color-primary);
-    }
-    .form-section {
-      margin-top: 3rem;
-    }
-    #application-form {
-      margin: 2rem 0 2rem 0;
-    }
-    .text-wrapper {
-      margin-bottom: 2rem;
-    }
-    /* CSS-Variablen im globalen Stylesheet definiert */
-  </style>
 </DefaultLayout>
+
+<script>
+  document.querySelectorAll('.js-scroll-center').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault()
+      const targetId = btn.getAttribute('href').slice(1)
+      const targetEl = document.getElementById(targetId)
+      if (targetEl) {
+        targetEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center', // <-- zentriert im Viewport
+        })
+      }
+    })
+  })
+</script>
+
+<style lang="css">
+  .mitmachen-container {
+    margin: 0 auto;
+    padding: 2rem;
+    max-width: 800px;
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 2s infinite;
+    font-size: 2rem;
+  }
+  @keyframes bounce {
+    0%,
+    100% {
+      transform: translate(-50%, 0);
+    }
+    50% {
+      transform: translate(-50%, 10px);
+    }
+  }
+
+  .intro {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+  h1,
+  h2 {
+    color: var(--color-primary);
+  }
+  .form-section {
+    margin-top: 3rem;
+  }
+  #application-form {
+    margin: 2rem 0 2rem 0;
+  }
+  .text-wrapper {
+    margin-bottom: 2rem;
+  }
+  /* CSS-Variablen im globalen Stylesheet definiert */
+
+  @tailwind utilities;
+
+  @layer utilities {
+    @keyframes bg-pan {
+      0%,
+      100% {
+        background-position: 50% 50%;
+      }
+      50% {
+        background-position: 60% 40%;
+      }
+    }
+    .animate-bg-pan {
+      animation: bg-pan 20s ease-in-out infinite;
+    }
+    @keyframes fade-in {
+      from {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    .animate-fade-in {
+      opacity: 0;
+      animation: fade-in 1s ease-out forwards;
+    }
+  }
+</style>

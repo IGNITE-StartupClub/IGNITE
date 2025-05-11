@@ -74,12 +74,19 @@ export default function Questionnaire({ initialPosition = '' }) {
               required
             >
               <option value="">Bitte wählen</option>
+              <option value="initiativbewerbung">Initiativbewerbung</option>
               {positions.map(p => (
                 <option key={p.id} value={p.id}>
                   {p.title}
                 </option>
               ))}
             </select>
+            {data.position === 'initiativbewerbung' && (
+              <p className="mt-2 text-gray-200 text-sm">
+                Bei einer Initiativbewerbung bewirbst du dich ohne konkretes Stellenangebot
+                und zeigst uns damit, dass du besonders motiviert bist, Teil unseres Teams zu werden.
+              </p>
+            )}
           </label>
           <button
             type="button"
