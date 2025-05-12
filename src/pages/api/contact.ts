@@ -93,3 +93,16 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 });
   }
 };
+
+
+
+// // src/pages/api/contact.ts
+// import type { APIRoute } from 'astro';
+// import { enqueueConfirmation } from '../../lib/confirm';
+
+// export const POST: APIRoute = async ({ request }) => {
+//   const data = await request.json();
+//   // validate name, lastname, email, message, topic …
+//   await enqueueConfirmation('contact', data);
+//   return new Response(JSON.stringify({ status: 'pending' }), { status: 202 });
+// };
