@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 const MONGO_URI = process.env.MONGODB_URI!;
 const MONGO_DB = process.env.MONGODB_DB!;
 const SITE_URL = process.env.SITE_URL!;
-const AUDIENCE_ID = process.env.AUDIENCE_ID;
+
 
 export const GET = async ({ request }) => {
   const { token } = request.url.searchParams;
