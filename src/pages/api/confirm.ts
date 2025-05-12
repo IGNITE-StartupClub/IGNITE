@@ -40,7 +40,7 @@ export const GET = async ({ request }) => {
     await resend.contacts.create({
       email: email,
       unsubscribed: false,  // Assuming the user has confirmed subscription
-      audienceId: process.env.AUDIENCE_ID,  // Replace with your actual Audience ID
+      audienceId: process.env.AUDIENCE_ID || '',  // Ensure audienceId is always a string
     });
     console.log(`Contact created in Resend for ${email}`);
   } catch (error) {
