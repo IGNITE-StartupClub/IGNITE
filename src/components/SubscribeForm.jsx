@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Resend } from 'resend';
 
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default function NewsletterForm({ prefill }) {
-  const [email, setEmail] = useState(prefill.email || '');
-  const [firstName, setFirstName] = useState(prefill.firstName || '');
-  const [lastName, setLastName] = useState(prefill.lastName || '');
+  const [email, setEmail] = useState(prefill?.email || '');
+  const [firstName, setFirstName] = useState(prefill?.firstName || '');
+  const [lastName, setLastName] = useState(prefill?.lastName || '');
   const [status, setStatus] = useState(null); // 'success' | 'error' | null
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
@@ -16,7 +15,8 @@ export default function NewsletterForm({ prefill }) {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    
+    const cancel = urlParams.get('cancel');
+
     if (token) {
       // Token is present, so it's a confirmation page
       setIsConfirming(true);
@@ -31,13 +31,10 @@ export default function NewsletterForm({ prefill }) {
         .catch(err => console.error('Error fetching confirmation data:', err));
     }
 
-    const cancel = urlParams.get('cancel');
-
     if (cancel) {
       // User canceled the subscription
       setIsCancelled(true);
-      // Unsubscribe the user by calling the Resend API
-      unsubscribeUser(cancel);
+      unsubscribeUser(cancel); // Unsubscribe the user by calling the Resend API
     }
   }, []);
 
@@ -78,7 +75,6 @@ export default function NewsletterForm({ prefill }) {
           unsubscribed: false,
           audienceId: process.env.AUDIENCE_ID,
         });
-
       } else {
         const data = await res.json();
         console.error(data.message);
@@ -222,6 +218,6 @@ export default function NewsletterForm({ prefill }) {
       `}</style>
       </form>
       )}
-  </div>
+    </div>
   );
 }
