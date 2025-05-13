@@ -14,33 +14,45 @@ let client: MongoClient | null = null;
 // Initialize MongoDB client connection
 const getDb = async () => {
   if (!client) {
+    console.log('Connecting to MongoDB...');
     client = new MongoClient(MONGO_URI);
     await client.connect();
+    console.log('MongoDB connected');
   }
   return client.db(MONGO_DB);
 };
 
 export const POST = async ({ request }) => {
-  const { email } = await request.json();
-
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
-  }
-
-  // Generate a token for confirming the subscription
-  const token = crypto.randomBytes(24).toString('hex');
-  const confirmUrl = `${SITE_URL}/subscribe?token=${token}`;
-
-  // Store token and email in DB
-  const db = await getDb();
-  await db.collection('pending_confirmations').insertOne({
-    email,
-    token,
-    createdAt: new Date(),
-  });
-
   try {
+    console.log('Received request to subscribe to newsletter');
+
+    // Parse the request body
+    const { email } = await request.json();
+    console.log('Email received:', email);
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      console.log('Invalid email address:', email);
+      return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
+    }
+
+    // Generate a token for confirming the subscription
+    const token = crypto.randomBytes(24).toString('hex');
+    const confirmUrl = `${SITE_URL}/subscribe?token=${token}`;
+    console.log('Generated confirmation token:', token);
+    console.log('Generated confirmation URL:', confirmUrl);
+
+    // Store token and email in DB
+    const db = await getDb();
+    console.log('Storing token and email in MongoDB');
+    await db.collection('pending_confirmations').insertOne({
+      email,
+      token,
+      createdAt: new Date(),
+    });
+    console.log('Token and email stored in DB successfully');
+
     // Send confirmation email
+    console.log('Sending confirmation email...');
     await resend.emails.send({
       from: 'IGNITE STartup Club<news@ignite-startupclub.de>',
       to: email,
@@ -81,10 +93,11 @@ export const POST = async ({ request }) => {
         </div>
       `,
     });
+    console.log('Confirmation email sent successfully');
 
     return new Response(JSON.stringify({ message: 'Bestätigungsmail gesendet' }), { status: 200 });
   } catch (err) {
-    console.error(err);
+    console.error('Error occurred:', err);
     return new Response(JSON.stringify({ message: 'Fehler beim E-Mail-Versand' }), { status: 500 });
   }
 };
