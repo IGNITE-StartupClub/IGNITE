@@ -12,7 +12,6 @@ export default function NewsletterForm({ prefill }) {
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
   const [isCancelled, setIsCancelled] = useState(false); // Track cancelation status
 
-  // Use effect to only update the prefill data when the token exists
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -37,7 +36,7 @@ export default function NewsletterForm({ prefill }) {
       setIsCancelled(true);
       unsubscribeUser(cancel); // Unsubscribe the user by calling the Resend API
     }
-  }, []); // Run only on mount
+  }, []);
 
   const unsubscribeUser = async (emailToCancel) => {
     try {
@@ -52,7 +51,7 @@ export default function NewsletterForm({ prefill }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page reload on form submission
+    e.preventDefault();
     setLoading(true);
     setStatus(null);
 
@@ -156,7 +155,7 @@ export default function NewsletterForm({ prefill }) {
                 E-Mail
                 <input
                   type="email"
-                  value={email}
+                  value={data.email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="dein@email.de"
