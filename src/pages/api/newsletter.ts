@@ -1,10 +1,9 @@
-// src/api/newsletter.ts
+import { v4 as uuidv4 } from 'uuid';  // Import the uuid module
 import { Resend } from 'resend';
 import { MongoClient } from 'mongodb';
-import crypto from 'crypto';
 import 'dotenv/config';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY!);
 const MONGO_URI = process.env.MONGODB_URI!;
 const MONGO_DB = process.env.MONGODB_DB!;
 const SITE_URL = process.env.SITE_URL!;
@@ -35,8 +34,8 @@ export const POST = async ({ request }) => {
       return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
     }
 
-    // Generate a token for confirming the subscription
-    const token = crypto.randomBytes(24).toString('hex');
+    // Generate a token using UUID (v4)
+    const token = uuidv4();
     const confirmUrl = `${SITE_URL}/subscribe?token=${token}`;
     console.log('Generated confirmation token:', token);
     console.log('Generated confirmation URL:', confirmUrl);
@@ -54,7 +53,7 @@ export const POST = async ({ request }) => {
     // Send confirmation email
     console.log('Sending confirmation email...');
     await resend.emails.send({
-      from: 'IGNITE STartup Club<news@ignite-startupclub.de>',
+      from: 'IGNITE Startup Club<news@ignite-startupclub.de>',
       to: email,
       subject: 'Willkommen beim IGNITE Startup Club!',
       html: `
