@@ -8,7 +8,6 @@ const MONGO_URI = process.env.MONGODB_URI!;
 const MONGO_DB = process.env.MONGODB_DB!;
 const SITE_URL = process.env.SITE_URL!;
 
-
 export const GET = async ({ request }) => {
   const { token } = request.url.searchParams;
   
@@ -27,32 +26,16 @@ export const GET = async ({ request }) => {
     return new Response('Ungültiger oder abgelaufener Token', { status: 404 });
   }
 
-  const { email } = result.value;
-
-  // Add user to the contacts collection in your DB
-  await db.collection('contacts').insertOne({
-    email,
-    subscribedAt: new Date(),
-  });
-
-  // Create the contact in Resend
-  try {
-    await resend.contacts.create({
-      email: email,
-      unsubscribed: false,  // Assuming the user has confirmed subscription
-      audienceId: process.env.AUDIENCE_ID || '',  // Ensure audienceId is always a string
-    });
-    console.log(`Contact created in Resend for ${email}`);
-  } catch (error) {
-    console.error('Error creating contact in Resend:', error);
-  }
+  const { email, firstName, lastName } = result.value;
 
   // Send confirmation email to the user
   await resend.emails.send({
     from: 'news@ignite-startupclub.de',
     to: email,
     subject: 'Danke für deine Bestätigung!',
-    html: `<p>Danke! Du hast dich erfolgreich für unseren Newsletter angemeldet.</p>`,
+    html: `
+      <p>Danke! Du hast dich erfolgreich für unseren Newsletter angemeldet.</p>
+    `,
   });
 
   return new Response('Erfolgreich bestätigt', { status: 200 });

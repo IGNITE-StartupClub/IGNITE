@@ -1,9 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function NewsletterForm() {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [status, setStatus] = useState(null); // 'success' | 'error' | null
   const [loading, setLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      // Token is present, so it's a confirmation page
+      setIsConfirming(true);
+      // Fetch the pre-filled data from the backend (email, first name, last name)
+      fetch(`/api/subscribe?token=${token}`)
+        .then(res => res.json())
+        .then(data => {
+          setEmail(data.email);
+          setFirstName(data.firstName);
+          setLastName(data.lastName);
+        })
+        .catch(err => console.error('Error fetching confirmation data:', err));
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,12 +36,14 @@ export default function NewsletterForm() {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, firstName, lastName }),
       });
 
       if (res.ok) {
         setStatus('success');
         setEmail('');
+        setFirstName('');
+        setLastName('');
       } else {
         const data = await res.json();
         console.error(data.message);
@@ -35,26 +59,57 @@ export default function NewsletterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="newsletter-form width-full">
-      <label>
-        <h3>Werde Teil der Community</h3>
-        <p>Du erhältst eine E-Mail mit einem Einladungslink</p>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          placeholder="dein@email.de"
-          className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
-          disabled={loading}
-        />
-      </label>
+      <h3>{isConfirming ? 'Bestätige deinen Newsletter-Abonnement' : 'Werde Teil der Community'}</h3>
+      {isConfirming ? (
+        <>
+          <label>
+            Vorname
+            <input
+              type="text"
+              name="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+            />
+          </label>
+          <label>
+            Nachname
+            <input
+              type="text"
+              name="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+            />
+          </label>
+        </>
+      ) : (
+        <>
+          <label>
+            E-Mail
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="dein@email.de"
+              className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+              disabled={loading}
+            />
+          </label>
+        </>
+      )}
 
       <button
         type="submit"
         className="button color-secondary"
         disabled={loading}
       >
-        {loading ? 'Wird gesendet...' : 'Jetzt beitreten'}
+        {loading ? 'Wird gesendet...' : isConfirming ? 'Bestätigen' : 'Jetzt beitreten'}
       </button>
 
       <p className="text-neutral-500">
@@ -89,12 +144,6 @@ export default function NewsletterForm() {
         .error {
           color: red;
           font-size: 0.9rem;
-        }
-        /* Light Mode Anpassungen */
-        @media (prefers-color-scheme: light) {
-          input, textarea {
-            color: black; /* Schriftfarbe im Light Mode */
-          }
         }
       `}</style>
     </form>
