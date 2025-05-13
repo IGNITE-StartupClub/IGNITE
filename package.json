@@ -61,6 +61,7 @@
     "astro-seo-meta": "^5.1.0",
     "astro-sitemap": "^1.0.0",
     "crypto": "^1.0.1",
+    "crypto-browserify": "^3.12.1",
     "dotenv": "^16.5.0",
     "mongodb": "^6.16.0",
     "nodemailer": "^6.10.1",
