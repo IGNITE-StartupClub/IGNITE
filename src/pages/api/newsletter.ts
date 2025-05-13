@@ -13,10 +13,15 @@ let client: MongoClient | null = null;
 // Initialize MongoDB client connection
 const getDb = async () => {
   if (!client) {
-    console.log('Connecting to MongoDB...');
-    client = new MongoClient(MONGO_URI);
-    await client.connect();
-    console.log('MongoDB connected');
+    try {
+      console.log('Connecting to MongoDB...');
+      client = new MongoClient(MONGO_URI);
+      await client.connect();
+      console.log('MongoDB connected');
+    } catch (err) {
+      console.error('MongoDB connection error:', err);
+      throw new Error('MongoDB connection failed');
+    }
   }
   return client.db(MONGO_DB);
 };
