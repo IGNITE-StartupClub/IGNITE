@@ -16,7 +16,7 @@ export default function NewsletterForm() {
       // Token is present, so it's a confirmation page
       setIsConfirming(true);
       // Fetch the pre-filled data from the backend (email, first name, last name)
-      fetch(`/api/subscribe?token=${token}`)
+      fetch(`/api/confirm?token=${token}`)
         .then(res => res.json())
         .then(data => {
           setEmail(data.email);
