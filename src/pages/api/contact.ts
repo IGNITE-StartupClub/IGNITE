@@ -13,7 +13,7 @@ const sendContactFormEmail = async (data: any) => {
   }
 
   await resend.emails.send({
-    from: 'kontakt@ignite-startupclub.de',
+    from: 'IGNITE Startup Club <kontakt@ignite-startupclub.de>',
     to: recipients,
     subject: 'Neue Kontaktanfrage über das Formular',
     html: `
