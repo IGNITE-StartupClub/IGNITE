@@ -15,17 +15,34 @@ const getDb = async () => {
   if (!client) {
     try {
       console.log('Connecting to MongoDB...');
+      console.log(`MONGO_URI: ${MONGO_URI}`);
+      console.log(`MONGO_DB: ${MONGO_DB}`);
+
+      // Logging more details before attempting to connect
+      const url = new URL(MONGO_URI);
+      console.log(`MongoDB URI parsed: ${url.hostname}, ${url.pathname}`);
+
+      // Attempting to create a new MongoDB client and connect
       client = new MongoClient(MONGO_URI);
+      console.log('Attempting to connect to MongoDB...');
       await client.connect();
-      console.log('MongoDB connected');
+      console.log('MongoDB connected successfully.');
+
     } catch (err) {
+      // Enhanced error logging with stack trace
       console.error('MongoDB connection error:', err);
+      if (err instanceof Error) {
+        console.error('Error stack trace:', err.stack);
+      }
       throw new Error('MongoDB connection failed');
     }
   }
+  
+  // Log the database connection confirmation
+  console.log(`Returning connected database: ${MONGO_DB}`);
   return client.db(MONGO_DB);
 };
-
+  
 export const POST = async ({ request }) => {
   try {
     console.log('Received request to subscribe to newsletter');
