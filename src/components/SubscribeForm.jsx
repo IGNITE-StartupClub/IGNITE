@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Resend } from 'resend';
 
-// Make sure to pass in `prefill` as props for the form
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default function NewsletterForm({ prefill }) {
@@ -131,6 +131,30 @@ export default function NewsletterForm({ prefill }) {
             </>
           ) : (
             <>
+              <label>
+                Vorname
+                <input
+                  type="text"
+                  name="firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+                />
+              </label>
+              <label>
+                Nachname
+                <input
+                  type="text"
+                  name="lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+                />
+              </label>
               <label>
                 E-Mail
                 <input
