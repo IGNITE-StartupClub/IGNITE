@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Resend } from 'resend';
 
+// Make sure to pass in `prefill` as props for the form
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export default function NewsletterForm() {
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+export default function NewsletterForm({ prefill }) {
+  const [email, setEmail] = useState(prefill.email || '');
+  const [firstName, setFirstName] = useState(prefill.firstName || '');
+  const [lastName, setLastName] = useState(prefill.lastName || '');
   const [status, setStatus] = useState(null); // 'success' | 'error' | null
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
+  const [isCancelled, setIsCancelled] = useState(false); // Track cancelation status
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-
+    
     if (token) {
       // Token is present, so it's a confirmation page
       setIsConfirming(true);
@@ -43,14 +45,13 @@ export default function NewsletterForm() {
     try {
       await resend.contacts.remove({
         email: emailToCancel,
-        audienceId: process.env.AUDIENCE_ID, // Replace with your audience ID
+        audienceId: process.env.AUDIENCE_ID, // Ensure audienceId is correct
       });
       console.log(`User with email ${emailToCancel} has been unsubscribed`);
     } catch (err) {
       console.error('Error unsubscribing user:', err);
     }
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
