@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const { error } = await resend.emails.send({
-    from: 'news@ignite-startupclub.de',
+    from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
     to: email,
     subject: 'Willkommen beim IGNITE Startup Club!',
     html: `

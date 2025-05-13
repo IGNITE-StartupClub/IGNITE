@@ -59,7 +59,7 @@ async function handleNewsletter(email: string, firstName?: string, lastName?: st
   `);
 
   await resend.emails.send({
-    from: 'news@ignite-startupclub.de',
+    from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
     to: email,
     subject: 'Willkommen im IGNITE Newsletter!',
     html,
@@ -91,7 +91,7 @@ async function handleApplication(db: ReturnType<MongoClient['db']>, data: any) {
     <p><strong>E-Mail:</strong> ${data.email}</p>
   `);
   await resend.emails.send({
-    from: 'team@ignite-startupclub.de',
+    from: 'Team IGNITE Startup Club <team@ignite-startupclub.de>',
     to: [process.env.EMAIL_RECIPIENT_1!, process.env.EMAIL_RECIPIENT_2!].filter(Boolean),
     subject: '📬 Neue bestätigte Bewerbung',
     html: teamHtml,
@@ -104,7 +104,7 @@ async function handleApplication(db: ReturnType<MongoClient['db']>, data: any) {
     <p>deine Bewerbung für <strong>${data.position}</strong> ist erfolgreich bestätigt und bei uns eingegangen.</p>
   `);
   await resend.emails.send({
-    from: 'join@ignite-startupclub.de',
+    from: 'Team IGNITE Startup Club <join@ignite-startupclub.de>',
     to: data.email,
     subject: 'Danke für deine Bewerbung',
     html: userHtml,

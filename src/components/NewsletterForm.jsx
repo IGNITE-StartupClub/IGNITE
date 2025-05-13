@@ -61,7 +61,7 @@ export default function NewsletterForm() {
         Mit dem Absenden deiner Email-Adresse stimmst du unserer Datenschutzvereinbarung zu.
       </p>
 
-      {status === 'success' && <p className="success">Danke für deine Anmeldung!</p>}
+      {status === 'success' && <p className="success">Danke für deine Anmeldung! Schau' in dein Postfach um deine E-Mail Adresse zu bestätigen.</p>}
       {status === 'error' && <p className="error">Da ging etwas schief. Bitte versuch’s später erneut.</p>}
 
       <style>{`

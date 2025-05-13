@@ -15,8 +15,6 @@ const getDb = async () => {
   if (!client) {
     try {
       console.log('Connecting to MongoDB...');
-      console.log(`MONGO_URI: ${MONGO_URI}`);
-      console.log(`MONGO_DB: ${MONGO_DB}`);
 
       // Logging more details before attempting to connect
       const url = new URL(MONGO_URI);
@@ -59,8 +57,10 @@ export const POST = async ({ request }) => {
     // Generate a token using UUID (v4)
     const token = uuidv4();
     const confirmUrl = `${SITE_URL}/subscribe?token=${token}`;
-    console.log('Generated confirmation token:', token);
     console.log('Generated confirmation URL:', confirmUrl);
+
+
+    const cancelUrl = `${SITE_URL}/subscribe?cancel=${email}`;
 
     // Store token and email in DB
     const db = await getDb();
@@ -75,7 +75,7 @@ export const POST = async ({ request }) => {
     // Send confirmation email
     console.log('Sending confirmation email...');
     await resend.emails.send({
-      from: 'IGNITE Startup Club<news@ignite-startupclub.de>',
+      from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
       to: email,
       subject: 'Willkommen beim IGNITE Startup Club!',
       html: `
@@ -92,6 +92,13 @@ export const POST = async ({ request }) => {
             </a>
           </p>
 
+          <p>Wenn du dich für unseren Newsletter anmeldest, bleibst du immer auf dem Laufenden über folgende Themen:</p>
+          <ul style="line-height: 1.6;">
+            <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
+            <li>Einblicke in reale Startup-Projekte</li>
+            <li>Austausch mit Gleichgesinnten</li>
+          </ul>
+
           <p>Noch einfacher? Dann tritt direkt unserer WhatsApp-Community bei:</p>
 
           <p style="text-align: center; margin: 2rem 0;">
@@ -101,15 +108,12 @@ export const POST = async ({ request }) => {
             </a>
           </p>
 
-          <p>In Zukunft möchten wir dir auch unseren Newsletter zusenden. Damit halten wir dich über folgende Themen auf dem Laufenden:</p>
-          <ul style="line-height: 1.6;">
-            <li>Events und Workshops rund ums Gründen</li>
-            <li>Einblicke in reale Startup-Projekte</li>
-            <li>Austausch mit Gleichgesinnten</li>
-          </ul>
-
           <p style="font-size: 0.95rem; color: #555;">
-            Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich bei uns melden.
+            Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
+              <a href="${cancelUrl}"
+              style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
+              Vom IGNITE Newsletter abmelden
+            </a> 
           </p>
         </div>
       `,
