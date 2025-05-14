@@ -3,10 +3,10 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export default function NewsletterForm({ prefill }) {
-  const [email, setEmail] = useState(prefill?.email || '');
-  const [firstName, setFirstName] = useState(prefill?.firstName || '');
-  const [lastName, setLastName] = useState(prefill?.lastName || '');
+export default function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [status, setStatus] = useState(null); // 'success' | 'error' | null
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
@@ -100,6 +100,16 @@ export default function NewsletterForm({ prefill }) {
           <h3>{isConfirming ? 'Bestätige deinen Newsletter-Abonnement' : 'Werde Teil der Community'}</h3>
           {isConfirming ? (
             <>
+              {/* Prefilled email, disabled for confirmation */}
+              <label>
+                E-Mail
+                <input
+                  type="email"
+                  value={email}
+                  readOnly
+                  className="w-full my-4 border-radius-4px border-1px-solid-#ccc"
+                />
+              </label>
               <label>
                 Vorname
                 <input
@@ -127,6 +137,7 @@ export default function NewsletterForm({ prefill }) {
             </>
           ) : (
             <>
+              {/* Initial newsletter form */}
               <label>
                 Vorname
                 <input
@@ -155,7 +166,7 @@ export default function NewsletterForm({ prefill }) {
                 E-Mail
                 <input
                   type="email"
-                  value={data.email}
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="dein@email.de"
