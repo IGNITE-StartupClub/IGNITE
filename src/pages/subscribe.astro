@@ -3,12 +3,6 @@ import DefaultLayout from '../layouts/DefaultLayout.astro';
 import SubscribeForm from '../components/SubscribeForm.jsx';
 
 const params = Astro.url.searchParams;
-const prefill = {
-  firstName: params.get('firstName') ?? '',
-  lastName:  params.get('lastName')  ?? '',
-  email:     params.get('email')     ?? '',
-  confirmed: params.get('confirmed') ?? '', 
-};
 ---
 
 <DefaultLayout title="Newsletter Anmeldung">
@@ -18,6 +12,7 @@ const prefill = {
       Trage deinen Namen und deine E-Mail ein. Du bekommst eine Bestätigungsmail zum Double-Opt-In.
     </p>
     {/* Prefill via URL: /subscribe?firstName=Max&lastName=Mustermann&email=… */}
-    <SubscribeForm client:load/>
+    <SubscribeForm client:load />
+    <!-- client:load -->
   </main>
 </DefaultLayout>

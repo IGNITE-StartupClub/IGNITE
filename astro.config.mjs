@@ -15,7 +15,12 @@ export default defineConfig({
   output: 'server',
   site: 'https://ignite-startupclub.de',
 
-  integrations: [react(), mdx(), icon(), tailwind({
+  integrations: 
+  [
+    react(), 
+    mdx(), 
+    icon(), 
+    tailwind({
     applyBaseStyles: false,
   }), compress(),
   sitemap({
