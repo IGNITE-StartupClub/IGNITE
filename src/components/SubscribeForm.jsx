@@ -17,13 +17,23 @@ export default function NewsletterForm() {
     const token = urlParams.get('token');
     const cancel = urlParams.get('cancel');
 
+    console.log('URL Params:', urlParams.toString()); // Debugging line for URL parameters
+
     if (token) {
       // Token is present, so it's a confirmation page
+      console.log('Token found:', token); // Debugging line for token
       setIsConfirming(true);
       // Fetch the pre-filled data from the backend (email, first name, last name)
       fetch(`/api/confirm?token=${token}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            console.error('Failed to fetch confirmation data:', res.statusText);
+            throw new Error('Failed to fetch confirmation data');
+          }
+          return res.json();
+        })
         .then(data => {
+          console.log('Confirmation data:', data); // Debugging line for the fetched data
           setEmail(data.email);
           setFirstName(data.firstName);
           setLastName(data.lastName);
@@ -33,6 +43,7 @@ export default function NewsletterForm() {
 
     if (cancel) {
       // User canceled the subscription
+      console.log('Cancel URL found:', cancel); // Debugging line for cancel
       setIsCancelled(true);
       unsubscribeUser(cancel); // Unsubscribe the user by calling the Resend API
     }
@@ -40,6 +51,7 @@ export default function NewsletterForm() {
 
   const unsubscribeUser = async (emailToCancel) => {
     try {
+      console.log('Unsubscribing user with email:', emailToCancel); // Debugging line for unsubscribe
       await resend.contacts.remove({
         email: emailToCancel,
         audienceId: process.env.AUDIENCE_ID, // Ensure audienceId is correct
@@ -54,6 +66,7 @@ export default function NewsletterForm() {
     e.preventDefault();
     setLoading(true);
     setStatus(null);
+    console.log('Form submitted with data:', { email, firstName, lastName }); // Debugging line for form submission
 
     try {
       const res = await fetch('/api/newsletter', {
@@ -63,6 +76,7 @@ export default function NewsletterForm() {
       });
 
       if (res.ok) {
+        console.log('Successfully submitted data'); // Debugging line for successful submission
         setStatus('success');
         setEmail('');
         setFirstName('');
@@ -77,11 +91,11 @@ export default function NewsletterForm() {
         });
       } else {
         const data = await res.json();
-        console.error(data.message);
+        console.error('Error response from backend:', data.message); // Debugging line for error response
         setStatus('error');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error in handleSubmit:', err); // Debugging line for error in submission
       setStatus('error');
     } finally {
       setLoading(false);
