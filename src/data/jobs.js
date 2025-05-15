@@ -39,4 +39,12 @@ export const positions = [
       title: 'Partnership & Sponsorship',
       description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
     },
+    {
+      id: 'Volunteer-Attraction',
+      image: '',
+      category: 'Community',
+      team: 'IGNITE Community',
+      title: 'Volunteer Attraction',
+      description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
+    },
   ];
