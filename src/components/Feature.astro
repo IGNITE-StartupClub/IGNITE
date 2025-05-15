@@ -1,11 +1,17 @@
 ---
 import { Icon } from 'astro-icon/components'
 
-const { icon = 'mdi:rocket', title = 'Title' } = Astro.props
+const { icon, title = 'Title', src } = Astro.props;
+const isPng = src?.endsWith('.png');
 ---
 
 <div class="feature flex flex-col gap-4">
-  <Icon name={icon} />
+  {isPng ? (
+    <img src={src} alt={title} class="w-12 h-12 object-contain" />
+  ) : (
+    <Icon name={icon} class="w-12 h-12" />
+  )}
+  
   <div class="content">
     <h3>{title}</h3>
     <p>
@@ -13,6 +19,7 @@ const { icon = 'mdi:rocket', title = 'Title' } = Astro.props
     </p>
   </div>
 </div>
+
 
 <style lang="scss">
   @use '../assets/scss/base/breakpoint' as *;

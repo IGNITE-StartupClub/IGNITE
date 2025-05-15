@@ -3,6 +3,7 @@ import DefaultLayout from '../layouts/DefaultLayout.astro'
 import OpenPositions from '../components/OpenPositions.jsx'
 import Questionnaire from '../components/Questionnaire.jsx'
 import CallToAction from '../components/CallToAction.astro'
+import Feature from '../components/Feature.astro'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
 export const prerender = false
@@ -54,7 +55,33 @@ export const prerender = false
         <Questionnaire client:load initialPosition={initialPosition} />
       </section>
     </section>
-
+    <section>
+      <div class="my-24">
+        <h2>Unsere Teams</h2>
+        <p>
+          Unsere Initiative ist in verschiedene Teams unterteilt, die sich auf unterschiedliche Bereiche konzentrieren.
+        </p>
+        <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-2 my-6">
+        <Feature src="/team-logos/ignite events.png" title="Events">
+          Wir entwickeln neue Veranstaltungsformate, organisieren Events und führen Workshops durch, um unternehmerisches Denken erlebbar zu machen
+        </Feature>
+        <Feature src="/team-logos/ignite financial.png" title="Finance & Funding">
+          Wir kümmern uns um die finanzielle Basis von Ignite – durch Förderanträge, Sponsorings, strategische Partnerschaften und den Aufbau nachhaltiger Unternehmensbeziehungen.
+        </Feature>
+        <Feature src="/team-logos/ignite marketing.png" title="Marketing">
+          Wir gestalten den Außenauftritt von Ignite – von Social Media über Printmaterialien bis hin zu Merchandise – und sorgen dafür, dass unsere Inhalte sichtbar werden.
+        </Feature>
+        <Feature src="/team-logos/ignite relations.png" title="Relations">
+          Wir pflegen enge Verbindungen zur Universität, holen inspirierende Speaker an Bord und stärken das Netzwerk von Ignite innerhalb und außerhalb der Hochschule.
+        </Feature>
+        <Feature src="/team-logos/ignite community.png" title="Community">
+          Wir schaffen ein starkes Gemeinschaftsgefühl im Team – mit Onboarding-Prozessen, Team-Events und kontinuierlichem Austausch.
+        </Feature>
+        <Feature src="/team-logos/ignite podcast.png" title="Podcast">
+          Wir produzieren inspirierende Podcastfolgen mit spannenden Geschichten von Gründer:innen und Leuphana-Alumni und geben Einblicke in die Startup-Welt.
+        </Feature>
+        </div>
+    </section>
     <CallToAction />
   </main>
 </DefaultLayout>
