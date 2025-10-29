@@ -34,14 +34,14 @@ import EventSearch from './EventSearch.jsx'
   <div class="container relative z-10">
     <div class="grid grid-cols-1 items-center gap-24">
       <div class="flex flex-col items-center gap-8">
-        <h1 class="text-center text-4xl sm:text-5xl lg:text-5xl font-extrabold">
+        <h1 class="text-center text-2xl sm:text-4xl lg:text-5xl font-extrabold">
           <slot>
             <section class="px-48">
             <SplitTextWrapper 
               client:load
               text="IGNITE"
               tag="h2"
-              className="text-center text-4xl sm:text-7xl lg:text-7xl font-extrabold"
+              className="text-center text-6xl sm:text-7xl lg:text-7xl font-extrabold"
               splitType="chars"
               delay={50}
               duration={0.8}
@@ -53,7 +53,7 @@ import EventSearch from './EventSearch.jsx'
 
       <!-- Main Message -->
       <div class="main-message">
-        <p>
+        <p style="text-align: center;">
          Exklusive Gründer*innen-Community der Leuphana
         </p>
       </div>
