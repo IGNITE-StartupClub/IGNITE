@@ -105,7 +105,7 @@ function AddMemberCard() {
           <div
             className={`flex items-center justify-center text-6xl font-light leading-none text-white/40 transition-all duration-300 group-hover:text-[var(--secondary-200)] md:text-7xl ${isHovered ? 'scale-110' : ''}`}
           >
-            +
+            ＋
           </div>
         </div>
       </div>
