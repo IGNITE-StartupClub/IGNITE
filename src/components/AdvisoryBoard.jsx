@@ -155,7 +155,7 @@ export default function AdvisoryBoard({ className = '' }) {
         </div>
 
         {/* Board Grid */}
-        <div className="mb-12 flex flex-wrap justify-center gap-6 px-4 md:mb-16 md:gap-8">
+        <div className="mb-12 flex flex-wrap justify-center gap-6 px-4 md:mb-16 md:gap-8 overflow-x-hidden max-w-full">
           {advisoryMembers.map((member) => (
             <div key={member.id} className="flex w-full max-w-[280px] sm:w-auto sm:min-w-[280px] sm:max-w-[320px]">
               <AdvisoryMemberCard member={member} />
