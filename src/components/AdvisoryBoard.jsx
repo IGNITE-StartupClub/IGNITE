@@ -8,8 +8,9 @@ const advisoryMembers = [
     department: 'Vizepräsident Entrepreneurship, Transfer & Internationalisierung',
     boardRole: 'Schirmherrschaft',
     bio: 'Experte für Strategisches Management und Innovation',
-    linkedin: '#',
-    image: '',
+    linkedin: 'https://www.linkedin.com/in/markus-reihlen-10594940/',
+    image:
+      'https://www.leuphana.de/fileadmin/_processed_/6/5/csm_reihlen_markus__795-70697.690x690px.WEB_944517a3d2.jpg',
     initials: 'MR',
   },
   //     {
@@ -34,39 +35,46 @@ function AdvisoryMemberCard({ member }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Profile Image */}
-      <div className="relative mx-auto mb-6 h-28 w-28 md:h-32 md:w-32">
-        <div className="h-full w-full rounded-full bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] p-1 transition-all duration-300 group-hover:scale-105">
-          <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gray-900/90">
-            {/* Conditional: Real image or initials */}
-            {member.image ? (
-              <img src={member.image} alt={member.name} className="h-full w-full rounded-full object-cover" />
-            ) : (
-              <div className="bg-gradient-to-br from-[var(--primary-300)] to-[var(--secondary-200)] bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
-                {member.initials ||
-                  member.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .slice(0, 2)}
-              </div>
-            )}
-
-            {/* Hover overlay */}
-            <div
-              className={`bg-[var(--primary-500)]/90 absolute inset-1 flex items-center justify-center rounded-full transition-all duration-300 ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}
-            >
-              <button className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white/30">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                  <rect x="2" y="9" width="4" height="12" />
-                  <circle cx="4" cy="4" r="2" />
-                </svg>
-              </button>
-            </div>
-          </div>
+     {/* Profile Image */}
+<div className="relative mx-auto mb-6 h-28 w-28 md:h-32 md:w-32">
+  <div className="h-full w-full rounded-full bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] p-1 transition-all duration-300 group-hover:scale-105">
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gray-900/90">
+      {/* Conditional: Real image or initials */}
+      {member.image ? (
+        <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="h-full w-full">
+          <img src={member.image} alt={member.name} className="h-full w-full rounded-full object-cover" />
+        </a>
+      ) : (
+        <div className="bg-gradient-to-br from-[var(--primary-300)] to-[var(--secondary-200)] bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+          {member.initials ||
+            member.name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .slice(0, 2)}
         </div>
+      )}
+
+      {/* Hover overlay - pointer-events-none to allow clicks through */}
+      <div
+        className={`bg-[var(--primary-500)]/90 absolute inset-1 flex items-center justify-center rounded-full transition-all duration-300 pointer-events-none ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}
+      >
+        <a 
+          href={member.linkedin} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white/30 pointer-events-auto"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+            <rect x="2" y="9" width="4" height="12" />
+            <circle cx="4" cy="4" r="2" />
+          </svg>
+        </a>
       </div>
+    </div>
+  </div>
+</div>
 
       {/* Member Info */}
       <div className="space-y-2">
@@ -155,7 +163,7 @@ export default function AdvisoryBoard({ className = '' }) {
         </div>
 
         {/* Board Grid */}
-        <div className="mb-12 flex flex-wrap justify-center gap-6 px-4 md:mb-16 md:gap-8 overflow-x-hidden max-w-full">
+        <div className="mb-12 mt-12 flex max-w-full flex-wrap justify-center gap-6 overflow-x-hidden px-4 py-4 md:mb-16 md:gap-8">
           {advisoryMembers.map((member) => (
             <div key={member.id} className="flex w-full max-w-[280px] sm:w-auto sm:min-w-[280px] sm:max-w-[320px]">
               <AdvisoryMemberCard member={member} />
