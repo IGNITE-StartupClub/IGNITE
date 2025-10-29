@@ -1,40 +1,175 @@
 ---
 import { Icon } from 'astro-icon/components'
-
-const {} = Astro.props
+import ModelViewer from './ModelViewer.jsx'
+import SplitTextWrapper from './SplitText/SplitTextWrapper.jsx';
+import LiquidEther from './LiquidEther/LiquidEther.jsx';  // ← Add .jsx extension
+import EventSearch from './EventSearch.jsx'
 ---
 
+  <!-- ↓ Fix: Use HTML style syntax, not JSX -->
+<div style="
+  width: 100%; 
+  height: 100%; 
+  position: absolute;
+  mask: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+">
+  <LiquidEther 
+    client:load
+    colors={['#5227FF', '#FF9FFC', '#B19EEF']}
+    mouseForce={20}
+    cursorSize={100}
+    autoDemo={true}
+  />
+</div>
+
 <section class="hero relative my-24 overflow-visible">
-  <!-- Blurred Dots -->
-  <div class="inset-0 z-[-10] overflow-hidden pointer-events-none">
-    <div class="absolute w-[35vw] h-[35vw] z-[-10] rounded-full opacity-80 md:opacity-60 blur-[80px] bg-[#9b5de5] animate-dotPurple top-[10%] left-[10%] md:block"></div>
-    <div class="absolute w-[35vw] h-[35vw] z-[-10] rounded-full opacity-80 md:opacity-60 blur-[80px] bg-[#f15bb5] animate-dotPink bottom-[10%] right-[10%] md:block"></div>
+   <!-- Optimized Background Dots -->
+  <div class="background-dots">
+    <div class="dot dot-purple"></div>
+    <div class="dot dot-pink"></div>
+    <div class="dot dot-blue"></div>
   </div>
 
   <div class="container relative z-10">
     <div class="grid grid-cols-1 items-center gap-24">
       <div class="flex flex-col items-center gap-8">
-        <h1 class="text-center text-4xl sm:text-5xl lg:text-7xl font-extrabold">
+        <h1 class="text-center text-4xl sm:text-5xl lg:text-5xl font-extrabold">
           <slot>
-            Dein <span class="text-gradient">Gründungsfunken</span> an der Leuphana Universität
+            <section class="px-48">
+            <SplitTextWrapper 
+              client:load
+              text="IGNITE"
+              tag="h2"
+              className="text-center text-4xl sm:text-7xl lg:text-7xl font-extrabold"
+              splitType="chars"
+              delay={50}
+              duration={0.8}
+            />
+            <br/>
+            Dein <span class="bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] bg-clip-text text-transparent drop-shadow-lg">Gründungsfunken</span> an der Leuphana Universität
           </slot>
         </h1>
+
+      <!-- Main Message -->
+      <div class="main-message">
+        <p>
+         Exklusive Gründer*innen-Community der Leuphana
+        </p>
+      </div>
+
         <div class="flex flex-col gap-3 min-[500px]:flex-row rounded-full p-1">
           <a class="button secondary size-large has-icon" href="/mitmachen">
             <Icon name="ion:people-outline" />
             Mitmachen
           </a>
-          <!-- <a class="button secondary size-large has-icon" href="/kontakt">
-            <Icon name="ion:mail-outline" />
-            Kontakt
-          </a> -->
+
+          
         </div>
       </div>
+      <!-- Scroll Indicator -->
+          <div class="scroll-indicator">
+            <div class="scroll-mouse">
+              <div class="scroll-wheel"></div>
+            </div>
+            <span>Scroll um mehr zu entdecken</span>
+          </div>
     </div>
   </div>
 </section>
+<!-- <EventSearch client:load/> -->
+
 
 <style>
+  /* LiquidEther Background */
+  .liquid-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: -2;
+  }
+  
+
+  /* Optimized Background Dots */
+  .background-dots {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .dot {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.4;
+    filter: blur(60px);
+  }
+
+  .dot-purple {
+    width: 25vw;
+    height: 25vw;
+    background: radial-gradient(circle, #9b5de5 0%, transparent 70%);
+    top: 15%;
+    left: 15%;
+    animation: dotFloat1 80s ease-in-out infinite;
+  }
+
+  .dot-pink {
+    width: 30vw;
+    height: 30vw;
+    background: radial-gradient(circle, #f15bb5 0%, transparent 70%);
+    bottom: 20%;
+    right: 10%;
+    animation: dotFloat2 90s ease-in-out infinite 10s;
+  }
+
+  .dot-blue {
+    width: 20vw;
+    height: 20vw;
+    background: radial-gradient(circle, #5227FF 0%, transparent 70%);
+    top: 60%;
+    left: 70%;
+    animation: dotFloat3 70s ease-in-out infinite 20s;
+  }
+
+/* Scroll Indicator */
+  .scroll-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    margin-top: 2rem;
+    animation: fadeInUp 2s ease-out 3s both;
+  }
+
+  .scroll-mouse {
+    width: 26px;
+    height: 42px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 13px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+  }
+
+  .scroll-wheel {
+    width: 3px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 2px;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: scrollWheel 2s infinite;
+  }
   /* TEXT-GRADIENT */
 .text-gradient {
   color: var(--primary-400);
@@ -44,24 +179,102 @@ const {} = Astro.props
   -webkit-text-fill-color: transparent;
 }
 
-  @keyframes dotPurple {
-    0% { transform: translate(0, 0); }
-    25% { transform: translate(50px, 20px); }
-    50% { transform: translate(100px, -20px); }
-    75% { transform: translate(70px, 30px); }
-    100% { transform: translate(0, 0); }
+   /* Animations */
+  @keyframes dotFloat1 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(30px, -20px) rotate(90deg); }
+    50% { transform: translate(-20px, 30px) rotate(180deg); }
+    75% { transform: translate(15px, -15px) rotate(270deg); }
   }
-  @keyframes dotPink {
-    0% { transform: translate(0, 0); }
-    25% { transform: translate(-50px, -30px); }
-    50% { transform: translate(-100px, 10px); }
-    75% { transform: translate(-60px, -50px); }
-    100% { transform: translate(0, 0); }
+
+  @keyframes dotFloat2 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-40px, 25px) rotate(90deg); }
+    50% { transform: translate(25px, -30px) rotate(180deg); }
+    75% { transform: translate(-15px, 20px) rotate(270deg); }
   }
-  .animate-dotPurple {
-    animation: dotPurple 60s ease-in-out infinite;
+
+  @keyframes dotFloat3 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(20px, 35px) rotate(90deg); }
+    50% { transform: translate(-35px, -20px) rotate(180deg); }
+    75% { transform: translate(25px, 15px) rotate(270deg); }
   }
-  .animate-dotPink {
-    animation: dotPink 60s ease-in-out infinite 5s;
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scrollWheel {
+    0% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    50% {
+      opacity: 0.3;
+      transform: translateX(-50%) translateY(14px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-content {
+      padding: 1rem;
+    }
+
+    .hero-inner {
+      gap: 2rem;
+    }
+
+    .ignite-intro {
+      margin-bottom: 1rem;
+    }
+
+    .button {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+    }
+
+    .dot {
+      opacity: 0.2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-inner {
+      gap: 4rem;
+    }
+
+    .dot {
+      opacity: 0.5;
+    }
+  }
+
+  /* Performance optimizations */
+  @media (prefers-reduced-motion: reduce) {
+    .dot,
+    .scroll-wheel {
+      animation: none;
+    }
+    
+    .button {
+      transition: none;
+    }
   }
 </style>
+
+<script>const handleAnimationComplete = () => {
+  console.log('All letters have animated!');
+};</script>
+

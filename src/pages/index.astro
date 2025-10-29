@@ -2,13 +2,16 @@
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Hero from '../components/Hero.astro'
 import Feature from '../components/Feature.astro'
-import Counter from '../components/Counter.astro'
-import ContentMedia from '../components/ContentMedia.astro'
 import News from '../components/news.astro'
+import { Accordion, AccordionItem } from 'accessible-astro-components'
+import AdvisoryBoard from '../components/AdvisoryBoard.jsx'
+
+import ContentMedia from '../components/ContentMedia.astro'
 import Events from '../components/events.astro'
 import { Icon } from 'astro-icon/components'
-import { Accordion, AccordionItem } from 'accessible-astro-components'
+import Counter from '../components/Counter.astro'
 import Button from '../components/Button.astro'
+import ModelViewer from '../components/ModelViewer.jsx'
 ---
 
 <DefaultLayout title="IGNITE - Startup CLub Lüneburg" description="Willkommen bei IGNITE - deiner studentischen Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.">
@@ -45,6 +48,7 @@ import Button from '../components/Button.astro'
       </div>
     </div>
   </section>
+  <AdvisoryBoard />
   <!-- <section><Events/></section> -->
   <section>
   <News />

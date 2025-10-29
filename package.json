@@ -57,16 +57,21 @@
     "@astrojs/netlify": "^6.3.2",
     "@astrojs/react": "^4.2.7",
     "@astrojs/sitemap": "^3.3.1",
+    "@gsap/react": "^2.1.2",
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.4.0",
     "accessible-astro-components": "^4.1.0",
     "astro-seo-meta": "^5.1.0",
     "astro-sitemap": "^1.0.0",
     "crypto-browserify": "^3.12.1",
     "dotenv": "^16.5.0",
+    "gsap": "^3.13.0",
     "mongodb": "^6.16.0",
     "nodemailer": "^6.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "resend": "^4.5.1",
+    "three": "^0.180.0",
     "uuid": "^11.1.0"
   }
 }
