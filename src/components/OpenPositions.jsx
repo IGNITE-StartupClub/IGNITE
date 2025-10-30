@@ -178,7 +178,7 @@ export default function OpenPositions() {
 
         .job-card:hover .category-pill {
           background: var(--primary-300);
-          color: var(--neutral-100);
+          color: var(--dark-100);
           transform: translateX(8px) scale(1.05);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
