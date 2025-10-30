@@ -35,46 +35,46 @@ function AdvisoryMemberCard({ member }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-     {/* Profile Image */}
-<div className="relative mx-auto mb-6 h-28 w-28 md:h-32 md:w-32">
-  <div className="h-full w-full rounded-full bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] p-1 transition-all duration-300 group-hover:scale-105">
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gray-900/90">
-      {/* Conditional: Real image or initials */}
-      {member.image ? (
-        <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="h-full w-full">
-          <img src={member.image} alt={member.name} className="h-full w-full rounded-full object-cover" />
-        </a>
-      ) : (
-        <div className="bg-gradient-to-br from-[var(--primary-300)] to-[var(--secondary-200)] bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
-          {member.initials ||
-            member.name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')
-              .slice(0, 2)}
-        </div>
-      )}
+      {/* Profile Image */}
+      <div className="relative mx-auto mb-6 h-28 w-28 md:h-32 md:w-32">
+        <div className="h-full w-full rounded-full bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] p-1 transition-all duration-300 group-hover:scale-105">
+          <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gray-900/90">
+            {/* Conditional: Real image or initials */}
+            {member.image ? (
+              <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="h-full w-full">
+                <img src={member.image} alt={member.name} className="h-full w-full rounded-full object-cover" />
+              </a>
+            ) : (
+              <div className="bg-gradient-to-br from-[var(--primary-300)] to-[var(--secondary-200)] bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+                {member.initials ||
+                  member.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2)}
+              </div>
+            )}
 
-      {/* Hover overlay - pointer-events-none to allow clicks through */}
-      <div
-        className={`bg-[var(--primary-500)]/90 absolute inset-1 flex items-center justify-center rounded-full transition-all duration-300 pointer-events-none ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}
-      >
-        <a 
-          href={member.linkedin} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white/30 pointer-events-auto"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-            <rect x="2" y="9" width="4" height="12" />
-            <circle cx="4" cy="4" r="2" />
-          </svg>
-        </a>
+            {/* Hover overlay - pointer-events-none to allow clicks through */}
+            <div
+              className={`bg-[var(--primary-500)]/90 pointer-events-none absolute inset-1 flex items-center justify-center rounded-full transition-all duration-300 ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}
+            >
+              <a
+                href={member.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white/30"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                  <rect x="2" y="9" width="4" height="12" />
+                  <circle cx="4" cy="4" r="2" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
       {/* Member Info */}
       <div className="space-y-2">
@@ -125,9 +125,10 @@ function AddMemberCard() {
         <p className="text-xs text-white/60 md:text-sm">Ihre Expertise gesucht</p>
         <div className="pt-2">
           <a
-            href="/kontakt?intent=advisory"
-            className="border-3 inline-flex items-center gap-2 rounded-full border-[var(--secondary-100)] bg-[var(--secondary-100)] px-3 py-3 text-center font-bold text-[var(--neutral-100)] shadow-[rgba(0,0,0,0.3)_0px_19px_38px,rgba(0,0,0,0.22)_0px_15px_12px] transition-all duration-150 ease-in-out hover:border-[var(--secondary-400)] hover:bg-[var(--secondary-400)] hover:text-white hover:underline focus:border-[var(--secondary-400)] focus:bg-[var(--secondary-400)] focus:text-white focus:underline"
-          >
+           href="/kontakt?intent=advisory"
+  className="inline-flex items-center gap-2 rounded-full border-[var(--secondary-100)] bg-[var(--secondary-100)] px-3 py-3 text-center font-bold text-[var(--neutral-100)] hover:!text-[var(--neutral-100)] shadow-[rgba(0,0,0,0.3)_0px_19px_38px,rgba(0,0,0,0.22)_0px_15px_12px] transition-all duration-150 ease-in-out hover:scale-105 hover:-translate-y-1"
+>
+
             Interesse melden
             <svg
               width="16"
@@ -136,12 +137,12 @@ function AddMemberCard() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="text-[var(--neutral-100)] group-hover:text-white"
+              className="text-[var(--neutral-100)]"
             >
-              <line x1="7" y1="17" x2="17" y2="7"></line>
-              <polyline points="7,7 17,7 17,17"></polyline>
-            </svg>
-          </a>
+    <line x1="7" y1="17" x2="17" y2="7"></line>
+    <polyline points="7,7 17,7 17,17"></polyline>
+  </svg>
+</a>
         </div>
       </div>
     </div>

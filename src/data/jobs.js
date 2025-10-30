@@ -23,6 +23,14 @@ export const positions = [
       title: 'Content Creator',
       description: 'Erstelle Posts, Grafiken und Videos rund ums Thema Entrepreneurship. Zusammen mit unserem Marketing-Team entwickelst du kreative Ideen, um unsere Community zu erreichen und zu begeistern. Du bist kreativ, hast ein Gespür für Trends und bist sicher im Umgang mit Social Media? Dann bewirb dich jetzt!',
     },
+    // {
+    //   id: 'Partnership-Sponsorship',
+    //   image: '',
+    //   category: 'Partnership',
+    //   team: 'IGNITE Relations',
+    //   title: 'Partnership & Sponsorship',
+    //   description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
+    // },
     {
       id: 'Partnership-Sponsorship',
       image: '',
@@ -31,20 +39,12 @@ export const positions = [
       title: 'Partnership & Sponsorship',
       description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
     },
-    {
-      id: 'Partnership-Sponsorship',
-      image: '',
-      category: 'Partnership',
-      team: 'IGNITE Relations',
-      title: 'Partnership & Sponsorship',
-      description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
-    },
-    {
-      id: 'Volunteer-Attraction',
-      image: '',
-      category: 'Community',
-      team: 'IGNITE Community',
-      title: 'Volunteer Attraction',
-      description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
-    },
+    // {
+    //   id: 'Volunteer-Attraction',
+    //   image: '',
+    //   category: 'Community',
+    //   team: 'IGNITE Community',
+    //   title: 'Volunteer Attraction',
+    //   description: 'Gewinne Kooperationspartner und baue unsere Finanzteam mit auf.',
+    // },
   ];
