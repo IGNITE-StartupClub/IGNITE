@@ -128,7 +128,6 @@ function AddMemberCard() {
            href="/kontakt?intent=advisory"
   className="inline-flex items-center gap-2 rounded-full border-[var(--secondary-100)] bg-[var(--secondary-100)] px-3 py-3 text-center font-bold text-[var(--neutral-100)] hover:!text-[var(--neutral-100)] shadow-[rgba(0,0,0,0.3)_0px_19px_38px,rgba(0,0,0,0.22)_0px_15px_12px] transition-all duration-150 ease-in-out hover:scale-105 hover:-translate-y-1"
 >
-
             Interesse melden
             <svg
               width="16"
