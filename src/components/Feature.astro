@@ -5,7 +5,7 @@ const { icon, title = 'Title', src } = Astro.props;
 const isPng = src?.endsWith('.png');
 ---
 
-<div class="feature flex flex-col gap-4">
+<div class="feature spotlight-card flex flex-col gap-4">
   {isPng ? (
     <img src={src} alt={title} class="w-12 h-12 object-contain" />
   ) : (
@@ -20,7 +20,6 @@ const isPng = src?.endsWith('.png');
   </div>
 </div>
 
-
 <style lang="scss">
   @use '../assets/scss/base/breakpoint' as *;
 
@@ -28,6 +27,8 @@ const isPng = src?.endsWith('.png');
     position: relative;
     width: calc(100% - 0.5rem);
     padding: 2rem;
+    cursor: pointer;
+    overflow: hidden;
 
     > * {
       position: relative;
@@ -51,6 +52,7 @@ const isPng = src?.endsWith('.png');
       border-radius: 1rem;
       box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
       z-index: 1;
+      transition: all 0.3s ease;
     }
 
     &::after {
@@ -58,12 +60,55 @@ const isPng = src?.endsWith('.png');
       border-radius: 1rem;
       z-index: 0;
     }
+
+    // Spotlight effect
+    &:hover::before {
+      background: radial-gradient(
+        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 159, 252, 0.15),  /* secondary-200 equivalent */
+        transparent 40%
+      ), var(--dark-100);
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      
+      &::before {
+        border-color: var(--primary-300);
+        box-shadow: 
+          rgba(0, 0, 0, 0.4) 0px 25px 50px, 
+          rgba(0, 0, 0, 0.3) 0px 20px 25px,
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+    }
   }
 
   :global(.feature [data-icon]) {
     height: auto;
     width: 4rem;
     color: var(--action-color);
+    transition: color 0.3s ease;
   }
 
+  .feature:hover :global([data-icon]) {
+    color: var(--primary-300);
+  }
 </style>
+
+<script>
+  // Mouse tracking for spotlight effect
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.spotlight-card');
+    
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        card.style.setProperty('--mouse-x', `${x}%`);
+        card.style.setProperty('--mouse-y', `${y}%`);
+      });
+    });
+  });
+</script>

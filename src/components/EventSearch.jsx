@@ -28,7 +28,7 @@ export default function AIPromptCard({ className = '' }) {
     <div className={`ai-prompt-card ${className}`}>
       {/* Header */}
       <div>
-        <h3>Das passiert im Startup Ökosystem...</h3>
+        <h3>Was geht gerade?</h3>
         <p class="py-4">Nutze unsere KI für die perfekten Empfehlungen</p>
       </div>
 
