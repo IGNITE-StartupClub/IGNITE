@@ -4,6 +4,7 @@ import OpenPositions from '../components/OpenPositions.jsx'
 import Questionnaire from '../components/Questionnaire.jsx'
 import CallToAction from '../components/CallToAction.astro'
 import Feature from '../components/Feature.astro'
+import Orb from '../components/Orb/Orb.jsx'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
 export const prerender = false
@@ -14,30 +15,39 @@ export const prerender = false
   description="Wir freuen uns auf dich im Team von IGNITE - deinem Startup Netzwerk in Lüneburg!"
 >
   <!-- 2) Farbgradient-Overlay (z-0) -->
-  <div
-    class="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-[var(--primary-500)] via-[var(--secondary-200)] to-[#13111A]"
-  >
-  </div>
+  <div class="bg-dark pointer-events-none absolute inset-0 z-0"></div>
 
   <main class="mitmachen-container">
-    <!-- HERO -->
-    <section id="hero" class="relative flex h-[75vh] w-full justify-center overflow-hidden text-white">
-      <!-- 4) Content nach vorne holen (z-10) -->
-      <div class="animate-fade-in relative z-10 mx-auto max-w-xl space-y-6 px-6 text-center">
-        <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
-          Bist du bereit,<br />
-          deine <span class="text-secondary-100">Startup-Reise</span> zu starten?
-        </h1>
-        <p class="text-base text-gray-100 sm:text-lg md:text-xl">
-          Werde Teil des IGNITE Startup Club Lüneburg! Wir vernetzen kreative Köpfe, fördern deine Ideen und setzen
-          gemeinsam coole Projekte um.
-        </p>
-        <a href="#Bewerbung" class="button secondary js-scroll-center"> Jetzt bewerben! </a>
+    <!-- Hero Container mit Orb im Hintergrund -->
+    <div class="relative h-[600px] w-full">
+      <!-- Orb im Hintergrund -->
+      <div class="absolute inset-0 z-0">
+        <Orb client:load hoverIntensity={0.5} rotateOnHover={true} hue={0} forceHoverState={false} />
       </div>
 
-      <!-- Scroll-Cue ebenfalls oben (z-10) -->
-      <div class="absolute bottom-10 z-10 animate-bounce text-3xl">↓</div>
-    </section>
+      <!-- Text absolut zentriert über dem Orb - MIT pointer-events-none -->
+      <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-8">
+        <div class="animate-fade-in max-w-2xl text-center text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.8)]">
+          <h1 class="mb-6 text-3xl font-extrabold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
+            Bist du bereit,<br />
+            deine <span class="text-secondary-100">Startup-Reise</span> zu starten?
+          </h1>
+          <p class="mb-8 text-base text-gray-100 sm:text-lg md:text-xl">
+            Werde Teil des IGNITE Startup Club Lüneburg! Wir vernetzen kreative Köpfe, fördern deine Ideen und setzen
+            gemeinsam coole Projekte um.
+          </p>
+          <!-- Button braucht pointer-events zurück -->
+          <a href="#Bewerbung" class="button secondary js-scroll-center pointer-events-auto"> Jetzt bewerben! </a>
+        </div>
+      </div>
+
+      <!-- Scroll-Cue -->
+      <div
+        class="pointer-events-none absolute bottom-10 left-1/2 z-20 -translate-x-1/2 transform animate-bounce text-3xl text-white"
+      >
+        ↓
+      </div>
+    </div>
 
     <!-- OFFENE POSITIONEN (sichtbar, da z-Index kleiner als Content, aber höher als Overlays) -->
     <section id="open-positions" class="relative z-10 py-16">
@@ -61,120 +71,127 @@ export const prerender = false
         <p>
           Unsere Initiative ist in verschiedene Teams unterteilt, die sich auf unterschiedliche Bereiche konzentrieren.
         </p>
-        <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-2 my-6">
-        <Feature src="/team-logos/ignite events.png" title="Events">
-          Wir entwickeln neue Veranstaltungsformate, organisieren Events und führen Workshops durch, um unternehmerisches Denken erlebbar zu machen
-        </Feature>
-        <Feature src="/team-logos/ignite financial.png" title="Finance & Funding">
-          Wir kümmern uns um die finanzielle Basis von Ignite – durch Förderanträge, Sponsorings, strategische Partnerschaften und den Aufbau nachhaltiger Unternehmensbeziehungen.
-        </Feature>
-        <Feature src="/team-logos/ignite marketing.png" title="Marketing">
-          Wir gestalten den Außenauftritt von Ignite – von Social Media über Printmaterialien bis hin zu Merchandise – und sorgen dafür, dass unsere Inhalte sichtbar werden.
-        </Feature>
-        <Feature src="/team-logos/ignite relations.png" title="Relations">
-          Wir pflegen enge Verbindungen zur Universität, holen inspirierende Speaker an Bord und stärken das Netzwerk von Ignite innerhalb und außerhalb der Hochschule.
-        </Feature>
-        <Feature src="/team-logos/ignite community.png" title="Community">
-          Wir schaffen ein starkes Gemeinschaftsgefühl im Team – mit Onboarding-Prozessen, Team-Events und kontinuierlichem Austausch.
-        </Feature>
-        <Feature src="/team-logos/ignite podcast.png" title="Podcast">
-          Wir produzieren inspirierende Podcastfolgen mit spannenden Geschichten von Gründer:innen und Leuphana-Alumni und geben Einblicke in die Startup-Welt.
-        </Feature>
+        <div class="my-6 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-2">
+          <Feature src="/team-logos/ignite events.png" title="Events">
+            Wir entwickeln neue Veranstaltungsformate, organisieren Events und führen Workshops durch, um
+            unternehmerisches Denken erlebbar zu machen
+          </Feature>
+          <Feature src="/team-logos/ignite financial.png" title="Finance & Funding">
+            Wir kümmern uns um die finanzielle Basis von Ignite – durch Förderanträge, Sponsorings, strategische
+            Partnerschaften und den Aufbau nachhaltiger Unternehmensbeziehungen.
+          </Feature>
+          <Feature src="/team-logos/ignite marketing.png" title="Marketing">
+            Wir gestalten den Außenauftritt von Ignite – von Social Media über Printmaterialien bis hin zu Merchandise –
+            und sorgen dafür, dass unsere Inhalte sichtbar werden.
+          </Feature>
+          <Feature src="/team-logos/ignite relations.png" title="Relations">
+            Wir pflegen enge Verbindungen zur Universität, holen inspirierende Speaker an Bord und stärken das Netzwerk
+            von Ignite innerhalb und außerhalb der Hochschule.
+          </Feature>
+          <Feature src="/team-logos/ignite community.png" title="Community">
+            Wir schaffen ein starkes Gemeinschaftsgefühl im Team – mit Onboarding-Prozessen, Team-Events und
+            kontinuierlichem Austausch.
+          </Feature>
+          <Feature src="/team-logos/ignite podcast.png" title="Podcast">
+            Wir produzieren inspirierende Podcastfolgen mit spannenden Geschichten von Gründer:innen und Leuphana-Alumni
+            und geben Einblicke in die Startup-Welt.
+          </Feature>
         </div>
+      </div>
+      <CallToAction />
     </section>
-    <CallToAction />
   </main>
-</DefaultLayout>
 
-<script>
-  document.querySelectorAll('.js-scroll-center').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault()
-      const targetId = btn.getAttribute('href').slice(1)
-      const targetEl = document.getElementById(targetId)
-      if (targetEl) {
-        targetEl.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center', // <-- zentriert im Viewport
-        })
-      }
+  <script>
+    document.querySelectorAll('.js-scroll-center').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault()
+        const targetId = btn.getAttribute('href').slice(1)
+        const targetEl = document.getElementById(targetId)
+        if (targetEl) {
+          targetEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center', // <-- zentriert im Viewport
+          })
+        }
+      })
     })
-  })
-</script>
+  </script>
 
-<style lang="css">
-  .mitmachen-container {
-    margin: 0 auto;
-    padding: 2rem;
-    max-width: 800px;
-    color: var(--color-text);
-    font-family: var(--font-sans);
-  }
-  .scroll-indicator {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    animation: bounce 2s infinite;
-    font-size: 2rem;
-  }
-  @keyframes bounce {
-    0%,
-    100% {
-      transform: translate(-50%, 0);
+  <style lang="css">
+    .mitmachen-container {
+      margin: 0 auto;
+      padding: 2rem;
+      max-width: 800px;
+      color: var(--color-text);
+      font-family: var(--font-sans);
     }
-    50% {
-      transform: translate(-50%, 10px);
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: bounce 2s infinite;
+      font-size: 2rem;
     }
-  }
-
-  .intro {
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-  h1,
-  h2 {
-    color: var(--color-primary);
-  }
-  .form-section {
-    margin-top: 3rem;
-  }
-  #application-form {
-    margin: 2rem 0 2rem 0;
-  }
-  .text-wrapper {
-    margin-bottom: 2rem;
-  }
-  /* CSS-Variablen im globalen Stylesheet definiert */
-
-  @tailwind utilities;
-
-  @layer utilities {
-    @keyframes bg-pan {
+    @keyframes bounce {
       0%,
       100% {
-        background-position: 50% 50%;
+        transform: translate(-50%, 0);
       }
       50% {
-        background-position: 60% 40%;
+        transform: translate(-50%, 10px);
       }
     }
-    .animate-bg-pan {
-      animation: bg-pan 20s ease-in-out infinite;
+
+    .intro {
+      margin-bottom: 2rem;
+      line-height: 1.6;
     }
-    @keyframes fade-in {
-      from {
-        transform: translateY(10px);
+    h1,
+    h2 {
+      color: var(--color-primary);
+    }
+    .form-section {
+      margin-top: 3rem;
+    }
+    #application-form {
+      margin: 2rem 0 2rem 0;
+    }
+    .text-wrapper {
+      margin-bottom: 2rem;
+    }
+    /* CSS-Variablen im globalen Stylesheet definiert */
+
+    @tailwind utilities;
+
+    @layer utilities {
+      @keyframes bg-pan {
+        0%,
+        100% {
+          background-position: 50% 50%;
+        }
+        50% {
+          background-position: 60% 40%;
+        }
+      }
+      .animate-bg-pan {
+        animation: bg-pan 20s ease-in-out infinite;
+      }
+      @keyframes fade-in {
+        from {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .animate-fade-in {
         opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
+        animation: fade-in 1s ease-out forwards;
       }
     }
-    .animate-fade-in {
-      opacity: 0;
-      animation: fade-in 1s ease-out forwards;
-    }
-  }
-</style>
+  </style>
+</DefaultLayout>
