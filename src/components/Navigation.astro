@@ -30,10 +30,36 @@ import { Icon } from 'astro-icon/components'
 
 <script>
   document.addEventListener('astro:page-load', () => {
+    // Wait for DOM to be fully ready
+    setTimeout(() => {
+      initializeNavigation();
+    }, 0);
+  });
+
+  function initializeNavigation() {
     // Variables
     const mainNav = document.querySelector('#main-navigation');
+    if (!mainNav) return;
+
     const mainMenu = mainNav.querySelector('ul');
-    const dropdownMenus = [...document.querySelectorAll('.has-dropdown button')];
+    
+    // Initialize dropdown buttons with proper attributes
+    const initializeDropdowns = () => {
+      const dropdownButtons = mainNav.querySelectorAll('.has-dropdown button');
+      dropdownButtons.forEach(button => {
+        // Ensure aria-expanded is set
+        if (!button.hasAttribute('aria-expanded')) {
+          button.setAttribute('aria-expanded', 'false');
+        }
+        // Ensure aria-haspopup is set
+        if (!button.hasAttribute('aria-haspopup')) {
+          button.setAttribute('aria-haspopup', 'true');
+        }
+      });
+      return [...dropdownButtons];
+    };
+
+    let dropdownMenus = initializeDropdowns();
 
     // Set Active Menu Item
     const setActiveMenuItem = () => {
@@ -44,6 +70,10 @@ import { Icon } from 'astro-icon/components'
         const menuItems = [...menu.querySelectorAll('a:not([rel*="external"])')] as HTMLAnchorElement[];
 
         menuItems.forEach((menuItem) => {
+          // Clear previous active states
+          menuItem.classList.remove('is-active');
+          menuItem.removeAttribute('aria-current');
+
           if (currentPathname.includes(menuItem.pathname.replaceAll('/', '')) && menuItem.textContent !== 'Startseite') {
             menuItem.classList.add('is-active');
             menuItem.setAttribute('aria-current', 'page');
@@ -57,17 +87,24 @@ import { Icon } from 'astro-icon/components'
 
     // Check Menu Size for Mobile/Desktop Toggle
     const checkMenuSize = () => {
+      const desktopMenu = document.querySelector('.desktop-menu');
+      if (!desktopMenu) return;
+
       const mainNavWidth = mainNav.getBoundingClientRect().width;
-      const desktopMenuWidth = document.querySelector('.desktop-menu').getBoundingClientRect().width;
+      const desktopMenuWidth = desktopMenu.getBoundingClientRect().width;
       const logoWidthBuffer = 300;
       const totalMenuWidth = Math.round(desktopMenuWidth) + logoWidthBuffer;
 
       if (totalMenuWidth >= mainNavWidth) {
         mainNav.classList.remove('is-desktop');
         mainNav.classList.add('is-mobile');
+        // Close all dropdowns when switching to mobile
+        closeAllDropdownMenus();
       } else if (totalMenuWidth <= mainNavWidth) {
         mainNav.classList.add('is-desktop');
         mainNav.classList.remove('is-mobile');
+        // Close all dropdowns when switching to desktop
+        closeAllDropdownMenus();
       }
     };
 
@@ -80,19 +117,37 @@ import { Icon } from 'astro-icon/components'
     // Open dropdown menu
     const openDropdownMenu = (dropdownMenu) => {
       const dropdownList = dropdownMenu.parentNode.querySelector('ul');
+      if (!dropdownList) return;
+
+      // Close other dropdowns first
+      closeAllDropdownMenus();
 
       dropdownMenu.classList.add('show');
       dropdownMenu.setAttribute('aria-expanded', 'true');
 
+      // Adjust position if out of viewport
       if (isOutOfViewport(dropdownList)) {
         dropdownList.style.left = 'auto';
+        dropdownList.style.right = '0';
       }
+
+      // Ensure the dropdown is visible
+      dropdownList.style.display = 'flex';
     };
 
     // Close dropdown menu
     const closeDropdownMenu = (dropdownMenu) => {
+      if (!dropdownMenu) return;
+
+      const dropdownList = dropdownMenu.parentNode.querySelector('ul');
       dropdownMenu.classList.remove('show');
       dropdownMenu.setAttribute('aria-expanded', 'false');
+      
+      if (dropdownList) {
+        dropdownList.style.display = 'none';
+        dropdownList.style.left = '';
+        dropdownList.style.right = '';
+      }
     };
 
     // Close all dropdown menus
@@ -104,16 +159,21 @@ import { Icon } from 'astro-icon/components'
 
     // Toggle dropdown visibility
     const toggleDropdownMenu = (event) => {
-      if (event.target.getAttribute('aria-expanded') === 'false') {
-        closeAllDropdownMenus();
-        openDropdownMenu(event.target);
+      event.preventDefault();
+      event.stopPropagation();
+
+      const button = event.currentTarget;
+      const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+      if (!isExpanded) {
+        openDropdownMenu(button);
       } else {
-        closeDropdownMenu(event.target);
+        closeDropdownMenu(button);
       }
     };
 
     // Keyboard navigation for menu
-    mainMenu &&
+    if (mainMenu) {
       mainMenu.addEventListener('keydown', (event) => {
         const element = event.target as Element;
         const currentMenuItem = element.closest('li');
@@ -143,10 +203,11 @@ import { Icon } from 'astro-icon/components'
 
         if (key === 'Escape') {
           targetItem = menuItems[0];
+          closeAllDropdownMenus();
         }
 
         if (currentDropdownMenu) {
-          const firstDropdownItem = currentDropdownMenu.nextElementSibling.querySelector('li');
+          const firstDropdownItem = currentDropdownMenu.nextElementSibling?.querySelector('li');
 
           if (key === 'ArrowDown') {
             event.preventDefault();
@@ -186,7 +247,7 @@ import { Icon } from 'astro-icon/components'
 
           if (key === 'Escape') {
             const currentDropdownMenu = (currentDropdownList as Element).previousElementSibling;
-            targetItem = currentDropdownMenu.parentNode;
+            targetItem = currentDropdownMenu?.parentNode;
             closeAllDropdownMenus();
           }
 
@@ -200,28 +261,61 @@ import { Icon } from 'astro-icon/components'
         }
 
         if (targetItem) {
-          targetItem.querySelector('a, button, input').focus();
+          const focusableElement = targetItem.querySelector('a, button, input');
+          if (focusableElement) {
+            focusableElement.focus();
+          }
         }
       });
+    }
 
-    // Dropdown click event
-    dropdownMenus &&
+    // Remove existing event listeners and add new ones
+    const setupDropdownEvents = () => {
+      // Re-initialize dropdowns in case DOM changed
+      dropdownMenus = initializeDropdowns();
+      
       dropdownMenus.forEach((dropdownMenu) => {
-        dropdownMenu.addEventListener('click', toggleDropdownMenu);
+        // Remove existing listeners to prevent duplicates
+        const newDropdownMenu = dropdownMenu.cloneNode(true);
+        dropdownMenu.parentNode.replaceChild(newDropdownMenu, dropdownMenu);
+        
+        // Add event listener to the new element
+        newDropdownMenu.addEventListener('click', toggleDropdownMenu);
       });
+      
+      // Update the array with new elements
+      dropdownMenus = initializeDropdowns();
+    };
+
+    // Setup initial events
+    setupDropdownEvents();
 
     // Initialize the menu and check menu size
     setActiveMenuItem();
     checkMenuSize();
 
-    window.addEventListener('resize', checkMenuSize);
-    window.addEventListener('click', (event) => {
+    // Window event listeners
+    window.addEventListener('resize', () => {
+      checkMenuSize();
+      closeAllDropdownMenus();
+    });
+
+    // Click outside to close dropdowns
+    document.addEventListener('click', (event) => {
       const element = event.target as Element;
-      if (!element.hasAttribute('aria-haspopup') && !element.classList.contains('submenu-item')) {
+      if (!element.closest('.has-dropdown')) {
         closeAllDropdownMenus();
       }
     });
-  });
+
+    // Handle focus loss
+    document.addEventListener('focusin', (event) => {
+      const element = event.target as Element;
+      if (!element.closest('.has-dropdown')) {
+        closeAllDropdownMenus();
+      }
+    });
+  }
 </script>
 
 <style lang="scss" is:global>
@@ -330,6 +424,8 @@ import { Icon } from 'astro-icon/components'
         border: none;
         padding: 0;
         color: var(--neutral-100);
+        background: transparent;
+        cursor: pointer;
 
         &:hover {
           color: var(--secondary-100);
@@ -348,18 +444,13 @@ import { Icon } from 'astro-icon/components'
           width: 0.85rem;
           height: 0.75em;
           content: '';
+          transition: transform 0.2s ease;
         }
 
         &.show {
           &::after {
             transform: rotate(-45deg);
             margin-top: 0.25rem;
-          }
-
-          ~ ul {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
           }
         }
       }
@@ -377,6 +468,13 @@ import { Icon } from 'astro-icon/components'
         background-color: var(--neutral-background);
         padding: 1rem;
         min-width: 260px;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      /* Show dropdown when button has .show class */
+      > button.show ~ ul {
+        display: flex !important;
       }
     }
 
