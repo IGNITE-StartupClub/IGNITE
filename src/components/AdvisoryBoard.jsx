@@ -13,6 +13,28 @@ const advisoryMembers = [
       'https://www.leuphana.de/fileadmin/_processed_/6/5/csm_reihlen_markus__795-70697.690x690px.WEB_944517a3d2.jpg',
     initials: 'MR',
   },
+// {
+//   id: 2,
+//   name: 'Prof. Dr. Elke Schüßler',
+//   title: 'Professorin für Betriebswirtschaftslehre, insbesondere Entrepreneurship und Organisation',
+//   department: 'Leuphana Universität Lüneburg',
+//   boardRole: 'Advisory Board Member',
+//   bio: 'Expertin für nachhaltige Organisations- und Arbeitsformen',
+//   linkedin: 'https://www.linkedin.com/in/elke-schuessler-01a488a/?originalSubdomain=de',
+//   image: 'https://www.leuphana.de/fileadmin/_processed_/9/1/csm_schuessler_elke_795-81159.690x690px.WEB_cee730c75f.jpg',
+//   initials: 'ES',
+// },
+//    {
+//   id: 3,
+//   name: 'Prof. Dr. Burkhardt Funk',
+//   title: 'Professor für Wirtschaftsinformatik und Data Science',
+//   department: 'Leuphana Universität Lüneburg',
+//   boardRole: 'Adisory Board Member',
+//   bio: 'Experte für datengetriebene Services und maschinelles Lernen',
+//   linkedin: 'https://www.linkedin.com/in/burkhardt-funk-779361126/?originalSubdomain=de',
+//   image: 'https://www.leuphana.de/fileadmin/_processed_/f/2/csm_funk_burkhardt_fd0606b9ab.jpg',
+//   initials: 'BF',
+// }
   //     {
   //     id: 2,
   //     name: "Prof. Dr. Markus Reihlen",
