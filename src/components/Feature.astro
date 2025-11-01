@@ -29,6 +29,7 @@ const isPng = src?.endsWith('.png');
     padding: 2rem;
     cursor: pointer;
     overflow: hidden;
+    border-radius: 1rem;
 
     > * {
       position: relative;
@@ -55,10 +56,11 @@ const isPng = src?.endsWith('.png');
       transition: all 0.3s ease;
     }
 
-    &::after {
-      inset: 1rem -0.85rem -0.85rem 1rem;
-      border-radius: 1rem;
-      z-index: 0;
+     &::after {
+    inset: 1rem -0.85rem -0.85rem 1rem;
+    border-radius: 1rem;
+    z-index: 0;
+    background: linear-gradient(135deg, transparent, rgba(0,0,0,0.1)); 
     }
 
     // Spotlight effect
@@ -95,20 +97,36 @@ const isPng = src?.endsWith('.png');
   }
 </style>
 
-<script>
-  // Mouse tracking for spotlight effect
-  document.addEventListener('DOMContentLoaded', () => {
+<script is:inline>
+  // Warten bis DOM geladen ist
+  function initSpotlight() {
     const cards = document.querySelectorAll('.spotlight-card');
     
     cards.forEach(card => {
-      card.addEventListener('mousemove', (e) => {
+      // Entferne existing listeners um Duplikate zu vermeiden
+      card.removeEventListener('mousemove', card._spotlightHandler);
+      
+      // Handler definieren und speichern für cleanup
+      card._spotlightHandler = (e) => {
         const rect = card.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
         
         card.style.setProperty('--mouse-x', `${x}%`);
         card.style.setProperty('--mouse-y', `${y}%`);
-      });
+      };
+      
+      card.addEventListener('mousemove', card._spotlightHandler);
     });
-  });
+  }
+
+  // Für erste Seitenladung
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSpotlight);
+  } else {
+    initSpotlight();
+  }
+
+  // Für Astro View Transitions (falls verwendet)
+  document.addEventListener('astro:page-load', initSpotlight);
 </script>
