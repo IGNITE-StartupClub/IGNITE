@@ -3,7 +3,7 @@ import DefaultLayout from '../layouts/DefaultLayout.astro';
 import Contact from '../components/Contact.jsx';
 import CallToAction from '../components/CallToAction.astro';
 
-const initialPosition = Astro.url.searchParams.get('position') || '';
+const initialIntent = Astro.url.searchParams.get('intent') || '';
 export const prerender = false;
 ---
 
@@ -13,7 +13,7 @@ export const prerender = false;
     <p class="intro">
       Bei Fragen oder Anregungen kannst du uns jederzeit über das Kontaktformular erreichen.
     </p>
-    <Contact client:load />
+    <Contact client:load initialIntent={initialIntent} />
     <CallToAction />
 
   </main>

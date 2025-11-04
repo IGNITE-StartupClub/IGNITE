@@ -1,13 +1,12 @@
 import React from 'react';
 import { Modal } from 'accessible-astro-components'
-import { positions } from '../data/jobs.js'; // Importiere die Liste der offenen Stellen
-// Exportiere die Liste, damit sie auch im Questionnaire genutzt werden kann
+import { teams } from '../data/jobs.js'; // Importiere die Liste der Teams
 const date = new Date();
 
 export default function OpenPositions() {
   return (
     <div className="positions-grid">
-      {positions.map((job) => (
+      {teams.map((job) => (
         <article key={job.id} className="job-card enhanced-card">
           <div className="image-wrapper">
             {job.image ? (
@@ -270,7 +269,7 @@ export default function OpenPositions() {
 }
 
 export function JobStructuredData() {
-  const jobsAsLD = positions.map((job) => ({
+  const jobsAsLD = teams.map((job) => ({
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: job.title,
