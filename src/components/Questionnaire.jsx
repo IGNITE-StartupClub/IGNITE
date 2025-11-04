@@ -82,29 +82,24 @@ export default function Questionnaire({ initialPosition = '' }) {
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {teams.map(team => (
-                <label key={team.id} style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
+                <label key={team.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={data.teams.includes(team.id)}
                     onChange={() => handleTeamChange(team.id)}
-                    style={{ marginRight: '0.75rem', marginTop: '0.25rem', cursor: 'pointer' }}
+                    style={{ marginRight: '0.75rem', cursor: 'pointer' }}
                   />
-                  <div>
-                    <strong>{team.team}</strong>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: 'var(--neutral-600)' }}>
-                      {team.description}
-                    </p>
-                  </div>
+                  <strong>{team.team}</strong>
                 </label>
               ))}
             </div>
             {data.teams.length < 2 && (
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-500)' }}>
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
                 Bitte wähle mindestens 2 Teams aus.
               </p>
             )}
             {data.teams.length === 3 && (
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--primary-500)' }}>
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
                 Du hast die maximale Anzahl von 3 Teams ausgewählt.
               </p>
             )}
@@ -124,10 +119,10 @@ export default function Questionnaire({ initialPosition = '' }) {
       {step === 3 && (
         <>
           <fieldset style={{ border: 'none', padding: 0 }}>
-            <legend style={{ fontWeight: 500, marginBottom: '0.75rem' }}>
+            <legend style={{ fontWeight: 500, marginBottom: '0.75rem', textAlign: 'left' }}>
               Was beschreibt deine Situation am besten?
             </legend>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                 <input
                   type="radio"
@@ -135,7 +130,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   value="interested"
                   checked={data.startupInterest === 'interested'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.75rem' }}
                 />
                 Ich finde Startups/Gründen spannend
               </label>
@@ -146,7 +141,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   value="want-to-work"
                   checked={data.startupInterest === 'want-to-work'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.75rem' }}
                 />
                 Ich möchte in einem Startup arbeiten (angestellt)
               </label>
@@ -157,7 +152,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   value="want-to-found-no-idea"
                   checked={data.startupInterest === 'want-to-found-no-idea'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.75rem' }}
                 />
                 Ich möchte gründen, habe aber noch keine Idee
               </label>
@@ -168,7 +163,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   value="want-to-found-with-idea"
                   checked={data.startupInterest === 'want-to-found-with-idea'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.75rem' }}
                 />
                 Ich möchte gründen und habe eine Idee
               </label>
@@ -179,7 +174,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   value="already-founded"
                   checked={data.startupInterest === 'already-founded'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.75rem' }}
                 />
                 Ich habe bereits gegründet
               </label>
@@ -344,25 +339,72 @@ export default function Questionnaire({ initialPosition = '' }) {
         input[type="text"],
         input[type="email"] {
           margin-top: 0.25rem;
-          padding: var(--spacing-sm, 0.5rem);
+          padding: 0.75rem;
           border: 1px solid var(--neutral-400);
           border-radius: var(--radius-sm, 4px);
+          font-size: 1rem;
+          transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus {
+          border-color: var(--primary-400);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(140, 57, 116, 0.2);
+        }
+
+        input::placeholder {
+          color: var(--neutral-500);
+          opacity: 0.8;
+          font-style: italic;
+          font-size: 0.95rem;
         }
 
         /* Better styling for checkboxes and radio buttons */
         input[type="checkbox"],
         input[type="radio"] {
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           cursor: pointer;
-          accent-color: var(--primary-500, #663399);
+          accent-color: var(--primary-400, #8c3974);
+          border: 2px solid var(--neutral-400);
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+
+        input[type="checkbox"]:checked,
+        input[type="radio"]:checked {
+          background-color: var(--primary-400);
+          border-color: var(--primary-300);
+          box-shadow: 0 0 0 3px rgba(140, 57, 116, 0.2);
+        }
+
+        input[type="checkbox"]:hover,
+        input[type="radio"]:hover {
+          border-color: var(--primary-400);
         }
 
         /* Textarea improvements */
         textarea {
           font-family: inherit;
           resize: vertical;
-          min-height: 80px;
+          min-height: 120px;
+          font-size: 1rem;
+          line-height: 1.6;
+          padding: 0.75rem;
+        }
+
+        textarea::placeholder {
+          color: var(--neutral-500);
+          opacity: 0.8;
+          font-style: italic;
+          font-size: 0.95rem;
+        }
+
+        textarea:focus {
+          border-color: var(--primary-400);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(140, 57, 116, 0.2);
         }
 
         fieldset {

@@ -190,42 +190,6 @@ export default function ContactForm({ initialIntent = '' }) {
           </label>
 
           <label>
-            Position/Rolle
-            <input
-              name="position"
-              value={data.position}
-              onChange={handleChange}
-              required
-              placeholder="Ihre aktuelle Position"
-            />
-          </label>
-
-          <div className="flex-row flex gap-4 width-full">
-            <label className="flex-1">
-              Telefonnummer (optional)
-              <input
-                type="tel"
-                name="phone"
-                value={data.phone}
-                onChange={handleChange}
-                placeholder="+49 123 456789"
-                className="w-full"
-              />
-            </label>
-            <label className="flex-1">
-              LinkedIn Profil (optional)
-              <input
-                type="url"
-                name="linkedin"
-                value={data.linkedin}
-                onChange={handleChange}
-                placeholder="https://linkedin.com/in/..."
-                className="w-full"
-              />
-            </label>
-          </div>
-
-          <label>
             Fachgebiet/Expertise
             <textarea
               name="expertise"
@@ -318,7 +282,7 @@ export default function ContactForm({ initialIntent = '' }) {
         .advisory-info p {
           margin: 0;
           line-height: 1.6;
-          color: var(--neutral-300);
+          color: var(--neutral-100);
           font-size: 0.95rem;
         }
 
@@ -342,16 +306,6 @@ export default function ContactForm({ initialIntent = '' }) {
           content: ' *';
           color: var(--primary-300);
           font-weight: bold;
-        }
-
-        /* Remove asterisk from optional fields */
-        .contact-form label:has(input[type="tel"])::after,
-        .contact-form label:has(input[type="url"][name="linkedin"])::after {
-          content: ' (optional)';
-          color: var(--neutral-500);
-          font-weight: normal;
-          font-size: 0.85rem;
-          font-style: italic;
         }
 
         /* Light Mode Anpassungen */
