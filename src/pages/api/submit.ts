@@ -36,6 +36,11 @@ function encrypt(text: string) {
 async function sendApplicationEmail(data: any) {
   try {
     console.log('✉️  Sending application notification to team...')
+
+    // Format teams as a readable list
+    const teamsArray = Array.isArray(data.teams) ? data.teams : []
+    const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt'
+
     await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
@@ -44,12 +49,14 @@ async function sendApplicationEmail(data: any) {
         <div style="font-family: Inter, sans-serif; padding:2rem; border:1px solid #eee; border-radius:8px; max-width:600px; margin:auto;">
           <h2 style="color:#8C3974;">📬 Neue Bewerbung</h2>
           <table style="width:100%; line-height:1.6; border-collapse: separate; border-spacing: 0;">
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;"><strong>Position:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.position}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Was reizt dich an der Position?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q1}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Welche Erfahrungen hast du?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q2}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Welche Stärken kannst du einbringen?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q3}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Wie viel Zeit kannst du investieren?</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.q4}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Wie gehst du mit Struktur-Unsicherheit um?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q5}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;"><strong>Gewählte Teams:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Startup-Interesse:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.startupInterest}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Was reizt dich an IGNITE?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q1}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Proaktivität & Eigeninitiative:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q2}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Umgang mit wenig Struktur:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q3}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Stärken & Fähigkeiten:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q4}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Zeitinvestment pro Woche:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.q5}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Erfolgreiches Teamwork:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q6}</td></tr>
             <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.name}</td></tr>
             <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.lastname}</td></tr>
             <tr><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${data.email}</td></tr>
@@ -143,7 +150,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('📑 Parsed JSON:', data)
 
     // Required fields validation
-    const requiredFields = ['position', 'q1', 'q2', 'q3', 'q4', 'q5', 'name', 'lastname', 'email'] as const
+    const requiredFields = ['teams', 'startupInterest', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'name', 'lastname', 'email'] as const
     for (const field of requiredFields) {
       if (!data[field]) {
         console.warn(`⚠️ Missing field ${field}`)

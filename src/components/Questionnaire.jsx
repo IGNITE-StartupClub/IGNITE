@@ -82,14 +82,14 @@ export default function Questionnaire({ initialPosition = '' }) {
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {teams.map(team => (
-                <label key={team.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <label key={team.id} style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={data.teams.includes(team.id)}
                     onChange={() => handleTeamChange(team.id)}
-                    style={{ marginRight: '0.75rem', cursor: 'pointer' }}
+                    style={{ flexShrink: 0, marginTop: '0.15rem', cursor: 'pointer' }}
                   />
-                  <strong>{team.team}</strong>
+                  <strong style={{ paddingLeft: '0.75rem' }}>{team.team}</strong>
                 </label>
               ))}
             </div>
@@ -123,60 +123,60 @@ export default function Questionnaire({ initialPosition = '' }) {
               Was beschreibt deine Situation am besten?
             </legend>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="startupInterest"
                   value="interested"
                   checked={data.startupInterest === 'interested'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.75rem' }}
+                  style={{ flexShrink: 0, marginTop: '0.15rem' }}
                 />
-                Ich finde Startups/Gründen spannend
+                <span style={{ paddingLeft: '0.75rem' }}>Ich finde Startups/Gründen spannend</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="startupInterest"
                   value="want-to-work"
                   checked={data.startupInterest === 'want-to-work'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.75rem' }}
+                  style={{ flexShrink: 0, marginTop: '0.15rem' }}
                 />
-                Ich möchte in einem Startup arbeiten (angestellt)
+                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte in einem Startup arbeiten (angestellt)</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="startupInterest"
                   value="want-to-found-no-idea"
                   checked={data.startupInterest === 'want-to-found-no-idea'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.75rem' }}
+                  style={{ flexShrink: 0, marginTop: '0.15rem' }}
                 />
-                Ich möchte gründen, habe aber noch keine Idee
+                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte gründen, habe aber noch keine Idee</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="startupInterest"
                   value="want-to-found-with-idea"
                   checked={data.startupInterest === 'want-to-found-with-idea'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.75rem' }}
+                  style={{ flexShrink: 0, marginTop: '0.15rem' }}
                 />
-                Ich möchte gründen und habe eine Idee
+                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte gründen und habe eine Idee</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="startupInterest"
                   value="already-founded"
                   checked={data.startupInterest === 'already-founded'}
                   onChange={handleChange}
-                  style={{ marginRight: '0.75rem' }}
+                  style={{ flexShrink: 0, marginTop: '0.15rem' }}
                 />
-                Ich habe bereits gegründet
+                <span style={{ paddingLeft: '0.75rem' }}>Ich habe bereits gegründet</span>
               </label>
             </div>
           </fieldset>
@@ -354,8 +354,8 @@ export default function Questionnaire({ initialPosition = '' }) {
         }
 
         input::placeholder {
-          color: var(--neutral-500);
-          opacity: 0.8;
+          color: var(--neutral-700);
+          opacity: 1;
           font-style: italic;
           font-size: 0.95rem;
         }
@@ -395,8 +395,8 @@ export default function Questionnaire({ initialPosition = '' }) {
         }
 
         textarea::placeholder {
-          color: var(--neutral-500);
-          opacity: 0.8;
+          color: var(--neutral-700);
+          opacity: 1;
           font-style: italic;
           font-size: 0.95rem;
         }
