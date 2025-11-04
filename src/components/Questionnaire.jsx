@@ -1,38 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { positions } from '../data/jobs.js';
+import { teams } from '../data/jobs.js';
 
 export default function Questionnaire({ initialPosition = '' }) {
-  const startStep = initialPosition ? 3 : 1;
+  const startStep = 1;
   const [step, setStep] = useState(startStep);
   const [data, setData] = useState({
-    position: initialPosition,
+    teams: [],
+    startupInterest: '',
     q1: '',
     q2: '',
     q3: '',
     q4: '',
     q5: '',
+    q6: '',
     name: '',
     lastname: '',
     email: '',
   });
   const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false); // 👈 hinzugefügt
-
-  useEffect(() => {
-    if (initialPosition) {
-      setData(d => ({ ...d, position: initialPosition }));
-    }
-  }, [initialPosition]);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = e => {
     const { name, value } = e.target;
     setData(d => ({ ...d, [name]: value }));
   };
+
+  const handleTeamChange = (teamId) => {
+    setData(d => {
+      const currentTeams = d.teams || [];
+      if (currentTeams.includes(teamId)) {
+        return { ...d, teams: currentTeams.filter(t => t !== teamId) };
+      } else {
+        if (currentTeams.length >= 3) {
+          return d; // max 3 teams
+        }
+        return { ...d, teams: [...currentTeams, teamId] };
+      }
+    });
+  };
+
   const next = () => setStep(s => s + 1);
 
   const handleSubmit = async e => {
     e.preventDefault();
-    setLoading(true); // 👈 Start Loading
+    setLoading(true);
 
     await fetch('/api/submit', {
       method: 'POST',
@@ -40,7 +51,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       body: JSON.stringify(data),
     });
 
-    setLoading(false); // 👈 Stop Loading
+    setLoading(false);
     setDone(true);
   };
 
@@ -62,124 +73,213 @@ export default function Questionnaire({ initialPosition = '' }) {
         </button>
       )}
 
-      {/* Schritt 2: Positions-Auswahl */}
+      {/* Schritt 2: Team-Auswahl (2-3 Teams) */}
       {step === 2 && (
         <>
-          <label>
-            Gewünschte Position
-            <select
-              name="position"
-              value={data.position}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Bitte wählen</option>
-              <option value="initiativbewerbung">Initiativbewerbung</option>
-              {positions.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
+          <div>
+            <label style={{ marginBottom: '1rem' }}>
+              Wähle 2-3 Teams, in denen du mitarbeiten möchtest:
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {teams.map(team => (
+                <label key={team.id} style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={data.teams.includes(team.id)}
+                    onChange={() => handleTeamChange(team.id)}
+                    style={{ marginRight: '0.75rem', marginTop: '0.25rem', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <strong>{team.team}</strong>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: 'var(--neutral-600)' }}>
+                      {team.description}
+                    </p>
+                  </div>
+                </label>
               ))}
-            </select>
-            {data.position === 'initiativbewerbung' && (
-              <p className="mt-2 text-gray-200 text-sm">
-                Bei einer Initiativbewerbung bewirbst du dich ohne konkretes Stellenangebot
-                und zeigst uns damit, dass du besonders motiviert bist, Teil unseres Teams zu werden.
+            </div>
+            {data.teams.length < 2 && (
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-500)' }}>
+                Bitte wähle mindestens 2 Teams aus.
               </p>
             )}
-          </label>
+            {data.teams.length === 3 && (
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--primary-500)' }}>
+                Du hast die maximale Anzahl von 3 Teams ausgewählt.
+              </p>
+            )}
+          </div>
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.position}
+            disabled={data.teams.length < 2}
           >
             Weiter
           </button>
         </>
       )}
 
-      {/* Schritt 3: Q1 + Q2 */}
+      {/* Schritt 3: Startup-Interesse */}
       {step === 3 && (
         <>
+          <fieldset style={{ border: 'none', padding: 0 }}>
+            <legend style={{ fontWeight: 500, marginBottom: '0.75rem' }}>
+              Was beschreibt deine Situation am besten?
+            </legend>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="startupInterest"
+                  value="interested"
+                  checked={data.startupInterest === 'interested'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Ich finde Startups/Gründen spannend
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="startupInterest"
+                  value="want-to-work"
+                  checked={data.startupInterest === 'want-to-work'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Ich möchte in einem Startup arbeiten (angestellt)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="startupInterest"
+                  value="want-to-found-no-idea"
+                  checked={data.startupInterest === 'want-to-found-no-idea'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Ich möchte gründen, habe aber noch keine Idee
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="startupInterest"
+                  value="want-to-found-with-idea"
+                  checked={data.startupInterest === 'want-to-found-with-idea'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Ich möchte gründen und habe eine Idee
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="startupInterest"
+                  value="already-founded"
+                  checked={data.startupInterest === 'already-founded'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Ich habe bereits gegründet
+              </label>
+            </div>
+          </fieldset>
           <label>
-            1. Was reizt dich persönlich an unserer noch jungen Initiative – und warum gerade jetzt?
+            Was reizt dich persönlich an unserer noch jungen Initiative – und warum gerade jetzt?
             <textarea
               name="q1"
               value={data.q1}
               onChange={handleChange}
               required
+              rows="4"
             />
           </label>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={next}
+            disabled={!data.startupInterest || !data.q1.trim()}
+          >
+            Weiter
+          </button>
+        </>
+      )}
+
+      {/* Schritt 4: Proaktivität & Eigeninitiative */}
+      {step === 4 && (
+        <>
           <label>
-            2. Welche Erfahrungen hast du bisher bei der Planung oder Durchführung von Veranstaltungen gesammelt?
+            Beschreibe eine Situation, in der du ein Projekt oder eine Idee selbstständig vorangetrieben hast, ohne dass jemand dich dazu aufgefordert hat.
             <textarea
               name="q2"
               value={data.q2}
               onChange={handleChange}
               required
+              rows="5"
+              placeholder="Beschreibe die Situation, deine Motivation und was du konkret getan hast..."
             />
           </label>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={next}
-            disabled={!data.q1.trim() || !data.q2.trim()}
-          >
-            Weiter
-          </button>
-        </>
-      )}
-
-      {/* Schritt 4: Q3 + Q4 */}
-      {step === 4 && (
-        <>
           <label>
-            3. Welche konkreten Stärken (z. B. Design, Marketing, Finanzen, Technik) könntest du sofort einbringen?
+            Wie gehst du damit um, wenn ein Projekt noch wenig Struktur hat und vieles parallel entsteht?
             <textarea
               name="q3"
               value={data.q3}
               onChange={handleChange}
               required
-            />
-          </label>
-          <label>
-            4. Wie viel Zeit kannst du in den nächsten drei Monaten realistisch pro Woche investieren?
-            <textarea
-              name="q4"
-              value={data.q4}
-              onChange={handleChange}
-              required
+              rows="4"
             />
           </label>
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.q3.trim() || !data.q4.trim()}
+            disabled={!data.q2.trim() || !data.q3.trim()}
           >
             Weiter
           </button>
         </>
       )}
 
-      {/* Schritt 5: Q5 */}
+      {/* Schritt 5: Fähigkeiten & Commitment */}
       {step === 5 && (
         <>
           <label>
-            5. Wie gehst du damit um, wenn ein Projekt noch wenig Struktur hat und vieles parallel entsteht?
+            Welche konkreten Stärken oder Fähigkeiten könntest du sofort in die Teams einbringen? (z. B. Design, Marketing, Finanzen, Technik, Organisation, Netzwerken)
+            <textarea
+              name="q4"
+              value={data.q4}
+              onChange={handleChange}
+              required
+              rows="4"
+            />
+          </label>
+          <label>
+            Wie viel Zeit kannst du realistisch pro Woche für IGNITE investieren?
             <textarea
               name="q5"
               value={data.q5}
               onChange={handleChange}
               required
+              rows="3"
+              placeholder="z. B. 5-10 Stunden pro Woche..."
+            />
+          </label>
+          <label>
+            Was bedeutet für dich "erfolgreiches Teamwork" in einer studentischen Initiative?
+            <textarea
+              name="q6"
+              value={data.q6}
+              onChange={handleChange}
+              required
+              rows="4"
             />
           </label>
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.q5.trim()}
+            disabled={!data.q4.trim() || !data.q5.trim() || !data.q6.trim()}
           >
             Weiter
           </button>
@@ -241,15 +341,40 @@ export default function Questionnaire({ initialPosition = '' }) {
         }
         select,
         textarea,
-        input {
+        input[type="text"],
+        input[type="email"] {
           margin-top: 0.25rem;
           padding: var(--spacing-sm, 0.5rem);
           border: 1px solid var(--neutral-400);
           border-radius: var(--radius-sm, 4px);
         }
-          /* Basis-Styling für das Select */
 
-          .questionnaire select {
+        /* Better styling for checkboxes and radio buttons */
+        input[type="checkbox"],
+        input[type="radio"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: var(--primary-500, #663399);
+        }
+
+        /* Textarea improvements */
+        textarea {
+          font-family: inherit;
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        fieldset {
+          margin: 0;
+        }
+
+        legend {
+          padding: 0;
+        }
+
+        /* Basis-Styling für das Select */
+        .questionnaire select {
           /* Entferne native Styles */
           -webkit-appearance: none;
           -moz-appearance: none;

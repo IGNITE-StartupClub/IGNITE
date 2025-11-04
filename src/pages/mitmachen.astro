@@ -65,6 +65,64 @@ export const prerender = false
         <Questionnaire client:load initialPosition={initialPosition} />
       </section>
     </section>
+
+    <!-- Bewerbungsprozess Info Section -->
+    <section class="application-process-section">
+      <h2 class="text-primary mb-8 text-center text-3xl font-extrabold sm:text-4xl">Wie geht es weiter?</h2>
+      <p class="process-intro mb-12 text-center text-lg text-gray-300">
+        Nach deiner Bewerbung durchläufst du folgende Schritte:
+      </p>
+
+      <div class="process-steps">
+        <div class="process-step spotlight-card">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Bewerbung ausfüllen</h3>
+            <p>Fülle unser Bewerbungsformular aus und erzähle uns von dir und deinen Interessen.</p>
+          </div>
+        </div>
+
+        <div class="process-step spotlight-card">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Bestätigungsmail</h3>
+            <p>Du erhältst eine Bestätigungsmail von uns, dass deine Bewerbung bei uns eingegangen ist.</p>
+          </div>
+        </div>
+
+        <div class="process-step spotlight-card">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Bewerbungsauswertung</h3>
+            <p>Wir lesen uns deine Bewerbung durch und entscheiden, ob wir dich zu einem Bewerbungsgespräch einladen.</p>
+          </div>
+        </div>
+
+        <div class="process-step spotlight-card">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Bewerbungsgespräch</h3>
+            <p>Das Bewerbungsgespräch wird durch unser HR-Team mit dir durchgeführt.</p>
+          </div>
+        </div>
+
+        <div class="process-step spotlight-card">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h3>Team-Matching</h3>
+            <p>Nach dem Bewerbungsgespräch entscheidet das HR-Team, in welchem Team deiner Auswahl du am besten gerade unterstützen kannst.</p>
+          </div>
+        </div>
+
+        <div class="process-step spotlight-card final-step">
+          <div class="step-number">🚀</div>
+          <div class="step-content">
+            <h3>Let's ignite your future!</h3>
+            <p class="highlight-text">Du bist an Board – feel free und willkommen im Team!</p>
+          </div>
+        </div>
+      </div>
+    </section>
     <!-- <section>
       <div class="my-24">
         <h2>Unsere Teams</h2>
@@ -118,6 +176,40 @@ export const prerender = false
     })
   </script>
 
+  <script is:inline>
+    // Spotlight effect for process steps
+    function initProcessSpotlight() {
+      const steps = document.querySelectorAll('.process-step.spotlight-card');
+
+      steps.forEach(step => {
+        // Remove existing listeners to avoid duplicates
+        step.removeEventListener('mousemove', step._spotlightHandler);
+
+        // Define and save handler for cleanup
+        step._spotlightHandler = (e) => {
+          const rect = step.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+          step.style.setProperty('--mouse-x', `${x}%`);
+          step.style.setProperty('--mouse-y', `${y}%`);
+        };
+
+        step.addEventListener('mousemove', step._spotlightHandler);
+      });
+    }
+
+    // For initial page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initProcessSpotlight);
+    } else {
+      initProcessSpotlight();
+    }
+
+    // For Astro View Transitions (if used)
+    document.addEventListener('astro:page-load', initProcessSpotlight);
+  </script>
+
   <style lang="css">
     .mitmachen-container {
       margin: 0 auto;
@@ -161,6 +253,135 @@ export const prerender = false
     .text-wrapper {
       margin-bottom: 2rem;
     }
+
+    /* Application Process Section */
+    .application-process-section {
+      margin: 4rem 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .process-intro {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .process-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .process-step {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .process-step > * {
+      position: relative;
+      z-index: 2;
+    }
+
+    .process-step::before,
+    .process-step::after {
+      content: '';
+      position: absolute;
+    }
+
+    .process-step::before {
+      inset: 0;
+      background-color: var(--dark-100);
+      border: 2px solid var(--gradient-100);
+      border-radius: 1rem;
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 10px 20px, rgba(0, 0, 0, 0.22) 0px 6px 6px;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+
+    .process-step::after {
+      inset: 0.75rem -0.75rem -0.75rem 0.75rem;
+      border-radius: 1rem;
+      z-index: 0;
+      background: linear-gradient(135deg, transparent, rgba(0,0,0,0.1));
+    }
+
+    .process-step:hover::before {
+      background: radial-gradient(
+        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 159, 252, 0.15),
+        transparent 40%
+      ), var(--dark-100);
+      border-color: var(--primary-300);
+      box-shadow:
+        rgba(0, 0, 0, 0.4) 0px 15px 30px,
+        rgba(0, 0, 0, 0.3) 0px 10px 15px,
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .process-step:hover {
+      transform: translateY(-2px);
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 3rem;
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-300), var(--secondary-300));
+      border-radius: 50%;
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: var(--neutral-900);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-content h3 {
+      color: var(--primary-300);
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-content p {
+      color: var(--neutral-300);
+      line-height: 1.6;
+    }
+
+    .final-step {
+      background: linear-gradient(135deg, rgba(255, 159, 252, 0.1), rgba(255, 107, 107, 0.1));
+    }
+
+    .final-step .step-number {
+      background: linear-gradient(135deg, var(--secondary-200), var(--primary-200));
+      font-size: 1.5rem;
+    }
+
+    .final-step .step-content h3 {
+      color: var(--secondary-200);
+      font-size: 1.5rem;
+    }
+
+    .highlight-text {
+      color: var(--primary-200);
+      font-weight: 600;
+    }
+
     /* CSS-Variablen im globalen Stylesheet definiert */
 
     @tailwind utilities;
