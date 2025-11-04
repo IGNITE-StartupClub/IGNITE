@@ -19,6 +19,23 @@ for (const key of requiredEnvs) {
 
 const adminRecipients = [process.env.EMAIL_RECIPIENT_1, process.env.EMAIL_RECIPIENT_2].filter(Boolean) as string[]
 
+// Helper to safely convert any value to string for encryption
+function toSafeString(value: any): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (Array.isArray(value)) {
+    return JSON.stringify(value)
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value)
+  }
+  return String(value)
+}
+
 function encrypt(text: string) {
   try {
     const iv = crypto.randomBytes(16)
@@ -37,11 +54,23 @@ async function sendApplicationEmail(data: any) {
   try {
     console.log('✉️  Sending application notification to team...')
 
+    if (adminRecipients.length === 0) {
+      console.error('❌ No admin recipients configured! Skipping team notification.')
+      throw new Error('No admin recipients configured')
+    }
+
     // Format teams as a readable list
     const teamsArray = Array.isArray(data.teams) ? data.teams : []
     const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt'
 
-    await resend.emails.send({
+    // Safely format all data fields
+    const formatField = (value: any) => {
+      if (value === null || value === undefined) return 'Nicht angegeben'
+      if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe'
+      return String(value)
+    }
+
+    const result = await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
       subject: 'Neue Bewerbung eingegangen',
@@ -50,16 +79,16 @@ async function sendApplicationEmail(data: any) {
           <h2 style="color:#8C3974;">📬 Neue Bewerbung</h2>
           <table style="width:100%; line-height:1.6; border-collapse: separate; border-spacing: 0;">
             <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;"><strong>Gewählte Teams:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Startup-Interesse:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.startupInterest}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Was reizt dich an IGNITE?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q1}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Proaktivität & Eigeninitiative:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q2}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Umgang mit wenig Struktur:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q3}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Stärken & Fähigkeiten:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q4}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Zeitinvestment pro Woche:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.q5}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Erfolgreiches Teamwork:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${data.q6}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.name}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${data.lastname}</td></tr>
-            <tr><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${data.email}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Startup-Interesse:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Was reizt dich an IGNITE?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q1)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Proaktivität & Eigeninitiative:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q2)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Umgang mit wenig Struktur:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q3)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Stärken & Fähigkeiten:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q4)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Zeitinvestment pro Woche:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.q5)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Erfolgreiches Teamwork:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q6)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.name)}</td></tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.lastname)}</td></tr>
+            <tr><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${formatField(data.email)}</td></tr>
           </table>
           <p style="font-size:0.85rem; color:#888; margin-top:1.5rem;">
             Diese Nachricht wurde automatisch über das Bewerbungsformular gesendet.
@@ -89,7 +118,8 @@ async function sendApplicationEmail(data: any) {
         </style>
       `,
     })
-    console.log('✅ Team notification sent')
+    console.log('✅ Team notification sent successfully')
+    console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
   } catch (err) {
     console.error('❌ Error sending team email:', err)
     throw err
@@ -98,7 +128,14 @@ async function sendApplicationEmail(data: any) {
 
 async function sendConfirmationEmail(email: string, name: string) {
   try {
-    await resend.emails.send({
+    if (!email || !email.includes('@')) {
+      console.error(`❌ Invalid email address: ${email}`)
+      throw new Error(`Invalid email address: ${email}`)
+    }
+
+    console.log(`✉️  Sending confirmation email to ${email}...`)
+
+    const result = await resend.emails.send({
       from: 'join@ignite-startupclub.de',
       to: email,
       subject: 'Danke für deine Bewerbung – IGNITE Startup Club',
@@ -113,16 +150,29 @@ async function sendConfirmationEmail(email: string, name: string) {
         </div>
       `,
     })
-    console.log('✅ Confirmation email sent')
+    console.log('✅ Confirmation email sent successfully')
+    console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
   } catch (err) {
     console.error('❌ Error sending confirmation email:', err)
-    // do not re-throw: we still want to report DB errors
+    // do not re-throw: we still want to report DB errors and send team notification
+    // but log this error for debugging
   }
 }
 
-async function sendErrorEmail(errorMessage: string) {
+async function sendErrorEmail(errorMessage: string, context?: string) {
   try {
+    if (adminRecipients.length === 0) {
+      console.error('❌ No admin recipients configured! Cannot send error report.')
+      console.error('Please set EMAIL_RECIPIENT_1 and/or EMAIL_RECIPIENT_2 environment variables.')
+      return
+    }
+
     console.log('✉️  Sending error report to team...')
+    console.log(`📧 Recipients: ${adminRecipients.join(', ')}`)
+
+    const timestamp = new Date().toISOString()
+    const contextInfo = context ? `<p><strong>Context:</strong> ${context}</p>` : ''
+
     await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
@@ -130,14 +180,17 @@ async function sendErrorEmail(errorMessage: string) {
       html: `
         <div style="font-family:Inter,sans-serif;padding:2rem;border:1px solid #f5c6cb;border-radius:8px;background:#f8d7da;color:#721c24;max-width:600px;margin:auto;">
           <h2>Fehler bei der DB-Anfrage</h2>
-          <p>${errorMessage}</p>
+          <p><strong>Fehler:</strong> ${errorMessage}</p>
+          ${contextInfo}
+          <p><strong>Zeitstempel:</strong> ${timestamp}</p>
           <p><em>Dies ist eine automatisch generierte Nachricht.</em></p>
         </div>
       `,
     })
-    console.log('✅ Error report sent')
+    console.log('✅ Error report sent successfully')
   } catch (err) {
     console.error('❌ Could not send error report:', err)
+    console.error('Original error was:', errorMessage)
   }
 }
 
@@ -146,6 +199,20 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     console.log('📥 Incoming request to /api/submit')
+    console.log(`📧 Configured recipients: ${adminRecipients.join(', ')}`)
+
+    // Validate admin recipients
+    if (adminRecipients.length === 0) {
+      console.error('❌ No admin recipients configured!')
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: 'Server configuration error: No email recipients configured'
+        }),
+        { status: 500 }
+      )
+    }
+
     const data = await request.json()
     console.log('📑 Parsed JSON:', data)
 
@@ -161,7 +228,8 @@ export const POST: APIRoute = async ({ request }) => {
     // Encrypt & store
     const payload: Record<string, any> = {}
     for (const field of requiredFields) {
-      payload[field] = encrypt(data[field])
+      const safeValue = toSafeString(data[field])
+      payload[field] = encrypt(safeValue)
     }
     payload.createdAt = new Date()
 
@@ -181,8 +249,30 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {
     console.error('🔥 Unhandled error in POST handler:', error)
-    await sendErrorEmail(error.message)
-    return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 })
+    console.error('Error stack:', error.stack)
+
+    // Determine error context
+    let errorContext = 'Unknown error during application submission'
+    if (error.message?.includes('encrypt')) {
+      errorContext = 'Encryption error - could not encrypt application data'
+    } else if (error.message?.includes('MongoDB') || error.message?.includes('connect')) {
+      errorContext = 'Database connection error'
+    } else if (error.message?.includes('insertOne')) {
+      errorContext = 'Database insert error'
+    } else if (error.message?.includes('email') || error.message?.includes('resend')) {
+      errorContext = 'Email sending error'
+    }
+
+    // Send error report with context
+    await sendErrorEmail(`${error.message}\n\nStack: ${error.stack}`, errorContext)
+
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: 'Ein Fehler ist aufgetreten. Das Team wurde benachrichtigt.'
+      }),
+      { status: 500 }
+    )
   } finally {
     if (client) {
       try {

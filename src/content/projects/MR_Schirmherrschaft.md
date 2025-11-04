@@ -3,7 +3,7 @@ title: Prof. Dr. Markus Reihlen als Schirmherr
 author: IGNITE Team
 description: Seit Oktober 2025 berät uns und steht Professor Dr. Markus Reihlen als Schirmherr ein
 image: /news/schirmherrschaft.png
-date: 2025-04-27
+date: 2025-10-30
 ---
 
 # Prof. Dr. Markus Reihlen als Schirmherr
