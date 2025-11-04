@@ -27,6 +27,14 @@ const getDb = async () => {
       await client.connect();
       console.log('MongoDB connected successfully.');
 
+      // Create TTL index for automatic deletion after 24 hours
+      const db = client.db(MONGO_DB);
+      await db.collection('pending_confirmations').createIndex(
+        { createdAt: 1 },
+        { expireAfterSeconds: 86400 } // 24 hours = 86400 seconds
+      );
+      console.log('TTL index created/verified for pending_confirmations');
+
     } catch (err) {
       // Enhanced error logging with stack trace
       console.error('MongoDB connection error:', err);
@@ -36,7 +44,7 @@ const getDb = async () => {
       throw new Error('MongoDB connection failed');
     }
   }
-  
+
   // Log the database connection confirmation
   console.log(`Returning connected database: ${MONGO_DB}`);
   return client.db(MONGO_DB);
@@ -89,41 +97,29 @@ export const POST = async ({ request }) => {
         });
         
         console.log('Contact added to Resend successfully:', resendResponse);
-        
-        // Mark as confirmed in database before deleting
-        await db.collection('pending_confirmations').updateOne(
-          { email },
-          { $set: { confirmed: true, confirmedAt: new Date() } }
-        );
-        console.log('Marked as confirmed in database');
-        
-        // Optionally, remove from pending confirmations after a delay
-        // This allows for debugging and prevents immediate deletion
-        // You can uncomment the next lines if you want immediate deletion
-        // await db.collection('pending_confirmations').deleteOne({ email });
-        // console.log('Removed from pending confirmations');
+
+        // Remove from pending confirmations immediately after successful confirmation
+        await db.collection('pending_confirmations').deleteOne({ email });
+        console.log('Removed from pending confirmations');
         
         return new Response(JSON.stringify({ 
           message: 'Newsletter-Anmeldung bestätigt! Willkommen beim IGNITE Startup Club!' 
         }), { status: 200 });
       } catch (error) {
         console.error('Error processing confirmation:', error);
-        
+
         // Check if it's a duplicate email error from Resend
-        if (error.message && error.message.includes('already exists')) {
-          console.log('Email already exists in Resend, updating database...');
-          await db.collection('pending_confirmations').updateOne(
-            { email },
-            { $set: { confirmed: true, confirmedAt: new Date() } }
-          );
-          return new Response(JSON.stringify({ 
-            message: 'E-Mail bereits bestätigt!' 
+        if (error instanceof Error && error.message.includes('already exists')) {
+          console.log('Email already exists in Resend, removing from pending...');
+          await db.collection('pending_confirmations').deleteOne({ email });
+          return new Response(JSON.stringify({
+            message: 'E-Mail bereits bestätigt!'
           }), { status: 200 });
         }
-        
-        return new Response(JSON.stringify({ 
+
+        return new Response(JSON.stringify({
           message: 'Fehler bei der Bestätigung. Bitte versuche es erneut.',
-          error: error.message 
+          error: error instanceof Error ? error.message : 'Unknown error'
         }), { status: 500 });
       }
     } else {
