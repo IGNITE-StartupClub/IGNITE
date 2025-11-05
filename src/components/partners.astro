@@ -1,0 +1,68 @@
+---
+// Partner Logos - Dynamisch erweiterbar
+const partners = [
+  {
+    name: "Utopia Lüneburg",
+    logo: "public/img/partners/utopia.svg",
+    url: "https://partner1.com"
+  },
+  {
+    name: "START Hamburg",
+    logo: "/img/partners/starthh.png",
+    url: "https://partner2.com"
+  },
+  // {
+  //   name: "ChefTreff",
+  //   logo: "https://startup-ecosystem.blogs.uni-hamburg.de/wp-content/uploads/2022/04/ChefTreff-mit-dem-Startup-Pitch-Battle.png",
+  //   url: "https://partner3.com"
+  // },
+  //   {
+  //   name: "HULT Prize",
+  //   logo: "https://mma.prnewswire.com/media/2498921/Hult_Prize_Foundation_Logo.jpg?p=facebook",
+  //   url: "https://partner3.com"
+  // },
+  // Weitere Partner hier hinzufügen
+];
+---
+
+<section class="w-full py-16 px-8 md:py-20 lg:py-24">
+  <div class="max-w-7xl mx-auto">
+    <h2 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-white text-center mb-12 md:mb-16">
+      Unsere Partner
+    </h2>
+
+    <!-- Flexbox Layout für zentrierte Ausrichtung -->
+    <div class="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
+      {partners.map((partner) => (
+        <a
+          href={partner.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="partner-logo-link flex items-center justify-center w-40 h-24 md:w-48 md:h-28 lg:w-56 lg:h-32 p-4 transition-all duration-300 hover:scale-105 group"
+          aria-label={partner.name}
+        >
+          <img
+            src={partner.logo}
+            alt={partner.name}
+            loading="lazy"
+            class="partner-logo max-w-full max-h-full object-contain transition-opacity duration-300 group-hover:opacity-70"
+          />
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Weiße Logo-Darstellung mit mix-blend-mode - funktioniert auch bei JPGs */
+  .partner-logo {
+    filter: grayscale(100%) contrast(1000%) brightness(1.5);
+    mix-blend-mode: screen;
+  }
+
+  /* Dunklerer Hintergrund für besseren blend-mode Effekt bei PNGs */
+  .partner-logo-link {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+  }
+</style>
