@@ -11,7 +11,7 @@ function parseQuestionnaireConfig(content) {
     step3: { options: [], questions: {} },
     step4: { questions: {} },
     step5: { questions: {} },
-    step6: { fields: {}, submitButton: {} },
+    step6: { fields: {} },
     // Track all question IDs across all steps for dynamic validation
     allQuestions: []
   };
@@ -108,10 +108,6 @@ function parseQuestionnaireConfig(content) {
             if (key === 'Label') config.step6.fields[currentQuestion].label = value;
             else if (key === 'Typ') config.step6.fields[currentQuestion].type = value;
             else if (key === 'Pflichtfeld') config.step6.fields[currentQuestion].required = value === 'Ja';
-          } else if (key === 'Submit Button Text') {
-            config.step6.submitButton.text = value;
-          } else if (key === 'Submit Button Loading Text') {
-            config.step6.submitButton.loadingText = value;
           }
         }
       }

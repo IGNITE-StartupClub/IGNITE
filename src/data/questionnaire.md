@@ -143,10 +143,6 @@ SCHRITT 6: PERSÖNLICHE DATEN
 **Typ:** email
 **Pflichtfeld:** Ja
 
-<!-- Text auf dem Absende-Button -->
-**Submit Button Text:** Absenden
-**Submit Button Loading Text:** Wird gesendet...
-
 <!--
 ════════════════════════════════════════════════════════════════════════════════
 🎉 FERTIG! Speichere die Datei und die Änderungen werden automatisch übernommen.

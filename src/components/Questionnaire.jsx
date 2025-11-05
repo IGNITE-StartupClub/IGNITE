@@ -302,7 +302,7 @@ export default function Questionnaire({ initialPosition = '' }) {
             className="button secondary"
             disabled={loading}
           >
-            {loading ? questionnaireConfig.step6.submitButton.loadingText : questionnaireConfig.step6.submitButton.text}
+            {loading ? 'Wird gesendet...' : 'Bewerbung absenden'}
           </button>
 
         </>
