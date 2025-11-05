@@ -37,7 +37,16 @@ export const prerender = false
           </p>
           <!-- Button braucht pointer-events zurück -->
           <a href="#Bewerbung" class="button secondary js-scroll-center pointer-events-auto"> Jetzt bewerben! </a>
+          
+                        <!-- Scroll Indicator -->
+                    <div class="scroll-indicator">
+                      <div class="scroll-mouse">
+                        <div class="scroll-wheel"></div>
+                      </div>
+                      <span>Scroll um mehr zu entdecken</span>
+                    </div>
         </div>
+
       </div>
 
     </div>
@@ -104,14 +113,6 @@ export const prerender = false
           <div class="step-content">
             <h3>Team-Matching</h3>
             <p>Nach dem Bewerbungsgespräch entscheidet das HR-Team, in welchem Team deiner Auswahl du am besten gerade unterstützen kannst.</p>
-          </div>
-        </div>
-
-        <div class="process-step spotlight-card final-step">
-          <div class="step-number">🚀</div>
-          <div class="step-content">
-            <h3>Let's ignite your future!</h3>
-            <p class="highlight-text">Du bist an Board – feel free und willkommen im Team!</p>
           </div>
         </div>
       </div>
@@ -211,14 +212,65 @@ export const prerender = false
       color: var(--color-text);
       font-family: var(--font-sans);
     }
-    .scroll-indicator {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      animation: bounce 2s infinite;
-      font-size: 2rem;
+    /* Scroll Indicator */
+  .scroll-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    margin-top: 2rem;
+    animation: fadeInUp 2s ease-out 3s both;
+  }
+
+  .scroll-mouse {
+    width: 26px;
+    height: 42px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 13px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+  }
+
+  .scroll-wheel {
+    width: 3px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 2px;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: scrollWheel 2s infinite;
+  }
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
     }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scrollWheel {
+    0% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    50% {
+      opacity: 0.3;
+      transform: translateX(-50%) translateY(14px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
     @keyframes bounce {
       0%,
       100% {
