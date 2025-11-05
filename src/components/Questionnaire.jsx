@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { teams } from '../data/jobs.js';
+import { questionnaireConfig } from '../data/questionnaireParser.js';
 
 export default function Questionnaire({ initialPosition = '' }) {
   const startStep = 1;
@@ -69,7 +70,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       {/* Schritt 1: Intro-Button */}
       {step === 1 && (
         <button type="button" className="button secondary" onClick={next}>
-          Bewerbung ausfüllen
+          {questionnaireConfig.step1.buttonText}
         </button>
       )}
 
@@ -78,7 +79,7 @@ export default function Questionnaire({ initialPosition = '' }) {
         <>
           <div>
             <label style={{ marginBottom: '1rem' }}>
-              Wähle 2-3 Teams, in denen du mitarbeiten möchtest:
+              {questionnaireConfig.step2.label}
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {teams.map(team => (
@@ -93,14 +94,14 @@ export default function Questionnaire({ initialPosition = '' }) {
                 </label>
               ))}
             </div>
-            {data.teams.length < 2 && (
+            {data.teams.length < questionnaireConfig.step2.minTeams && (
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
-                Bitte wähle mindestens 2 Teams aus.
+                {questionnaireConfig.step2.hintTooFew}
               </p>
             )}
-            {data.teams.length === 3 && (
+            {data.teams.length === questionnaireConfig.step2.maxTeams && (
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
-                Du hast die maximale Anzahl von 3 Teams ausgewählt.
+                {questionnaireConfig.step2.hintMaximum}
               </p>
             )}
           </div>
@@ -108,7 +109,7 @@ export default function Questionnaire({ initialPosition = '' }) {
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={data.teams.length < 2}
+            disabled={data.teams.length < questionnaireConfig.step2.minTeams}
           >
             Weiter
           </button>
@@ -120,74 +121,32 @@ export default function Questionnaire({ initialPosition = '' }) {
         <>
           <fieldset style={{ border: 'none', padding: 0 }}>
             <legend style={{ fontWeight: 500, marginBottom: '0.75rem', textAlign: 'left' }}>
-              Was beschreibt deine Situation am besten?
+              {questionnaireConfig.step3.legend}
             </legend>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
-                <input
-                  type="radio"
-                  name="startupInterest"
-                  value="interested"
-                  checked={data.startupInterest === 'interested'}
-                  onChange={handleChange}
-                  style={{ flexShrink: 0 }}
-                />
-                <span style={{ paddingLeft: '0.75rem' }}>Ich finde Startups/Gründen spannend</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
-                <input
-                  type="radio"
-                  name="startupInterest"
-                  value="want-to-work"
-                  checked={data.startupInterest === 'want-to-work'}
-                  onChange={handleChange}
-                  style={{ flexShrink: 0 }}
-                />
-                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte in einem Startup arbeiten (angestellt)</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
-                <input
-                  type="radio"
-                  name="startupInterest"
-                  value="want-to-found-no-idea"
-                  checked={data.startupInterest === 'want-to-found-no-idea'}
-                  onChange={handleChange}
-                  style={{ flexShrink: 0 }}
-                />
-                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte gründen, habe aber noch keine Idee</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
-                <input
-                  type="radio"
-                  name="startupInterest"
-                  value="want-to-found-with-idea"
-                  checked={data.startupInterest === 'want-to-found-with-idea'}
-                  onChange={handleChange}
-                  style={{ flexShrink: 0 }}
-                />
-                <span style={{ paddingLeft: '0.75rem' }}>Ich möchte gründen und habe eine Idee</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
-                <input
-                  type="radio"
-                  name="startupInterest"
-                  value="already-founded"
-                  checked={data.startupInterest === 'already-founded'}
-                  onChange={handleChange}
-                  style={{ flexShrink: 0 }}
-                />
-                <span style={{ paddingLeft: '0.75rem' }}>Ich habe bereits gegründet</span>
-              </label>
+              {questionnaireConfig.step3.options.map(option => (
+                <label key={option.value} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
+                  <input
+                    type="radio"
+                    name="startupInterest"
+                    value={option.value}
+                    checked={data.startupInterest === option.value}
+                    onChange={handleChange}
+                    style={{ flexShrink: 0 }}
+                  />
+                  <span style={{ paddingLeft: '0.75rem' }}>{option.label}</span>
+                </label>
+              ))}
             </div>
           </fieldset>
           <label>
-            Was reizt dich persönlich an unserer noch jungen Initiative – und warum gerade jetzt?
+            {questionnaireConfig.step3.questions.q1.label}
             <textarea
               name="q1"
               value={data.q1}
               onChange={handleChange}
-              required
-              rows="4"
+              required={questionnaireConfig.step3.questions.q1.required}
+              rows={questionnaireConfig.step3.questions.q1.rows}
             />
           </label>
           <button
@@ -205,24 +164,24 @@ export default function Questionnaire({ initialPosition = '' }) {
       {step === 4 && (
         <>
           <label>
-            Beschreibe eine Situation, in der du ein Projekt oder eine Idee selbstständig vorangetrieben hast, ohne dass jemand dich dazu aufgefordert hat.
+            {questionnaireConfig.step4.questions.q2.label}
             <textarea
               name="q2"
               value={data.q2}
               onChange={handleChange}
-              required
-              rows="5"
-              placeholder="Beschreibe die Situation, deine Motivation und was du konkret getan hast..."
+              required={questionnaireConfig.step4.questions.q2.required}
+              rows={questionnaireConfig.step4.questions.q2.rows}
+              placeholder={questionnaireConfig.step4.questions.q2.placeholder || ''}
             />
           </label>
           <label>
-            Wie gehst du damit um, wenn ein Projekt noch wenig Struktur hat und vieles parallel entsteht?
+            {questionnaireConfig.step4.questions.q3.label}
             <textarea
               name="q3"
               value={data.q3}
               onChange={handleChange}
-              required
-              rows="4"
+              required={questionnaireConfig.step4.questions.q3.required}
+              rows={questionnaireConfig.step4.questions.q3.rows}
             />
           </label>
           <button
@@ -240,34 +199,34 @@ export default function Questionnaire({ initialPosition = '' }) {
       {step === 5 && (
         <>
           <label>
-            Welche konkreten Stärken oder Fähigkeiten könntest du sofort in die Teams einbringen? (z. B. Design, Marketing, Finanzen, Technik, Organisation, Netzwerken)
+            {questionnaireConfig.step5.questions.q4.label}
             <textarea
               name="q4"
               value={data.q4}
               onChange={handleChange}
-              required
-              rows="4"
+              required={questionnaireConfig.step5.questions.q4.required}
+              rows={questionnaireConfig.step5.questions.q4.rows}
             />
           </label>
           <label>
-            Wie viel Zeit kannst du realistisch pro Woche für IGNITE investieren?
+            {questionnaireConfig.step5.questions.q5.label}
             <textarea
               name="q5"
               value={data.q5}
               onChange={handleChange}
-              required
-              rows="3"
-              placeholder="z. B. 5-10 Stunden pro Woche..."
+              required={questionnaireConfig.step5.questions.q5.required}
+              rows={questionnaireConfig.step5.questions.q5.rows}
+              placeholder={questionnaireConfig.step5.questions.q5.placeholder || ''}
             />
           </label>
           <label>
-            Was bedeutet für dich "erfolgreiches Teamwork" in einer studentischen Initiative?
+            {questionnaireConfig.step5.questions.q6.label}
             <textarea
               name="q6"
               value={data.q6}
               onChange={handleChange}
-              required
-              rows="4"
+              required={questionnaireConfig.step5.questions.q6.required}
+              rows={questionnaireConfig.step5.questions.q6.rows}
             />
           </label>
           <button
@@ -285,31 +244,33 @@ export default function Questionnaire({ initialPosition = '' }) {
       {step === 6 && (
         <>
           <label>
-            Vorname
+            {questionnaireConfig.step6.fields.name.label}
             <input
+              type={questionnaireConfig.step6.fields.name.type}
               name="name"
               value={data.name}
               onChange={handleChange}
-              required
+              required={questionnaireConfig.step6.fields.name.required}
             />
           </label>
           <label>
-            Nachname
+            {questionnaireConfig.step6.fields.lastname.label}
             <input
+              type={questionnaireConfig.step6.fields.lastname.type}
               name="lastname"
               value={data.lastname}
               onChange={handleChange}
-              required
+              required={questionnaireConfig.step6.fields.lastname.required}
             />
           </label>
           <label>
-            E-Mail
+            {questionnaireConfig.step6.fields.email.label}
             <input
-              type="email"
+              type={questionnaireConfig.step6.fields.email.type}
               name="email"
               value={data.email}
               onChange={handleChange}
-              required
+              required={questionnaireConfig.step6.fields.email.required}
             />
           </label>
           <button
@@ -317,7 +278,7 @@ export default function Questionnaire({ initialPosition = '' }) {
             className="button secondary"
             disabled={loading}
           >
-            {loading ? 'Wird gesendet...' : 'Absenden'}
+            {loading ? questionnaireConfig.step6.submitButton.loadingText : questionnaireConfig.step6.submitButton.text}
           </button>
 
         </>
