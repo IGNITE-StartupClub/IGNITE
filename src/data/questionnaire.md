@@ -1,9 +1,61 @@
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    FRAGEBOGEN-KONFIGURATION - ANLEITUNG                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📖 WICHTIG: Diese Datei steuert den gesamten Bewerbungsfragebogen!
+
+🎯 WIE FUNKTIONIERT ES?
+- Der Fragebogen ist in 6 Schritte unterteilt (Schritt 1-6)
+- Jeder Schritt kann mehrere Fragen enthalten
+- Du kannst Fragen hinzufügen, bearbeiten oder löschen
+- Die Emails und Formulare passen sich automatisch an!
+
+📝 WICHTIGE BEGRIFFE:
+• Label: Der Text, den der Benutzer sieht (die eigentliche Frage)
+• Typ: Art des Eingabefeldes (textarea = mehrzeilig, text = einzeilig, email = Email)
+• Zeilen: Wie viele Zeilen das Textfeld haben soll
+• Platzhalter: Beispieltext im Eingabefeld (optional)
+• Pflichtfeld: Ja = muss ausgefüllt werden, Nein = optional
+
+🔧 FRAGEN HINZUFÜGEN/LÖSCHEN:
+• Neue Frage hinzufügen: Kopiere einen "### Frage Q..." Block und passe die Nummer an
+• Frage löschen: Lösche den gesamten "### Frage Q..." Block
+• TIPP: Du kannst auch nur 2-3 Fragen haben - das System passt sich an!
+
+⚠️ WICHTIG - BITTE NICHT ÄNDERN:
+• Die Struktur "## Schritt X:" muss erhalten bleiben
+• Die Begriffe vor dem Doppelpunkt (**Label:**, **Typ:**, etc.) nicht ändern
+• Nur den Text NACH dem Doppelpunkt ändern!
+
+✅ BEISPIEL - SO SIEHT EINE FRAGE AUS:
+### Frage Q1                          ← Die Fragen-ID (Q1, Q2, Q3, etc.)
+**Label:** Deine Frage hier?          ← Der Text der Frage
+**Typ:** textarea                     ← Art der Eingabe (textarea für lange Texte)
+**Zeilen:** 4                         ← Anzahl der Zeilen
+**Platzhalter:** Beispieltext...      ← Optionaler Hilfstext
+**Pflichtfeld:** Ja                   ← Pflichtfeld: Ja oder Nein
+
+═══════════════════════════════════════════════════════════════════════════════
+-->
+
 # Fragebogen-Konfiguration
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 1: INTRO-BUTTON
+→ Hier wird nur der Text für den Start-Button festgelegt
+════════════════════════════════════════════════════════════════════════════ -->
 
 ## Schritt 1: Intro
 **Button Text:** Bewerbung ausfüllen
 
 ---
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 2: TEAM-AUSWAHL
+→ Hier wählen Bewerber die Teams aus, in denen sie mitarbeiten möchten
+→ Du kannst die Min/Max Anzahl anpassen
+════════════════════════════════════════════════════════════════════════════ -->
 
 ## Schritt 2: Team-Auswahl
 **Label:** Wähle 2-3 Teams, in denen du mitarbeiten möchtest:
@@ -14,10 +66,18 @@
 
 ---
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 3: STARTUP-INTERESSE
+→ Hier wird das Interesse an Startups abgefragt
+→ Enthält Multiple-Choice Optionen + Text-Fragen
+════════════════════════════════════════════════════════════════════════════ -->
+
 ## Schritt 3: Startup-Interesse
 
+<!-- Die Multiple-Choice Frage (Radio Buttons) -->
 **Frage:** Was beschreibt deine Situation am besten?
 
+<!-- Die Auswahlmöglichkeiten - Format: "- **wert:** Text der angezeigt wird" -->
 **Optionen:**
 - **interested:** Ich finde Startups/Gründen spannend
 - **want-to-work:** Ich möchte in einem Startup arbeiten (angestellt)
@@ -25,6 +85,7 @@
 - **want-to-found-with-idea:** Ich möchte gründen und habe eine Idee
 - **already-founded:** Ich habe bereits gegründet
 
+<!-- Text-Frage Q1 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q1
 **Label:** Was reizt dich persönlich an unserer noch jungen Initiative – und warum gerade jetzt?
 **Typ:** textarea
@@ -33,8 +94,16 @@
 
 ---
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 4: PROAKTIVITÄT & EIGENINITIATIVE
+→ Hier kannst du Fragen zur Eigeninitiative stellen
+→ Du kannst beliebig viele Fragen hinzufügen oder alle löschen
+→ Wenn du alle Fragen löschst, wird dieser Schritt automatisch übersprungen!
+════════════════════════════════════════════════════════════════════════════ -->
+
 ## Schritt 4: Proaktivität & Eigeninitiative
 
+<!-- Frage Q2 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q2
 **Label:** Beschreibe eine Situation, in der du ein Projekt oder eine Idee selbstständig vorangetrieben hast, ohne dass jemand dich dazu aufgefordert hat.
 **Typ:** textarea
@@ -42,6 +111,7 @@
 **Platzhalter:** Beschreibe die Situation, deine Motivation und was du konkret getan hast...
 **Pflichtfeld:** Ja
 
+<!-- Frage Q3 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q3
 **Label:** Wie gehst du damit um, wenn ein Projekt noch wenig Struktur hat und vieles parallel entsteht?
 **Typ:** textarea
@@ -50,14 +120,23 @@
 
 ---
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 5: FÄHIGKEITEN & COMMITMENT
+→ Hier kannst du Fragen zu Skills und Zeitinvestment stellen
+→ Du kannst beliebig viele Fragen hinzufügen oder alle löschen
+→ Wenn du alle Fragen löschst, wird dieser Schritt automatisch übersprungen!
+════════════════════════════════════════════════════════════════════════════ -->
+
 ## Schritt 5: Fähigkeiten & Commitment
 
+<!-- Frage Q4 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q4
 **Label:** Welche konkreten Stärken oder Fähigkeiten könntest du sofort in die Teams einbringen? (z. B. Design, Marketing, Finanzen, Technik, Organisation, Netzwerken)
 **Typ:** textarea
 **Zeilen:** 4
 **Pflichtfeld:** Ja
 
+<!-- Frage Q5 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q5
 **Label:** Wie viel Zeit kannst du realistisch pro Woche für IGNITE investieren?
 **Typ:** textarea
@@ -65,6 +144,7 @@
 **Platzhalter:** z. B. 5-10 Stunden pro Woche...
 **Pflichtfeld:** Ja
 
+<!-- Frage Q6 - kann bearbeitet oder gelöscht werden -->
 ### Frage Q6
 **Label:** Was bedeutet für dich "erfolgreiches Teamwork" in einer studentischen Initiative?
 **Typ:** textarea
@@ -72,6 +152,12 @@
 **Pflichtfeld:** Ja
 
 ---
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+SCHRITT 6: PERSÖNLICHE DATEN
+→ Dieser Schritt MUSS immer vorhanden sein (Vorname, Nachname, Email)
+→ Du kannst nur die Labels ändern, aber nicht löschen!
+════════════════════════════════════════════════════════════════════════════ -->
 
 ## Schritt 6: Persönliche Daten
 
@@ -90,5 +176,12 @@
 **Typ:** email
 **Pflichtfeld:** Ja
 
+<!-- Text auf dem Absende-Button -->
 **Submit Button Text:** Absenden
 **Submit Button Loading Text:** Wird gesendet...
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+🎉 FERTIG! Speichere die Datei und die Änderungen werden automatisch übernommen.
+════════════════════════════════════════════════════════════════════════════════
+-->

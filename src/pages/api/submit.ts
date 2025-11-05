@@ -5,6 +5,7 @@ import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import crypto from 'crypto'
 import 'dotenv/config'
+import { getRequiredFields, getQuestionLabels } from '../../data/questionnaireParser.js'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -70,6 +71,55 @@ async function sendApplicationEmail(data: any) {
       return String(value)
     }
 
+    // Get question labels dynamically from questionnaire config
+    const questionLabels = getQuestionLabels()
+
+    // Build table rows dynamically
+    let tableRows = `
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;">
+          <strong>Gewählte Teams:</strong>
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
+          <strong>Startup-Interesse:</strong>
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td>
+      </tr>
+    `
+
+    // Add all questions dynamically
+    Object.keys(questionLabels).forEach(qId => {
+      if (data[qId]) {
+        tableRows += `
+          <tr style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
+              <strong>${questionLabels[qId]}:</strong>
+            </td>
+            <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data[qId])}</td>
+          </tr>
+        `
+      }
+    })
+
+    // Add personal data
+    tableRows += `
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td>
+        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.name)}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td>
+        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.lastname)}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td>
+        <td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${formatField(data.email)}</td>
+      </tr>
+    `
+
     const result = await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
@@ -78,17 +128,7 @@ async function sendApplicationEmail(data: any) {
         <div style="font-family: Inter, sans-serif; padding:2rem; border:1px solid #eee; border-radius:8px; max-width:600px; margin:auto;">
           <h2 style="color:#8C3974;">📬 Neue Bewerbung</h2>
           <table style="width:100%; line-height:1.6; border-collapse: separate; border-spacing: 0;">
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;"><strong>Gewählte Teams:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Startup-Interesse:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Was reizt dich an IGNITE?</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q1)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Proaktivität & Eigeninitiative:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q2)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Umgang mit wenig Struktur:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q3)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Stärken & Fähigkeiten:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q4)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Zeitinvestment pro Woche:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.q5)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Erfolgreiches Teamwork:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.q6)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.name)}</td></tr>
-            <tr style="border-bottom: 1px solid #f0f0f0;"><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td><td style="padding: 12px 8px; vertical-align: top;">${formatField(data.lastname)}</td></tr>
-            <tr><td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td><td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${formatField(data.email)}</td></tr>
+            ${tableRows}
           </table>
           <p style="font-size:0.85rem; color:#888; margin-top:1.5rem;">
             Diese Nachricht wurde automatisch über das Bewerbungsformular gesendet.
@@ -216,8 +256,8 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json()
     console.log('📑 Parsed JSON:', data)
 
-    // Required fields validation
-    const requiredFields = ['teams', 'startupInterest', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'name', 'lastname', 'email'] as const
+    // Required fields validation - dynamically get fields from questionnaire config
+    const requiredFields = getRequiredFields()
     for (const field of requiredFields) {
       if (!data[field]) {
         console.warn(`⚠️ Missing field ${field}`)

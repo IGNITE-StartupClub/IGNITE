@@ -11,7 +11,9 @@ function parseQuestionnaireConfig(content) {
     step3: { options: [], questions: {} },
     step4: { questions: {} },
     step5: { questions: {} },
-    step6: { fields: {}, submitButton: {} }
+    step6: { fields: {}, submitButton: {} },
+    // Track all question IDs across all steps for dynamic validation
+    allQuestions: []
   };
 
   const lines = content.split('\n');
@@ -49,6 +51,8 @@ function parseQuestionnaireConfig(content) {
         currentQuestion = 'q' + questionId[1];
         if (currentStep === 'step3' || currentStep === 'step4' || currentStep === 'step5') {
           config[currentStep].questions[currentQuestion] = {};
+          // Track this question ID globally
+          config.allQuestions.push(currentQuestion);
         }
       }
     } else if (line.startsWith('### Vorname')) {
@@ -125,6 +129,34 @@ function parseQuestionnaireConfig(content) {
   }
 
   return config;
+}
+
+// Helper function to get all required field names dynamically
+export function getRequiredFields() {
+  const fields = ['teams', 'startupInterest'];
+
+  // Add all question IDs
+  fields.push(...questionnaireConfig.allQuestions);
+
+  // Add personal data fields
+  fields.push('name', 'lastname', 'email');
+
+  return fields;
+}
+
+// Helper function to get question labels for email template
+export function getQuestionLabels() {
+  const labels = {};
+
+  // Collect all question labels from all steps
+  ['step3', 'step4', 'step5'].forEach(step => {
+    const questions = questionnaireConfig[step]?.questions || {};
+    Object.keys(questions).forEach(qId => {
+      labels[qId] = questions[qId].label || qId;
+    });
+  });
+
+  return labels;
 }
 
 export const questionnaireConfig = parseQuestionnaireConfig(questionnaireContent);

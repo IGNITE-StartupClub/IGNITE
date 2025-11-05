@@ -5,19 +5,22 @@ import { questionnaireConfig } from '../data/questionnaireParser.js';
 export default function Questionnaire({ initialPosition = '' }) {
   const startStep = 1;
   const [step, setStep] = useState(startStep);
-  const [data, setData] = useState({
+
+  // Initialize state dynamically based on config
+  const initialData = {
     teams: [],
     startupInterest: '',
-    q1: '',
-    q2: '',
-    q3: '',
-    q4: '',
-    q5: '',
-    q6: '',
     name: '',
     lastname: '',
     email: '',
+  };
+
+  // Add all questions from config dynamically
+  questionnaireConfig.allQuestions.forEach(qId => {
+    initialData[qId] = '';
   });
+
+  const [data, setData] = useState(initialData);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +43,26 @@ export default function Questionnaire({ initialPosition = '' }) {
     });
   };
 
-  const next = () => setStep(s => s + 1);
+  // Function to check if a step has questions
+  const stepHasQuestions = (stepNum) => {
+    if (stepNum === 3) return true; // Always has startup interest
+    if (stepNum === 4) return Object.keys(questionnaireConfig.step4.questions).length > 0;
+    if (stepNum === 5) return Object.keys(questionnaireConfig.step5.questions).length > 0;
+    if (stepNum === 6) return true; // Always has personal data
+    return true;
+  };
+
+  // Smart next function that skips empty steps
+  const next = () => {
+    setStep(s => {
+      let nextStep = s + 1;
+      // Skip steps that have no questions
+      while (nextStep <= 6 && !stepHasQuestions(nextStep)) {
+        nextStep++;
+      }
+      return nextStep;
+    });
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -139,101 +161,103 @@ export default function Questionnaire({ initialPosition = '' }) {
               ))}
             </div>
           </fieldset>
-          <label>
-            {questionnaireConfig.step3.questions.q1.label}
-            <textarea
-              name="q1"
-              value={data.q1}
-              onChange={handleChange}
-              required={questionnaireConfig.step3.questions.q1.required}
-              rows={questionnaireConfig.step3.questions.q1.rows}
-            />
-          </label>
+
+          {/* Render questions dynamically */}
+          {Object.keys(questionnaireConfig.step3.questions).map(qId => {
+            const question = questionnaireConfig.step3.questions[qId];
+            return (
+              <label key={qId}>
+                {question.label}
+                <textarea
+                  name={qId}
+                  value={data[qId] || ''}
+                  onChange={handleChange}
+                  required={question.required}
+                  rows={question.rows}
+                  placeholder={question.placeholder || ''}
+                />
+              </label>
+            );
+          })}
+
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.startupInterest || !data.q1.trim()}
+            disabled={
+              !data.startupInterest ||
+              Object.keys(questionnaireConfig.step3.questions).some(qId =>
+                questionnaireConfig.step3.questions[qId].required && !data[qId]?.trim()
+              )
+            }
           >
             Weiter
           </button>
         </>
       )}
 
-      {/* Schritt 4: Proaktivität & Eigeninitiative */}
-      {step === 4 && (
+      {/* Schritt 4: Dynamisch rendern basierend auf Config */}
+      {step === 4 && Object.keys(questionnaireConfig.step4.questions).length > 0 && (
         <>
-          <label>
-            {questionnaireConfig.step4.questions.q2.label}
-            <textarea
-              name="q2"
-              value={data.q2}
-              onChange={handleChange}
-              required={questionnaireConfig.step4.questions.q2.required}
-              rows={questionnaireConfig.step4.questions.q2.rows}
-              placeholder={questionnaireConfig.step4.questions.q2.placeholder || ''}
-            />
-          </label>
-          <label>
-            {questionnaireConfig.step4.questions.q3.label}
-            <textarea
-              name="q3"
-              value={data.q3}
-              onChange={handleChange}
-              required={questionnaireConfig.step4.questions.q3.required}
-              rows={questionnaireConfig.step4.questions.q3.rows}
-            />
-          </label>
+          {Object.keys(questionnaireConfig.step4.questions).map(qId => {
+            const question = questionnaireConfig.step4.questions[qId];
+            return (
+              <label key={qId}>
+                {question.label}
+                <textarea
+                  name={qId}
+                  value={data[qId] || ''}
+                  onChange={handleChange}
+                  required={question.required}
+                  rows={question.rows}
+                  placeholder={question.placeholder || ''}
+                />
+              </label>
+            );
+          })}
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.q2.trim() || !data.q3.trim()}
+            disabled={
+              Object.keys(questionnaireConfig.step4.questions).some(qId =>
+                questionnaireConfig.step4.questions[qId].required && !data[qId]?.trim()
+              )
+            }
           >
             Weiter
           </button>
         </>
       )}
 
-      {/* Schritt 5: Fähigkeiten & Commitment */}
-      {step === 5 && (
+      {/* Schritt 5: Dynamisch rendern basierend auf Config */}
+      {step === 5 && Object.keys(questionnaireConfig.step5.questions).length > 0 && (
         <>
-          <label>
-            {questionnaireConfig.step5.questions.q4.label}
-            <textarea
-              name="q4"
-              value={data.q4}
-              onChange={handleChange}
-              required={questionnaireConfig.step5.questions.q4.required}
-              rows={questionnaireConfig.step5.questions.q4.rows}
-            />
-          </label>
-          <label>
-            {questionnaireConfig.step5.questions.q5.label}
-            <textarea
-              name="q5"
-              value={data.q5}
-              onChange={handleChange}
-              required={questionnaireConfig.step5.questions.q5.required}
-              rows={questionnaireConfig.step5.questions.q5.rows}
-              placeholder={questionnaireConfig.step5.questions.q5.placeholder || ''}
-            />
-          </label>
-          <label>
-            {questionnaireConfig.step5.questions.q6.label}
-            <textarea
-              name="q6"
-              value={data.q6}
-              onChange={handleChange}
-              required={questionnaireConfig.step5.questions.q6.required}
-              rows={questionnaireConfig.step5.questions.q6.rows}
-            />
-          </label>
+          {Object.keys(questionnaireConfig.step5.questions).map(qId => {
+            const question = questionnaireConfig.step5.questions[qId];
+            return (
+              <label key={qId}>
+                {question.label}
+                <textarea
+                  name={qId}
+                  value={data[qId] || ''}
+                  onChange={handleChange}
+                  required={question.required}
+                  rows={question.rows}
+                  placeholder={question.placeholder || ''}
+                />
+              </label>
+            );
+          })}
           <button
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={!data.q4.trim() || !data.q5.trim() || !data.q6.trim()}
+            disabled={
+              Object.keys(questionnaireConfig.step5.questions).some(qId =>
+                questionnaireConfig.step5.questions[qId].required && !data[qId]?.trim()
+              )
+            }
           >
             Weiter
           </button>
