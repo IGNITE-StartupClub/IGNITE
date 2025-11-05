@@ -18,7 +18,7 @@ const advisoryMembers = [
   name: 'Prof. Dr. Burkhardt Funk',
   title: 'Professor für Wirtschaftsinformatik und Data Science',
   department: 'Leuphana Universität Lüneburg',
-  boardRole: 'Adisory Board Member',
+  boardRole: 'Advisory Board Member',
   bio: 'Experte für datengetriebene Services und maschinelles Lernen',
   linkedin: 'https://www.linkedin.com/in/burkhardt-funk-779361126/?originalSubdomain=de',
   image: '/img/advisory/burkhardt_funk_zg.jpg',

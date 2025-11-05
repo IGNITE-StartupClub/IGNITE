@@ -1,12 +1,12 @@
 ---
 title: IGNITE X START Hamburg
-author: Ignite Team
+author: IGNITE Team
 description: Rückblick auf das Treffen mit START Hamburg in Lüneburg
 image: /news/start-besuch.jpeg
 date: 2025-04-27
 ---
 
-# Austausch, Kooperation und Gemeinschaft: Ignite trifft START Hamburg in Lüneburg
+# Austausch, Kooperation und Gemeinschaft: IGNITE trifft START Hamburg in Lüneburg
 
 Am Samstag, den 27. April 2025, durfte der Ignite Startup Club Besuch aus Hamburg begrüßen: **[START Hamburg](https://start-hamburg.com)** war zu Gast in Lüneburg. Das Treffen war nicht nur das Ergebnis eines inspirierenden Austauschs beim **Cheftreff-Gipfel** an den beiden Vortagen – es war gleichzeitig der Beginn eines neuen, persönlichen Miteinanders zwischen zwei studentischen Startup-Communities.
 

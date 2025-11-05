@@ -1,12 +1,12 @@
 ---
-title: Kick-off von Ignite
+title: Kick-off von IGNITE
 author: Joshua Biron, Martin Auer & Silas Kruckenberg
 description: Rückblick auf das Kick-off Event von Ignite, das die Grundlage für eine neue Startup-Initiative an der Leuphana Universität legt
 image: /news/kickoff.jpg
 date: 2024-12-18
 ---
 
-Am 10.12.24 luden Joshua Biron, Martin Auer und Silas Kruckenberg zum Kick-off Event von **Ignite** ins **Utopia** ein. Rund 35 Studierende, die sich für Startup und Entrepreneurship interessieren, folgten der Einladung und kamen zusammen, um mehr über die neue Initiative zu erfahren.
+Am 10.12.24 luden Joshua Biron, Martin Auer und Silas Kruckenberg zum Kick-off Event von **IGNITE** ins **Utopia** ein. Rund 35 Studierende, die sich für Startup und Entrepreneurship interessieren, folgten der Einladung und kamen zusammen, um mehr über die neue Initiative zu erfahren.
 
 In ihrer Eröffnungsrede erklärten die Gründer, warum sie eine Initiative wie Ignite an der Leuphana für so wichtig halten: „Als wir angefangen haben zu studieren, hätten wir uns eine solche Initiative gewünscht“, so Joshua. Die Idee war, eine Anlaufstelle für Gründungsinteressierte zu schaffen, vor allem für diejenigen, die in ihren Studiengängen bisher wenig Berührungspunkte mit Unternehmertum hatten. Dabei ist es den Initiatoren besonders wichtig, Studierende aus allen Fachrichtungen anzusprechen und nicht nur diejenigen, die Wirtschaft oder International Business and Entrepreneurship (IBAE) studieren.
 
