@@ -95,32 +95,6 @@ SCHRITT 3: STARTUP-INTERESSE
 ---
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-SCHRITT 4: PROAKTIVITÄT & EIGENINITIATIVE
-→ Hier kannst du Fragen zur Eigeninitiative stellen
-→ Du kannst beliebig viele Fragen hinzufügen oder alle löschen
-→ Wenn du alle Fragen löschst, wird dieser Schritt automatisch übersprungen!
-════════════════════════════════════════════════════════════════════════════ -->
-
-## Schritt 4: Proaktivität & Eigeninitiative
-
-<!-- Frage Q2 - kann bearbeitet oder gelöscht werden -->
-### Frage Q2
-**Label:** Beschreibe eine Situation, in der du ein Projekt oder eine Idee selbstständig vorangetrieben hast, ohne dass jemand dich dazu aufgefordert hat.
-**Typ:** textarea
-**Zeilen:** 5
-**Platzhalter:** Beschreibe die Situation, deine Motivation und was du konkret getan hast...
-**Pflichtfeld:** Ja
-
-<!-- Frage Q3 - kann bearbeitet oder gelöscht werden -->
-### Frage Q3
-**Label:** Wie gehst du damit um, wenn ein Projekt noch wenig Struktur hat und vieles parallel entsteht?
-**Typ:** textarea
-**Zeilen:** 4
-**Pflichtfeld:** Ja
-
----
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
 SCHRITT 5: FÄHIGKEITEN & COMMITMENT
 → Hier kannst du Fragen zu Skills und Zeitinvestment stellen
 → Du kannst beliebig viele Fragen hinzufügen oder alle löschen
@@ -142,13 +116,6 @@ SCHRITT 5: FÄHIGKEITEN & COMMITMENT
 **Typ:** textarea
 **Zeilen:** 3
 **Platzhalter:** z. B. 5-10 Stunden pro Woche...
-**Pflichtfeld:** Ja
-
-<!-- Frage Q6 - kann bearbeitet oder gelöscht werden -->
-### Frage Q6
-**Label:** Was bedeutet für dich "erfolgreiches Teamwork" in einer studentischen Initiative?
-**Typ:** textarea
-**Zeilen:** 4
 **Pflichtfeld:** Ja
 
 ---
