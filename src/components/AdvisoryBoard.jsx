@@ -23,28 +23,18 @@ const advisoryMembers = [
   linkedin: 'https://www.linkedin.com/in/burkhardt-funk-779361126/?originalSubdomain=de',
   image: '/img/advisory/burkhardt_funk_zg.jpg',
   initials: 'BF',
+},
+   {
+  id: 3,
+  name: 'Prof. Dr. Elke Schüßler',
+  title: 'Professorin für Betriebswirtschaftslehre, insbesondere Entrepreneurship und Organisation',
+  department: 'Leuphana Universität Lüneburg',
+  boardRole: 'Advisory Board Member',
+  bio: 'Expertin für nachhaltige Organisations- und Arbeitsformen',
+  linkedin: 'https://www.linkedin.com/in/elke-schuessler-01a488a/?originalSubdomain=de',
+  image: 'https://www.leuphana.de/fileadmin/_processed_/9/1/csm_schuessler_elke_795-81159.690x690px.WEB_cee730c75f.jpg',
+  initials: 'ES',
 }
-// {
-//   id: 2,
-//   name: 'Prof. Dr. Elke Schüßler',
-//   title: 'Professorin für Betriebswirtschaftslehre, insbesondere Entrepreneurship und Organisation',
-//   department: 'Leuphana Universität Lüneburg',
-//   boardRole: 'Advisory Board Member',
-//   bio: 'Expertin für nachhaltige Organisations- und Arbeitsformen',
-//   linkedin: 'https://www.linkedin.com/in/elke-schuessler-01a488a/?originalSubdomain=de',
-//   image: 'https://www.leuphana.de/fileadmin/_processed_/9/1/csm_schuessler_elke_795-81159.690x690px.WEB_cee730c75f.jpg',
-//   initials: 'ES',
-  //     {
-  //     id: 2,
-  //     name: "Prof. Dr. Markus Reihlen",
-  //     title: "Professor für Strategisches Management",
-  //     department: "Leuphana Business School",
-  //     boardRole: "Schirmherrschaft",
-  //     bio: "Experte für Strategisches Management und Innovation",
-  //     linkedin: "#",
-  //     image: "/path/to/markus-reihlen.jpg", // NEU - Bildpfad (optional)
-  //     initials: "MR" // NEU - Manuelle Initialen (optional)
-  //   }
 ]
 
 function AdvisoryMemberCard({ member }) {
