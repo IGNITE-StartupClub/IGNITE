@@ -34,6 +34,17 @@ const advisoryMembers = [
   linkedin: 'https://www.linkedin.com/in/elke-schuessler-01a488a/?originalSubdomain=de',
   image: 'https://www.leuphana.de/fileadmin/_processed_/9/1/csm_schuessler_elke_795-81159.690x690px.WEB_cee730c75f.jpg',
   initials: 'ES',
+},
+{
+  id: 4,
+  name: 'Prof. Dr. Matthias Wenzel',
+  title: 'Professor für Organisation',
+  department: 'Leuphana Universität Lüneburg',
+  boardRole: 'Advisory Board Member',
+  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive sowie deren gesellschaftliche Implikationen',
+  linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
+  image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
+  initials: 'MW',
 }
 ]
 
