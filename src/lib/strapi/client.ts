@@ -171,7 +171,7 @@ export interface AdvisoryBoardMember {
   order: number;
 }
 
-export interface JobPosition {
+export interface TeamPosition {
   id: number;
   team: string;
   title: string;
@@ -181,6 +181,9 @@ export interface JobPosition {
   isActive: boolean;
   order: number;
 }
+
+// Legacy alias for backwards compatibility
+export type JobPosition = TeamPosition;
 
 export interface Partner {
   id: number;
@@ -243,7 +246,7 @@ export async function getAdvisoryBoardMembers(): Promise<AdvisoryBoardMember[]> 
   });
 }
 
-export async function getJobPositions(activeOnly = true): Promise<JobPosition[]> {
+export async function getTeamPositions(activeOnly = true): Promise<TeamPosition[]> {
   const params: Record<string, string> = {
     'populate': '*',
     'sort': 'order:asc'
@@ -253,8 +256,11 @@ export async function getJobPositions(activeOnly = true): Promise<JobPosition[]>
     params['filters[isActive][$eq]'] = 'true';
   }
 
-  return fetchFromStrapi<JobPosition>('job-positions', params);
+  return fetchFromStrapi<TeamPosition>('team-positions', params);
 }
+
+// Legacy function for backwards compatibility
+export const getJobPositions = getTeamPositions;
 
 export async function getPartners(): Promise<Partner[]> {
   return fetchFromStrapi<Partner>('partners', {

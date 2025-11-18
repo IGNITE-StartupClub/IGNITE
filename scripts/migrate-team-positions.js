@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Migration script to import job positions from local data to Strapi
- * Run with: node scripts/migrate-job-positions.js
+ * Migration script to import team positions from local data to Strapi
+ * Run with: node scripts/migrate-team-positions.js
  */
 
 import dotenv from 'dotenv';
@@ -73,8 +73,8 @@ const teams = [
   },
 ];
 
-async function createJobPosition(position, order) {
-  const url = `${STRAPI_URL}/api/job-positions`;
+async function createTeamPosition(position, order) {
+  const url = `${STRAPI_URL}/api/team-positions`;
 
   const data = {
     data: {
@@ -113,7 +113,7 @@ async function createJobPosition(position, order) {
 }
 
 async function main() {
-  console.log('🚀 Starting migration of job positions to Strapi...\n');
+  console.log('🚀 Starting migration of team positions to Strapi...\n');
   console.log(`📍 Strapi URL: ${STRAPI_URL}`);
   console.log(`📊 Positions to migrate: ${teams.length}\n`);
 
@@ -122,7 +122,7 @@ async function main() {
 
   for (let i = 0; i < teams.length; i++) {
     const position = teams[i];
-    const result = await createJobPosition(position, i + 1);
+    const result = await createTeamPosition(position, i + 1);
 
     if (result) {
       successCount++;
@@ -142,7 +142,7 @@ async function main() {
 
   if (successCount > 0) {
     console.log(`\n📝 Next steps:`);
-    console.log(`1. Visit ${STRAPI_URL}/admin to view and edit the job positions`);
+    console.log(`1. Visit ${STRAPI_URL}/admin to view and edit the team positions`);
     console.log(`2. Add images to the positions if needed`);
     console.log(`3. Rebuild your website to fetch the new data`);
   }

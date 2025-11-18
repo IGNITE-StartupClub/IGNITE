@@ -5,7 +5,7 @@ import {
   getTeams,
   getTeamMembers,
   getAdvisoryBoardMembers,
-  getJobPositions,
+  getTeamPositions,
   getPartners,
   getEvents,
   getNewsArticles,
@@ -13,7 +13,7 @@ import {
   type Team,
   type TeamMember,
   type AdvisoryBoardMember,
-  type JobPosition,
+  type TeamPosition,
   type Partner,
   type Event,
   type NewsArticle,
@@ -67,10 +67,10 @@ export async function loadAdvisoryBoardData() {
   }
 }
 
-// Load job positions
-export async function loadJobPositionsData() {
+// Load team positions (for /mitmachen page)
+export async function loadTeamPositionsData() {
   try {
-    const positions = await getJobPositions(true);
+    const positions = await getTeamPositions(true);
 
     return positions.map((pos) => ({
       id: pos.team.toLowerCase().replace(/\s+/g, '-'),
@@ -81,10 +81,13 @@ export async function loadJobPositionsData() {
       description: pos.description,
     }));
   } catch (error) {
-    console.error('Error loading job positions from Strapi:', error);
+    console.error('Error loading team positions from Strapi:', error);
     return null;
   }
 }
+
+// Legacy function for backwards compatibility
+export const loadJobPositionsData = loadTeamPositionsData;
 
 // Load partners
 export async function loadPartnersData() {
@@ -156,7 +159,7 @@ export type {
   Team,
   TeamMember,
   AdvisoryBoardMember,
-  JobPosition,
+  TeamPosition,
   Partner,
   Event,
   NewsArticle,
