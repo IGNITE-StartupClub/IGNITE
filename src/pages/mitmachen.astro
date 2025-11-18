@@ -5,8 +5,15 @@ import Questionnaire from '../components/Questionnaire.jsx'
 import CallToAction from '../components/CallToAction.astro'
 import Feature from '../components/Feature.astro'
 import Orb from '../components/Orb/Orb.jsx'
+import { loadJobPositionsData } from '../lib/strapi/loaders'
+import { teams as fallbackTeams } from '../data/jobs.js'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
+
+// Load teams from Strapi, fallback to local data if unavailable
+const strapiTeams = await loadJobPositionsData()
+const teams = strapiTeams || fallbackTeams
+
 export const prerender = false
 ---
 
@@ -54,7 +61,7 @@ export const prerender = false
     <!-- OFFENE POSITIONEN (sichtbar, da z-Index kleiner als Content, aber höher als Overlays) -->
     <section id="open-positions" class="relative z-10 py-16">
       <h2 class="text-primary mb-6 text-3xl font-extrabold sm:text-4xl">Unsere Teams</h2>
-      <OpenPositions />
+      <OpenPositions teams={teams} client:load />
     </section>
 
     <section id="application-form" class="form-section">

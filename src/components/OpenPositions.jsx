@@ -1,9 +1,8 @@
 import React from 'react';
 import { Modal } from 'accessible-astro-components'
-import { teams } from '../data/jobs.js'; // Importiere die Liste der Teams
 const date = new Date();
 
-export default function OpenPositions() {
+export default function OpenPositions({ teams = [] }) {
   return (
     <div className="positions-grid">
       {teams.map((job) => (
@@ -268,7 +267,7 @@ export default function OpenPositions() {
   );
 }
 
-export function JobStructuredData() {
+export function JobStructuredData({ teams = [] }) {
   const jobsAsLD = teams.map((job) => ({
     "@context": "https://schema.org",
     "@type": "JobPosting",
