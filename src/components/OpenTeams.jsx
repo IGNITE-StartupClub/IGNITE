@@ -2,36 +2,36 @@ import React from 'react';
 import { Modal } from 'accessible-astro-components'
 const date = new Date();
 
-export default function OpenPositions({ teams = [] }) {
+export default function OpenTeams({ teams = [] }) {
   return (
-    <div className="positions-grid">
-      {teams.map((job) => (
-        <article key={job.id} className="job-card enhanced-card">
+    <div className="teams-grid">
+      {teams.map((team) => (
+        <article key={team.id} className="team-card enhanced-card">
           <div className="image-wrapper">
-            {job.image ? (
-              <img src={job.image} alt={job.title} />
+            {team.image ? (
+              <img src={team.image} alt={team.title} />
             ) : (
               <div className="fallback-image flex justify-center items-center absolute inset-0 w-full h-full transition-all duration-400 ease-out">
-                <img src={`/team-logos/${job.team.toLowerCase()}.png`} alt={`${job.team} logo`} className="team-logo block max-w-20 max-h-20 object-contain transition-all duration-400 ease-out drop-shadow-lg" />
+                <img src={`/team-logos/${team.team.toLowerCase()}.png`} alt={`${team.team} logo`} className="team-logo block max-w-20 max-h-20 object-contain transition-all duration-400 ease-out drop-shadow-lg" />
               </div>
             )}
           </div>
-          <div className="job-info">
-            <span className="category-pill">{job.category}</span>
-            <h3 className="job-title">{job.title}</h3>
-            <p className="job-desc">{job.description}</p>
+          <div className="team-info">
+            <span className="category-pill">{team.category}</span>
+            <h3 className="team-title">{team.title}</h3>
+            <p className="team-desc">{team.description}</p>
           </div>
         </article>
       ))}
 
       <style>{`
-        .positions-grid {
+        .teams-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: var(--spacing-md, 1.5rem);
         }
 
-        .job-card {
+        .team-card {
           position: relative;
           width: calc(100% - 0.5rem);
           cursor: pointer;
@@ -42,25 +42,25 @@ export default function OpenPositions({ teams = [] }) {
           transform-origin: center;
         }
 
-        .job-card > * {
+        .team-card > * {
           position: relative;
           z-index: 2;
         }
 
         @media (min-width: 1024px) {
-          .job-card {
+          .team-card {
             width: 100%;
           }
         }
 
-        .job-card::before,
-        .job-card::after {
+        .team-card::before,
+        .team-card::after {
           content: '';
           position: absolute;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .job-card::before {
+        .team-card::before {
           inset: 0;
           background-color: var(--dark-100);
           border: 3px solid var(--gradient-100);
@@ -69,7 +69,7 @@ export default function OpenPositions({ teams = [] }) {
           z-index: 1;
         }
 
-        .job-card::after {
+        .team-card::after {
           inset: 1rem -0.85rem -0.85rem 1rem;
           border-radius: 1rem;
           z-index: 0;
@@ -78,11 +78,11 @@ export default function OpenPositions({ teams = [] }) {
         }
 
         /* Enhanced hover effects */
-        .job-card:hover {
+        .team-card:hover {
           transform: translateY(-8px) scale(1.02);
         }
         
-        .job-card:hover::before {
+        .team-card:hover::before {
           border-color: var(--primary-300);
           background: linear-gradient(135deg, 
             rgba(255, 159, 252, 0.08) 0%,
@@ -96,7 +96,7 @@ export default function OpenPositions({ teams = [] }) {
             0 0 40px rgba(255, 159, 252, 0.2);
         }
 
-        .job-card:hover::after {
+        .team-card:hover::after {
           opacity: 0.1;
         }
 
@@ -118,7 +118,7 @@ export default function OpenPositions({ teams = [] }) {
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .job-card:hover .image-wrapper > img {
+        .team-card:hover .image-wrapper > img {
           transform: scale(1.1);
           filter: brightness(1.1) contrast(1.05);
         }
@@ -127,19 +127,19 @@ export default function OpenPositions({ teams = [] }) {
           background: linear-gradient(45deg, var(--primary-400), var(--secondary-200));
         }
 
-        .job-card:hover .fallback-image {
+        .team-card:hover .fallback-image {
           background: linear-gradient(45deg, var(--primary-300), var(--secondary-100));
           transform: scale(1.05);
         }
 
         /* .team-logo styles are now handled by Tailwind classes */
 
-        .job-card:hover .team-logo {
+        .team-card:hover .team-logo {
           transform: scale(1.15) rotate(5deg);
           filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
         }
 
-        .job-info {
+        .team-info {
           padding: var(--spacing-md, 1.5rem);
           display: flex;
           flex-direction: column;
@@ -174,18 +174,18 @@ export default function OpenPositions({ teams = [] }) {
           transition: left 0.5s ease;
         }
 
-        .job-card:hover .category-pill {
+        .team-card:hover .category-pill {
           background: var(--primary-300);
           color: var(--dark-100);
           transform: translateX(8px) scale(1.05);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .job-card:hover .category-pill::before {
+        .team-card:hover .category-pill::before {
           left: 100%;
         }
 
-        .job-title {
+        .team-title {
           margin: 0;
           font-size: var(--text-lg, 1.25rem);
           font-weight: 600;
@@ -194,12 +194,12 @@ export default function OpenPositions({ teams = [] }) {
           line-height: 1.4;
         }
 
-        .job-card:hover .job-title {
+        .team-card:hover .team-title {
           color: var(--primary-300);
           transform: translateX(4px);
         }
 
-        .job-desc {
+        .team-desc {
           margin: 0;
           font-size: var(--text-sm, 0.9rem);
           color: var(--neutral-400);
@@ -207,7 +207,7 @@ export default function OpenPositions({ teams = [] }) {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .job-card:hover .job-desc {
+        .team-card:hover .team-desc {
           color: var(--neutral-300);
           transform: translateX(2px);
         }
@@ -227,22 +227,22 @@ export default function OpenPositions({ teams = [] }) {
           }
         }
 
-        .job-card:hover::before {
+        .team-card:hover::before {
           animation: pulse 2s ease-in-out infinite;
         }
 
         /* Focus styles for accessibility */
-        .job-card:focus {
+        .team-card:focus {
           outline: 2px solid var(--primary-300);
           outline-offset: 4px;
         }
 
-        .job-card:focus:not(:hover) {
+        .team-card:focus:not(:hover) {
           transform: translateY(-2px);
         }
 
         /* Smooth entrance animation */
-        .job-card {
+        .team-card {
           animation: slideUp 0.6s ease-out forwards;
           opacity: 0;
           transform: translateY(30px);
@@ -256,26 +256,26 @@ export default function OpenPositions({ teams = [] }) {
         }
 
         /* Stagger the animation for each card */
-        .job-card:nth-child(1) { animation-delay: 0.1s; }
-        .job-card:nth-child(2) { animation-delay: 0.2s; }
-        .job-card:nth-child(3) { animation-delay: 0.3s; }
-        .job-card:nth-child(4) { animation-delay: 0.4s; }
-        .job-card:nth-child(5) { animation-delay: 0.5s; }
-        .job-card:nth-child(6) { animation-delay: 0.6s; }
+        .team-card:nth-child(1) { animation-delay: 0.1s; }
+        .team-card:nth-child(2) { animation-delay: 0.2s; }
+        .team-card:nth-child(3) { animation-delay: 0.3s; }
+        .team-card:nth-child(4) { animation-delay: 0.4s; }
+        .team-card:nth-child(5) { animation-delay: 0.5s; }
+        .team-card:nth-child(6) { animation-delay: 0.6s; }
       `}</style>
     </div>
   );
 }
 
-export function JobStructuredData({ teams = [] }) {
-  const jobsAsLD = teams.map((job) => ({
+export function TeamStructuredData({ teams = [] }) {
+  const teamsAsLD = teams.map((team) => ({
     "@context": "https://schema.org",
     "@type": "JobPosting",
-    title: job.title,
-    description: job.description,
+    title: team.title,
+    description: team.description,
     datePosted: new Date().toISOString().split('T')[0], // heute
     validThrough: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    employmentType: "VOLUNTEER", 
+    employmentType: "VOLUNTEER",
     hiringOrganization: {
       "@type": "Organization",
       name: "IGNITE Startup Club Lüneburg",
@@ -293,13 +293,13 @@ export function JobStructuredData({ teams = [] }) {
     identifier: {
       "@type": "PropertyValue",
       name: "IGNITE",
-      value: job.id
+      value: team.id
     }
   }));
 
   return (
     <script type="application/ld+json" suppressHydrationWarning>
-      {JSON.stringify(jobsAsLD.length === 1 ? jobsAsLD[0] : jobsAsLD)}
+      {JSON.stringify(teamsAsLD.length === 1 ? teamsAsLD[0] : teamsAsLD)}
     </script>
   );
 }

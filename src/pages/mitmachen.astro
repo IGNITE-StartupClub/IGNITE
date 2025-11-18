@@ -1,11 +1,11 @@
 ---
 import DefaultLayout from '../layouts/DefaultLayout.astro'
-import OpenPositions from '../components/OpenPositions.jsx'
+import OpenTeams from '../components/OpenTeams.jsx'
 import Questionnaire from '../components/Questionnaire.jsx'
 import CallToAction from '../components/CallToAction.astro'
 import Feature from '../components/Feature.astro'
 import Orb from '../components/Orb/Orb.jsx'
-import { teams } from '../data/jobs.js'
+import { teams } from '../data/teams.js'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
 ---
@@ -51,10 +51,11 @@ const initialPosition = Astro.url.searchParams.get('position') || ''
 
     </div>
 
+  
     <!-- OFFENE POSITIONEN (sichtbar, da z-Index kleiner als Content, aber höher als Overlays) -->
     <section id="open-positions" class="relative z-10 py-16">
       <h2 class="text-primary mb-6 text-3xl font-extrabold sm:text-4xl">Unsere Teams</h2>
-      <OpenPositions teams={teams} client:load />
+      <OpenTeams teams={teams} client:load />
     </section>
 
     <section id="application-form" class="form-section">

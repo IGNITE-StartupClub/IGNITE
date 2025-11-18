@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { teams } from '../data/jobs.js';
+import { teams } from '../data/teams.js';
 import { questionnaireConfig } from '../data/questionnaireParser.js';
 
 export default function Questionnaire({ initialPosition = '' }) {
