@@ -20,17 +20,28 @@ interface StrapiAttributes {
 
 interface StrapiData {
   id: number;
-  attributes: StrapiAttributes;
+  documentId?: string;
+  attributes?: StrapiAttributes;
+  [key: string]: any;
 }
 
 // Helper to transform Strapi response format
+// Supports both Strapi v4 (with attributes) and v5 (flat structure)
 function transformStrapiData<T>(item: StrapiData): T {
-  const { id, attributes } = item;
+  const { id, documentId, attributes, ...rest } = item;
+
+  // If attributes exist (Strapi v4), use them; otherwise use flat structure (Strapi v5)
+  const dataSource = attributes || rest;
 
   // Handle nested relations and media
   const transformed: any = { id };
 
-  for (const [key, value] of Object.entries(attributes)) {
+  // Add documentId if present (Strapi v5)
+  if (documentId) {
+    transformed.documentId = documentId;
+  }
+
+  for (const [key, value] of Object.entries(dataSource)) {
     if (value && typeof value === 'object' && 'data' in value) {
       // It's a relation or media
       if (Array.isArray(value.data)) {
