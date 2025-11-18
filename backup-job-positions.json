@@ -1,0 +1,96 @@
+{
+  "data": [
+    {
+      "id": 2,
+      "documentId": "nf5qua3kptnzir2uoesnhkt0",
+      "team": "IGNITE Events",
+      "title": "Events Team",
+      "description": "Organisiert Workshops, Hackathons, Startup-Breakfasts und Networking-Events. Verantwortlich für alle öffentlichen Veranstaltungen und Community-Building.",
+      "category": "extern",
+      "isActive": true,
+      "order": 1,
+      "createdAt": "2025-11-18T09:29:59.885Z",
+      "updatedAt": "2025-11-18T09:29:59.885Z",
+      "publishedAt": "2025-11-18T09:29:59.973Z",
+      "image": null
+    },
+    {
+      "id": 4,
+      "documentId": "pa0sch6csogxujam80lr6cfr",
+      "team": "IGNITE Relations & Cooperations",
+      "title": "Relations Team",
+      "description": "Baut Kontakte zu Organisationen, Unternehmen und dem Advisory Board Mitgliedern auf. Koordiniert Partnerschaften und externe Beziehungen.",
+      "category": "extern",
+      "isActive": true,
+      "order": 2,
+      "createdAt": "2025-11-18T09:30:00.629Z",
+      "updatedAt": "2025-11-18T09:30:00.629Z",
+      "publishedAt": "2025-11-18T09:30:00.683Z",
+      "image": null
+    },
+    {
+      "id": 6,
+      "documentId": "mzd21z7vkoxqft9ufq2d8wnf",
+      "team": "IGNITE Marketing",
+      "title": "Marketing Team",
+      "description": "Sorgt für Sichtbarkeit durch Social Media, Website, Newsletter und physische Präsenz an der Uni. Erstellt Content und Werbematerial.",
+      "category": "extern",
+      "isActive": true,
+      "order": 3,
+      "createdAt": "2025-11-18T09:30:01.326Z",
+      "updatedAt": "2025-11-18T09:30:01.326Z",
+      "publishedAt": "2025-11-18T09:30:01.378Z",
+      "image": null
+    },
+    {
+      "id": 8,
+      "documentId": "jai2vfz5xbtcoovumjqoel18",
+      "team": "IGNITE Human Resources",
+      "title": "HR Team",
+      "description": "Organisiert Recruiting, Bewerbungsgespräche und Teambuilding. Ansprechpartner für interne Themen und Meetings.",
+      "category": "intern",
+      "isActive": true,
+      "order": 4,
+      "createdAt": "2025-11-18T09:30:02.036Z",
+      "updatedAt": "2025-11-18T09:30:02.036Z",
+      "publishedAt": "2025-11-18T09:30:02.085Z",
+      "image": null
+    },
+    {
+      "id": 10,
+      "documentId": "uur12gccdscp7950vk4rxsob",
+      "team": "IGNITE Finance & Legal",
+      "title": "Finance & Legal Team",
+      "description": "Kümmert sich um Vereinsgründung, Buchhaltung, Budgetierung und Sponsorings. Verwaltet rechtliche und finanzielle Angelegenheiten.",
+      "category": "intern",
+      "isActive": true,
+      "order": 5,
+      "createdAt": "2025-11-18T09:30:02.778Z",
+      "updatedAt": "2025-11-18T09:30:02.778Z",
+      "publishedAt": "2025-11-18T09:30:02.822Z",
+      "image": null
+    },
+    {
+      "id": 13,
+      "documentId": "edlckjlzbzd3co5mmgpcspo3",
+      "team": "IGNITE Quality & Control",
+      "title": "Quality",
+      "description": "Optimiert interne Arbeitsabläufe & sorgt für effiziente Zusammenarbeit im Team.",
+      "category": "intern",
+      "isActive": true,
+      "order": 6,
+      "createdAt": "2025-11-18T09:30:03.477Z",
+      "updatedAt": "2025-11-18T09:31:36.731Z",
+      "publishedAt": "2025-11-18T09:31:36.893Z",
+      "image": null
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "pageSize": 100,
+      "pageCount": 1,
+      "total": 6
+    }
+  }
+}

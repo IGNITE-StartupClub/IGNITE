@@ -5,16 +5,9 @@ import Questionnaire from '../components/Questionnaire.jsx'
 import CallToAction from '../components/CallToAction.astro'
 import Feature from '../components/Feature.astro'
 import Orb from '../components/Orb/Orb.jsx'
-import { loadJobPositionsData } from '../lib/strapi/loaders'
-import { teams as fallbackTeams } from '../data/jobs.js'
+import { teams } from '../data/jobs.js'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
-
-// Load teams from Strapi, fallback to local data if unavailable
-const strapiTeams = await loadJobPositionsData()
-const teams = strapiTeams || fallbackTeams
-
-export const prerender = false
 ---
 
 <DefaultLayout
