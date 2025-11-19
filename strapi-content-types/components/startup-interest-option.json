@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_startup_interest_options",
+  "info": {
+    "displayName": "Startup Interest Option",
+    "description": "Option for startup interest radio buttons"
+  },
+  "options": {},
+  "attributes": {
+    "value": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

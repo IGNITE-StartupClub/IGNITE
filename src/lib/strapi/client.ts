@@ -224,6 +224,57 @@ export interface NewsArticle {
   isFeatured: boolean;
 }
 
+export interface Feature {
+  id: number;
+  icon: string;
+  title: string;
+  description: string;
+  order: number;
+}
+
+export interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  openByDefault: boolean;
+  order: number;
+}
+
+export interface QuestionnaireQuestion {
+  id: number;
+  questionId: string;
+  step: '3' | '4' | '5';
+  label: string;
+  fieldType: 'textarea' | 'text' | 'email';
+  rows: number;
+  placeholder?: string;
+  required: boolean;
+  order: number;
+}
+
+export interface StartupInterestOption {
+  id: number;
+  value: string;
+  label: string;
+  order: number;
+}
+
+export interface Questionnaire {
+  id: number;
+  step1ButtonText: string;
+  step2Label: string;
+  step2MinTeams: number;
+  step2MaxTeams: number;
+  step2HintTooFew: string;
+  step2HintMaximum: string;
+  step3QuestionLabel: string;
+  step3Options: StartupInterestOption[];
+  questions: QuestionnaireQuestion[];
+  step6FirstNameLabel: string;
+  step6LastNameLabel: string;
+  step6EmailLabel: string;
+}
+
 // API Functions
 export async function getTeams(): Promise<Team[]> {
   return fetchFromStrapi<Team>('teams', {
@@ -310,6 +361,45 @@ export async function getNewsArticle(slug: string): Promise<NewsArticle | null> 
     'filters[slug][$eq]': slug
   });
   return articles[0] || null;
+}
+
+export async function getFeatures(): Promise<Feature[]> {
+  return fetchFromStrapi<Feature>('features', {
+    'sort': 'order:asc'
+  });
+}
+
+export async function getFAQs(): Promise<FAQ[]> {
+  return fetchFromStrapi<FAQ>('faqs', {
+    'sort': 'order:asc'
+  });
+}
+
+export async function getQuestionnaire(): Promise<Questionnaire | null> {
+  const url = new URL('/api/questionnaire', STRAPI_URL);
+  url.searchParams.append('populate', 'deep');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (STRAPI_TOKEN) {
+    headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
+  }
+
+  try {
+    const response = await fetch(url.toString(), { headers });
+
+    if (!response.ok) {
+      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
+    }
+
+    const json: StrapiResponse<StrapiData> = await response.json();
+    return transformStrapiData<Questionnaire>(json.data);
+  } catch (error) {
+    console.error('Error fetching Questionnaire from Strapi:', error);
+    return null;
+  }
 }
 
 // Helper to get full media URL

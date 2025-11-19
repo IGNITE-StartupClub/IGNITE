@@ -1,28 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import { teams } from '../data/teams.js';
-import { questionnaireConfig } from '../data/questionnaireParser.js';
+import { questionnaireConfig as fallbackConfig } from '../data/questionnaireParser.js';
 
 export default function Questionnaire({ initialPosition = '' }) {
   const startStep = 1;
   const [step, setStep] = useState(startStep);
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch questionnaire config from Strapi on mount
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/questionnaire-config');
+        if (response.ok) {
+          const strapiConfig = await response.json();
+          setConfig(strapiConfig);
+        } else {
+          console.warn('Failed to load Questionnaire from Strapi, using fallback');
+          setConfig(fallbackConfig);
+        }
+      } catch (error) {
+        console.warn('Error loading Questionnaire from Strapi, using fallback:', error);
+        setConfig(fallbackConfig);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadConfig();
+  }, []);
 
   // Initialize state dynamically based on config
-  const initialData = {
-    teams: [],
-    startupInterest: '',
-    name: '',
-    lastname: '',
-    email: '',
-  };
-
-  // Add all questions from config dynamically
-  questionnaireConfig.allQuestions.forEach(qId => {
-    initialData[qId] = '';
+  const [data, setData] = useState(() => {
+    const initialData = {
+      teams: [],
+      startupInterest: '',
+      name: '',
+      lastname: '',
+      email: '',
+    };
+    // We'll add question IDs dynamically once config loads
+    return initialData;
   });
 
-  const [data, setData] = useState(initialData);
+  // Update data state when config loads
+  useEffect(() => {
+    if (config && config.allQuestions) {
+      setData(d => {
+        const newData = { ...d };
+        config.allQuestions.forEach(qId => {
+          if (!(qId in newData)) {
+            newData[qId] = '';
+          }
+        });
+        return newData;
+      });
+    }
+  }, [config]);
+
   const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -32,11 +69,12 @@ export default function Questionnaire({ initialPosition = '' }) {
   const handleTeamChange = (teamId) => {
     setData(d => {
       const currentTeams = d.teams || [];
+      const maxTeams = config?.step2?.maxTeams || 3;
       if (currentTeams.includes(teamId)) {
         return { ...d, teams: currentTeams.filter(t => t !== teamId) };
       } else {
-        if (currentTeams.length >= 3) {
-          return d; // max 3 teams
+        if (currentTeams.length >= maxTeams) {
+          return d;
         }
         return { ...d, teams: [...currentTeams, teamId] };
       }
@@ -45,9 +83,10 @@ export default function Questionnaire({ initialPosition = '' }) {
 
   // Function to check if a step has questions
   const stepHasQuestions = (stepNum) => {
+    if (!config) return true;
     if (stepNum === 3) return true; // Always has startup interest
-    if (stepNum === 4) return Object.keys(questionnaireConfig.step4.questions).length > 0;
-    if (stepNum === 5) return Object.keys(questionnaireConfig.step5.questions).length > 0;
+    if (stepNum === 4) return Object.keys(config.step4?.questions || {}).length > 0;
+    if (stepNum === 5) return Object.keys(config.step5?.questions || {}).length > 0;
     if (stepNum === 6) return true; // Always has personal data
     return true;
   };
@@ -66,22 +105,31 @@ export default function Questionnaire({ initialPosition = '' }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
 
-    await fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-
-    setLoading(false);
-    setDone(true);
+    try {
+      await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      setDone(true);
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert('Es gab einen Fehler beim Absenden. Bitte versuche es erneut.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Loading state
+  if (loading || !config) {
+    return <p>Lädt Fragebogen...</p>;
+  }
 
   if (done) {
     return <p>Danke für deine Bewerbung! Wir melden uns bald bei dir.</p>;
   }
-
 
   return (
     <form
@@ -92,7 +140,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       {/* Schritt 1: Intro-Button */}
       {step === 1 && (
         <button type="button" className="button secondary" onClick={next}>
-          {questionnaireConfig.step1.buttonText}
+          {config.step1?.buttonText || 'Bewerbung ausfüllen'}
         </button>
       )}
 
@@ -101,7 +149,7 @@ export default function Questionnaire({ initialPosition = '' }) {
         <>
           <div>
             <label style={{ marginBottom: '1rem' }}>
-              {questionnaireConfig.step2.label}
+              {config.step2?.label || 'Wähle 2-3 Teams:'}
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {teams.map(team => (
@@ -116,14 +164,14 @@ export default function Questionnaire({ initialPosition = '' }) {
                 </label>
               ))}
             </div>
-            {data.teams.length < questionnaireConfig.step2.minTeams && (
+            {data.teams.length < (config.step2?.minTeams || 2) && (
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
-                {questionnaireConfig.step2.hintTooFew}
+                {config.step2?.hintTooFew || 'Bitte wähle mindestens 2 Teams aus.'}
               </p>
             )}
-            {data.teams.length === questionnaireConfig.step2.maxTeams && (
+            {data.teams.length === (config.step2?.maxTeams || 3) && (
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--neutral-100)', textAlign: 'left' }}>
-                {questionnaireConfig.step2.hintMaximum}
+                {config.step2?.hintMaximum || 'Du hast die maximale Anzahl erreicht.'}
               </p>
             )}
           </div>
@@ -131,7 +179,7 @@ export default function Questionnaire({ initialPosition = '' }) {
             type="button"
             className="button secondary"
             onClick={next}
-            disabled={data.teams.length < questionnaireConfig.step2.minTeams}
+            disabled={data.teams.length < (config.step2?.minTeams || 2)}
           >
             Weiter
           </button>
@@ -143,10 +191,10 @@ export default function Questionnaire({ initialPosition = '' }) {
         <>
           <fieldset style={{ border: 'none', padding: 0 }}>
             <legend style={{ fontWeight: 500, marginBottom: '0.75rem', textAlign: 'left' }}>
-              {questionnaireConfig.step3.legend}
+              {config.step3?.legend || 'Was beschreibt deine Situation am besten?'}
             </legend>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
-              {questionnaireConfig.step3.options.map(option => (
+              {(config.step3?.options || []).map(option => (
                 <label key={option.value} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
                   <input
                     type="radio"
@@ -163,8 +211,8 @@ export default function Questionnaire({ initialPosition = '' }) {
           </fieldset>
 
           {/* Render questions dynamically */}
-          {Object.keys(questionnaireConfig.step3.questions).map(qId => {
-            const question = questionnaireConfig.step3.questions[qId];
+          {Object.keys(config.step3?.questions || {}).map(qId => {
+            const question = config.step3.questions[qId];
             return (
               <label key={qId}>
                 {question.label}
@@ -186,8 +234,8 @@ export default function Questionnaire({ initialPosition = '' }) {
             onClick={next}
             disabled={
               !data.startupInterest ||
-              Object.keys(questionnaireConfig.step3.questions).some(qId =>
-                questionnaireConfig.step3.questions[qId].required && !data[qId]?.trim()
+              Object.keys(config.step3?.questions || {}).some(qId =>
+                config.step3.questions[qId].required && !data[qId]?.trim()
               )
             }
           >
@@ -197,10 +245,10 @@ export default function Questionnaire({ initialPosition = '' }) {
       )}
 
       {/* Schritt 4: Dynamisch rendern basierend auf Config */}
-      {step === 4 && Object.keys(questionnaireConfig.step4.questions).length > 0 && (
+      {step === 4 && Object.keys(config.step4?.questions || {}).length > 0 && (
         <>
-          {Object.keys(questionnaireConfig.step4.questions).map(qId => {
-            const question = questionnaireConfig.step4.questions[qId];
+          {Object.keys(config.step4.questions).map(qId => {
+            const question = config.step4.questions[qId];
             return (
               <label key={qId}>
                 {question.label}
@@ -220,8 +268,8 @@ export default function Questionnaire({ initialPosition = '' }) {
             className="button secondary"
             onClick={next}
             disabled={
-              Object.keys(questionnaireConfig.step4.questions).some(qId =>
-                questionnaireConfig.step4.questions[qId].required && !data[qId]?.trim()
+              Object.keys(config.step4.questions).some(qId =>
+                config.step4.questions[qId].required && !data[qId]?.trim()
               )
             }
           >
@@ -231,10 +279,10 @@ export default function Questionnaire({ initialPosition = '' }) {
       )}
 
       {/* Schritt 5: Dynamisch rendern basierend auf Config */}
-      {step === 5 && Object.keys(questionnaireConfig.step5.questions).length > 0 && (
+      {step === 5 && Object.keys(config.step5?.questions || {}).length > 0 && (
         <>
-          {Object.keys(questionnaireConfig.step5.questions).map(qId => {
-            const question = questionnaireConfig.step5.questions[qId];
+          {Object.keys(config.step5.questions).map(qId => {
+            const question = config.step5.questions[qId];
             return (
               <label key={qId}>
                 {question.label}
@@ -254,8 +302,8 @@ export default function Questionnaire({ initialPosition = '' }) {
             className="button secondary"
             onClick={next}
             disabled={
-              Object.keys(questionnaireConfig.step5.questions).some(qId =>
-                questionnaireConfig.step5.questions[qId].required && !data[qId]?.trim()
+              Object.keys(config.step5.questions).some(qId =>
+                config.step5.questions[qId].required && !data[qId]?.trim()
               )
             }
           >
@@ -268,43 +316,42 @@ export default function Questionnaire({ initialPosition = '' }) {
       {step === 6 && (
         <>
           <label>
-            {questionnaireConfig.step6.fields.name.label}
+            {config.step6?.fields?.name?.label || 'Vorname'}
             <input
-              type={questionnaireConfig.step6.fields.name.type}
+              type="text"
               name="name"
               value={data.name}
               onChange={handleChange}
-              required={questionnaireConfig.step6.fields.name.required}
+              required={config.step6?.fields?.name?.required !== false}
             />
           </label>
           <label>
-            {questionnaireConfig.step6.fields.lastname.label}
+            {config.step6?.fields?.lastname?.label || 'Nachname'}
             <input
-              type={questionnaireConfig.step6.fields.lastname.type}
+              type="text"
               name="lastname"
               value={data.lastname}
               onChange={handleChange}
-              required={questionnaireConfig.step6.fields.lastname.required}
+              required={config.step6?.fields?.lastname?.required !== false}
             />
           </label>
           <label>
-            {questionnaireConfig.step6.fields.email.label}
+            {config.step6?.fields?.email?.label || 'E-Mail'}
             <input
-              type={questionnaireConfig.step6.fields.email.type}
+              type="email"
               name="email"
               value={data.email}
               onChange={handleChange}
-              required={questionnaireConfig.step6.fields.email.required}
+              required={config.step6?.fields?.email?.required !== false}
             />
           </label>
           <button
             type="submit"
             className="button secondary"
-            disabled={loading}
+            disabled={submitting}
           >
-            {loading ? 'Wird gesendet...' : 'Bewerbung absenden'}
+            {submitting ? 'Wird gesendet...' : 'Bewerbung absenden'}
           </button>
-
         </>
       )}
 
