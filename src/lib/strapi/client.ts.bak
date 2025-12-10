@@ -84,16 +84,24 @@ async function fetchFromStrapi<T>(
   }
 
   try {
-    const response = await fetch(url.toString(), { headers });
+    const response = await fetch(url.toString(), {
+      headers,
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
 
     if (!response.ok) {
-      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
+      console.warn(`⚠️ Strapi API returned ${response.status} for ${endpoint} - using fallback data`);
+      return [];
     }
 
     const json: StrapiResponse<StrapiData[]> = await response.json();
     return json.data.map((item) => transformStrapiData<T>(item));
   } catch (error) {
-    console.error(`Error fetching from Strapi (${endpoint}):`, error);
+    if (error instanceof Error) {
+      console.warn(`⚠️ Failed to fetch from Strapi (${endpoint}): ${error.message} - using fallback data`);
+    } else {
+      console.warn(`⚠️ Failed to fetch from Strapi (${endpoint}) - using fallback data`);
+    }
     return [];
   }
 }
@@ -122,16 +130,24 @@ async function fetchSingleFromStrapi<T>(
   }
 
   try {
-    const response = await fetch(url.toString(), { headers });
+    const response = await fetch(url.toString(), {
+      headers,
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
 
     if (!response.ok) {
-      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
+      console.warn(`⚠️ Strapi API returned ${response.status} for ${endpoint}/${id} - using fallback data`);
+      return null;
     }
 
     const json: StrapiResponse<StrapiData> = await response.json();
     return transformStrapiData<T>(json.data);
   } catch (error) {
-    console.error(`Error fetching single from Strapi (${endpoint}/${id}):`, error);
+    if (error instanceof Error) {
+      console.warn(`⚠️ Failed to fetch from Strapi (${endpoint}/${id}): ${error.message} - using fallback data`);
+    } else {
+      console.warn(`⚠️ Failed to fetch from Strapi (${endpoint}/${id}) - using fallback data`);
+    }
     return null;
   }
 }
@@ -245,7 +261,8 @@ export interface QuestionnaireQuestion {
   questionId: string;
   step: '3' | '4' | '5';
   label: string;
-  fieldType: 'textarea' | 'text' | 'email';
+  fieldType: 'textarea' | 'text' | 'email' | 'select';
+  options?: Array<{ value: string; label: string }>;
   rows: number;
   placeholder?: string;
   required: boolean;
@@ -273,6 +290,159 @@ export interface Questionnaire {
   step6FirstNameLabel: string;
   step6LastNameLabel: string;
   step6EmailLabel: string;
+  step6SubmitButtonText?: string;
+  step6SubmittingText?: string;
+  successMessage?: string;
+  continueButtonText?: string;
+}
+
+// New Single Type interfaces
+export interface GlobalConfig {
+  id: number;
+  siteName: string;
+  siteTagline: string;
+  contactEmail: string;
+  copyrightText: string;
+  error404_heading: string;
+  error404_message: string;
+  error404_buttonText: string;
+  error404_buttonUrl: string;
+  newsletterSuccessMessage: string;
+  newsletterErrorMessage: string;
+  loadingText: string;
+  submitButtonText: string;
+}
+
+export interface NavigationItem {
+  label: string;
+  url: string;
+  isExternal: boolean;
+  order: number;
+  children?: NavigationItem[];
+}
+
+export interface Navigation {
+  id: number;
+  logo?: { url: string } | null;
+  logoText: string;
+  menuItems: NavigationItem[];
+}
+
+export interface SocialLink {
+  platform: string;
+  url: string;
+  icon: string;
+  order: number;
+}
+
+export interface FooterLink {
+  label: string;
+  url: string;
+  order: number;
+}
+
+export interface Footer {
+  id: number;
+  description: string;
+  socialLinks: SocialLink[];
+  legalLinks: FooterLink[];
+  showNewsletter: boolean;
+}
+
+export interface Homepage {
+  id: number;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  heroCTA_Text: string;
+  heroCTA_URL: string;
+  heroCTA_Icon: string;
+  heroBackgroundColors: string[];
+  featuresHeading: string;
+  featuresSubheading?: string;
+  faqHeading: string;
+  faqDescription: string;
+  faqCTA_Text: string;
+  faqCTA_URL: string;
+  showAdvisoryBoard: boolean;
+  showNews: boolean;
+  newsHeading: string;
+}
+
+export interface ProcessStep {
+  stepNumber: number;
+  stepTitle: string;
+  stepDescription: string;
+}
+
+export interface JoinPage {
+  id: number;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroCTA_Text: string;
+  heroCTA_URL: string;
+  scrollIndicatorText: string;
+  teamsHeading: string;
+  applicationFormHeading: string;
+  applicationFormDescription: string;
+  processHeading: string;
+  processIntro: string;
+  processSteps: ProcessStep[];
+}
+
+export interface TeamPage {
+  id: number;
+  pageTitle: string;
+  pageDescription: string;
+  modalMoreButtonText: string;
+  modalCloseButtonText: string;
+  emailIconAlt: string;
+  linkedinIconAlt: string;
+}
+
+export interface ContactPage {
+  id: number;
+  pageTitle: string;
+  pageIntro: string;
+  formTopicLabel: string;
+  formTopicPlaceholder: string;
+  formFirstNameLabel: string;
+  formLastNameLabel: string;
+  formEmailLabel: string;
+  formMessageLabel: string;
+  formOrganizationLabel: string;
+  formExpertiseLabel: string;
+  formExpertisePlaceholder: string;
+  submitButtonText: string;
+  successMessage: string;
+  successMessageAdvisory: string;
+  errorMessage: string;
+  advisoryInfoMessage: string;
+}
+
+export interface EmailTemplates {
+  id: number;
+  applicationConfirmation_subject: string;
+  applicationConfirmation_htmlBody: string;
+  applicationConfirmation_textBody: string;
+  contactConfirmation_subject: string;
+  contactConfirmation_htmlBody: string;
+  contactConfirmation_textBody: string;
+  advisoryInquiry_subject: string;
+  advisoryInquiry_htmlBody: string;
+  advisoryInquiry_textBody: string;
+  newsletterConfirmation_subject: string;
+  newsletterConfirmation_htmlBody: string;
+  newsletterConfirmation_textBody: string;
+  placeholderGuide: string;
+}
+
+export interface ContactTopic {
+  id: number;
+  value: string;
+  label: string;
+  requiresAdditionalFields: boolean;
+  order: number;
 }
 
 // API Functions
@@ -388,18 +558,100 @@ export async function getQuestionnaire(): Promise<Questionnaire | null> {
   }
 
   try {
-    const response = await fetch(url.toString(), { headers });
+    const response = await fetch(url.toString(), {
+      headers,
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
 
     if (!response.ok) {
-      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
+      console.warn(`⚠️ Strapi API returned ${response.status} for questionnaire - using fallback data`);
+      return null;
     }
 
     const json: StrapiResponse<StrapiData> = await response.json();
     return transformStrapiData<Questionnaire>(json.data);
   } catch (error) {
-    console.error('Error fetching Questionnaire from Strapi:', error);
+    if (error instanceof Error) {
+      console.warn(`⚠️ Failed to fetch Questionnaire from Strapi: ${error.message} - using fallback data`);
+    } else {
+      console.warn(`⚠️ Failed to fetch Questionnaire from Strapi - using fallback data`);
+    }
     return null;
   }
+}
+
+// Fetch functions for new Single Types
+async function fetchSingleType<T>(endpoint: string): Promise<T | null> {
+  const url = new URL(`/api/${endpoint}`, STRAPI_URL);
+  url.searchParams.append('populate', 'deep');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (STRAPI_TOKEN) {
+    headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
+  }
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers,
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+
+    if (!response.ok) {
+      console.warn(`⚠️ Strapi API returned ${response.status} for ${endpoint} - using fallback data`);
+      return null;
+    }
+
+    const json: StrapiResponse<StrapiData> = await response.json();
+    return transformStrapiData<T>(json.data);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn(`⚠️ Failed to fetch ${endpoint} from Strapi: ${error.message} - using fallback data`);
+    } else {
+      console.warn(`⚠️ Failed to fetch ${endpoint} from Strapi - using fallback data`);
+    }
+    return null;
+  }
+}
+
+export async function getGlobalConfig(): Promise<GlobalConfig | null> {
+  return fetchSingleType<GlobalConfig>('global-config');
+}
+
+export async function getNavigation(): Promise<Navigation | null> {
+  return fetchSingleType<Navigation>('navigation');
+}
+
+export async function getFooter(): Promise<Footer | null> {
+  return fetchSingleType<Footer>('footer');
+}
+
+export async function getHomepage(): Promise<Homepage | null> {
+  return fetchSingleType<Homepage>('homepage');
+}
+
+export async function getJoinPage(): Promise<JoinPage | null> {
+  return fetchSingleType<JoinPage>('join-page');
+}
+
+export async function getTeamPage(): Promise<TeamPage | null> {
+  return fetchSingleType<TeamPage>('team-page');
+}
+
+export async function getContactPage(): Promise<ContactPage | null> {
+  return fetchSingleType<ContactPage>('contact-page');
+}
+
+export async function getEmailTemplates(): Promise<EmailTemplates | null> {
+  return fetchSingleType<EmailTemplates>('email-template');
+}
+
+export async function getContactTopics(): Promise<ContactTopic[]> {
+  return fetchFromStrapi<ContactTopic>('contact-topics', {
+    'sort': 'order:asc'
+  });
 }
 
 // Helper to get full media URL

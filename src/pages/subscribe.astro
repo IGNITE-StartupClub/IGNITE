@@ -3,6 +3,8 @@ import DefaultLayout from '../layouts/DefaultLayout.astro';
 import SubscribeForm from '../components/SubscribeForm.jsx';
 
 const params = Astro.url.searchParams;
+
+export const prerender = true
 ---
 
 <DefaultLayout title="Newsletter Anmeldung">

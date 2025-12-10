@@ -1,3 +1,5 @@
+export const prerender = false
+
 import { APIRoute } from 'astro';
 import { Resend } from 'resend';
 import { MongoClient } from 'mongodb';

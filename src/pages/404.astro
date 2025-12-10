@@ -1,17 +1,26 @@
 ---
 import DefaultLayout from '../layouts/DefaultLayout.astro'
+import { globalConfig } from '../data/staticContent'
+
+// Static 404 config
+const heading = globalConfig.error404_heading
+const message = globalConfig.error404_message
+const buttonText = globalConfig.error404_buttonText
+const buttonUrl = globalConfig.error404_buttonUrl
+
+export const prerender = true
 ---
 
 <DefaultLayout title="404" description="Seite nicht gefunden">
   <section class="my-12">
     <div class="container">
-      <h1>404</h1>
+      <h1>{heading}</h1>
     </div>
   </section>
   <section class="my-12">
     <div class="space-content container">
-      <p class="text-2xl">Oh, diese Seite gibt es nicht.</p>
-      <a class="button" href="/">Lass' uns zurück gehen!</a>
+      <p class="text-2xl">{message}</p>
+      <a class="button" href={buttonUrl}>{buttonText}</a>
     </div>
   </section>
 </DefaultLayout>

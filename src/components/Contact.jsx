@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { contactPage, contactTopics } from '../data/staticContent';
+
+// Static contact config
+const staticConfig = {
+  formTopicLabel: contactPage.formTopicLabel,
+  formTopicPlaceholder: contactPage.formTopicPlaceholder,
+  formFirstNameLabel: contactPage.formFirstNameLabel,
+  formLastNameLabel: contactPage.formLastNameLabel,
+  formEmailLabel: contactPage.formEmailLabel,
+  formMessageLabel: contactPage.formMessageLabel,
+  formOrganizationLabel: contactPage.formOrganizationLabel,
+  formExpertiseLabel: contactPage.formExpertiseLabel,
+  formExpertisePlaceholder: contactPage.formExpertisePlaceholder,
+  submitButtonText: contactPage.submitButtonText,
+  successMessage: contactPage.successMessage,
+  successMessageAdvisory: contactPage.successMessageAdvisory,
+  advisoryInfoMessage: contactPage.advisoryInfoMessage,
+  errorMessage: contactPage.errorMessage,
+  topics: contactTopics,
+};
 
 export default function ContactForm({ initialIntent = '' }) {
+  const [config] = useState(staticConfig);
+  const [loading] = useState(false);
   const [data, setData] = useState({
     name: '',
     lastname: '',
@@ -45,35 +67,29 @@ export default function ContactForm({ initialIntent = '' }) {
       if (response.ok) {
         setDone(true);
       } else {
-        setError(result.message || 'Ein Fehler ist aufgetreten');
+        setError(result.message || (config?.errorMessage || 'Ein Fehler ist aufgetreten'));
       }
     } catch (err) {
-      setError('Fehler beim Absenden der Nachricht');
+      setError(config?.errorMessage || 'Fehler beim Absenden der Nachricht');
     }
   };
 
+  // Loading state
+  if (loading || !config) {
+    return <p>Lädt Kontaktformular...</p>;
+  }
+
   if (done) {
+    const successHTML = data.topic === 'advisory'
+      ? config.successMessageAdvisory
+      : config.successMessage;
+
     return (
-      <div className="success-message">
-        {data.topic === 'advisory' ? (
-          <>
-            <h3>Vielen Dank für Ihr Interesse!</h3>
-            <p>
-              Wir haben Ihre Anfrage zum Advisory Board erhalten und freuen uns sehr über Ihr Interesse,
-              den IGNITE Startup Club Lüneburg zu unterstützen. Unser Team wird sich zeitnah bei Ihnen melden,
-              um die nächsten Schritte zu besprechen.
-            </p>
-            <p className="contact-info">
-              Bei dringenden Fragen erreichen Sie uns auch direkt unter{' '}
-              <a href="mailto:info@ignite-startupclub.de">info@ignite-startupclub.de</a>
-            </p>
-          </>
-        ) : (
-          <>
-            <h3>Danke für deine Nachricht!</h3>
-            <p>Wir werden uns bald bei dir melden.</p>
-          </>
-        )}
+      <>
+        <div
+          className="success-message"
+          dangerouslySetInnerHTML={{ __html: successHTML }}
+        />
         <style>{`
           .success-message {
             padding: 2rem;
@@ -102,7 +118,7 @@ export default function ContactForm({ initialIntent = '' }) {
             text-decoration: underline;
           }
         `}</style>
-      </div>
+      </>
     );
   }
 
@@ -114,36 +130,31 @@ export default function ContactForm({ initialIntent = '' }) {
     >
       {/* Anliegen Dropdown */}
       <label>
-        Anliegen
+        {config.formTopicLabel}
         <select
           name="topic"
           value={data.topic}
           onChange={handleChange}
           required
         >
-          <option value="">Bitte wählen</option>
-          <option value="advisory">Advisory Board Interesse</option>
-          <option value="partner">Partner werden</option>
-          <option value="mitglied">Mitglied werden</option>
-          <option value="workshop">Workshop veranstalten</option>
-          <option value="sonstiges">Sonstiges</option>
+          <option value="">{config.formTopicPlaceholder}</option>
+          {config.topics.map((topic) => (
+            <option key={topic.value} value={topic.value}>{topic.label}</option>
+          ))}
         </select>
       </label>
 
       {/* Advisory Board specific info message */}
-      {data.topic === 'advisory' && (
+      {config.topics.find(t => t.value === data.topic)?.requiresAdditionalFields && (
         <div className="advisory-info">
-          <p>
-            Vielen Dank für Ihr Interesse an unserem Advisory Board! Um Sie optimal unterstützen zu können,
-            bitten wir Sie um einige zusätzliche Informationen zu Ihrer Person und Expertise.
-          </p>
+          <p>{config.advisoryInfoMessage}</p>
         </div>
       )}
 
       {/* Name and Email */}
       <div className="flex-row flex gap-4 width-full">
         <label className="flex-1">
-          Vorname
+          {config.formFirstNameLabel}
           <input
             name="name"
             value={data.name}
@@ -153,7 +164,7 @@ export default function ContactForm({ initialIntent = '' }) {
           />
         </label>
         <label className="flex-1">
-          Nachname
+          {config.formLastNameLabel}
           <input
             name="lastname"
             value={data.lastname}
@@ -165,7 +176,7 @@ export default function ContactForm({ initialIntent = '' }) {
       </div>
 
       <label>
-        E-Mail
+        {config.formEmailLabel}
         <input
           type="email"
           name="email"
@@ -176,28 +187,28 @@ export default function ContactForm({ initialIntent = '' }) {
       </label>
 
       {/* Advisory Board specific fields */}
-      {data.topic === 'advisory' && (
+      {config.topics.find(t => t.value === data.topic)?.requiresAdditionalFields && (
         <>
           <label>
-            Organisation/Unternehmen
+            {config.formOrganizationLabel}
             <input
               name="organization"
               value={data.organization}
               onChange={handleChange}
               required
-              placeholder="Name Ihrer Organisation"
+              placeholder={config.formOrganizationLabel}
             />
           </label>
 
           <label>
-            Fachgebiet/Expertise
+            {config.formExpertiseLabel}
             <textarea
               name="expertise"
               value={data.expertise}
               onChange={handleChange}
               required
               rows="3"
-              placeholder="Beschreiben Sie kurz Ihre Expertise und wie Sie das IGNITE Team unterstützen können..."
+              placeholder={config.formExpertisePlaceholder}
             />
           </label>
         </>
@@ -205,7 +216,7 @@ export default function ContactForm({ initialIntent = '' }) {
 
       {/* Message */}
       <label>
-        Nachricht
+        {config.formMessageLabel}
         <textarea
           name="message"
           value={data.message}
@@ -218,7 +229,7 @@ export default function ContactForm({ initialIntent = '' }) {
       {error && <p className="error-message">{error}</p>}
 
       <button type="submit" className="button secondary">
-        Absenden
+        {config.submitButtonText}
       </button>
 
       <style>{`

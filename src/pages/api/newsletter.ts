@@ -1,3 +1,5 @@
+export const prerender = false
+
 import { v4 as uuidv4 } from 'uuid';  // Import the uuid module
 import { Resend } from 'resend';
 import { MongoClient } from 'mongodb';

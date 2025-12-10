@@ -1,33 +1,44 @@
 ---
 import DefaultLayout from "../layouts/DefaultLayout.astro"
 import { Modal } from 'accessible-astro-components'
-import { teams } from '../data/teams.js' // Importiere die Team-Daten
 import { Icon } from "astro-icon/components"
+import { teamsData } from '../data/teamsData'
+import { teamPage } from '../data/staticContent'
 
-const prerender = true
+// Static data - no API calls
+const teams = teamsData
+
+// Page content
+const pageTitle = teamPage.pageTitle
+const pageDescription = teamPage.pageDescription
+const modalMoreButtonText = teamPage.modalMoreButtonText
+const emailIconAlt = teamPage.emailIconAlt
+const linkedinIconAlt = teamPage.linkedinIconAlt
+
+export const prerender = true // Static prerendering at build time
 ---
 <DefaultLayout title="Team" description="Das Team des IGNITE Startup Club Lüneburg">
   <div class="container">
     <div class="space-content my-12">
-      <h1 class="text-4xl font-bold">Unser Team</h1>
-      <p class="text-2xl mt-4">Lerne das talentierte Team kennen, das den IGNITE Startup Club Lüneburg vorantreibt. Jeder von uns trägt mit einzigartigen Fähigkeiten und einer gemeinsamen Vision bei, um die nächste Generation von Unternehmern zu unterstützen.</p>
+      <h1 class="text-4xl font-bold">{pageTitle}</h1>
+      <div class="text-2xl mt-4" set:html={pageDescription} />
       
       <div class="team-sections">
         {teams.map((team, teamIndex) => (
           <section class="team-section my-12">
             <h2 class="text-3xl font-semibold mt-8">{team.name}</h2>
-            <p class="text-lg mt-2">{team.description}</p>
+            {team.description && <p class="text-lg mt-2">{team.description}</p>}
 
             <div class="team-members grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mt-8">
-              {team.members.map((member, index) => (
+              {team.members && team.members.map((member, index) => (
                 <div class="job-card">
                   <div class="image-wrapper">
-                    <img src={member.photo} alt={member.name} />
+                    <img src={member.photo || '/team/placeholder.jpg'} alt={member.name} />
                   </div>
                   <div class="job-info">
                     <div class="flex flex-wrap gap-2">
                       {(Array.isArray(member.position) ? member.position : [member.position]).map((pos, posIndex) => (
-                        <span 
+                        <span
                           class="category-pill"
                         >
                           {pos}
@@ -38,14 +49,14 @@ const prerender = true
                       <h3 class="job-title">{member.name}</h3>
                       <p class="job-desc line-clamp-2">{member.description}</p>
                     </span>
-                    
+
                     {/* Dynamischer Trigger für das Modal */}
-                    <a 
-                      class="button color-secondary" 
-                      id={`modal-trigger-${teamIndex}-${index}`} 
+                    <a
+                      class="button color-secondary"
+                      id={`modal-trigger-${teamIndex}-${index}`}
                       data-member-index={`${teamIndex}-${index}`}
                     >
-                      Mehr lesen
+                      {modalMoreButtonText}
                     </a>
                   </div>
                 </div>
@@ -59,7 +70,7 @@ const prerender = true
 
   {/* Modal */}
   {teams.map((team, teamIndex) => (
-    team.members.map((member, index) => (
+    team.members && team.members.map((member, index) => (
     <Modal
       key={`${teamIndex}-${index}`}
       triggerId={`modal-trigger-${teamIndex}-${index}`}
@@ -68,7 +79,7 @@ const prerender = true
       <div class="modal-body">
         <div class="flex flex-wrap gap-2">
                       {(Array.isArray(member.position) ? member.position : [member.position]).map((pos, posIndex) => (
-                        <span 
+                        <span
                           class="category-pill"
                         >
                           {pos}
@@ -82,21 +93,25 @@ const prerender = true
 
         <div class="mt-auto flex justify-end">
           <div class="flex gap-4">
-            <a 
-              href={`mailto:${member.email}`} 
-              title="E-Mail senden" 
-              class="p-2 rounded-full hover:bg-gray-100 transition"
-            >
-              <Icon name="mdi:email" class="w-7 h-7 text-black" />
-            </a>
-            <a 
-              href={member.linkedin} 
-              target="_blank" 
-              title="LinkedIn-Profil" 
-              class="p-2 rounded-full hover:bg-gray-100 transition"
-            >
-              <Icon name="mdi:linkedin" class="w-7 h-7 text-black" />
-            </a>
+            {member.email && (
+              <a
+                href={`mailto:${member.email}`}
+                title={emailIconAlt}
+                class="p-2 rounded-full hover:bg-gray-100 transition"
+              >
+                <Icon name="mdi:email" class="w-7 h-7 text-black" />
+              </a>
+            )}
+            {member.linkedin && (
+              <a
+                href={member.linkedin}
+                target="_blank"
+                title={linkedinIconAlt}
+                class="p-2 rounded-full hover:bg-gray-100 transition"
+              >
+                <Icon name="mdi:linkedin" class="w-7 h-7 text-black" />
+              </a>
+            )}
           </div>
         </div>
     </Modal>

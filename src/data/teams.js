@@ -28,8 +28,8 @@ export const teams = [
       image: '',
       category: 'intern',
       team: 'IGNITE Human Resources',
-      title: 'HR Team',
-      description: 'Organisiert Recruiting, Bewerbungsgespräche und Teambuilding. Ansprechpartner für interne Themen und Meetings.',
+      title: 'People Team',
+      description: 'Organisiert Recruiting, Info-Gesrpäche und Teambuilding. Ansprechpartner für interne Themen und Meetings.',
     },
     {
       id: 'ignite-finance-legal',

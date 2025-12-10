@@ -1,34 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { teams } from '../data/teams.js';
-import { questionnaireConfig as fallbackConfig } from '../data/questionnaireParser.js';
+import { questionnaireConfig } from '../data/questionnaireConfig';
 
 export default function Questionnaire({ initialPosition = '' }) {
   const startStep = 1;
   const [step, setStep] = useState(startStep);
-  const [config, setConfig] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch questionnaire config from Strapi on mount
-  useEffect(() => {
-    async function loadConfig() {
-      try {
-        const response = await fetch('/api/questionnaire-config');
-        if (response.ok) {
-          const strapiConfig = await response.json();
-          setConfig(strapiConfig);
-        } else {
-          console.warn('Failed to load Questionnaire from Strapi, using fallback');
-          setConfig(fallbackConfig);
-        }
-      } catch (error) {
-        console.warn('Error loading Questionnaire from Strapi, using fallback:', error);
-        setConfig(fallbackConfig);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadConfig();
-  }, []);
+  const [config] = useState(questionnaireConfig);
+  const [loading] = useState(false);
 
   // Initialize state dynamically based on config
   const [data, setData] = useState(() => {
@@ -216,14 +194,37 @@ export default function Questionnaire({ initialPosition = '' }) {
             return (
               <label key={qId}>
                 {question.label}
-                <textarea
-                  name={qId}
-                  value={data[qId] || ''}
-                  onChange={handleChange}
-                  required={question.required}
-                  rows={question.rows}
-                  placeholder={question.placeholder || ''}
-                />
+                {question.fieldType === 'select' ? (
+                  <select
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                  >
+                    <option value="">{question.placeholder || 'Bitte wählen...'}</option>
+                    {(question.options || []).map((opt, idx) => (
+                      <option key={idx} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : question.fieldType === 'text' || question.fieldType === 'email' ? (
+                  <input
+                    type={question.fieldType}
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    placeholder={question.placeholder || ''}
+                  />
+                ) : (
+                  <textarea
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    rows={question.rows}
+                    placeholder={question.placeholder || ''}
+                  />
+                )}
               </label>
             );
           })}
@@ -252,14 +253,37 @@ export default function Questionnaire({ initialPosition = '' }) {
             return (
               <label key={qId}>
                 {question.label}
-                <textarea
-                  name={qId}
-                  value={data[qId] || ''}
-                  onChange={handleChange}
-                  required={question.required}
-                  rows={question.rows}
-                  placeholder={question.placeholder || ''}
-                />
+                {question.fieldType === 'select' ? (
+                  <select
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                  >
+                    <option value="">{question.placeholder || 'Bitte wählen...'}</option>
+                    {(question.options || []).map((opt, idx) => (
+                      <option key={idx} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : question.fieldType === 'text' || question.fieldType === 'email' ? (
+                  <input
+                    type={question.fieldType}
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    placeholder={question.placeholder || ''}
+                  />
+                ) : (
+                  <textarea
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    rows={question.rows}
+                    placeholder={question.placeholder || ''}
+                  />
+                )}
               </label>
             );
           })}
@@ -286,14 +310,37 @@ export default function Questionnaire({ initialPosition = '' }) {
             return (
               <label key={qId}>
                 {question.label}
-                <textarea
-                  name={qId}
-                  value={data[qId] || ''}
-                  onChange={handleChange}
-                  required={question.required}
-                  rows={question.rows}
-                  placeholder={question.placeholder || ''}
-                />
+                {question.fieldType === 'select' ? (
+                  <select
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                  >
+                    <option value="">{question.placeholder || 'Bitte wählen...'}</option>
+                    {(question.options || []).map((opt, idx) => (
+                      <option key={idx} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : question.fieldType === 'text' || question.fieldType === 'email' ? (
+                  <input
+                    type={question.fieldType}
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    placeholder={question.placeholder || ''}
+                  />
+                ) : (
+                  <textarea
+                    name={qId}
+                    value={data[qId] || ''}
+                    onChange={handleChange}
+                    required={question.required}
+                    rows={question.rows}
+                    placeholder={question.placeholder || ''}
+                  />
+                )}
               </label>
             );
           })}

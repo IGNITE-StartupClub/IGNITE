@@ -3,7 +3,14 @@ const currentYear = new Date().getFullYear();
 import { Icon } from 'astro-icon/components'
 import Logo from "./Logo.astro";
 import Newsletter from "../components/NewsletterForm";
+import { footer, globalConfig } from '../data/staticContent'
 
+// Static footer data
+const description = footer.description
+const showNewsletter = footer.showNewsletter
+const copyrightText = globalConfig.copyrightText
+const legalLinks = footer.legalLinks
+const socialLinks = footer.socialLinks
 ---
 
 <footer class="site-footer" role="contentinfo">
@@ -18,33 +25,35 @@ import Newsletter from "../components/NewsletterForm";
         color="white"/>
       </div>
         <p class="footer-description">
-          Startup Initiative an der Leuphana Universität Lüneburg. Wir sind die Anlaufstelle für alle Gründungsinteressierten
+          {description}
         </p>
       </div>
 
       <!-- Navigation (Impressum, Datenschutz etc.) -->
       <nav class="footer-nav" aria-label="Footer Navigation">
         <ul>
-          <li><a href="/impressum">Impressum</a></li>
-          <li><a href="/datenschutz">Datenschutz</a></li>
-          <li><a href="/kontakt">Kontakt</a></li>
-          <!-- <li><a href="/team">Team</a></li> -->
+          {legalLinks.map((link) => (
+            <li><a href={link.url}>{link.label}</a></li>
+          ))}
         </ul>
         <div class="footer-social">
           <ul>
-            <li><Icon name="ion:logo-instagram" /><a href="https://www.instagram.com/ignite.lueneburg/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-            <li><Icon name="ion:logo-linkedin" /><a href="https://www.linkedin.com/company/ignite-leuphana/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
-            <li><Icon name="ion:logo-github" /><a href="https://github.com/IGNITE-StartupClub/IGNITE" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            {socialLinks.map((link) => (
+              <li>
+                <Icon name={link.icon} />
+                <a href={link.url} target="_blank" rel="noopener noreferrer">{link.platform}</a>
+              </li>
+            ))}
           </ul>
         </div>
       </nav>
-      <Newsletter  client:load/>
+      {showNewsletter && <Newsletter client:load/>}
       <!-- Social Media (Beispiel: Twitter, GitHub, LinkedIn) -->
     </div>
 
     <!-- Unterer Bereich des Footers -->
     <div class="footer-bottom">
-      <p>&copy; {currentYear} – IGNITE Startup Club Lüneburg. Alle Rechte vorbehalten. V0</p>
+      <p>&copy; {currentYear} – {copyrightText}</p>
     </div>
   </div>
 </footer>

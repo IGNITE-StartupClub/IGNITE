@@ -13,89 +13,29 @@ import { Icon } from 'astro-icon/components'
 import Counter from '../components/Counter.astro'
 import Button from '../components/Button.astro'
 import { Modal } from 'accessible-astro-components'
-import { getFeatures, getFAQs } from '../lib/strapi/client'
+import { features, faqs, homepage } from '../data/staticContent'
 
-// Fetch Features and FAQs from Strapi
-const features = await getFeatures()
-const faqs = await getFAQs()
+// Use static data directly
+const displayFeatures = features
+const displayFAQs = faqs
 
-// Fallback data if Strapi is unavailable
-const defaultFeatures = [
-  {
-    icon: 'ion:diamond-outline',
-    title: 'Workshops & Events',
-    description: 'Wir lernen gemeinsam von Expert:innen & Peer-to-Peer über Startups und Entrepreneurship.\n\n<p class="text-neutral-500 my-3">Du willst einen Workshop im Rahmen unserer Initiative geben?</p>\n<a class="button secondary" href="/kontakt">Jetzt kontaktieren!</a>',
-  },
-  {
-    icon: 'ion:document-attach-outline',
-    title: 'Fact-Sheet',
-    description: 'Wir analysieren die Angebote zum Thema Entrepreneurship an der Leuphana Universität.',
-  },
-  {
-    icon: 'ion:flame-outline',
-    title: 'Hackathon',
-    description: 'Wir veranstalten einen Hackathon, um innovative Ideen zu entwickeln und zu testen. Wir organisieren 2-3 tägige Events, um in kurzer Zeit Startup Ideen auszuarbeiten.',
-  },
-  {
-    icon: 'ion:mic-outline',
-    title: 'IGNITE Podcast',
-    description: 'Im Utopia interviewen wir Startup Gründende und Leuphana Alumni.',
-  },
-  {
-    icon: 'ion:people-outline',
-    title: 'Community',
-    description: 'Wir verbinden Studierende, Alumni und Gründende mit dem Ziel, ein starkes Netzwerk aufzubauen.',
-  },
-  {
-    icon: 'ion:cash-outline',
-    title: 'IGNITE Stipendium',
-    description: 'Wir möchten in Zukunft angehendenden Gründenden einen Co-Working Platz und Förderung im Utopia ermöglichen.\n\n<p class="text-neutral-500 my-3">Dafür suchen wir Partner:innen, die uns unterstützen.</p>\n<a class="button secondary" href="/kontakt">Partner werden</a>',
-  },
-]
+// Homepage content
+const featuresHeading = homepage.featuresHeading
+const faqHeading = homepage.faqHeading
+const faqDescription = homepage.faqDescription
+const faqCTA_Text = homepage.faqCTA_Text
+const faqCTA_URL = homepage.faqCTA_URL
+const showAdvisoryBoard = homepage.showAdvisoryBoard
+const showNews = homepage.showNews
 
-const defaultFAQs = [
-  {
-    question: 'Was ist IGNITE?',
-    answer: '<p>Wir sind eine studentische Initiative an der Leuphana Universität Lüneburg, die sich leidenschaftlich für Entrepreneurship und Startup-Kultur einsetzt. Unser Ziel ist es, Gründungsgeist zu fördern, Studierende zu vernetzen und praxisnahe Erfahrungen im Bereich Unternehmensgründung zu ermöglichen.</p>',
-    openByDefault: true,
-  },
-  {
-    question: 'Welche Erwartungen stellen wir an die Mitglieder?',
-    answer: '<p>Der durchschnittliche Aufwand liegt bei etwa 3–5 Stunden pro Woche – je nach Projektphase etwas mehr oder weniger. Wir erwarten regelmäßige Teilnahme an Team-Meetings, aktive Projektarbeit und proaktive Kommunikation.</p>',
-    openByDefault: false,
-  },
-  {
-    question: 'Wie profitiere ich von meinem Ehrenamt?',
-    answer: '<p>Du erhältst exklusiven Zugang zu Unternehmen, Gründer:innen, Investor:innen und Alumni, nimmst an praxisorientierten Workshops teil und erhältst individuelles Feedback in Mentoring-Sessions.</p>',
-    openByDefault: false,
-  },
-  {
-    question: 'Wie läuft der Bewerbungs- und Onboarding-Prozess ab?',
-    answer: '<p>Du füllst das Online-Formular auf unserer Website aus, bekommst eine Rückmeldung per E-Mail mit Einladung zum persönlichen Gespräch und startest nach positiver Entscheidung mit einem strukturierten Onboarding.</p>',
-    openByDefault: false,
-  },
-  {
-    question: 'Welche Rollen und Gremien gibt es innerhalb der Initiative?',
-    answer: '<p>Wir arbeiten in projektbezogenen Teams, die sich um verschiedene Themen kümmern, wie z.B. Workshops, Events, Podcast, Community-Building. Jedes Team hat eine:n Teamleiter:in, die/der für die Koordination verantwortlich ist.</p>',
-    openByDefault: false,
-  },
-  {
-    question: 'Kann man IGNITE sponsoren?',
-    answer: '<p>Ja, wir suchen aktiv nach Sponsoren, die uns bei der Umsetzung unserer Projekte unterstützen. Wenn du Interesse hast, kontaktiere uns gerne über das <a href="/kontakt">Kontaktformular</a></p>',
-    openByDefault: false,
-  },
-]
-
-// Use Strapi data if available, otherwise fallback to defaults
-const displayFeatures = features.length > 0 ? features : defaultFeatures
-const displayFAQs = faqs.length > 0 ? faqs : defaultFAQs
+export const prerender = true
 ---
 
 <DefaultLayout title="IGNITE - Startup Club Lüneburg" description="Willkommen bei IGNITE - deiner studentischen Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.">
-  <Hero />
+  <Hero homepage={homepage} />
   <section class="my-64">
     <div class="container">
-      <h2 class="mb-16 text-4xl md:text-6xl">Was wir machen</h2>
+      <h2 class="mb-16 text-4xl md:text-6xl">{featuresHeading}</h2>
       <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
         {displayFeatures.map((feature) => (
           <Feature icon={feature.icon} title={feature.title}>
@@ -105,10 +45,12 @@ const displayFAQs = faqs.length > 0 ? faqs : defaultFAQs
       </div>
     </div>
   </section>
-  <AdvisoryBoard />
-  <section>
-  <News />
-</section>
+  {showAdvisoryBoard && <AdvisoryBoard />}
+  {showNews && (
+    <section>
+      <News />
+    </section>
+  )}
 <!-- <Partners /> -->
   <!-- <ContentMedia imgSrc="/wcag-compliant.webp" reverseImg={true}>
     <h2>Absichtserklärung</h2>
@@ -125,11 +67,11 @@ const displayFAQs = faqs.length > 0 ? faqs : defaultFAQs
   <section class="my-64">
     <div class="container grid grid-cols-1 gap-12 md:grid-cols-2">
       <div class="flex flex-col items-start gap-4">
-        <h2 class="text-6xl">FAQ</h2>
+        <h2 class="text-6xl">{faqHeading}</h2>
         <p class="text-2xl">
-          Häufig gestellte Fragen zu IGNITE.
+          {faqDescription}
         </p>
-        <a class="button color-secondary" href="/kontakt">Nimm Kontakt auf!</a>
+        <a class="button color-secondary" href={faqCTA_URL}>{faqCTA_Text}</a>
       </div>
       <div class="space-content">
         <Accordion>

@@ -1,0 +1,360 @@
+---
+// StakeholderDetail Component - displays detailed info for selected stakeholder
+---
+
+<div id="stakeholderDetailSection" class="stakeholder-detail-section py-20 px-4">
+    <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left Column - Main Description -->
+            <div class="lg:col-span-2 lg:row-span-2">
+                <div class="detail-card spotlight-card h-full">
+                    <h3 class="text-3xl font-bold mb-2" id="detailName">
+                        <!-- Stakeholder name will be inserted here -->
+                    </h3>
+                    <div class="mb-6">
+                        <h4 class="text-xl font-semibold mb-3 text-primary-300">Das Angebot</h4>
+                        <div id="detailOfferDescription" class="leading-relaxed text-base mb-6">
+                            <!-- Offer description will be inserted here -->
+                        </div>
+                        <h4 class="text-xl font-semibold mb-3 text-primary-300">Über den Stakeholder</h4>
+                        <div class="prose prose-lg max-w-none stakeholder-prose">
+                            <div id="detailDescription" class="leading-relaxed text-lg">
+                                <!-- Stakeholder description will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Row 1: How They Help -->
+            <div class="detail-card spotlight-card flex flex-col">
+                <h4 class="text-xl font-semibold mb-4 flex-shrink-0">Wie können sie helfen?</h4>
+                <div id="detailHelp" class="flex-grow overflow-y-auto">
+                    <!-- Help info will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Right Column - Row 2: Contact Info -->
+            <div class="detail-card spotlight-card flex flex-col">
+                <h4 class="text-xl font-semibold mb-4 flex-shrink-0">Kontakt</h4>
+                <div id="detailContact" class="space-y-3 mb-6 flex-grow overflow-y-auto">
+                    <!-- Contact info will be inserted here -->
+                </div>
+                <a
+                    id="contactButton"
+                    href="mailto:"
+                    class="contact-button inline-flex items-center justify-center w-full px-6 py-3 text-base font-semibold rounded-xl transition-all duration-200 flex-shrink-0"
+                >
+                    <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    Kontakt aufnehmen
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style lang="scss">
+    @use '../../assets/scss/base/breakpoint' as *;
+
+    .stakeholder-detail-section {
+        background: transparent;
+        position: relative;
+    }
+
+    .detail-card {
+        position: relative;
+        padding: 2.5rem;
+        cursor: default;
+        overflow: visible;
+        border-radius: 1.25rem;
+        color: var(--neutral-100);
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+
+        > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+        }
+
+        &::before {
+            inset: 0;
+            background-color: var(--dark-100);
+            border: 2px solid var(--gradient-100);
+            border-radius: 1.25rem;
+            box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+            z-index: 1;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        &::after {
+            inset: 1rem -0.85rem -0.85rem 1rem;
+            border-radius: 1.25rem;
+            z-index: 0;
+            background: linear-gradient(135deg, transparent, rgba(0,0,0,0.1));
+        }
+
+        // Spotlight effect
+        &:hover::before {
+            background: radial-gradient(
+                650px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255, 159, 252, 0.12),
+                transparent 40%
+            ), var(--dark-100);
+        }
+
+        &:hover {
+            transform: translateY(-3px);
+
+            &::before {
+                border-color: var(--primary-300);
+                box-shadow:
+                    rgba(0, 0, 0, 0.4) 0px 25px 50px,
+                    rgba(0, 0, 0, 0.3) 0px 20px 25px,
+                    0 0 0 1px rgba(255, 255, 255, 0.15);
+            }
+        }
+
+        h3, h4 {
+            color: var(--neutral-100);
+            font-weight: 700;
+        }
+
+        p {
+            color: var(--neutral-300);
+            line-height: 1.75;
+        }
+    }
+
+    // Markdown prose styling
+    .stakeholder-prose {
+        :global(p) {
+            margin-bottom: 1rem;
+            color: var(--neutral-300);
+            line-height: 1.8;
+            font-size: 1.0625rem;
+        }
+
+        :global(strong) {
+            color: var(--neutral-100);
+            font-weight: 600;
+        }
+
+        :global(em) {
+            color: var(--neutral-200);
+        }
+
+        :global(a) {
+            color: var(--action-color);
+            text-decoration: underline;
+            text-decoration-color: rgba(255, 159, 252, 0.4);
+            text-underline-offset: 3px;
+            transition: all 0.2s ease;
+
+            &:hover {
+                color: var(--primary-300);
+                text-decoration-color: var(--primary-300);
+            }
+        }
+
+        :global(ul),
+        :global(ol) {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--neutral-300);
+        }
+
+        :global(li) {
+            margin-bottom: 0.5rem;
+        }
+    }
+
+    // Offer description styling
+    #detailOfferDescription {
+        color: var(--neutral-300);
+        line-height: 1.7;
+        font-size: 1rem;
+    }
+
+    .contact-button {
+        background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 14px 0 rgba(99, 65, 165, 0.4);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(99, 65, 165, 0.6);
+        }
+    }
+
+    #detailContact {
+        max-height: 250px;
+        padding-right: 0.5rem;
+
+        /* Custom scrollbar */
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        :global(.flex) {
+            color: var(--neutral-300);
+            font-size: 0.9375rem;
+
+            svg {
+                color: var(--action-color);
+                flex-shrink: 0;
+            }
+
+            // Make contact items clickable
+            :global(a) {
+                color: var(--neutral-300);
+                transition: all 0.2s ease;
+                text-decoration: none;
+
+                &:hover {
+                    color: var(--action-color);
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+
+    #detailHelp {
+        max-height: 350px;
+        padding-right: 0.5rem;
+
+        /* Custom scrollbar */
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        :global(ul) {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            :global(li) {
+                color: var(--neutral-300);
+                padding: 0.625rem 0;
+                font-size: 0.9375rem;
+                line-height: 1.6;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+                &:last-child {
+                    border-bottom: none;
+                }
+
+                :global(svg) {
+                    color: var(--action-color);
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+            }
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+        .detail-card {
+            padding: 2rem;
+            min-height: 250px;
+        }
+
+        #detailContact {
+            max-height: 200px;
+        }
+
+        #detailHelp {
+            max-height: 300px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stakeholder-detail-section {
+            padding: 3rem 1rem;
+        }
+
+        .detail-card {
+            padding: 1.5rem;
+            min-height: auto;
+        }
+
+        #detailContact,
+        #detailHelp {
+            max-height: none;
+        }
+    }
+</style>
+
+<script is:inline>
+    // Initialize spotlight effect for stakeholder detail cards
+    function initStakeholderSpotlight() {
+        const cards = document.querySelectorAll('.stakeholder-detail-section .spotlight-card');
+
+        cards.forEach(card => {
+            // Remove existing listeners to avoid duplicates
+            card.removeEventListener('mousemove', card._spotlightHandler);
+
+            // Define and store handler for cleanup
+            card._spotlightHandler = (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+                card.style.setProperty('--mouse-x', `${x}%`);
+                card.style.setProperty('--mouse-y', `${y}%`);
+            };
+
+            card.addEventListener('mousemove', card._spotlightHandler);
+        });
+    }
+
+    // For initial page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initStakeholderSpotlight);
+    } else {
+        initStakeholderSpotlight();
+    }
+
+    // For Astro View Transitions (if used)
+    document.addEventListener('astro:page-load', initStakeholderSpotlight);
+</script>

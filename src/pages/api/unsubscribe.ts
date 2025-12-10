@@ -1,3 +1,5 @@
+export const prerender = false
+
 // /api/unsubscribe.js (or .ts if using TypeScript)
 import { Resend } from 'resend';
 

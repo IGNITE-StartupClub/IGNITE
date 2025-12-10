@@ -9,6 +9,16 @@ import { getRequiredFields, getQuestionLabels } from '../../data/questionnairePa
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
+// Helper function to replace placeholders in email templates
+function replacePlaceholders(template: string, data: Record<string, any>): string {
+  let result = template
+  for (const [key, value] of Object.entries(data)) {
+    const placeholder = new RegExp(`{{${key}}}`, 'g')
+    result = result.replace(placeholder, String(value || ''))
+  }
+  return result
+}
+
 // --- ENV-VALIDATION ---
 const requiredEnvs = ['RESEND_API_KEY', 'MONGODB_URI', 'MONGODB_DB', 'ENCRYPTION_SECRET', 'EMAIL_RECIPIENT_1']
 for (const key of requiredEnvs) {
@@ -175,20 +185,33 @@ async function sendConfirmationEmail(email: string, name: string) {
 
     console.log(`✉️  Sending confirmation email to ${email}...`)
 
+    // Static email content
+    const defaultSubject = 'Danke für deine Bewerbung – IGNITE Startup Club'
+    const defaultHtmlBody = `
+      <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333; max-width: 600px; margin:auto;">
+        <h2 style="color: #8C3974;">Vielen Dank für deine Bewerbung 🙏</h2>
+        <p>Hallo${name ? ` ${name}` : ''},</p>
+        <p>wir haben deine Bewerbung erhalten und werden uns so schnell wie möglich bei dir melden.</p>
+        <p style="margin-top: 1.5rem;">Solltest du in der Zwischenzeit Fragen haben, kontaktiere uns einfach unter <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a>.</p>
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #ddd;" />
+        <p style="font-size: 0.85rem; color: #888;">Diese E-Mail wurde automatisch generiert. Bitte nicht antworten.</p>
+      </div>
+    `
+
+    const subject = defaultSubject
+    const htmlTemplate = defaultHtmlBody
+
+    // Replace placeholders in template
+    const htmlBody = replacePlaceholders(htmlTemplate, {
+      name: name || '',
+      email: email
+    })
+
     const result = await resend.emails.send({
       from: 'join@ignite-startupclub.de',
       to: email,
-      subject: 'Danke für deine Bewerbung – IGNITE Startup Club',
-      html: `
-        <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333; max-width: 600px; margin:auto;">
-          <h2 style="color: #8C3974;">Vielen Dank für deine Bewerbung 🙏</h2>
-          <p>Hallo${name ? ` ${name}` : ''},</p>
-          <p>wir haben deine Bewerbung erhalten und werden uns so schnell wie möglich bei dir melden.</p>
-          <p style="margin-top: 1.5rem;">Solltest du in der Zwischenzeit Fragen haben, kontaktiere uns einfach unter <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a>.</p>
-          <hr style="margin: 2rem 0; border: none; border-top: 1px solid #ddd;" />
-          <p style="font-size: 0.85rem; color: #888;">Diese E-Mail wurde automatisch generiert. Bitte nicht antworten.</p>
-        </div>
-      `,
+      subject: subject,
+      html: htmlBody,
     })
     console.log('✅ Confirmation email sent successfully')
     console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)

@@ -3,36 +3,45 @@ import Navigation from '../components/Navigation.astro'
 import { DarkMode } from 'accessible-astro-components'
 import { SkipLink } from 'accessible-astro-components'
 import { Icon } from 'astro-icon/components'
+import { navigation } from '../data/staticContent'
 
-export const prerender = false
+// Static navigation data
+const menuItems = navigation.menuItems
 ---
 
 <header style="z-index: 100;">
   <SkipLink />
   <Navigation>
-    <li class="menu-item">
-      <a href="/">Startseite</a>
-    </li>
-    <!-- <li class="menu-item">
-      <a href="/blog/">Unterstützende</a>
-    </li> -->
-    <li class="menu-item">
-      <a href="/news/">Neuigkeiten</a>
-    </li>
-    <li class="menu-item has-dropdown">
-      <button aria-haspopup="true" aria-expanded="false">Events</button>
-      <ul class="dropdown-menu">
-        <li class="submenu-item">
-          <a href="/IGNITEWorkshops/">IGNITE Workshops</a>
+    {menuItems.map((item) => (
+      item.children && item.children.length > 0 ? (
+        <li class="menu-item has-dropdown">
+          <button aria-haspopup="true" aria-expanded="false">{item.label}</button>
+          <ul class="dropdown-menu">
+            {item.children.map((child) => (
+              <li class="submenu-item">
+                <a
+                  href={child.url}
+                  rel={child.isExternal ? 'external' : undefined}
+                  target={child.isExternal ? '_blank' : undefined}
+                >
+                  {child.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </li>
-        <li class="submenu-item">
-          <a href="/markdown-page/"></a>
+      ) : (
+        <li class="menu-item">
+          <a
+            href={item.url}
+            rel={item.isExternal ? 'external' : undefined}
+            target={item.isExternal ? '_blank' : undefined}
+          >
+            {item.label}
+          </a>
         </li>
-        <li class="submenu-item">
-          <a href="/peer-to-peer">Peer-to-Peer Workshops</a>
-        </li>
-      </ul>
-    </li>
+      )
+    ))}
   </Navigation>
 </header>
 

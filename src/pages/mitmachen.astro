@@ -8,6 +8,8 @@ import Orb from '../components/Orb/Orb.jsx'
 import { teams } from '../data/teams.js'
 
 const initialPosition = Astro.url.searchParams.get('position') || ''
+
+export const prerender = true
 ---
 
 <DefaultLayout
@@ -54,14 +56,14 @@ const initialPosition = Astro.url.searchParams.get('position') || ''
   
     <!-- OFFENE POSITIONEN (sichtbar, da z-Index kleiner als Content, aber höher als Overlays) -->
     <section id="open-positions" class="relative z-10 py-16">
-      <h2 class="text-primary mb-6 text-3xl font-extrabold sm:text-4xl">Unsere Teams</h2>
+      <h2 class="text-white mb-6 text-3xl font-extrabold sm:text-4xl">Unsere Teams</h2>
       <OpenTeams teams={teams} client:load />
     </section>
 
     <section id="application-form" class="form-section">
       <div class="text-wrapper">
-        <h2>Jetzt bewerben!</h2>
-        <p>Bewirb dich jetzt ganz einfach und schnell mit diesem Bewerbungsformular.</p>
+        <h2>Jetzt mitmachen!</h2>
+        <p>Bewirb dich jetzt ganz einfach und schnell mit diesem Formular.</p>
       </div>
       <section id="Bewerbung">
         <!-- Client-seitig laden, damit React initialPosition auswertet -->
@@ -71,17 +73,17 @@ const initialPosition = Astro.url.searchParams.get('position') || ''
 
     <!-- Bewerbungsprozess Info Section -->
     <section class="application-process-section">
-      <h2 class="text-primary mb-8 text-center text-3xl font-extrabold sm:text-4xl">Wie geht es weiter?</h2>
+      <h2 class="text-white mb-8 text-center text-3xl font-extrabold sm:text-4xl">Wie geht es weiter?</h2>
       <p class="process-intro mb-12 text-center text-lg text-gray-300">
-        Nach deiner Bewerbung durchläufst du folgende Schritte:
+        So wirst du Teil von IGNITE
       </p>
 
       <div class="process-steps">
         <div class="process-step spotlight-card">
           <div class="step-number">1</div>
           <div class="step-content">
-            <h3>Bewerbung ausfüllen</h3>
-            <p>Fülle unser Bewerbungsformular aus und erzähle uns von dir und deinen Interessen.</p>
+            <h3>Formular ausfüllen</h3>
+            <p>Fülle unser Formular aus und erzähle uns von dir und deinen Interessen.</p>
           </div>
         </div>
 
@@ -89,23 +91,23 @@ const initialPosition = Astro.url.searchParams.get('position') || ''
           <div class="step-number">2</div>
           <div class="step-content">
             <h3>Bestätigungsmail</h3>
-            <p>Du erhältst eine Bestätigungsmail von uns, dass deine Bewerbung bei uns eingegangen ist.</p>
+            <p>Du erhältst eine Bestätigungsmail von uns, dass deine Anfrage bei uns eingegangen ist.</p>
           </div>
         </div>
 
         <div class="process-step spotlight-card">
           <div class="step-number">3</div>
           <div class="step-content">
-            <h3>Bewerbungsauswertung</h3>
-            <p>Wir lesen uns deine Bewerbung durch und entscheiden, ob wir dich zu einem Bewerbungsgespräch einladen.</p>
+            <h3>Auswertung</h3>
+            <p>Wir lesen uns deine Anfrage durch und laden dich zu einem kurzen Info-Gespräch ein.</p>
           </div>
         </div>
 
         <div class="process-step spotlight-card">
           <div class="step-number">4</div>
           <div class="step-content">
-            <h3>Bewerbungsgespräch</h3>
-            <p>Das Bewerbungsgespräch wird durch unser HR-Team mit dir durchgeführt.</p>
+            <h3>Info-Gespräch</h3>
+            <p>Das Info-Gespräch wird durch unser People-Team mit dir durchgeführt & wir lernen uns gegenseitig einmal kennen.</p>
           </div>
         </div>
 
@@ -113,7 +115,7 @@ const initialPosition = Astro.url.searchParams.get('position') || ''
           <div class="step-number">5</div>
           <div class="step-content">
             <h3>Team-Matching</h3>
-            <p>Nach dem Bewerbungsgespräch entscheidet das HR-Team, in welchem Team deiner Auswahl du am besten gerade unterstützen kannst.</p>
+            <p>Nach dem Info-Gespräch entscheidet das People-Team, in welchem Team deiner Auswahl du am besten gerade unterstützen kannst.</p>
           </div>
         </div>
       </div>

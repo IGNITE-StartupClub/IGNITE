@@ -1,3 +1,5 @@
+export const prerender = false
+
 import { MongoClient } from 'mongodb';
 import 'dotenv/config';
 

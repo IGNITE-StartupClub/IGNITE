@@ -2,17 +2,21 @@
 import DefaultLayout from '../layouts/DefaultLayout.astro';
 import Contact from '../components/Contact.jsx';
 import CallToAction from '../components/CallToAction.astro';
+import { contactPage } from '../data/staticContent';
 
 const initialIntent = Astro.url.searchParams.get('intent') || '';
-export const prerender = false;
+
+// Static contact page content
+const pageTitle = contactPage.pageTitle;
+const pageIntro = contactPage.pageIntro;
+
+export const prerender = true;
 ---
 
 <DefaultLayout title="Kontakt" description="Nimm Kontakt mit uns auf! Wir freuen uns über deine Nachricht und stehen dir gerne zur Verfügung.">
   <main class="mitmachen-container">
-    <h1>Schreib' uns!</h1>
-    <p class="intro">
-      Bei Fragen oder Anregungen kannst du uns jederzeit über das Kontaktformular erreichen.
-    </p>
+    <h1>{pageTitle}</h1>
+    <div class="intro" set:html={pageIntro} />
     <Contact client:load initialIntent={initialIntent} />
     <CallToAction />
 
