@@ -6,18 +6,12 @@ import { MongoClient } from 'mongodb'
 import crypto from 'crypto'
 import 'dotenv/config'
 import { getRequiredFields, getQuestionLabels } from '../../data/questionnaireParser.js'
+import { getApplicationEmailHTML, getApplicationEmailSubject, type ApplicationEmailData } from '../../templates/emails/applicationEmail'
+import { getApplicationConfirmationEmailHTML, getApplicationConfirmationSubject } from '../../templates/emails/applicationConfirmationEmail'
+import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
-// Helper function to replace placeholders in email templates
-function replacePlaceholders(template: string, data: Record<string, any>): string {
-  let result = template
-  for (const [key, value] of Object.entries(data)) {
-    const placeholder = new RegExp(`{{${key}}}`, 'g')
-    result = result.replace(placeholder, String(value || ''))
-  }
-  return result
-}
 
 // --- ENV-VALIDATION ---
 const requiredEnvs = ['RESEND_API_KEY', 'MONGODB_URI', 'MONGODB_DB', 'ENCRYPTION_SECRET', 'EMAIL_RECIPIENT_1']
@@ -61,7 +55,7 @@ function encrypt(text: string) {
   }
 }
 
-async function sendApplicationEmail(data: any) {
+async function sendApplicationEmail(data: ApplicationEmailData) {
   try {
     console.log('✉️  Sending application notification to team...')
 
@@ -70,103 +64,17 @@ async function sendApplicationEmail(data: any) {
       throw new Error('No admin recipients configured')
     }
 
-    // Format teams as a readable list
-    const teamsArray = Array.isArray(data.teams) ? data.teams : []
-    const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt'
-
-    // Safely format all data fields
-    const formatField = (value: any) => {
-      if (value === null || value === undefined) return 'Nicht angegeben'
-      if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe'
-      return String(value)
-    }
-
     // Get question labels dynamically from questionnaire config
     const questionLabels = getQuestionLabels()
 
-    // Build table rows dynamically
-    let tableRows = `
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;">
-          <strong>Gewählte Teams:</strong>
-        </td>
-        <td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
-          <strong>Startup-Interesse:</strong>
-        </td>
-        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td>
-      </tr>
-    `
-
-    // Add all questions dynamically
-    Object.keys(questionLabels).forEach(qId => {
-      if (data[qId]) {
-        tableRows += `
-          <tr style="border-bottom: 1px solid #f0f0f0;">
-            <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
-              <strong>${questionLabels[qId]}:</strong>
-            </td>
-            <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data[qId])}</td>
-          </tr>
-        `
-      }
-    })
-
-    // Add personal data
-    tableRows += `
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Vorname:</strong></td>
-        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.name)}</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>Nachname:</strong></td>
-        <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.lastname)}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td>
-        <td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${formatField(data.email)}</td>
-      </tr>
-    `
+    const subject = getApplicationEmailSubject()
+    const html = getApplicationEmailHTML(data, questionLabels)
 
     const result = await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
-      subject: 'Neue Bewerbung eingegangen',
-      html: `
-        <div style="font-family: Inter, sans-serif; padding:2rem; border:1px solid #eee; border-radius:8px; max-width:600px; margin:auto;">
-          <h2 style="color:#8C3974;">📬 Neue Bewerbung</h2>
-          <table style="width:100%; line-height:1.6; border-collapse: separate; border-spacing: 0;">
-            ${tableRows}
-          </table>
-          <p style="font-size:0.85rem; color:#888; margin-top:1.5rem;">
-            Diese Nachricht wurde automatisch über das Bewerbungsformular gesendet.
-          </p>
-        </div>
-        <style>
-        @media (max-width: 600px) {
-          table {
-            font-size: 14px;
-          }
-          td {
-            display: block !important;
-            width: 100% !important;
-            padding: 8px 12px !important;
-          }
-          td:first-child {
-            padding-bottom: 4px !important;
-            border-bottom: none !important;
-          }
-          td:last-child {
-            padding-top: 4px !important;
-            padding-bottom: 16px !important;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #e0e0e0 !important;
-          }
-        }
-        </style>
-      `,
+      subject: subject,
+      html: html,
     })
     console.log('✅ Team notification sent successfully')
     console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
@@ -185,33 +93,14 @@ async function sendConfirmationEmail(email: string, name: string) {
 
     console.log(`✉️  Sending confirmation email to ${email}...`)
 
-    // Static email content
-    const defaultSubject = 'Danke für deine Bewerbung – IGNITE Startup Club'
-    const defaultHtmlBody = `
-      <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333; max-width: 600px; margin:auto;">
-        <h2 style="color: #8C3974;">Vielen Dank für deine Bewerbung 🙏</h2>
-        <p>Hallo${name ? ` ${name}` : ''},</p>
-        <p>wir haben deine Bewerbung erhalten und werden uns so schnell wie möglich bei dir melden.</p>
-        <p style="margin-top: 1.5rem;">Solltest du in der Zwischenzeit Fragen haben, kontaktiere uns einfach unter <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a>.</p>
-        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #ddd;" />
-        <p style="font-size: 0.85rem; color: #888;">Diese E-Mail wurde automatisch generiert. Bitte nicht antworten.</p>
-      </div>
-    `
-
-    const subject = defaultSubject
-    const htmlTemplate = defaultHtmlBody
-
-    // Replace placeholders in template
-    const htmlBody = replacePlaceholders(htmlTemplate, {
-      name: name || '',
-      email: email
-    })
+    const subject = getApplicationConfirmationSubject()
+    const html = getApplicationConfirmationEmailHTML(name)
 
     const result = await resend.emails.send({
       from: 'join@ignite-startupclub.de',
       to: email,
       subject: subject,
-      html: htmlBody,
+      html: html,
     })
     console.log('✅ Confirmation email sent successfully')
     console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
@@ -233,22 +122,14 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
     console.log('✉️  Sending error report to team...')
     console.log(`📧 Recipients: ${adminRecipients.join(', ')}`)
 
-    const timestamp = new Date().toISOString()
-    const contextInfo = context ? `<p><strong>Context:</strong> ${context}</p>` : ''
+    const subject = getErrorReportSubject()
+    const html = getErrorReportEmailHTML(errorMessage, context)
 
     await resend.emails.send({
       from: 'team@ignite-startupclub.de',
       to: adminRecipients,
-      subject: '⚠️ Fehler bei der Datenbankanfrage',
-      html: `
-        <div style="font-family:Inter,sans-serif;padding:2rem;border:1px solid #f5c6cb;border-radius:8px;background:#f8d7da;color:#721c24;max-width:600px;margin:auto;">
-          <h2>Fehler bei der DB-Anfrage</h2>
-          <p><strong>Fehler:</strong> ${errorMessage}</p>
-          ${contextInfo}
-          <p><strong>Zeitstempel:</strong> ${timestamp}</p>
-          <p><em>Dies ist eine automatisch generierte Nachricht.</em></p>
-        </div>
-      `,
+      subject: subject,
+      html: html,
     })
     console.log('✅ Error report sent successfully')
   } catch (err) {

@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { MongoClient } from 'mongodb';
 import crypto from 'crypto';
 import 'dotenv/config';
+import { getSubscriptionConfirmationEmailHTML, getSubscriptionConfirmationSubject } from '../../templates/emails/subscriptionConfirmationEmail';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const MONGO_URI = process.env.MONGODB_URI!;
@@ -31,16 +32,14 @@ export const POST: APIRoute = async ({ request }) => {
 
   // 3) Send confirmation email
   const confirmUrl = `${process.env.SITE_URL}/api/confirm?token=${token}`;
+  const subject = getSubscriptionConfirmationSubject();
+  const html = getSubscriptionConfirmationEmailHTML(firstName, confirmUrl);
+
   await resend.emails.send({
     from: 'noreply@yourdomain.com',
     to: email,
-    subject: 'Bitte bestätige deine Anmeldung',
-    html: `
-      <p>Hi ${firstName},</p>
-      <p>bitte bestätige deine E-Mail-Adresse, indem du auf den Link klickst:</p>
-      <p><a href="${confirmUrl}">Anmeldung bestätigen</a></p>
-      <p>Wenn du das nicht angefordert hast, ignoriere diese Mail.</p>
-    `,
+    subject: subject,
+    html: html,
   });
 
   return new Response(null, { status: 204 });

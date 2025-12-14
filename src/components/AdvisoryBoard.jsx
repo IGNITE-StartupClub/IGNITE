@@ -41,7 +41,7 @@ const advisoryMembers = [
   title: 'Professor für Organisation',
   department: 'Leuphana Universität Lüneburg',
   boardRole: 'Advisory Board Member',
-  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive sowie deren gesellschaftliche Implikationen',
+  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive',
   linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
   image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
   initials: 'MW',
