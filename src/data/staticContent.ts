@@ -117,12 +117,13 @@ export const navigation = {
   logoText: 'IGNITE',
   menuItems: [
     { label: 'Startseite', url: '/', isExternal: false, order: 1 },
-    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 2 },
+    { label: 'Über uns', url: '/about', isExternal: false, order: 2 },
+    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 3 },
     {
       label: 'Events',
       url: '#',
       isExternal: false,
-      order: 3,
+      order: 4,
       children: [
         { label: 'IGNITE Workshops', url: '/IGNITEWorkshops/', isExternal: false, order: 1 },
         { label: 'Peer-to-Peer Workshops', url: '/peer-to-peer', isExternal: false, order: 2 },
