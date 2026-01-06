@@ -1,70 +1,121 @@
 ---
 import { Avatar } from 'accessible-astro-components'
 import { getCollection } from 'astro:content'
+import { Icon } from 'astro-icon/components'
 
-// Get first 3 events
-const events = (await getCollection('events')).slice(0, 3)
+// Get first 3 events, sorted by date
+const allEvents = await getCollection('events')
+const events = allEvents.sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime()).slice(0, 3)
 ---
 
-<section class="my-12">
+<section class="my-24">
   <div class="space-content container">
-    <h2 class="text-6xl">EVENTS</h2>
-    <p class="text-2xl">
-      Das steht an! Bist du dabei?
-    </p>
+    <h2
+      class="mb-4 bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] bg-clip-text text-4xl text-transparent md:text-6xl"
+    >
+      Nächste Events
+    </h2>
+    <p class="text-xl text-gray-300 md:text-2xl">Das steht als nächstes an!</p>
   </div>
 </section>
 
 <section class="my-12">
-  <div class="container grid gap-8 md:grid-cols-3">
+  <!-- <iframe
+    src="https://luma.com/embed/event/evt-vpGe9wnDxmDgouV/simple"
+    width="600"
+    height="450"
+    frameborder="0"
+    style="border: 1px solid #bfcbda88; border-radius: 4px;"
+    allow="fullscreen; payment"
+    aria-hidden="false"
+    tabindex="0"></iframe> -->
+  <!-- <div class="container grid gap-8 md:grid-cols-2 lg:grid-cols-3">
     {
       events.map((event) => (
-        <div class="design-card relative flex h-full flex-col overflow-hidden rounded-lg">
+        <div class="event-card spotlight-card relative flex h-full flex-col overflow-hidden">
           <div class="relative">
             <img
               src={event.data.image || '/default-image.jpg'}
               alt={event.data.title}
-              class="h-48 w-full object-cover"
+              class="h-56 w-full object-cover"
             />
-            <div class="absolute left-3 top-3 rounded-full bg-white/80 px-3 py-1 text-s text-black shadow-md backdrop-blur-sm">
+            <div class="absolute left-4 top-4 rounded-full bg-gradient-to-r from-[var(--primary-300)] to-[var(--secondary-200)] px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm">
               {new Date(event.data.date).toLocaleDateString('de-DE', {
                 day: 'numeric',
                 month: 'short',
-              })}{' '}
-              · {event.data.time}
+                year: 'numeric',
+              })}
             </div>
           </div>
 
-          <div class="flex flex-grow flex-col p-4">
-            <h3 class="mb-2 text-xl font-semibold">{event.data.title}</h3>
-            <p class="mb-4 line-clamp-3 flex-grow text-sm text-gray-300">{event.data.description}</p>
+          <div class="flex flex-grow flex-col p-6">
+            <h3 class="mb-3 text-2xl font-bold text-white">{event.data.title}</h3>
 
-            <div class="mb-4 flex items-center gap-3">
+            <div class="mb-4 flex flex-col gap-2 text-sm text-gray-300">
+              <div class="flex items-center gap-2">
+                <Icon name="ion:time-outline" class="h-5 w-5 text-[var(--primary-300)]" />
+                <span>{event.data.time} Uhr</span>
+              </div>
+              {event.data.location && (
+                <div class="flex items-center gap-2">
+                  <Icon name="ion:location-outline" class="h-5 w-5 text-[var(--primary-300)]" />
+                  <span>{event.data.location}</span>
+                </div>
+              )}
+            </div>
+
+            <p class="mb-6 line-clamp-3 flex-grow text-sm leading-relaxed text-gray-300">
+              {event.data.description}
+            </p>
+
+            <div class="mb-6 flex items-center gap-3">
               <Avatar name={event.data.author} src={event.data.avatar || '/default-avatar.jpg'} size="sm" />
               <div>
                 <p class="font-medium text-white">{event.data.author}</p>
-                <p class="text-sm text-gray-400">{event.data.author_title}</p>
+                <p class="text-xs text-gray-400">{event.data.author_title}</p>
               </div>
             </div>
-            <a
-              href={event.data.register_url || '#'}
-              class="rounded-full bg-gradient-to-r tertiary px-4 py-2 text-sm text-white transition hover:opacity-90"
-            >
-              Jetzt anmelden
-            </a>
+
+            {event.data.luma_event_id ? (
+              <a
+                href={`https://lu.ma/event/${event.data.luma_event_id}`}
+                class="luma-checkout--button event-register-btn"
+                data-luma-action="checkout"
+                data-luma-event-id={event.data.luma_event_id}
+              >
+                Für Veranstaltung registrieren
+              </a>
+            ) : (
+              <a
+                href={event.data.register_url || '#'}
+                class="event-register-btn"
+              >
+                Jetzt anmelden
+              </a>
+            )}
           </div>
         </div>
       ))
     }
   </div>
 
-  <div class="mt-10 text-center">
-    <a href="/events">Alle Events ansehen</a>
-  </div>
+  <div class="mt-12 text-center">
+    <a
+      href="/events"
+      class="inline-flex items-center gap-2 text-lg text-[var(--primary-300)] transition-all hover:gap-3 hover:text-[var(--primary-400)]"
+    >
+      Alle Events ansehen
+      <Icon name="ion:arrow-forward" class="h-5 w-5" />
+    </a>
+  </div> -->
 </section>
 
-<style>
-  .design-card {
+<!-- Luma Checkout Script -->
+<!-- <script id="luma-checkout" src="https://embed.lu.ma/checkout-button.js"></script> -->
+
+<!-- <style>
+  .event-card {
+    position: relative;
     cursor: pointer;
     box-shadow:
       rgba(0, 0, 0, 0.3) 0px 19px 38px,
@@ -72,6 +123,104 @@ const events = (await getCollection('events')).slice(0, 3)
     border: 3px solid var(--gradient-100);
     border-radius: 1rem;
     background-color: var(--dark-100);
-    min-height: 50vh;
+    min-height: 580px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .event-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    background: var(--dark-100);
+    z-index: 0;
+    transition: all 0.3s ease;
+  }
+
+  .event-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Spotlight effect */
+  .event-card:hover::before {
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 159, 252, 0.15),
+      transparent 40%
+    ), var(--dark-100);
+  }
+
+  .event-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-300);
+    box-shadow:
+      rgba(0, 0, 0, 0.4) 0px 25px 50px,
+      rgba(0, 0, 0, 0.3) 0px 20px 25px,
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .event-register-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, var(--primary-300), var(--secondary-200));
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(82, 39, 255, 0.3);
+  }
+
+  .event-register-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(82, 39, 255, 0.5);
+    background: linear-gradient(135deg, var(--primary-400), var(--secondary-300));
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (max-width: 768px) {
+    .event-card {
+      min-height: auto;
+    }
   }
 </style>
+
+<script is:inline>
+  function initEventSpotlight() {
+    const cards = document.querySelectorAll('.event-card.spotlight-card');
+
+    cards.forEach(card => {
+      card.removeEventListener('mousemove', card._spotlightHandler);
+
+      card._spotlightHandler = (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        card.style.setProperty('--mouse-x', `${x}%`);
+        card.style.setProperty('--mouse-y', `${y}%`);
+      };
+
+      card.addEventListener('mousemove', card._spotlightHandler);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEventSpotlight);
+  } else {
+    initEventSpotlight();
+  }
+
+  document.addEventListener('astro:page-load', initEventSpotlight);
+</script> -->

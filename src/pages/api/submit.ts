@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import crypto from 'crypto'
 import 'dotenv/config'
-import { getRequiredFields, getQuestionLabels } from '../../data/questionnaireParser.js'
+import { getQuestionLabels } from '../../data/questionnaireParser.js'
 import { getApplicationEmailHTML, getApplicationEmailSubject, type ApplicationEmailData } from '../../templates/emails/applicationEmail'
 import { getApplicationConfirmationEmailHTML, getApplicationConfirmationSubject } from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
@@ -160,20 +160,32 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json()
     console.log('📑 Parsed JSON:', data)
 
-    // Required fields validation - dynamically get fields from questionnaire config
-    const requiredFields = getRequiredFields()
-    for (const field of requiredFields) {
-      if (!data[field]) {
-        console.warn(`⚠️ Missing field ${field}`)
-        return new Response(JSON.stringify({ status: 'error', message: `Feld ${field} fehlt` }), { status: 400 })
-      }
+    // Only validate truly critical fields needed for functionality
+    // Email is required for confirmation, name for personalization
+    if (!data.email || !String(data.email).includes('@')) {
+      console.warn('⚠️ Invalid or missing email')
+      return new Response(
+        JSON.stringify({ status: 'error', message: 'Gültige E-Mail-Adresse erforderlich' }),
+        { status: 400 }
+      )
     }
 
-    // Encrypt & store
+    if (!data.name || String(data.name).trim() === '') {
+      console.warn('⚠️ Missing name')
+      return new Response(
+        JSON.stringify({ status: 'error', message: 'Name erforderlich' }),
+        { status: 400 }
+      )
+    }
+
+    // Encrypt & store ALL submitted fields dynamically (future-proof)
     const payload: Record<string, any> = {}
-    for (const field of requiredFields) {
-      const safeValue = toSafeString(data[field])
-      payload[field] = encrypt(safeValue)
+    for (const [field, value] of Object.entries(data)) {
+      // Skip null/undefined, but keep everything else (including empty strings if submitted)
+      if (value !== null && value !== undefined) {
+        const safeValue = toSafeString(value)
+        payload[field] = encrypt(safeValue)
+      }
     }
     payload.createdAt = new Date()
 
