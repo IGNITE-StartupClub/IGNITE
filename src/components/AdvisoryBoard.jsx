@@ -45,6 +45,17 @@ const advisoryMembers = [
   linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
   image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
   initials: 'MW',
+},
+{  
+  id: 5,
+  name: 'Dr. Markus Lemmens',
+  title: 'Professor für Organisation',
+  department: 'Leuphana Universität Lüneburg',
+  boardRole: 'Advisory Board Member',
+  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive',
+  linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
+  image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
+  initials: 'MW',
 }
 ]
 

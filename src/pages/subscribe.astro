@@ -7,14 +7,60 @@ const params = Astro.url.searchParams;
 export const prerender = true
 ---
 
-<DefaultLayout title="Newsletter Anmeldung">
-  <main class="px-4 py-16 max-w-lg mx-auto">
-    <h1 class="text-3xl font-bold mb-6">Bleib auf dem Laufenden!</h1>
-    <p class="mb-8 text-gray-600">
-      Trage deinen Namen und deine E-Mail ein. Du bekommst eine Bestätigungsmail zum Double-Opt-In.
-    </p>
-    {/* Prefill via URL: /subscribe?firstName=Max&lastName=Mustermann&email=… */}
-    <SubscribeForm client:load />
-    <!-- client:load -->
+<DefaultLayout title="Newsletter">
+  <main class="subscribe-page">
+    <div class="subscribe-container">
+      <div class="subscribe-content">
+        <h1 class="text-white">Bleib auf dem Laufenden</h1>
+        <p class="subtitle">
+          Erhalte Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene in Lüneburg
+        </p>
+        <SubscribeForm client:load />
+      </div>
+    </div>
   </main>
 </DefaultLayout>
+
+<style>
+  .subscribe-page {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .subscribe-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .subscribe-content {
+    text-align: left;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--neutral-600);
+    margin-bottom: 2.5rem;
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+    }
+  }
+</style>

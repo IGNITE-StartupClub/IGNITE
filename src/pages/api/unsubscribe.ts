@@ -1,22 +1,24 @@
 export const prerender = false
 
 // /api/unsubscribe.js (or .ts if using TypeScript)
+import type { APIRoute } from 'astro';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const AUDIENCE_ID = process.env.AUDIENCE_ID;
+const resend = new Resend(process.env.RESEND_HOLY_GRAIL);
+const AUDIENCE_ID = process.env.AUDIENCE_ID!;
 
-export async function POST(request) {
+export const POST: APIRoute = async ({ request }) => {
   try {
     const { email } = await request.json();
-    
+
     console.log('Unsubscribing user:', email);
-    
+
+    // Remove contact by email
     await resend.contacts.remove({
       email: email,
-      audienceId: AUDIENCE_ID!,
+      audienceId: AUDIENCE_ID,
     });
-    
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -28,4 +30,4 @@ export async function POST(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}
+};

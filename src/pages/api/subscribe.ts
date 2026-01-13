@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import 'dotenv/config';
 import { getSubscriptionConfirmationEmailHTML, getSubscriptionConfirmationSubject } from '../../templates/emails/subscriptionConfirmationEmail';
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resend = new Resend(process.env.RESEND_HOLY_GRAIL!);
 const MONGO_URI = process.env.MONGODB_URI!;
 const MONGO_DB  = process.env.MONGODB_DB!;
 

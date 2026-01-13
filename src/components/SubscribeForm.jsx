@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-console.log('Pre-Render');
-
 export default function SubscribeForm() {
-  console.log("NewsletterForm rendered");
-
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -13,49 +9,26 @@ export default function SubscribeForm() {
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
   const [isCancelled, setIsCancelled] = useState(false); // Track cancellation status
 
-  console.log('Component state:', { email, firstName, lastName, status, loading, isConfirming, isCancelled });
-
   useEffect(() => {
-    console.log('useEffect is running');
-    
     if (typeof window !== 'undefined') {
-      console.log('useEffect is running in the browser');
-      
       const urlParams = new URLSearchParams(window.location.search);
-      console.log('URL Params:', urlParams.toString());
-      
       const token = urlParams.get('token');
-      console.log('Extracted Token:', token);
-      
       const cancel = urlParams.get('cancel');
-      console.log('Extracted Cancel:', cancel);
 
       if (token) {
-        console.log('Token found:', token);
         setIsConfirming(true);
-        
+
         fetch(`/api/confirm?token=${token}`)
           .then(res => {
-            console.log('Response received:', res);
             if (!res.ok) {
               throw new Error(`HTTP error! status: ${res.status}`);
             }
             return res.json();
           })
           .then(data => {
-            console.log('Received confirmation data:', data);
-            if (data.email) {
-              setEmail(data.email);
-              console.log('Setting email:', data.email);
-            }
-            if (data.firstName) {
-              setFirstName(data.firstName);
-              console.log('Setting firstName:', data.firstName);
-            }
-            if (data.lastName) {
-              setLastName(data.lastName);
-              console.log('Setting lastName:', data.lastName);
-            }
+            if (data.email) setEmail(data.email);
+            if (data.firstName) setFirstName(data.firstName);
+            if (data.lastName) setLastName(data.lastName);
           })
           .catch(err => {
             console.error('Error fetching confirmation data:', err);
@@ -64,7 +37,6 @@ export default function SubscribeForm() {
       }
 
       if (cancel) {
-        console.log('Cancel token found:', cancel);
         setIsCancelled(true);
         unsubscribeUser(cancel);
       }
@@ -73,17 +45,13 @@ export default function SubscribeForm() {
 
   const unsubscribeUser = async (emailToCancel) => {
     try {
-      console.log('Attempting to unsubscribe user with email:', emailToCancel);
-      
-      // Make API call to handle unsubscription on the server side
       const response = await fetch('/api/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToCancel }),
       });
-      
+
       if (response.ok) {
-        console.log(`User with email ${emailToCancel} has been unsubscribed`);
         setStatus('unsubscribed');
       } else {
         throw new Error('Failed to unsubscribe');
@@ -96,33 +64,27 @@ export default function SubscribeForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted with data:', { email, firstName, lastName });
-    
+
     setLoading(true);
     setStatus(null);
 
     try {
       const submitData = { email, firstName, lastName };
-      
+
       // Add confirmation flag for confirmation submissions
       if (isConfirming) {
         submitData.isConfirming = true;
       }
-      
-      console.log('Sending data to API:', submitData);
-      
+
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
-      console.log('API response status:', res.status);
-      
       if (res.ok) {
-        console.log('Successfully submitted data');
         setStatus('success');
-        
+
         // Only clear form if not confirming
         if (!isConfirming) {
           setEmail('');
@@ -130,8 +92,7 @@ export default function SubscribeForm() {
           setLastName('');
         }
       } else {
-        const data = await res.json();
-        console.error('Error response from backend:', data);
+        console.error('Error response from API');
         setStatus('error');
       }
     } catch (err) {
@@ -153,7 +114,7 @@ export default function SubscribeForm() {
       ) : (
         <form onSubmit={handleSubmit} className="newsletter-form width-full">
           <h3>{isConfirming ? 'Bestätige deinen Newsletter-Abonnement' : 'Werde Teil der Community'}</h3>
-          
+
           {isConfirming ? (
             <>
               {/* Prefilled email, disabled for confirmation */}
