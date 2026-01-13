@@ -4,6 +4,7 @@ import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import crypto from 'crypto'
+import { v4 as uuidv4 } from 'uuid'
 import 'dotenv/config'
 import { getQuestionLabels } from '../../data/questionnaireParser.js'
 import { getApplicationEmailHTML, getApplicationEmailSubject, type ApplicationEmailData } from '../../templates/emails/applicationEmail'
@@ -11,6 +12,7 @@ import { getApplicationConfirmationEmailHTML, getApplicationConfirmationSubject 
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
+const resendHolyGrail = new Resend(process.env.RESEND_HOLY_GRAIL!)
 
 
 // --- ENV-VALIDATION ---
@@ -138,6 +140,118 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
   }
 }
 
+async function handleNewsletterSubscription(db: any, email: string, firstName: string, lastName: string) {
+  try {
+    console.log('📧 Starting newsletter double opt-in process for:', email)
+
+    // Check if email already exists in pending confirmations
+    const existingPending = await db.collection('pending_confirmations').findOne({ email })
+    if (existingPending) {
+      console.log('📧 Email already has pending confirmation:', email)
+      return // Don't send duplicate confirmation email
+    }
+
+    // Generate confirmation token
+    const token = uuidv4()
+    const SITE_URL = process.env.SITE_URL || 'https://ignite-startupclub.de'
+    const confirmUrl = `${SITE_URL}/subscribe?token=${token}`
+    const cancelUrl = `${SITE_URL}/subscribe?cancel=${email}`
+
+    // Store in pending confirmations
+    await db.collection('pending_confirmations').insertOne({
+      email,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      token,
+      createdAt: new Date(),
+    })
+    console.log('✅ Newsletter confirmation data stored in DB')
+
+    // Send confirmation email
+    await resendHolyGrail.emails.send({
+      from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
+      to: email,
+      subject: 'Willkommen beim IGNITE Startup Club!',
+      html: `
+        <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
+          <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
+          <p>Schön, dass du dich für unsere Initiative interessierst!</p>
+
+          <p>Du möchtest nichts verpassen? Dann bestätige deine E-Mail und erhalte News durch unseren Newsletter!</p>
+
+          <p style="text-align: center; margin: 2rem 0;">
+            <a href="${confirmUrl}"
+              style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
+              📧 Newsletter abonnieren
+            </a>
+          </p>
+
+          <p>Wenn du dich für unseren Newsletter anmeldest, bleibst du immer auf dem Laufenden über folgende Themen:</p>
+          <ul style="line-height: 1.6;">
+            <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
+            <li>Einblicke in reale Startup-Projekte</li>
+            <li>Austausch mit Gleichgesinnten</li>
+          </ul>
+
+          <p>Noch einfacher? Dann tritt direkt unserer WhatsApp-Community bei:</p>
+
+          <p style="text-align: center; margin: 2rem 0;">
+            <a href="https://chat.whatsapp.com/HtvynOI8sY125MmBZR4C1n"
+              style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
+              👉 Jetzt WhatsApp-Gruppe beitreten
+            </a>
+          </p>
+
+          <p style="font-size: 0.95rem; color: #555;">
+            Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
+              <a href="${cancelUrl}"
+              style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
+              Vom IGNITE Newsletter abmelden
+            </a>
+          </p>
+        </div>
+      `,
+    })
+    console.log('✅ Newsletter confirmation email sent')
+  } catch (err) {
+    console.error('❌ Error in newsletter subscription:', err)
+    // Don't throw - we still want the main application to succeed
+  }
+}
+
+async function addContactToMitmachenSegment(email: string, firstName: string, lastName: string) {
+  try {
+    console.log('👤 Adding contact to Resend with segment "Mitmachen":', email)
+
+    const AUDIENCE_ID = process.env.AUDIENCE_ID
+    if (!AUDIENCE_ID) {
+      console.error('❌ AUDIENCE_ID not configured')
+      return
+    }
+
+    // Create contact in Resend
+    await resendHolyGrail.contacts.create({
+      email: email,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      unsubscribed: false,
+      audienceId: AUDIENCE_ID,
+    })
+    console.log('✅ Contact added to Resend audience')
+
+    // TODO: Add to "Mitmachen" segment when Resend API supports it
+    // For now, the contact is in the audience and can be manually segmented
+
+  } catch (err: any) {
+    console.error('❌ Error adding contact to Resend:', err)
+    // Check if it's a duplicate error - that's ok
+    if (err.message && err.message.includes('already exists')) {
+      console.log('ℹ️  Contact already exists in Resend')
+    }
+    // Don't throw - we still want the main application to succeed
+  }
+}
+
 export const POST: APIRoute = async ({ request }) => {
   let client: MongoClient | null = null
 
@@ -201,6 +315,15 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Confirm to applicant
     await sendConfirmationEmail(data.email, data.name)
+
+    // Handle newsletter subscription or contact creation
+    if (data.subscribeNewsletter === true || data.subscribeNewsletter === 'true') {
+      console.log('📧 User wants newsletter - starting double opt-in')
+      await handleNewsletterSubscription(db, data.email, data.name, data.lastname)
+    } else {
+      console.log('👤 User does not want newsletter - adding to Mitmachen segment')
+      await addContactToMitmachenSegment(data.email, data.name, data.lastname)
+    }
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {

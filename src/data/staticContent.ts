@@ -129,6 +129,7 @@ export const navigation = {
         { label: 'Peer-to-Peer Workshops', url: '/peer-to-peer', isExternal: false, order: 2 },
       ]
     },
+    { label: 'Newsletter', url: '/subscribe', isExternal: false, order: 5 },
   ]
 };
 

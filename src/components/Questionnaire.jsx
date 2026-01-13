@@ -16,6 +16,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       name: '',
       lastname: '',
       email: '',
+      subscribeNewsletter: false,
     };
     // We'll add question IDs dynamically once config loads
     return initialData;
@@ -106,7 +107,7 @@ export default function Questionnaire({ initialPosition = '' }) {
   }
 
   if (done) {
-    return <p>Danke für deine Bewerbung! Wir melden uns bald bei dir.</p>;
+    return <p>Danke für deine Anfrage! Wir freuen uns über dein Interesse und melden uns bald bei dir.</p>;
   }
 
   return (
@@ -118,7 +119,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       {/* Schritt 1: Intro-Button */}
       {step === 1 && (
         <button type="button" className="button secondary" onClick={next}>
-          {config.step1?.buttonText || 'Bewerbung ausfüllen'}
+          {config.step1?.buttonText || 'Jetzt mitmachen'}
         </button>
       )}
 
@@ -392,12 +393,26 @@ export default function Questionnaire({ initialPosition = '' }) {
               required={config.step6?.fields?.email?.required !== false}
             />
           </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row', marginTop: '1rem' }}>
+            <input
+              type="checkbox"
+              name="subscribeNewsletter"
+              checked={data.subscribeNewsletter}
+              onChange={(e) => setData(d => ({ ...d, subscribeNewsletter: e.target.checked }))}
+              style={{ flexShrink: 0, cursor: 'pointer' }}
+            />
+            <span style={{ paddingLeft: '0.75rem', fontSize: '1rem', fontWeight: '400' }}>
+              Ich möchte den IGNITE Newsletter abonnieren und über Events & Workshops informiert werden
+            </span>
+          </label>
+
           <button
             type="submit"
             className="button secondary"
             disabled={submitting}
           >
-            {submitting ? 'Wird gesendet...' : 'Bewerbung absenden'}
+            {submitting ? 'Wird gesendet...' : 'Anfrage absenden'}
           </button>
         </>
       )}
