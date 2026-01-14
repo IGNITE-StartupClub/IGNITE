@@ -8,6 +8,7 @@ export default function SubscribeForm() {
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
   const [isCancelled, setIsCancelled] = useState(false); // Track cancellation status
+  const [showEndScreen, setShowEndScreen] = useState(false); // Show end screen after successful confirmation
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -85,8 +86,11 @@ export default function SubscribeForm() {
       if (res.ok) {
         setStatus('success');
 
-        // Only clear form if not confirming
-        if (!isConfirming) {
+        // Show end screen after successful confirmation
+        if (isConfirming) {
+          setShowEndScreen(true);
+        } else {
+          // Only clear form if not confirming
           setEmail('');
           setFirstName('');
           setLastName('');
@@ -105,7 +109,70 @@ export default function SubscribeForm() {
 
   return (
     <div>
-      {isCancelled ? (
+      {showEndScreen ? (
+        <div className="end-screen">
+          <div className="end-screen-content">
+            <div className="end-screen-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <h2 className="end-screen-title">Willkommen im IGNITE Newsletter!</h2>
+            <p className="end-screen-message">
+              Deine Anmeldung ist jetzt bestätigt. Du erhältst ab sofort Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene.
+            </p>
+            <p className="end-screen-email">
+              Wir haben dir eine Willkommens-E-Mail an <strong>{email}</strong> geschickt.
+            </p>
+            <a href="/" className="button color-secondary end-screen-button">
+              Zurück zur Startseite
+            </a>
+          </div>
+          <style>{`
+            .end-screen {
+              text-align: center;
+              padding: 2rem 0;
+            }
+            .end-screen-content {
+              max-width: 400px;
+              margin: 0 auto;
+            }
+            .end-screen-icon {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 80px;
+              height: 80px;
+              background: linear-gradient(135deg, #8C3974 0%, #a8457d 100%);
+              border-radius: 50%;
+              margin-bottom: 1.5rem;
+              color: white;
+            }
+            .end-screen-title {
+              font-size: 1.75rem;
+              font-weight: 700;
+              color: #8C3974;
+              margin-bottom: 1rem;
+            }
+            .end-screen-message {
+              font-size: 1.1rem;
+              color: var(--font-color, #333);
+              margin-bottom: 1rem;
+              line-height: 1.6;
+            }
+            .end-screen-email {
+              font-size: 0.95rem;
+              color: var(--neutral-400, #666);
+              margin-bottom: 2rem;
+            }
+            .end-screen-button {
+              display: inline-block;
+              text-decoration: none;
+            }
+          `}</style>
+        </div>
+      ) : isCancelled ? (
         <div className="text-center">
           <h2 className="text-2xl font-bold">Du hast dich erfolgreich abgemeldet</h2>
           <p>Schade, dass du dich vom Newsletter abgemeldet hast!</p>

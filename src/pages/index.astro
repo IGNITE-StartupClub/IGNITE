@@ -5,6 +5,7 @@ import Feature from '../components/Feature.astro'
 import News from '../components/news.astro'
 import { Accordion, AccordionItem } from 'accessible-astro-components'
 import AdvisoryBoard from '../components/AdvisoryBoard.jsx'
+import KPIDashboard from '../components/KPIDashboard.jsx'
 import Partners from '../components/partners.astro'
 
 import ContentMedia from '../components/ContentMedia.astro'
@@ -33,6 +34,7 @@ export const prerender = true
 
 <DefaultLayout title="IGNITE - Startup Club Lüneburg" description="Willkommen bei IGNITE - deiner studentischen Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.">
   <Hero homepage={homepage} />
+  <KPIDashboard client:visible />
   <!-- <Events /> -->
   <section class="my-64">
     <div class="container">

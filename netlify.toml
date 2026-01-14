@@ -1,0 +1,30 @@
+# Netlify Configuration for IGNITE Startup Club
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Environment-specific settings
+[context.production.environment]
+  NODE_VERSION = "18"
+
+[context.deploy-preview.environment]
+  NODE_VERSION = "18"
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirects (if needed)
+# [[redirects]]
+#   from = "/old-path"
+#   to = "/new-path"
+#   status = 301

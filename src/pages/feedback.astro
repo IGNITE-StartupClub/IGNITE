@@ -1,0 +1,71 @@
+---
+import DefaultLayout from '../layouts/DefaultLayout.astro';
+import FeedbackForm from '../components/FeedbackForm.jsx';
+
+export const prerender = true
+---
+
+<DefaultLayout title="Feedback | IGNITE Startup Club">
+  <main class="feedback-page">
+    <div class="feedback-container">
+      <div class="feedback-content">
+        <h1 class="text-white">Dein Feedback</h1>
+        <p class="subtitle">
+          Deine Meinung ist uns wichtig! Teile uns mit, wie dir unsere Veranstaltungen gefallen haben
+          und hilf uns dabei, noch besser zu werden.
+        </p>
+        <FeedbackForm client:load />
+      </div>
+    </div>
+  </main>
+</DefaultLayout>
+
+<style>
+  .feedback-page {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .feedback-container {
+    width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  .feedback-content {
+    text-align: left;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--neutral-600);
+    margin-bottom: 2.5rem;
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+    }
+
+    .feedback-page {
+      padding: 1.5rem 1rem;
+      align-items: flex-start;
+      padding-top: 3rem;
+    }
+  }
+</style>

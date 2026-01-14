@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';  // Import the uuid module
 import { Resend } from 'resend';
 import { MongoClient } from 'mongodb';
 import 'dotenv/config';
+import { getWelcomeNewsletterEmailHTML, getWelcomeNewsletterSubject } from '../../templates/emails/welcomeNewsletterEmail';
 
 const resend = new Resend(process.env.RESEND_HOLY_GRAIL!);
 const MONGO_URI = process.env.MONGODB_URI!;
@@ -103,9 +104,20 @@ export const POST = async ({ request }) => {
         // Remove from pending confirmations immediately after successful confirmation
         await db.collection('pending_confirmations').deleteOne({ email });
         console.log('Removed from pending confirmations');
-        
-        return new Response(JSON.stringify({ 
-          message: 'Newsletter-Anmeldung bestätigt! Willkommen beim IGNITE Startup Club!' 
+
+        // Send welcome email to the confirmed subscriber
+        const confirmedFirstName = firstName || pendingConfirmation.firstName || '';
+        console.log('Sending welcome email to:', email);
+        await resend.emails.send({
+          from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
+          to: email,
+          subject: getWelcomeNewsletterSubject(),
+          html: getWelcomeNewsletterEmailHTML(confirmedFirstName),
+        });
+        console.log('Welcome email sent successfully');
+
+        return new Response(JSON.stringify({
+          message: 'Newsletter-Anmeldung bestätigt! Willkommen beim IGNITE Startup Club!'
         }), { status: 200 });
       } catch (error) {
         console.error('Error processing confirmation:', error);
