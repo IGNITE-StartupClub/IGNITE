@@ -318,7 +318,9 @@ export default function FeedbackForm() {
           margin-left: 0.5rem;
         }
 
-        input, select, textarea {
+        input:not([type="checkbox"]), select, textarea {
+          width: 100%;
+          box-sizing: border-box;
           padding: 0.75rem;
           border-radius: 6px;
           border: 1px solid #ccc;
