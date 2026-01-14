@@ -56,7 +56,7 @@ const advisoryMembers = [
   linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
   image: '/img/advisory/markus_lemmens.JPG', // Kein Bild auf der Website verfügbar
   initials: 'ML',
-},
+}
 ]
 
 function AdvisoryMemberCard({ member }) {
