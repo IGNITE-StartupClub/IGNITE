@@ -53,7 +53,7 @@ const advisoryMembers = [
   department: 'Leuphana Universität Lüneburg',
   boardRole: 'Advisory Board Member',
   bio: 'Dr. Markus Lemmens hat mehrfache Gründungserfahrung seit 1996 (Medien, Public Affairs, Fusionsenergie und IT). Er arbeitet im Wissenschaftsmanagement. Sein Fokus ist u.a. Deep Technology als Brücke zwischen Forschung und Mittelstand. Aktuell ist er Chief Communication Officer der Leuphana Universität Lüneburg.',
-  linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
+  linkedin: 'https://www.linkedin.com/in/dr-markus-lemmens-265a5099/', // Keine LinkedIn-Informationen auf der Website verfügbar
   image: '/img/advisory/markus_lemmens.JPG', // Kein Bild auf der Website verfügbar
   initials: 'ML',
 }
@@ -61,10 +61,11 @@ const advisoryMembers = [
 
 function AdvisoryMemberCard({ member }) {
   const [isHovered, setIsHovered] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   return (
     <div
-      className="hover:bg-white/8 hover:border-[var(--primary-500)]/30 hover:shadow-[var(--primary-500)]/20 group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-3xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl md:p-8"
+      className="hover:bg-white/8 hover:border-[var(--primary-500)]/30 hover:shadow-[var(--primary-500)]/20 group relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-3xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl md:p-8"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -110,21 +111,43 @@ function AdvisoryMemberCard({ member }) {
       </div>
 
       {/* Member Info */}
-      <div className="space-y-2">
+      <div className="flex flex-1 flex-col space-y-2">
         <h3 className="text-lg font-bold leading-tight text-white md:text-xl">{member.name}</h3>
         <p className="text-sm font-semibold leading-relaxed text-white/90 md:text-base">{member.title}</p>
         {member.boardRole && (
           <p className="text-sm font-bold leading-relaxed text-[var(--secondary-200)]">{member.boardRole}</p>
         )}
-        {/* {member.department && (
-    <p className="text-xs md:text-sm text-white/60">
-      {member.department}
-    </p>
-  )} */}
+
+        {/* Expandable Bio */}
         {member.bio && (
-          <p className="translate-y-2 transform pt-2 text-xs leading-relaxed text-white/70 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 md:text-sm">
-            {member.bio}
-          </p>
+          <div className="mt-auto pt-3">
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <p className="pb-3 text-xs leading-relaxed text-white/70 md:text-sm">
+                {member.bio}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--secondary-200)] transition-colors duration-200 hover:text-[var(--secondary-100)] md:text-sm"
+            >
+              {isExpanded ? 'Weniger' : 'Mehr lesen'}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -136,7 +159,7 @@ function AddMemberCard() {
 
   return (
     <div
-      className="hover:bg-white/8 hover:border-[var(--primary-500)]/40 hover:shadow-[var(--primary-500)]/20 group relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-white/20 bg-white/5 p-6 text-center backdrop-blur-3xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl md:p-8"
+      className="hover:bg-white/8 hover:border-[var(--primary-500)]/40 hover:shadow-[var(--primary-500)]/20 group relative h-full w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-white/20 bg-white/5 p-6 text-center backdrop-blur-3xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl md:p-8"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -183,8 +206,8 @@ function AddMemberCard() {
 
 export default function AdvisoryBoard({ className = '' }) {
   return (
-    <section className={`px-4 py-16 md:py-24 ${className}`}>
-      <div className="mx-auto max-w-7xl">
+    <section className={`overflow-x-hidden px-4 py-16 md:py-24 ${className}`}>
+      <div className="mx-auto max-w-7xl overflow-hidden">
         {/* Header */}
         <div className="mb-12 text-center md:mb-16">
           <h2 className="mb-6 bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] bg-clip-text pb-2 text-4xl font-black leading-tight text-transparent drop-shadow-lg md:text-5xl lg:text-6xl">
@@ -196,14 +219,14 @@ export default function AdvisoryBoard({ className = '' }) {
         </div>
 
         {/* Board Grid */}
-        <div className="mb-12 mt-12 flex max-w-full flex-wrap justify-center gap-6 overflow-x-hidden px-4 py-4 md:mb-16 md:gap-8">
+        <div className="mb-12 mt-12 grid grid-cols-1 gap-6 py-4 sm:grid-cols-2 md:mb-16 md:gap-8 lg:grid-cols-3">
           {advisoryMembers.map((member) => (
-            <div key={member.id} className="flex w-full max-w-[280px] sm:w-auto sm:min-w-[280px] sm:max-w-[320px]">
+            <div key={member.id} className="flex w-full">
               <AdvisoryMemberCard member={member} />
             </div>
           ))}
           {/* Add Member Card */}
-          <div key="add-member" className="flex w-full max-w-[280px] sm:w-auto sm:min-w-[280px] sm:max-w-[320px]">
+          <div key="add-member" className="flex w-full">
             <AddMemberCard />
           </div>
         </div>
