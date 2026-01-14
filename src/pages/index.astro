@@ -46,7 +46,7 @@ export const prerender = true
       </div>
     </div>
   </section>
-  {showAdvisoryBoard && <AdvisoryBoard />}
+  {showAdvisoryBoard && <AdvisoryBoard client:load />}
   {showNews && (
     <section>
       <News />
