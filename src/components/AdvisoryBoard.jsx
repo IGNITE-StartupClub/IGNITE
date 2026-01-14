@@ -41,22 +41,22 @@ const advisoryMembers = [
   title: 'Professor für Organisation',
   department: 'Leuphana Universität Lüneburg',
   boardRole: 'Advisory Board Member',
-  bio: 'Dr. Markus Lemmens hat mehrfache Gründungserfahrung seit 1996 (Medien, Public Affairs, Fusionsenergie und IT). Er arbeitet im Wissenschaftsmanagement. Sein Fokus ist u.a. Deep Technology als Brücke zwischen Forschung und Mittelstand. Aktuell ist er Chief Communication Officer der Leuphana Universität Lüneburg.',
+  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive',
   linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
-  image: '/img/advisory/markus_lemmens.JPG', // Kein Bild auf der Website verfügbar
+  image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
   initials: 'MW',
 },
 {  
   id: 5,
   name: 'Dr. Markus Lemmens',
-  title: 'Professor für Organisation',
+  title: 'Chief Communication Officer der Leuphana Universität',
   department: 'Leuphana Universität Lüneburg',
   boardRole: 'Advisory Board Member',
-  bio: 'Experte für das Zusammenspiel von Organisation und Strategie aus praxistheoretischer Perspektive',
+  bio: 'Dr. Markus Lemmens hat mehrfache Gründungserfahrung seit 1996 (Medien, Public Affairs, Fusionsenergie und IT). Er arbeitet im Wissenschaftsmanagement. Sein Fokus ist u.a. Deep Technology als Brücke zwischen Forschung und Mittelstand. Aktuell ist er Chief Communication Officer der Leuphana Universität Lüneburg.',
   linkedin: '', // Keine LinkedIn-Informationen auf der Website verfügbar
-  image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg', // Kein Bild auf der Website verfügbar
-  initials: 'MW',
-}
+  image: '/img/advisory/markus_lemmens.JPG', // Kein Bild auf der Website verfügbar
+  initials: 'ML',
+},
 ]
 
 function AdvisoryMemberCard({ member }) {
