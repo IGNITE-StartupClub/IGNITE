@@ -8,6 +8,7 @@ export default function FeedbackForm() {
     event: '',
     customEvent: '',
     feedback: '',
+    eventSuggestion: '',
     subscribeNewsletter: false,
     consentToPublish: false,
     email: '' // Only needed if subscribing to newsletter
@@ -40,6 +41,7 @@ export default function FeedbackForm() {
         lastName: formData.lastName,
         event: eventName,
         feedback: formData.feedback,
+        eventSuggestion: formData.eventSuggestion || undefined,
         consentToPublish: formData.consentToPublish,
         subscribeNewsletter: formData.subscribeNewsletter,
         email: formData.subscribeNewsletter ? formData.email : undefined
@@ -198,6 +200,21 @@ export default function FeedbackForm() {
           disabled={loading}
           rows={5}
           placeholder="Was hat dir gefallen? Was können wir verbessern?"
+        />
+      </label>
+
+      <label className="form-field">
+        <span className="label-text">
+          Event-Vorschlag
+          <span className="label-hint">(optional)</span>
+        </span>
+        <textarea
+          name="eventSuggestion"
+          value={formData.eventSuggestion}
+          onChange={handleChange}
+          disabled={loading}
+          rows={3}
+          placeholder="Welche Events wünschst du dir? z.B. Workshop zu KI, Networking-Abend, Gründer-Stammtisch..."
         />
       </label>
 
