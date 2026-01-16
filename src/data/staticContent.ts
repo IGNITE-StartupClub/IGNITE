@@ -117,8 +117,8 @@ export const navigation = {
   logoText: 'IGNITE',
   menuItems: [
     { label: 'Startseite', url: '/', isExternal: false, order: 1 },
-    { label: 'Über uns', url: '/about', isExternal: false, order: 2 },
-    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 3 },
+    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 2 },
+    // { label: 'Über uns', url: '/about', isExternal: false, order: 2 },
     {
       label: 'Events',
       url: '#',
