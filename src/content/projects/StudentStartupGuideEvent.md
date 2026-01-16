@@ -1,7 +1,7 @@
 ---
 title: Student Startup Guide Event
 author: Lara @IGNITE Team
-description: Du willst gründen, aber weiß nicht wohin? Am 14.01.2026 haben wir diese und viele weitere Fragen um das Lüneburger und regionale Startup-Ökosystem relüftet!
+description: Du willst gründen, aber weiß nicht wohin? Am 14.01.2026 haben wir diese und viele weitere Fragen um das Lüneburger und regionale Startup-Ökosystem gelüftet!
 image: /news/studentstartupguideevent.jpeg
 date: 2026-01-14
 ---
