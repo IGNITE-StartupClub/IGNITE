@@ -95,8 +95,13 @@ const {
       body {
         height: 100%;
         overflow-x: hidden;
-        overflow-x: clip; /* Safari fix for horizontal overflow */
+        overflow-y: auto;
+        overflow-x: clip;
       }
+      html::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
 
       body {
         display: flex;
