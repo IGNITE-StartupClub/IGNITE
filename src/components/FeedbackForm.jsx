@@ -25,8 +25,17 @@ export default function FeedbackForm() {
     }));
   };
 
+  // Check if at least feedback or eventSuggestion is filled
+  const hasContent = formData.feedback.trim() || formData.eventSuggestion.trim();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!hasContent) {
+      setStatus('validation');
+      return;
+    }
+
     setLoading(true);
     setStatus(null);
 
@@ -127,13 +136,15 @@ export default function FeedbackForm() {
     <form onSubmit={handleSubmit} className="feedback-form">
       <div className="form-row">
         <label className="form-field">
-          <span className="label-text">Vorname *</span>
+          <span className="label-text">
+            Vorname
+            <span className="label-hint">(optional)</span>
+          </span>
           <input
             type="text"
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            required
             disabled={loading}
             placeholder="Max"
           />
@@ -141,15 +152,14 @@ export default function FeedbackForm() {
 
         <label className="form-field">
           <span className="label-text">
-            Nachname *
-            <span className="label-hint">(bleibt privat)</span>
+            Nachname
+            <span className="label-hint">(optional, bleibt privat)</span>
           </span>
           <input
             type="text"
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            required
             disabled={loading}
             placeholder="Mustermann"
           />
@@ -157,12 +167,14 @@ export default function FeedbackForm() {
       </div>
 
       <label className="form-field">
-        <span className="label-text">Veranstaltung *</span>
+        <span className="label-text">
+          Veranstaltung
+          <span className="label-hint">(optional)</span>
+        </span>
         <select
           name="event"
           value={formData.event}
           onChange={handleChange}
-          required
           disabled={loading}
         >
           <option value="">Bitte wählen...</option>
@@ -177,13 +189,12 @@ export default function FeedbackForm() {
 
       {formData.event === 'other' && (
         <label className="form-field">
-          <span className="label-text">Name der Veranstaltung *</span>
+          <span className="label-text">Name der Veranstaltung</span>
           <input
             type="text"
             name="customEvent"
             value={formData.customEvent}
             onChange={handleChange}
-            required
             disabled={loading}
             placeholder="z.B. Startup Weekend 2024"
           />
@@ -191,12 +202,14 @@ export default function FeedbackForm() {
       )}
 
       <label className="form-field">
-        <span className="label-text">Dein Feedback *</span>
+        <span className="label-text">
+          Dein Feedback
+          <span className="label-hint">(optional)</span>
+        </span>
         <textarea
           name="feedback"
           value={formData.feedback}
           onChange={handleChange}
-          required
           disabled={loading}
           rows={5}
           placeholder="Was hat dir gefallen? Was können wir verbessern?"
@@ -275,8 +288,14 @@ export default function FeedbackForm() {
         </p>
       )}
 
+      {status === 'validation' && (
+        <p className="error-message">
+          Bitte gib entweder Feedback oder einen Event-Vorschlag ein.
+        </p>
+      )}
+
       <p className="privacy-note">
-        * Pflichtfelder. Dein Nachname wird nicht veröffentlicht und dient nur der internen Zuordnung.
+        Bitte fülle mindestens das Feedback oder den Event-Vorschlag aus. Alle anderen Angaben sind optional.
       </p>
 
       <style>{`
