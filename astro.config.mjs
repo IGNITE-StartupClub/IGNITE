@@ -4,7 +4,7 @@ import tailwind from '@astrojs/tailwind'
 // import compress from 'astro-compress'
 import icon from 'astro-icon'
 import react from '@astrojs/react';
-import netlify from '@astrojs/netlify';
+import vercel from '@astrojs/vercel';
 
 import sitemap from '@astrojs/sitemap';
 
@@ -42,5 +42,5 @@ export default defineConfig({
       },
     },
   },
-  adapter: netlify(),
+  adapter: vercel(),
 })
