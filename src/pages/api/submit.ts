@@ -7,13 +7,19 @@ import crypto from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
 import 'dotenv/config'
 import { getQuestionLabels } from '../../data/questionnaireParser.js'
-import { getApplicationEmailHTML, getApplicationEmailSubject, type ApplicationEmailData } from '../../templates/emails/applicationEmail'
-import { getApplicationConfirmationEmailHTML, getApplicationConfirmationSubject } from '../../templates/emails/applicationConfirmationEmail'
+import {
+  getApplicationEmailHTML,
+  getApplicationEmailSubject,
+  type ApplicationEmailData,
+} from '../../templates/emails/applicationEmail'
+import {
+  getApplicationConfirmationEmailHTML,
+  getApplicationConfirmationSubject,
+} from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const resendHolyGrail = new Resend(process.env.RESEND_HOLY_GRAIL!)
-
 
 // --- ENV-VALIDATION ---
 const requiredEnvs = ['RESEND_API_KEY', 'MONGODB_URI', 'MONGODB_DB', 'ENCRYPTION_SECRET', 'EMAIL_RECIPIENT_1']
@@ -241,7 +247,6 @@ async function addContactToMitmachenSegment(email: string, firstName: string, la
 
     // TODO: Add to "Mitmachen" segment when Resend API supports it
     // For now, the contact is in the audience and can be manually segmented
-
   } catch (err: any) {
     console.error('❌ Error adding contact to Resend:', err)
     // Check if it's a duplicate error - that's ok
@@ -265,9 +270,9 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({
           status: 'error',
-          message: 'Server configuration error: No email recipients configured'
+          message: 'Server configuration error: No email recipients configured',
         }),
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -278,18 +283,14 @@ export const POST: APIRoute = async ({ request }) => {
     // Email is required for confirmation, name for personalization
     if (!data.email || !String(data.email).includes('@')) {
       console.warn('⚠️ Invalid or missing email')
-      return new Response(
-        JSON.stringify({ status: 'error', message: 'Gültige E-Mail-Adresse erforderlich' }),
-        { status: 400 }
-      )
+      return new Response(JSON.stringify({ status: 'error', message: 'Gültige E-Mail-Adresse erforderlich' }), {
+        status: 400,
+      })
     }
 
     if (!data.name || String(data.name).trim() === '') {
       console.warn('⚠️ Missing name')
-      return new Response(
-        JSON.stringify({ status: 'error', message: 'Name erforderlich' }),
-        { status: 400 }
-      )
+      return new Response(JSON.stringify({ status: 'error', message: 'Name erforderlich' }), { status: 400 })
     }
 
     // Encrypt & store ALL submitted fields dynamically (future-proof)
@@ -348,9 +349,9 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: 'Ein Fehler ist aufgetreten. Das Team wurde benachrichtigt.'
+        message: 'Ein Fehler ist aufgetreten. Das Team wurde benachrichtigt.',
       }),
-      { status: 500 }
+      { status: 500 },
     )
   } finally {
     if (client) {

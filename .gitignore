@@ -25,5 +25,8 @@ yarn-error.log*
 
 # astro build files
 .astro
+
+# Vercel build output (built by Vercel CI, not committed)
+.vercel/output
 # Local Netlify folder
 .netlify

@@ -65,7 +65,7 @@ async function collectReport(): Promise<ReportData> {
           col.countDocuments({ createdAt: { $gte: since14Days } }),
         ])
         return { name, count, recentCount }
-      })
+      }),
     )
 
     return {
@@ -101,7 +101,7 @@ function buildEmailHtml(report: ReportData): string {
         <td style="padding:8px 12px;border-bottom:1px solid #2a2a3a;">${c.name}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #2a2a3a;text-align:right;">${c.count}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #2a2a3a;text-align:right;color:#a78bfa;">${c.recentCount}</td>
-      </tr>`
+      </tr>`,
     )
     .join('')
 
@@ -138,7 +138,9 @@ function buildEmailHtml(report: ReportData): string {
       </div>
 
       <!-- Collections -->
-      ${dbOk ? `
+      ${
+        dbOk
+          ? `
       <div style="padding:20px 28px;border-bottom:1px solid #2a2a3a;">
         <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Collections</p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;">
@@ -153,7 +155,9 @@ function buildEmailHtml(report: ReportData): string {
             ${collectionRows}
           </tbody>
         </table>
-      </div>` : ''}
+      </div>`
+          : ''
+      }
 
       <!-- Server -->
       <div style="padding:20px 28px;">
@@ -162,15 +166,22 @@ function buildEmailHtml(report: ReportData): string {
           ${[
             ['Node.js', report.server.nodeVersion],
             ['Plattform', `${report.server.platform} (${report.server.arch})`],
-            ['Arbeitsspeicher', `${report.server.memoryUsedMB} MB verwendet / ${report.server.memoryTotalMB} MB gesamt`],
+            [
+              'Arbeitsspeicher',
+              `${report.server.memoryUsedMB} MB verwendet / ${report.server.memoryTotalMB} MB gesamt`,
+            ],
             ['Uptime', `${Math.round(report.server.uptimeSeconds / 60)} Minuten`],
             ['Umgebung', report.server.environment],
             ['Site URL', report.server.siteUrl],
-          ].map(([k, v]) => `
+          ]
+            .map(
+              ([k, v]) => `
             <tr>
               <td style="padding:5px 12px;color:#64748b;width:40%;">${k}</td>
               <td style="padding:5px 12px;color:#e2e8f0;">${v}</td>
-            </tr>`).join('')}
+            </tr>`,
+            )
+            .join('')}
         </table>
       </div>
 
@@ -214,8 +225,8 @@ export const GET: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 })
   }
 
-  return new Response(
-    JSON.stringify({ status: 'ok', recipients, dbStatus: report.database.status }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  )
+  return new Response(JSON.stringify({ status: 'ok', recipients, dbStatus: report.database.status }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
