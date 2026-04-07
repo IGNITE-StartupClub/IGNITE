@@ -1,0 +1,96 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "^/_astro/(.*)$",
+			"headers": {
+				"cache-control": "public, max-age=31536000, immutable"
+			},
+			"continue": true
+		},
+		{
+			"src": "^/_server-islands/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/_image/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/confirm/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/contact/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/contact-config/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/db-report/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/feedback/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/health/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/newsletter/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/newsletter01/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/questionnaire-config/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/submit/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/subscribe/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/unsubscribe/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/datenschutz/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/IGNITEWorkshops/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/impressum/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/mdx-page copy/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/peer-to-peer/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/.*$",
+			"dest": "/404.html",
+			"status": 404
+		}
+	]
+}

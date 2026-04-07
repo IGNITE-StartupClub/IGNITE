@@ -1,0 +1,311 @@
+// | -------------------------------------------------------------
+// | Article / Markdown layout — mobile-first, CI colors
+// | -------------------------------------------------------------
+
+// ── Breadcrumb ─────────────────────────────────────────────────
+.article-breadcrumb {
+  padding-top: 1.25rem;
+
+  @media (min-width: 640px) {
+    padding-top: 2rem;
+  }
+}
+
+// ── Outer wrapper ──────────────────────────────────────────────
+.article-wrap {
+  padding-inline: 1rem;
+  padding-top: 1.75rem;
+  padding-bottom: 4rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 1.5rem;
+    padding-top: 2.5rem;
+  }
+
+  @media (min-width: 768px) {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+}
+
+// ── Header ─────────────────────────────────────────────────────
+.article-header {
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 640px) {
+    margin-bottom: 2rem;
+  }
+}
+
+.article-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.article-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 100vw;
+  background-color: hsl(261deg 62% 36% / 18%);
+  color: var(--primary-300);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.article-meta-sep {
+  color: var(--neutral-700);
+  font-size: 0.75rem;
+}
+
+.article-date,
+.article-author-name {
+  color: var(--neutral-600);
+  font-size: 0.8rem;
+}
+
+// ── Title ──────────────────────────────────────────────────────
+.article-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--neutral-100);
+
+  @media (min-width: 480px) {
+    font-size: 2rem;
+  }
+
+  @media (min-width: 640px) {
+    font-size: 2.5rem;
+  }
+}
+
+// ── Hero image ─────────────────────────────────────────────────
+.article-hero {
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-top: 1.5rem;
+  margin-bottom: 1.75rem;
+  border-radius: 0.5rem;
+
+  @media (min-width: 640px) {
+    border-radius: 0.75rem;
+    margin-bottom: 2.25rem;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+// ── Prose body ─────────────────────────────────────────────────
+.article-prose {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--neutral-400);
+
+  @media (min-width: 640px) {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+  }
+
+  p {
+    margin-bottom: 1.25rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--neutral-100);
+    margin-top: 2.25rem;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+
+    @media (min-width: 640px) {
+      font-size: 1.5rem;
+      margin-top: 2.75rem;
+    }
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--neutral-200);
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+
+    @media (min-width: 640px) {
+      font-size: 1.05rem;
+      margin-top: 2rem;
+    }
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--neutral-300);
+    margin-top: 1.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  ul,
+  ol {
+    margin-bottom: 1.25rem;
+    padding-left: 1.35rem;
+
+    @media (min-width: 640px) {
+      padding-left: 1.5rem;
+    }
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  strong {
+    color: var(--neutral-100);
+    font-weight: 600;
+  }
+
+  em {
+    color: var(--neutral-300);
+  }
+
+  // Links — CI primary-300 (light lavender)
+  a {
+    color: var(--primary-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: hsl(261deg 100% 90% / 35%);
+    transition: color 0.15s, text-decoration-color 0.15s;
+
+    &:hover {
+      color: var(--neutral-100);
+      text-decoration-color: var(--neutral-100);
+    }
+  }
+
+  blockquote {
+    border-left: 3px solid var(--primary-400);
+    padding-left: 1rem;
+    margin: 1.75rem 0;
+    color: var(--neutral-500);
+    font-style: italic;
+
+    @media (min-width: 640px) {
+      padding-left: 1.25rem;
+    }
+  }
+
+  code {
+    background-color: hsl(261deg 62% 36% / 12%);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.875em;
+    color: var(--primary-300);
+    font-style: normal;
+    word-break: break-word;
+  }
+
+  pre {
+    background-color: hsl(240deg 4% 6%);
+    border-radius: 0.5rem;
+    padding: 1rem 1.125rem;
+    margin-bottom: 1.35rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    @media (min-width: 640px) {
+      padding: 1.25rem 1.5rem;
+    }
+
+    code {
+      background: none;
+      padding: 0;
+      font-size: 0.875em;
+      color: var(--neutral-300);
+    }
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--neutral-800);
+    margin: 2rem 0;
+  }
+
+  // In-prose images
+  img {
+    width: 100%;
+    border-radius: 0.5rem;
+    margin-block: 1.25rem;
+    display: block;
+
+    @media (min-width: 640px) {
+      border-radius: 0.625rem;
+    }
+  }
+
+  // Tables — scrollable on mobile
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.35rem;
+    font-size: 0.875rem;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    @media (min-width: 640px) {
+      display: table;
+    }
+  }
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.625rem;
+    border-bottom: 2px solid var(--neutral-800);
+    color: var(--neutral-100);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid hsl(240deg 5% 20%);
+  }
+}
+
+// ── Back navigation ─────────────────────────────────────────────
+.article-back {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid hsl(240deg 5% 20%);
+
+  @media (min-width: 640px) {
+    margin-top: 3rem;
+    padding-top: 2rem;
+  }
+}
+
+.article-back-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+  transition: color 0.15s;
+  padding: 0.25rem 0; // larger tap target on mobile
+
+  &:hover {
+    color: var(--neutral-100);
+  }
+}

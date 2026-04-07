@@ -15,6 +15,7 @@ import Counter from '../components/Counter.astro'
 import Button from '../components/Button.astro'
 import { Modal } from 'accessible-astro-components'
 import { features, faqs, homepage } from '../data/staticContent'
+import { getCollection } from 'astro:content'
 
 // Use static data directly
 const displayFeatures = features
@@ -28,6 +29,20 @@ const faqCTA_Text = homepage.faqCTA_Text
 const faqCTA_URL = homepage.faqCTA_URL
 const showAdvisoryBoard = homepage.showAdvisoryBoard
 const showNews = homepage.showNews
+
+// Materialien preview — fetch & sort at build time
+const allMaterials = await getCollection('materials')
+const sortedMaterials = allMaterials
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 3)
+  .map((m) => ({
+    tag: m.data.tag,
+    date: new Date(m.data.date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }),
+    title: m.data.title,
+    description: m.data.description,
+    imageUrl: m.data.image,
+    href: '/materialien/' + m.id,
+  }))
 
 export const prerender = true
 ---
@@ -54,7 +69,29 @@ export const prerender = true
       <News />
     </section>
   )}
-  
+
+  <!-- {sortedMaterials.length > 0 && (
+    <section class="my-64">
+      <div class="container">
+        <h2 class="mb-16 text-4xl md:text-6xl">Materialien & Ressourcen</h2>
+        <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3 mb-16">
+          {sortedMaterials.map((m) => (
+            <a href={m.href} class="material-card spotlight-card flex flex-col gap-4">
+              {m.tag && <span class="material-tag">{m.tag}</span>}
+              <div class="content">
+                <h3>{m.title}</h3>
+                <p>{m.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <div class="flex justify-center">
+          <a class="button secondary" href="/materialien">Alle Ressourcen ansehen</a>
+        </div>
+      </div>
+    </section>
+  )} -->
+
 <!-- <Partners /> -->
   <!-- <ContentMedia imgSrc="/wcag-compliant.webp" reverseImg={true}>
     <h2>Absichtserklärung</h2>
@@ -89,3 +126,91 @@ export const prerender = true
     </div>
   </section>
 </DefaultLayout>
+
+<style lang="scss">
+  .material-card {
+    position: relative;
+    width: calc(100% - 0.5rem);
+    padding: 2rem;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease;
+
+    > * {
+      position: relative;
+      z-index: 2;
+    }
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+    }
+
+    &::before {
+      inset: 0;
+      background-color: var(--dark-100);
+      border: 3px solid var(--gradient-100);
+      border-radius: 1rem;
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+
+    &::after {
+      inset: 1rem -0.85rem -0.85rem 1rem;
+      border-radius: 1rem;
+      z-index: 0;
+      background: linear-gradient(135deg, transparent, rgba(0, 0, 0, 0.1));
+    }
+
+    &:hover::before {
+      background: radial-gradient(
+        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 159, 252, 0.15),
+        transparent 40%
+      ), var(--dark-100);
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+
+      &::before {
+        border-color: var(--primary-300);
+        box-shadow:
+          rgba(0, 0, 0, 0.4) 0px 25px 50px,
+          rgba(0, 0, 0, 0.3) 0px 20px 25px,
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      opacity: 0.7;
+    }
+  }
+
+  .material-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary-300, #a89be0);
+    width: fit-content;
+  }
+</style>

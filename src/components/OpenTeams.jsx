@@ -1,6 +1,6 @@
-import React from 'react';
+import React from 'react'
 import { Modal } from 'accessible-astro-components'
-const date = new Date();
+const date = new Date()
 
 export default function OpenTeams({ teams = [] }) {
   return (
@@ -11,8 +11,12 @@ export default function OpenTeams({ teams = [] }) {
             {team.image ? (
               <img src={team.image} alt={team.title} />
             ) : (
-              <div className="fallback-image flex justify-center items-center absolute inset-0 w-full h-full transition-all duration-400 ease-out">
-                <img src={`/team-logos/${team.team.toLowerCase()}.png`} alt={`${team.team} logo`} className="team-logo block max-w-20 max-h-20 object-contain transition-all duration-400 ease-out drop-shadow-lg" />
+              <div className="fallback-image duration-400 absolute inset-0 flex h-full w-full items-center justify-center transition-all ease-out">
+                <img
+                  src={`/team-logos/${team.team.toLowerCase()}.png`}
+                  alt={`${team.team} logo`}
+                  className="team-logo duration-400 block max-h-20 max-w-20 object-contain drop-shadow-lg transition-all ease-out"
+                />
               </div>
             )}
           </div>
@@ -264,42 +268,42 @@ export default function OpenTeams({ teams = [] }) {
         .team-card:nth-child(6) { animation-delay: 0.6s; }
       `}</style>
     </div>
-  );
+  )
 }
 
-export function TeamStructuredData({ teams = [] }) {
+function TeamStructuredData({ teams = [] }) {
   const teamsAsLD = teams.map((team) => ({
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
     title: team.title,
     description: team.description,
     datePosted: new Date().toISOString().split('T')[0], // heute
     validThrough: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    employmentType: "VOLUNTEER",
+    employmentType: 'VOLUNTEER',
     hiringOrganization: {
-      "@type": "Organization",
-      name: "IGNITE Startup Club Lüneburg",
-      sameAs: "https://ignite-startupclub.de",
-      logo: "https://ignite-startupclub.de/favicon.svg"
+      '@type': 'Organization',
+      name: 'IGNITE Startup Club Lüneburg',
+      sameAs: 'https://ignite-startupclub.de',
+      logo: 'https://ignite-startupclub.de/favicon.svg',
     },
     jobLocation: {
-      "@type": "Place",
+      '@type': 'Place',
       address: {
-        "@type": "PostalAddress",
-        addressLocality: "Lüneburg",
-        addressCountry: "DE"
-      }
+        '@type': 'PostalAddress',
+        addressLocality: 'Lüneburg',
+        addressCountry: 'DE',
+      },
     },
     identifier: {
-      "@type": "PropertyValue",
-      name: "IGNITE",
-      value: team.id
-    }
-  }));
+      '@type': 'PropertyValue',
+      name: 'IGNITE',
+      value: team.id,
+    },
+  }))
 
   return (
     <script type="application/ld+json" suppressHydrationWarning>
       {JSON.stringify(teamsAsLD.length === 1 ? teamsAsLD[0] : teamsAsLD)}
     </script>
-  );
+  )
 }

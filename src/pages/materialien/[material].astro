@@ -1,0 +1,77 @@
+---
+import DefaultLayout from '../../layouts/DefaultLayout.astro'
+import { Breadcrumbs, BreadcrumbsItem } from 'accessible-astro-components'
+import { getCollection, render } from 'astro:content'
+import type { CollectionEntry } from 'astro:content'
+
+export const prerender = true
+
+export async function getStaticPaths() {
+  const materials = await getCollection('materials')
+  return materials.map((material) => ({
+    params: { material: material.id },
+    props: { material },
+  }))
+}
+
+interface Props {
+  material: CollectionEntry<'materials'>
+}
+
+const { material } = Astro.props
+const { Content } = await render(material)
+
+const formattedDate = new Date(material.data.date).toLocaleDateString('de-DE', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
+---
+
+<DefaultLayout
+  title={material.data.title}
+  description={material.data.description}
+  url={'materialien/' + material.id}
+  plainBackground={true}
+>
+  <div class="container article-breadcrumb">
+    <Breadcrumbs>
+      <BreadcrumbsItem href="/" label="Startseite" />
+      <BreadcrumbsItem href="/materialien" label="Materialien" />
+      <BreadcrumbsItem currentPage={true} label={material.data.title} />
+    </Breadcrumbs>
+  </div>
+
+  <article>
+    <div class="article-wrap">
+      <header class="article-header">
+        <div class="article-meta-row">
+          <span class="article-tag">{material.data.tag}</span>
+          <span class="article-meta-sep" aria-hidden="true">·</span>
+          <time class="article-date">{formattedDate}</time>
+          {material.data.author && (
+            <>
+              <span class="article-meta-sep" aria-hidden="true">·</span>
+              <span class="article-author-name">{material.data.author}</span>
+            </>
+          )}
+        </div>
+        <h1 class="article-title">{material.data.title}</h1>
+      </header>
+
+      {material.data.image && (
+        <div class="article-hero">
+          <img src={material.data.image} alt={material.data.title} loading="eager" />
+        </div>
+      )}
+
+      <div class="article-prose">
+        <Content />
+      </div>
+
+      <div class="article-back">
+        <a href="/materialien" class="article-back-link">← Zurück zu Materialien</a>
+      </div>
+    </div>
+  </article>
+</DefaultLayout>

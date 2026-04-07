@@ -12,6 +12,7 @@ const {
   url = Astro.site,
   image = '/og-image.jpg',
   author = 'IGNITE Startup Club Lueneburg',
+  plainBackground = false,
 } = Astro.props
 ---
 
@@ -55,11 +56,13 @@ const {
   </head>
   <body>
     <!-- Global Background Dots -->
-    <div class="background-dots">
-      <div class="dot dot-purple"></div>
-      <div class="dot dot-pink"></div>
-      <div class="dot dot-blue"></div>
-    </div>
+    {!plainBackground && (
+      <div class="background-dots">
+        <div class="dot dot-purple"></div>
+        <div class="dot dot-pink"></div>
+        <div class="dot dot-blue"></div>
+      </div>
+    )}
 
     <Header />
     <main id="main-content" transition:animate="fade">

@@ -3,16 +3,13 @@ import DefaultLayout from '../../layouts/DefaultLayout.astro'
 import { Breadcrumbs, BreadcrumbsItem } from 'accessible-astro-components'
 import { getCollection, render } from 'astro:content'
 import type { CollectionEntry } from 'astro:content'
-import Image from 'astro/components/Image.astro'
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects')
-  return projects.map((project) => {
-    return {
-      params: { project: project.id },
-      props: { project },
-    }
-  })
+  return projects.map((project) => ({
+    params: { project: project.id },
+    props: { project },
+  }))
 }
 
 interface Props {
@@ -23,69 +20,53 @@ export const prerender = true
 
 const { project } = Astro.props
 const { Content } = await render(project)
+
+const formattedDate = new Date(project.data.date).toLocaleDateString('de-DE', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
 ---
 
 <DefaultLayout
   title={project.data.title}
-  description={project.data.description || project.data.title} 
-  url={project.slug || project.id}
+  description={project.data.description || project.data.title}
+  url={project.id}
+  image={project.data.image}
+  plainBackground={true}
 >
-  <div class="container">
-    <div class="mt-12">
-      <Breadcrumbs>
-        <BreadcrumbsItem href="/" label="Startseite" />
-        <BreadcrumbsItem href="/news" label="Neuigkeiten" />
-        <BreadcrumbsItem currentPage={true} label={project.data.title} />
-      </Breadcrumbs>
-    </div>
+  <div class="container article-breadcrumb">
+    <Breadcrumbs>
+      <BreadcrumbsItem href="/" label="Startseite" />
+      <BreadcrumbsItem href="/news" label="Neuigkeiten" />
+      <BreadcrumbsItem currentPage={true} label={project.data.title} />
+    </Breadcrumbs>
   </div>
-  <section class="my-12">
-    <div class="container">
-      <h1>{project.data.title}</h1><br />
-      </p>
-      <div class="image-wrapper">
-        <Image 
-        src={project.data.image}
-        alt={project.data.title + ' - Image'}
-        class="rounded-lg shadow-lg"
-        width={2000}
-        height={2000}
-        loading="lazy"/>
+
+  <article>
+    <div class="article-wrap">
+      <header class="article-header">
+        <div class="article-meta-row">
+          <span class="article-tag">Neuigkeit</span>
+          <span class="article-meta-sep" aria-hidden="true">·</span>
+          <time class="article-date">{formattedDate}</time>
+          <span class="article-meta-sep" aria-hidden="true">·</span>
+          <span class="article-author-name">{project.data.author}</span>
+        </div>
+        <h1 class="article-title">{project.data.title}</h1>
+      </header>
+
+      <div class="article-hero">
+        <img src={project.data.image} alt={project.data.title} loading="eager" />
       </div>
+
+      <div class="article-prose">
+        <Content />
       </div>
-  </section>
-  <section class="my-12">
-    <div class="space-content container">
-      <p class="my-6">Author: {project.data.author} - {new Date(project.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
-      <Content />
+
+      <div class="article-back">
+        <a href="/news" class="article-back-link">← Zurück zu Neuigkeiten</a>
+      </div>
     </div>
-  </section>
+  </article>
 </DefaultLayout>
-
-<style lang="scss">
-  ul {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-gap: 4rem;
-
-    @media (min-width: 550px) {
-      grid-template-columns: repeat(2, 1fr);
-      grid-gap: 2rem;
-    }
-
-    @media (min-width: 950px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  .image-wrapper {
-    position: relative;
-    width: 100%;
-    padding-top: 56.25%; /* 16:9 */
-  }
-  .image-wrapper img {
-    top: 0;
-    position: absolute;
-    width: 100%; height: 100%;
-    object-fit: cover;
-  }
-</style>

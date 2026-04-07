@@ -8,26 +8,29 @@
   color-scheme: light dark;
   interpolate-size: allow-keywords;
 
-  // Shadcn/UI theme variables
-  --background: 0 0% 100%;
-  --foreground: 0 0% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 3.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 3.9%;
-  --primary: 261 62% 36%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 96.1%;
-  --secondary-foreground: 0 0% 9%;
-  --muted: 0 0% 96.1%;
-  --muted-foreground: 0 0% 45.1%;
-  --accent: 0 0% 96.1%;
-  --accent-foreground: 0 0% 9%;
+  // Shadcn/UI theme variables — mapped to CI color palette
+  // CI primary-400: hsl(261, 62%, 36%)  | primary-500: hsl(261, 62%, 24%)
+  // CI secondary:   #8C3974 ≈ hsl(317, 42%, 39%)
+  // CI dark-100:    hsl(240, 4%, 9%)    | background-100: #13111A
+  --background: 240 4% 9%;           /* --dark-100 */
+  --foreground: 0 0% 98%;
+  --card: 240 5% 16%;                /* card surface — elevated above dark-100 */
+  --card-foreground: 0 0% 98%;
+  --popover: 240 5% 16%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 261 62% 36%;            /* --primary-400 */
+  --primary-foreground: 261 100% 98%; /* --primary-100 */
+  --secondary: 317 42% 39%;          /* --secondary-100 (#8C3974) */
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 5% 18%;
+  --muted-foreground: 208 6% 55%;    /* --neutral-600 */
+  --accent: 261 62% 36%;             /* --primary-400 */
+  --accent-foreground: 261 100% 98%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 89.8%;
-  --input: 0 0% 89.8%;
-  --ring: 261 62% 36%;
+  --border: 240 5% 20%;
+  --input: 240 5% 20%;
+  --ring: 261 62% 36%;               /* --primary-400 */
   --radius: 0.5rem;
 
   body {
