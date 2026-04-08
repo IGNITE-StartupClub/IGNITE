@@ -215,7 +215,7 @@ export const GET: APIRoute = async ({ request }) => {
   const subject = `IGNITE Datenbankbericht – ${dbStatus} – ${new Date(report.timestamp).toLocaleDateString('de-DE')}`
 
   const { error } = await resend.emails.send({
-    from: 'team@ignite-startupclub.de',
+    from: 'team@info.ignite-startupclub.de',
     to: recipients,
     subject,
     html,

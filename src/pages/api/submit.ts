@@ -79,7 +79,7 @@ async function sendApplicationEmail(data: ApplicationEmailData) {
     const html = getApplicationEmailHTML(data, questionLabels)
 
     const result = await resend.emails.send({
-      from: 'team@ignite-startupclub.de',
+      from: 'team@info.ignite-startupclub.de',
       to: adminRecipients,
       subject: subject,
       html: html,
@@ -105,7 +105,7 @@ async function sendConfirmationEmail(email: string, name: string) {
     const html = getApplicationConfirmationEmailHTML(name)
 
     const result = await resend.emails.send({
-      from: 'join@ignite-startupclub.de',
+      from: 'join@info.ignite-startupclub.de',
       to: email,
       subject: subject,
       html: html,
@@ -134,7 +134,7 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
     const html = getErrorReportEmailHTML(errorMessage, context)
 
     await resend.emails.send({
-      from: 'team@ignite-startupclub.de',
+      from: 'team@info.ignite-startupclub.de',
       to: adminRecipients,
       subject: subject,
       html: html,
@@ -175,7 +175,7 @@ async function handleNewsletterSubscription(db: any, email: string, firstName: s
 
     // Send confirmation email
     await resendHolyGrail.emails.send({
-      from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
+      from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
       to: email,
       subject: 'Willkommen beim IGNITE Startup Club!',
       html: `

@@ -1,25 +1,24 @@
 export const prerender = false
 
-import { APIRoute } from 'astro';
-import { Resend } from 'resend';
-import { MongoClient } from 'mongodb';
-import crypto from 'crypto';
-import 'dotenv/config';
+import { APIRoute } from 'astro'
+import { Resend } from 'resend'
+import { MongoClient } from 'mongodb'
+import crypto from 'crypto'
+import 'dotenv/config'
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const uri = process.env.MONGODB_URI!;
-const secret = process.env.ENCRYPTION_SECRET!;
-
+const resend = new Resend(process.env.RESEND_API_KEY)
+const uri = process.env.MONGODB_URI!
+const secret = process.env.ENCRYPTION_SECRET!
 
 export const POST: APIRoute = async ({ request }) => {
-  const { email } = await request.json();
+  const { email } = await request.json()
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 });
+    return new Response(JSON.stringify({ message: 'Ungültige E-Mail-Adresse.' }), { status: 400 })
   }
 
   const { error } = await resend.emails.send({
-    from: 'IGNITE Startup Club <news@ignite-startupclub.de>',
+    from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
     to: email,
     subject: 'Willkommen beim IGNITE Startup Club!',
     html: `
@@ -90,12 +89,10 @@ export const POST: APIRoute = async ({ request }) => {
       <p style="font-size: 0.85rem; color: #aaa;">Diese E-Mail wurde automatisch versendet.</p>
     </div>
   `,
-  });
-
-
+  })
 
   if (error) {
-    return new Response(JSON.stringify({ message: 'Fehler beim E-Mail-Versand.' }), { status: 500 });
+    return new Response(JSON.stringify({ message: 'Fehler beim E-Mail-Versand.' }), { status: 500 })
   }
-  return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
-};
+  return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
+}
