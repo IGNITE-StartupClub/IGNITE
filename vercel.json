@@ -1,12 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/health",
+      "path": "/api/cron/health",
       "schedule": "0 0 */3 * *"
     },
     {
-      "path": "/api/db-report",
+      "path": "/api/cron/db-report",
       "schedule": "0 8 1,15 * *"
+    },
+    {
+      "path": "/api/cron/monthly-applicants",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

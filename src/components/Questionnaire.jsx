@@ -5,7 +5,7 @@ import { questionnaireConfig } from '../data/questionnaireConfig'
 const CUSTOM_QUESTIONS = [
   'Erkläre eine wichtige und nicht offensichtliche Sache, die du in den letzten Monaten gelernt hast. Warum ist sie wichtig?',
   'Was glaubst du über die Zukunft, was andere nicht glauben?',
-  'Was ist das schwierigste Problem, das du bisher lösen musstest?',
+  'Was ist das schwierigste Problem, das du bisher lösen musstest und wie hast du es gelöst?',
 ]
 
 export default function Questionnaire({ initialPosition = '' }) {
@@ -232,9 +232,9 @@ export default function Questionnaire({ initialPosition = '' }) {
 
             {/* Custom Question Implementation */}
             <h3 style={{ fontWeight: 500, marginBottom: '0.25rem', textAlign: 'left' }}>Wähle eine Frage</h3>
-            <legend style={{ fontWeight: 400, marginBottom: '1rem', textAlign: 'left', color: 'var(--neutral-700)' }}>
+            <p> style={{ fontWeight: 400, marginBottom: '1rem', textAlign: 'left', color: 'var(--neutral-700)' }}>
               Diese Fragen helfen uns, dich kennenzulernen. (Beantworte eine)
-            </legend>
+            </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               {CUSTOM_QUESTIONS.map((q, idx) => {
