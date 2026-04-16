@@ -157,12 +157,11 @@ export default function Questionnaire({ initialPosition = '' }) {
   const currentDynamicQuestions = config[`step${step}`]?.questions || {}
   const hasDynamicQuestions = Object.keys(currentDynamicQuestions).length > 0
   const isDynamicValid = !Object.keys(currentDynamicQuestions).some(
-    (qId) => currentDynamicQuestions[qId].required && !data[qId]?.trim()
+    (qId) => currentDynamicQuestions[qId].required && !data[qId]?.trim(),
   )
 
   return (
     <form id="application-form" onSubmit={handleSubmit} className="questionnaire">
-      
       {/* Schritt 1: Intro-Button */}
       {step === 1 && (
         <button type="button" className="button secondary" onClick={next}>
@@ -177,7 +176,10 @@ export default function Questionnaire({ initialPosition = '' }) {
             <label style={{ marginBottom: '1rem' }}>{config.step2?.label || 'Wähle 2-3 Teams:'}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {teams.map((team) => (
-                <label key={team.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
+                <label
+                  key={team.id}
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}
+                >
                   <input
                     type="checkbox"
                     checked={data.teams.includes(team.id)}
@@ -201,7 +203,12 @@ export default function Questionnaire({ initialPosition = '' }) {
               </p>
             )}
           </div>
-          <button type="button" className="button secondary" onClick={next} disabled={data.teams.length < (config.step2?.minTeams || 2)}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={next}
+            disabled={data.teams.length < (config.step2?.minTeams || 2)}
+          >
             Weiter
           </button>
         </>
@@ -214,9 +221,20 @@ export default function Questionnaire({ initialPosition = '' }) {
             <h3 style={{ fontWeight: 500, marginBottom: '0.75rem', textAlign: 'left' }}>
               {config.step3?.legend || 'Was beschreibt deine Situation am besten?'}
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                alignItems: 'flex-start',
+                marginBottom: '2rem',
+              }}
+            >
               {(config.step3?.options || []).map((option) => (
-                <label key={option.value} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}>
+                <label
+                  key={option.value}
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row' }}
+                >
                   <input
                     type="radio"
                     name="startupInterest"
@@ -232,25 +250,25 @@ export default function Questionnaire({ initialPosition = '' }) {
 
             {/* Custom Question Implementation */}
             <h3 style={{ fontWeight: 500, marginBottom: '0.25rem', textAlign: 'left' }}>Wähle eine Frage</h3>
-            <p> style={{ fontWeight: 400, marginBottom: '1rem', textAlign: 'left', color: 'var(--neutral-700)' }}>
+            <p style={{ fontWeight: 400, marginBottom: '1rem', textAlign: 'left', color: 'var(--neutral-700)' }}>
               Diese Fragen helfen uns, dich kennenzulernen. (Beantworte eine)
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               {CUSTOM_QUESTIONS.map((q, idx) => {
-                const isSelected = data.selectedCustomQuestion === String(idx);
-                const hasText = !!data.customAnswer.trim();
-                const isDisabled = hasText && !isSelected;
+                const isSelected = data.selectedCustomQuestion === String(idx)
+                const hasText = !!data.customAnswer.trim()
+                const isDisabled = hasText && !isSelected
 
                 return (
-                  <label 
-                    key={idx} 
-                    style={{ 
-                      display: 'flex', 
-                      flexDirection: 'row', 
-                      alignItems: 'flex-start', 
+                  <label
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
                       cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      opacity: isDisabled ? 0.5 : 1
+                      opacity: isDisabled ? 0.5 : 1,
                     }}
                   >
                     <input
@@ -277,15 +295,17 @@ export default function Questionnaire({ initialPosition = '' }) {
                   placeholder={CUSTOM_QUESTIONS[Number(data.selectedCustomQuestion)]}
                   rows={6}
                   style={{
-                    borderColor: currentWordCount > 500 ? 'red' : 'var(--neutral-400)'
+                    borderColor: currentWordCount > 500 ? 'red' : 'var(--neutral-400)',
                   }}
                 />
-                <span style={{ 
-                  alignSelf: 'flex-end', 
-                  fontSize: '0.85rem', 
-                  marginTop: '0.25rem',
-                  color: currentWordCount > 500 ? 'red' : 'var(--neutral-500)'
-                }}>
+                <span
+                  style={{
+                    alignSelf: 'flex-end',
+                    fontSize: '0.85rem',
+                    marginTop: '0.25rem',
+                    color: currentWordCount > 500 ? 'red' : 'var(--neutral-500)',
+                  }}
+                >
                   {currentWordCount} / 500 Wörter
                 </span>
               </div>
@@ -293,9 +313,8 @@ export default function Questionnaire({ initialPosition = '' }) {
           </fieldset>
 
           {/* Render extra step 3 questions dynamically if any exist in config */}
-          {hasDynamicQuestions && Object.keys(currentDynamicQuestions).map((qId) => 
-            renderDynamicField(qId, currentDynamicQuestions[qId])
-          )}
+          {hasDynamicQuestions &&
+            Object.keys(currentDynamicQuestions).map((qId) => renderDynamicField(qId, currentDynamicQuestions[qId]))}
 
           <button
             type="button"
@@ -317,9 +336,7 @@ export default function Questionnaire({ initialPosition = '' }) {
       {/* Generic Step Rendering for intermediate dynamic steps (Step 4, 5, etc.) */}
       {step > 3 && step < 6 && hasDynamicQuestions && (
         <>
-          {Object.keys(currentDynamicQuestions).map((qId) => 
-            renderDynamicField(qId, currentDynamicQuestions[qId])
-          )}
+          {Object.keys(currentDynamicQuestions).map((qId) => renderDynamicField(qId, currentDynamicQuestions[qId]))}
           <button type="button" className="button secondary" onClick={next} disabled={!isDynamicValid}>
             Weiter
           </button>
@@ -331,18 +348,44 @@ export default function Questionnaire({ initialPosition = '' }) {
         <>
           <label>
             {config.step6?.fields?.name?.label || 'Vorname'}
-            <input type="text" name="name" value={data.name} onChange={handleChange} required={config.step6?.fields?.name?.required !== false} />
+            <input
+              type="text"
+              name="name"
+              value={data.name}
+              onChange={handleChange}
+              required={config.step6?.fields?.name?.required !== false}
+            />
           </label>
           <label>
             {config.step6?.fields?.lastname?.label || 'Nachname'}
-            <input type="text" name="lastname" value={data.lastname} onChange={handleChange} required={config.step6?.fields?.lastname?.required !== false} />
+            <input
+              type="text"
+              name="lastname"
+              value={data.lastname}
+              onChange={handleChange}
+              required={config.step6?.fields?.lastname?.required !== false}
+            />
           </label>
           <label>
             {config.step6?.fields?.email?.label || 'E-Mail'}
-            <input type="email" name="email" value={data.email} onChange={handleChange} required={config.step6?.fields?.email?.required !== false} />
+            <input
+              type="email"
+              name="email"
+              value={data.email}
+              onChange={handleChange}
+              required={config.step6?.fields?.email?.required !== false}
+            />
           </label>
 
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row', marginTop: '1rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              flexDirection: 'row',
+              marginTop: '1rem',
+            }}
+          >
             <input
               type="checkbox"
               name="subscribeNewsletter"
@@ -356,7 +399,15 @@ export default function Questionnaire({ initialPosition = '' }) {
           </label>
 
           {/* Neues Pflichtfeld: Datenschutz */}
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexDirection: 'row', marginTop: '0.5rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              flexDirection: 'row',
+              marginTop: '0.5rem',
+            }}
+          >
             <input
               type="checkbox"
               name="acceptPrivacy"
@@ -371,9 +422,9 @@ export default function Questionnaire({ initialPosition = '' }) {
           </label>
 
           {/* Submit Button mit Disable-Logik für Datenschutz */}
-          <button 
-            type="submit" 
-            className="button secondary" 
+          <button
+            type="submit"
+            className="button secondary"
             style={{ marginTop: '1rem' }}
             disabled={submitting || !data.acceptPrivacy}
           >
