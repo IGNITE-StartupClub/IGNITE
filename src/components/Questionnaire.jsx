@@ -256,7 +256,7 @@ export default function Questionnaire({ initialPosition = '' }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               {CUSTOM_QUESTIONS.map((q, idx) => {
-                const isSelected = data.selectedCustomQuestion === String(idx)
+                const isSelected = data.selectedCustomQuestion === q
                 const hasText = !!data.customAnswer.trim()
                 const isDisabled = hasText && !isSelected
 
@@ -274,7 +274,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                     <input
                       type="radio"
                       name="selectedCustomQuestion"
-                      value={idx}
+                      value={q}
                       checked={isSelected}
                       onChange={handleChange}
                       disabled={isDisabled}
@@ -292,7 +292,7 @@ export default function Questionnaire({ initialPosition = '' }) {
                   name="customAnswer"
                   value={data.customAnswer}
                   onChange={handleChange}
-                  placeholder={CUSTOM_QUESTIONS[Number(data.selectedCustomQuestion)]}
+                  placeholder={data.selectedCustomQuestion}
                   rows={6}
                   style={{
                     borderColor: currentWordCount > 500 ? 'red' : 'var(--neutral-400)',

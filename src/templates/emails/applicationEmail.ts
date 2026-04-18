@@ -2,29 +2,29 @@
 // Sent to admin when a team application is submitted
 
 export interface ApplicationEmailData {
-  teams?: string[];
-  startupInterest?: string;
-  name: string;
-  lastname: string;
-  email: string;
-  [key: string]: any; // For dynamic questionnaire fields
+  teams?: string[]
+  startupInterest?: string
+  name: string
+  lastname: string
+  email: string
+  [key: string]: any // For dynamic questionnaire fields
 }
 
 export function getApplicationEmailSubject(): string {
-  return 'Neue Bewerbung eingegangen';
+  return 'Neue Bewerbung eingegangen'
 }
 
 export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabels: Record<string, string>): string {
   // Format teams as a readable list
-  const teamsArray = Array.isArray(data.teams) ? data.teams : [];
-  const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt';
+  const teamsArray = Array.isArray(data.teams) ? data.teams : []
+  const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt'
 
   // Safely format all data fields
   const formatField = (value: any) => {
-    if (value === null || value === undefined) return 'Nicht angegeben';
-    if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe';
-    return String(value);
-  };
+    if (value === null || value === undefined) return 'Nicht angegeben'
+    if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe'
+    return String(value)
+  }
 
   // Build table rows dynamically
   let tableRows = `
@@ -40,10 +40,27 @@ export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabe
       </td>
       <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td>
     </tr>
-  `;
+  `
+
+  if (data.selectedCustomQuestion) {
+    tableRows += `
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
+          <strong>Gewählte Frage:</strong>
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.selectedCustomQuestion)}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
+          <strong>Antwort:</strong>
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word; white-space: pre-wrap;">${formatField(data.customAnswer)}</td>
+      </tr>
+    `
+  }
 
   // Add all questions dynamically
-  Object.keys(questionLabels).forEach(qId => {
+  Object.keys(questionLabels).forEach((qId) => {
     if (data[qId]) {
       tableRows += `
         <tr style="border-bottom: 1px solid #f0f0f0;">
@@ -52,9 +69,9 @@ export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabe
           </td>
           <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data[qId])}</td>
         </tr>
-      `;
+      `
     }
-  });
+  })
 
   // Add personal data
   tableRows += `
@@ -70,7 +87,7 @@ export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabe
       <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;"><strong>E-Mail:</strong></td>
       <td style="padding: 12px 8px; vertical-align: top; word-break: break-all;">${formatField(data.email)}</td>
     </tr>
-  `;
+  `
 
   return `
     <div style="font-family: Inter, sans-serif; padding:2rem; border:1px solid #eee; border-radius:8px; max-width:600px; margin:auto;">
@@ -104,5 +121,5 @@ export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabe
       }
     }
     </style>
-  `;
+  `
 }
