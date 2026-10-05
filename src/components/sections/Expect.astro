@@ -1,0 +1,84 @@
+---
+/**
+ * "Was dich erwartet" as a bento grid. Mobile: stacked list. md: two columns. lg: six-column bento where
+ * Workshops is wide (with a real event photo), the Hackathon is tall and the rest are smaller cards.
+ * Layout comes from `features[].layout` ('wide' | 'tall' | 'half' | 'third') in staticContent.ts.
+ * Props: none. Data: features, homepage.featuresHeading / featuresPhotoAlt.
+ */
+import { Icon } from 'astro-icon/components'
+import { Image } from 'astro:assets'
+import Section from '../ui/Section.astro'
+import Card from '../ui/Card.astro'
+import Button from '../ui/Button.astro'
+import { features, homepage } from '../../data/staticContent'
+import guide from '../../assets/photos/guide.jpg'
+
+const items = [...features].sort((a, b) => a.order - b.order)
+const span: Record<string, string> = {
+  wide: 'md:col-span-2 lg:col-span-4',
+  tall: 'lg:col-span-2 lg:row-span-2',
+  half: 'lg:col-span-2',
+  third: 'lg:col-span-3',
+}
+---
+
+<Section id="angebot" tone="subtle" spacing="md" labelledby="expect-title">
+  <h2 id="expect-title" class="max-w-text text-display-md" set:html={homepage.featuresHeading} />
+  <figure class="expect-figure">
+    <img src="/img/heritage/cog-sculpture.png" alt="Skulptur einer Hanse-Kogge mit modernem Solarsegel" width="760" height="912" loading="lazy" decoding="async" />
+  </figure>
+  <ul class="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-6 lg:gap-5">
+    {
+      items.map((item) => (
+        <Card as="li" class={`h-full ${span[item.layout] ?? ''}`}>
+          <Icon slot="icon" name={item.icon} aria-hidden="true" />
+          <h3 slot="title">{item.title}</h3>
+          {item.layout === 'wide' ? (
+            <div class="grid gap-6 lg:grid-cols-2">
+              <div class="flex flex-col items-start gap-5">
+                <p>{item.description}</p>
+                {item.link && (
+                  <Button href={item.link.href} variant="outline">
+                    {item.link.label}
+                  </Button>
+                )}
+              </div>
+              <Image
+                src={guide}
+                alt={homepage.featuresPhotoAlt}
+                widths={[480, 720]}
+                sizes="(min-width: 1024px) 30vw, 90vw"
+                loading="lazy"
+                class="aspect-[4/3] w-full rounded-xl object-cover"
+              />
+            </div>
+          ) : (
+            <>
+              <p class={item.layout === 'tall' ? 'text-lead' : ''}>{item.description}</p>
+              {!item.link && (
+                <Icon
+                  name={item.icon}
+                  class={`mt-auto self-end text-accent opacity-30 ${item.layout === 'tall' ? 'h-24 w-24' : 'h-12 w-12'}`}
+                  aria-hidden="true"
+                />
+              )}
+              {item.link && (
+                <div class="mt-auto pt-4">
+                  <Button href={item.link.href} variant="outline">
+                    {item.link.label}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+      ))
+    }
+  </ul>
+</Section>
+
+<style>
+  .expect-figure { display: grid; place-items: center; margin: clamp(2rem, 5vw, 3.5rem) auto 0; }
+  .expect-figure img { display: block; width: min(78vw, 30rem); max-height: 26rem; object-fit: contain; }
+  @media (max-width: 767px) { .expect-figure img { width: min(86vw, 25rem); max-height: 22rem; } }
+</style>

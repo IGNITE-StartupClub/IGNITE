@@ -1,18 +1,22 @@
 ---
-import DefaultLayout from '../../layouts/DefaultLayout.astro'
-import { Card, Pagination } from 'accessible-astro-components'
-import { getCollection } from 'astro:content'
+/**
+ * Paginated news list (6 per page) from the `projects` content collection.
+ * Data source: src/content/projects, copy in listingPages.news (staticContent.ts).
+ */
 import type { GetStaticPaths, Page } from 'astro'
-import type { CollectionEntry } from 'astro:content'
+import { getCollection, type CollectionEntry } from 'astro:content'
+import DefaultLayout from '../../layouts/DefaultLayout.astro'
+import PageHeader from '../../components/ui/PageHeader.astro'
+import Section from '../../components/ui/Section.astro'
+import Pagination from '../../components/ui/Pagination.astro'
+import { listingPages } from '../../data/staticContent'
 
 export const prerender = true
 
 export const getStaticPaths = (async ({ paginate }) => {
   const projects = await getCollection('projects')
-  const sortedProjects = projects.sort((a, b) =>
-    new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
-  )
-  return paginate(sortedProjects, { pageSize: 6 })
+  const sorted = [...projects].sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  return paginate(sorted, { pageSize: 6 })
 }) satisfies GetStaticPaths
 
 interface Props {
@@ -20,70 +24,55 @@ interface Props {
 }
 
 const { page } = Astro.props
+const copy = listingPages.news
+const formatDate = (d: Date) => d.toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
 ---
 
-<DefaultLayout title="Neuigkeiten" description="Erfahre mehr über unsere Neuigkeiten" url="news">
-  <section class="my-12">
-    <div class="space-content container">
-      <h1>Neuigkeiten</h1>
-      <p class="text-2xl">
-        Erfahre mehr über unsere Neuigkeiten und bleibe auf dem Laufenden.
-      </p>
-    </div>
-  </section>
-  <section class="my-12">
-    <div class="container">
-      <p class="text-sm"><em>Artikel {page.start + 1} bis {page.end + 1} von {page.total} Artikeln</em></p>
-      <ul class="my-3">
-        {
-          page.data.map((project) => (
-            <li>
-              <Card class="design-card"
-                url={'/news/' + project.id}
-                title={project.data.title}
-                footer={'Author: ' + project.data.author}
-                img={project.data.image}
-              >
-                {project.data.description}
-              </Card>
+<DefaultLayout title="Neuigkeiten" description={copy.lead} url="news">
+  <PageHeader title={copy.title} lead={copy.lead} />
+  <Section tone="subtle" labelledby="page-title">
+    {
+      page.data.length === 0 ? (
+        <p class="text-fg-muted">{copy.empty}</p>
+      ) : (
+        <ul class="news-list">
+          {page.data.map((post, index) => (
+            <li class="news-item">
+              <a class="news-image" href={`/news/${post.id}`} aria-label={`Neuigkeit lesen: ${post.data.title}`}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <img src={post.data.image} alt={`Titelbild: ${post.data.title}`} loading={index < 2 ? 'eager' : 'lazy'} decoding="async" />
+              </a>
+              <div class="news-content">
+                <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                <h2><a href={`/news/${post.id}`}>{post.data.title}</a></h2>
+                <p>{post.data.description}</p>
+                <a class="news-link" href={`/news/${post.id}`}>{copy.readMore} <span aria-hidden="true">↗</span></a>
+              </div>
             </li>
-          ))
-        }
-      </ul>
-      <div class="mt-12 grid place-content-center">
-        <Pagination
-          firstPage={page.url.prev ? '/news' : null}
-          previousPage={page.url.prev ? page.url.prev : null}
-          nextPage={page.url.next ? page.url.next : null}
-          lastPage={page.url.next ? `/news/${Math.ceil(page.total / page.size)}` : null}
-          currentPage={page.currentPage}
-          totalPages={Math.ceil(page.total / page.size)}
-        />
-      </div>
-    </div>
-  </section>
+          ))}
+        </ul>
+      )
+    }
+    <Pagination page={page} basePath="/news" label="Seiten der Neuigkeiten" />
+  </Section>
 </DefaultLayout>
 
-<style lang="scss">
-  ul {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-gap: 4rem;
-
-    @media (min-width: 550px) {
-      grid-template-columns: repeat(2, 1fr);
-      grid-gap: 2rem;
-    }
-
-    @media (min-width: 950px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  .design-card {
-    background-color: var(--dark-100);
-    border: 3px solid var(--gradient-100);
-    border-radius: 1rem;
-    box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
-  }
-
+<style>
+  .news-list { display: grid; gap: clamp(2.5rem, 6vw, 6rem); max-width: 72rem; margin: 0 auto; }
+  .news-item { display: grid; grid-template-columns: minmax(15rem, 1.1fr) minmax(0, .9fr); gap: clamp(1.5rem, 5vw, 5rem); align-items: center; padding-bottom: clamp(2.5rem, 6vw, 6rem); border-bottom: 1px solid var(--color-border); }
+  .news-item:nth-child(even) { grid-template-columns: minmax(0, .9fr) minmax(15rem, 1.1fr); }
+  .news-item:nth-child(even) .news-image { order: 2; }
+  .news-image { position: relative; display: block; min-height: clamp(16rem, 31vw, 27rem); overflow: hidden; background: var(--color-bg-subtle); border: 1px solid var(--color-border); }
+  .news-image::after { content: ''; position: absolute; inset: 1rem; border: 1px solid rgb(255 255 255 / .2); pointer-events: none; }
+  .news-image img { display: block; width: 100%; height: 100%; min-height: inherit; object-fit: cover; filter: saturate(.78) contrast(1.04); transition: transform .6s ease, filter .6s ease; }
+  .news-image:hover img { transform: scale(1.04); filter: saturate(1) contrast(1.04); }
+  .news-image span { position: absolute; z-index: 1; top: 1rem; left: 1rem; color: white; font-size: .75rem; letter-spacing: .12em; text-shadow: 0 1px 8px rgb(0 0 0 / .35); }
+  .news-content { max-width: 31rem; }
+  .news-content time { color: var(--color-accent-text); font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+  .news-content h2 { margin: .75rem 0 1rem; font-size: clamp(1.8rem, 3.4vw, 3.4rem); }
+  .news-content h2 a:hover { color: var(--color-fg); }
+  .news-content > p { margin: 0; color: var(--color-fg-muted); }
+  .news-link { display: inline-flex; gap: .45rem; margin-top: 1.5rem; color: var(--color-fg); font-size: .95rem; font-weight: 650; }
+  .news-link:hover { color: var(--color-accent-text); }
+  @media (max-width: 767px) { .news-item, .news-item:nth-child(even) { grid-template-columns: 1fr; gap: 1.5rem; } .news-item:nth-child(even) .news-image { order: 0; } }
 </style>

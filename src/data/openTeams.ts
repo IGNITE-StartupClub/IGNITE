@@ -1,0 +1,64 @@
+/**
+ * Open teams applicants can choose from on /mitmachen and in the application questionnaire.
+ * (Team members live elsewhere; this file describes the teams themselves.)
+ */
+export interface OpenTeam {
+  id: string
+  category: 'intern' | 'extern'
+  /** Official team name, also used for the logo file name in /public/team-logos. */
+  team: string
+  /** Short role title. */
+  title: string
+  description: string
+}
+
+export const openTeams: readonly OpenTeam[] = [
+  {
+    id: 'ignite-events',
+    category: 'extern',
+    team: 'IGNITE Events',
+    title: 'Events Team',
+    description:
+      'Organisiert Workshops, Hackathons, Startup-Breakfasts und Networking-Events. Verantwortlich für alle öffentlichen Veranstaltungen und Community-Building.',
+  },
+  {
+    id: 'ignite-relations',
+    category: 'extern',
+    team: 'IGNITE Relations & Cooperations',
+    title: 'Relations Team',
+    description:
+      'Baut Kontakte zu Organisationen, Unternehmen und Mitgliedern des Advisory Boards auf. Koordiniert Partnerschaften und externe Beziehungen.',
+  },
+  {
+    id: 'ignite-marketing',
+    category: 'extern',
+    team: 'IGNITE Marketing',
+    title: 'Marketing Team',
+    description:
+      'Sorgt für Sichtbarkeit durch Social Media, Website, Newsletter und physische Präsenz an der Uni. Erstellt Content und Werbematerial.',
+  },
+  {
+    id: 'ignite-hr',
+    category: 'intern',
+    team: 'IGNITE Human Resources',
+    title: 'People Team',
+    description:
+      'Organisiert Recruiting, Info-Gespräche und Teambuilding. Ansprechpartner für interne Themen und Meetings.',
+  },
+  {
+    id: 'ignite-finance-legal',
+    category: 'intern',
+    team: 'IGNITE Finance & Legal',
+    title: 'Finance & Legal Team',
+    description:
+      'Kümmert sich um Vereinsgründung, Buchhaltung, Budgetierung und Sponsorings. Verwaltet rechtliche und finanzielle Angelegenheiten.',
+  },
+  {
+    id: 'ignite-quality-control',
+    category: 'intern',
+    team: 'IGNITE Quality & Control',
+    title: 'Process & Tools Team',
+    description:
+      'Wählt Tools aus, verwaltet Accounts und optimiert interne Arbeitsabläufe. Sorgt für effiziente Zusammenarbeit im Team.',
+  },
+]

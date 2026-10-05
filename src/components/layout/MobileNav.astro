@@ -1,0 +1,156 @@
+---
+/**
+ * Fullscreen mobile menu, opened by `.menu-trigger` in Header.astro (the header pill stays on top and shows the close icon).
+ * Props: items (navigation.menuItems; children render as a smaller list under their parent), currentUrls (active pages).
+ * Behaviour: aria-expanded toggle, scroll lock, Escape and link click close, focus trap, focus returns to the trigger.
+ * Bottom: theme toggle and social links (footer.socialLinks).
+ */
+import { Icon } from 'astro-icon/components'
+import ThemeToggle from '../ui/ThemeToggle.astro'
+import { footer, navigation } from '../../data/staticContent'
+
+interface NavItem {
+  label: string
+  url: string
+  children?: NavItem[]
+}
+interface Props {
+  items: NavItem[]
+  isCurrentPaths?: string[]
+}
+
+const { items, isCurrentPaths = [] } = Astro.props
+const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefined)
+---
+
+<div id="mobile-nav" class="mobile-nav" hidden role="dialog" aria-modal="true" aria-label={navigation.mainNavLabel}>
+  <nav aria-label={navigation.mainNavLabel} class="mobile-nav-inner">
+    <ul>
+      {items.map((item) => (
+        <li class="border-b border-border">
+          {item.children ? (
+            <>
+              <p class="mobile-link text-fg-muted">{item.label}</p>
+              <ul class="pb-4 pl-4">
+                {item.children.map((child) => (
+                  <li><a class="mobile-sublink" href={child.url} aria-current={current(child.url)}>{child.label}</a></li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <a class="mobile-link" href={item.url} aria-current={current(item.url)}>{item.label}</a>
+          )}
+        </li>
+      ))}
+    </ul>
+    <div class="mt-auto flex items-center justify-between pt-10">
+      <ul class="flex items-center gap-1">
+        {footer.socialLinks.map((s) => (
+          <li>
+            <a class="social" href={s.url} target="_blank" rel="noopener noreferrer" aria-label={s.platform}>
+              <Icon name={s.icon} aria-hidden="true" />
+            </a>
+          </li>
+        ))}
+      </ul>
+      <ThemeToggle />
+    </div>
+  </nav>
+</div>
+
+<script>
+  const FOCUSABLE = 'a[href], button:not([disabled])'
+  let cleanup: (() => void) | null = null
+
+  function init() {
+    cleanup?.()
+    const trigger = document.querySelector<HTMLButtonElement>('.menu-trigger')
+    const panel = document.getElementById('mobile-nav')
+    if (!trigger || !panel) return
+    const setOpen = (open: boolean) => {
+      trigger.setAttribute('aria-expanded', String(open))
+      trigger.setAttribute('aria-label', (open ? trigger.dataset.labelClose : trigger.dataset.labelOpen) ?? '')
+      panel.hidden = !open
+      document.body.style.overflow = open ? 'hidden' : ''
+      if (open) panel.querySelector<HTMLElement>(FOCUSABLE)?.focus()
+      else trigger.focus()
+    }
+    const onTrigger = () => setOpen(panel.hidden)
+    const onPanelClick = (e: Event) => (e.target as Element).closest('a[href]') && setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (panel.hidden) return
+      if (e.key === 'Escape') return setOpen(false)
+      if (e.key !== 'Tab') return
+      const nodes = [trigger, ...panel.querySelectorAll<HTMLElement>(FOCUSABLE)]
+      const edge = e.shiftKey ? nodes[0] : nodes[nodes.length - 1]
+      if (document.activeElement === edge) {
+        e.preventDefault()
+        nodes[e.shiftKey ? nodes.length - 1 : 0].focus()
+      }
+    }
+    const onResize = () => window.matchMedia('(min-width: 1024px)').matches && !panel.hidden && setOpen(false)
+    trigger.addEventListener('click', onTrigger)
+    panel.addEventListener('click', onPanelClick)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', onResize)
+    cleanup = () => {
+      trigger.removeEventListener('click', onTrigger)
+      panel.removeEventListener('click', onPanelClick)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onResize)
+      document.body.style.overflow = ''
+    }
+  }
+  document.addEventListener('astro:page-load', init)
+  init()
+</script>
+
+<style>
+  .mobile-nav {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    overflow-y: auto;
+    background-color: var(--color-bg);
+  }
+  .mobile-nav-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 6rem var(--space-gutter) 2rem;
+  }
+  .mobile-link {
+    display: flex;
+    align-items: center;
+    min-height: 4rem;
+    font-size: var(--text-display-sm);
+    font-weight: 700;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.1;
+  }
+  .mobile-link[aria-current='page'] {
+    color: var(--color-accent-text);
+  }
+  .mobile-sublink {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    font-size: var(--text-lead);
+    color: var(--color-fg-muted);
+  }
+  .mobile-sublink[aria-current='page'] {
+    color: var(--color-accent-text);
+  }
+  .social {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    color: var(--color-fg-muted);
+  }
+  .social :global(svg) {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+</style>

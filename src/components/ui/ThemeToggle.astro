@@ -1,0 +1,75 @@
+---
+/**
+ * Light/dark toggle (44x44). Persists the choice in localStorage ('theme').
+ * Labels come from navigation.themeToLightLabel / themeToDarkLabel in staticContent.ts.
+ */
+import { Icon } from 'astro-icon/components'
+import { navigation } from '../../data/staticContent'
+---
+
+<button
+  type="button"
+  class="theme-toggle"
+  data-theme-toggle
+  data-label-to-light={navigation.themeToLightLabel}
+  data-label-to-dark={navigation.themeToDarkLabel}
+  aria-label={navigation.themeToLightLabel}
+>
+  <Icon name="ion:sunny-outline" class="icon-sun" aria-hidden="true" />
+  <Icon name="ion:moon-outline" class="icon-moon" aria-hidden="true" />
+</button>
+
+<script>
+  const sync = () => {
+    const theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+    document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
+      const label = theme === 'dark' ? btn.dataset.labelToLight : btn.dataset.labelToDark
+      btn.setAttribute('aria-label', label ?? '')
+    })
+  }
+  const toggle = () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
+    document.documentElement.dataset.theme = next
+    document.documentElement.style.colorScheme = next
+    try {
+      localStorage.setItem('theme', next)
+    } catch {}
+    sync()
+  }
+  document.addEventListener('click', (e) => {
+    if ((e.target as Element).closest('[data-theme-toggle]')) toggle()
+  })
+  document.addEventListener('astro:page-load', sync)
+  sync()
+</script>
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    color: var(--color-fg);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-button);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) ease;
+  }
+  .theme-toggle:hover {
+    background-color: var(--color-bg-subtle);
+  }
+  .theme-toggle:active {
+    background-color: var(--color-border);
+  }
+  .theme-toggle :global(svg) {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  :global([data-theme='light']) .theme-toggle :global(.icon-sun),
+  :global([data-theme='dark']) .theme-toggle :global(.icon-moon) {
+    display: none;
+  }
+</style>

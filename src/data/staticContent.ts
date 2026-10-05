@@ -5,47 +5,57 @@ export const features = [
   {
     id: 1,
     icon: 'ion:diamond-outline',
-    title: 'Workshops & Events',
+    title: 'Workshops und Events',
     description:
-      'Wir lernen gemeinsam von Expert:innen & Peer-to-Peer über Startups und Entrepreneurship.\n\n<p class="text-neutral-500 my-3">Du willst einen Workshop im Rahmen unserer Initiative geben?</p>\n<a class="button secondary" href="/kontakt">Jetzt kontaktieren!</a>',
+      'Wir lernen gemeinsam von Expert:innen und Peer-to-Peer über Startups und Entrepreneurship. Du willst selbst einen Workshop im Rahmen unserer Initiative geben?',
+    link: { label: 'Jetzt kontaktieren', href: '/kontakt' },
     order: 1,
+    layout: 'wide',
   },
   {
     id: 2,
     icon: 'ion:document-attach-outline',
-    title: 'Fact-Sheet',
+    title: 'Ein Fact-Sheet zur Orientierung',
     description: 'Wir analysieren die Angebote zum Thema Entrepreneurship an der Leuphana Universität.',
-    order: 2,
+    link: { label: 'Zu den Materialien', href: '/materialien/' },
+    order: 3,
+    layout: 'half',
   },
   {
     id: 3,
     icon: 'ion:flame-outline',
-    title: 'Hackathon',
+    title: 'Der Hackathon',
     description:
-      'Wir veranstalten einen Hackathon, um innovative Ideen zu entwickeln und zu testen. Wir organisieren 2-3 tägige Events, um in kurzer Zeit Startup Ideen auszuarbeiten.',
-    order: 3,
+      'Wir veranstalten einen Hackathon, um innovative Ideen zu entwickeln und zu testen. In zwei bis drei Tagen arbeiten wir Startup-Ideen aus.',
+    order: 2,
+    layout: 'tall',
   },
   {
     id: 4,
     icon: 'ion:mic-outline',
-    title: 'IGNITE Podcast',
-    description: 'Im Utopia interviewen wir Startup Gründende und Leuphana Alumni.',
+    title: 'Der IGNITE Podcast',
+    description: 'Im Utopia interviewen wir Startup-Gründende und Leuphana-Alumni.',
     order: 4,
+    layout: 'half',
   },
   {
     id: 5,
     icon: 'ion:people-outline',
-    title: 'Community',
+    title: 'Eine Community',
     description: 'Wir verbinden Studierende, Alumni und Gründende mit dem Ziel, ein starkes Netzwerk aufzubauen.',
+    link: { label: 'Mitmachen', href: '/mitmachen' },
     order: 5,
+    layout: 'third',
   },
   {
     id: 6,
     icon: 'ion:cash-outline',
-    title: 'IGNITE Stipendium',
+    title: 'Das IGNITE Stipendium',
     description:
-      'Wir möchten in Zukunft angehendenden Gründenden einen Co-Working Platz und Förderung im Utopia ermöglichen.\n\n<p class="text-neutral-500 my-3">Dafür suchen wir Partner:innen, die uns unterstützen.</p>\n<a class="button secondary" href="/kontakt">Partner werden</a>',
+      'In Zukunft möchten wir angehenden Gründenden einen Co-Working-Platz und Förderung im Utopia ermöglichen. Dafür suchen wir Partner:innen, die uns unterstützen.',
+    link: { label: 'Partner werden', href: '/kontakt' },
     order: 6,
+    layout: 'third',
   },
 ]
 
@@ -62,7 +72,7 @@ export const faqs = [
     id: 2,
     question: 'Welche Erwartungen stellen wir an die Mitglieder?',
     answer:
-      '<p>Der durchschnittliche Aufwand liegt bei etwa 3–5 Stunden pro Woche – je nach Projektphase etwas mehr oder weniger. Wir erwarten regelmäßige Teilnahme an Team-Meetings, aktive Projektarbeit und proaktive Kommunikation.</p>',
+      '<p>Der durchschnittliche Aufwand liegt bei etwa 3 bis 5 Stunden pro Woche, je nach Projektphase etwas mehr oder weniger. Wir erwarten regelmäßige Teilnahme an Team-Meetings, aktive Projektarbeit und proaktive Kommunikation.</p>',
     openByDefault: false,
     order: 2,
   },
@@ -102,44 +112,85 @@ export const faqs = [
 
 export const homepage = {
   id: 1,
-  heroTitle: 'IGNITE',
-  heroSubtitle:
-    'Dein <span class="bg-gradient-to-br from-[var(--primary-300)] via-[var(--secondary-200)] to-[var(--primary-400)] bg-clip-text text-transparent drop-shadow-lg">Gründungsfunken</span> an der Leuphana Universität',
-  heroDescription: 'Gründer*innen-Community für ambitionierte Studierende der Leuphana',
+  heroTitle: 'Dein <em>Gründungsfunke</em> an der Leuphana.',
+  heroSubtitle: 'Die Gründer*innen-Community für Studierende der Leuphana.',
+  heroKpiLabel: 'IGNITE in Zahlen',
+  // Hero image: swap the motif here. `src` is a file name in src/assets/photos (optimized) or a public URL.
+  heroImage: {
+    src: 'kickoff.jpg',
+    alt: 'Gruppenfoto vom Kick-off-Event von IGNITE im Utopia: rund 35 Studierende vor der Projektion des IGNITE-Logos.',
+  },
   heroCTA_Text: 'Mitmachen',
   heroCTA_URL: '/mitmachen',
   heroCTA_Icon: 'ion:people-outline',
-  heroBackgroundColors: ['#5227FF', '#FF9FFC', '#B19EEF'],
-  featuresHeading: 'Was wir machen',
-  featuresSubheading: '',
-  faqHeading: 'FAQ',
-  faqDescription: 'Häufig gestellte Fragen zu IGNITE.',
-  faqCTA_Text: 'Nimm Kontakt auf!',
+  whyHeading: 'IGNITE existiert, um <em>Gründungsgeist</em> an der Leuphana zu entfachen',
+  whyParagraphs: [
+    'Wir sind eine studentische Initiative an der Leuphana Universität Lüneburg, die sich für Entrepreneurship und Startup-Kultur einsetzt.',
+    'Wir bieten dir <em>Workshops, Netzwerk und ein Team</em>, mit dem du Ideen testest und praxisnahe Erfahrungen rund um Unternehmensgründung sammelst.',
+    'Wir wollen die Anlaufstelle für alle Gründungsinteressierten sein, aus allen Fachrichtungen.',
+  ],
+  audienceHeading: '<em>Für wen</em> das ist',
+  audienceLines: [
+    'Für Studierende der Leuphana, die sich für Gründung interessieren.',
+    'Für alle mit eigener Idee und für alle, die noch auf der Suche nach einer sind.',
+    'Für alle, die gemeinsam in einem Team etwas aufbauen wollen.',
+  ],
+  featuresHeading: 'Was dich <em>erwartet</em>',
+  featuresPhotoAlt: 'Student Startup Guide Event: Publikum und Podium in einem Raum der Leuphana.',
+  advisoryHeading: 'Unser <em>Advisory Board</em>',
+  advisoryPhotoAltPrefix: 'Porträt von',
+  advisoryMoreLabel: 'Mehr lesen',
+  advisoryLessLabel: 'Weniger',
+  advisoryLinkedinText: 'LinkedIn',
+  advisoryLinkedinLabel: 'LinkedIn-Profil von',
+  advisoryJoinTitle: 'Werde Teil unseres Boards',
+  advisoryJoinRole: 'Advisory Board Member',
+  advisoryJoinHint: 'Deine Expertise ist gesucht.',
+  advisoryJoinCTA_Text: 'Interesse melden',
+  advisoryJoinCTA_URL: '/kontakt?intent=advisory',
+  newsHeading: 'News aus unserer Community',
+  newsLead: 'Erfahre mehr und bleibe auf dem Laufenden.',
+  newsReadMore: 'Mehr lesen!',
+  newsAuthorLabel: 'Von',
+  newsCTA_Text: 'Alle Neuigkeiten',
+  newsCTA_URL: '/news/',
+  newsImageAltPrefix: 'Titelbild zu',
+  faqHeading: '<em>Fragen?</em>',
+  faqCTA_Text: 'Nimm Kontakt auf',
   faqCTA_URL: '/kontakt',
-  showAdvisoryBoard: true,
-  showNews: true,
-  newsHeading: 'Neuigkeiten',
+  finalHeading: 'Werde <em>Teil</em> von IGNITE',
+  finalText: 'Bewirb dich als Mitglied und baue mit uns die Gründungskultur an der Leuphana auf.',
+  finalCTA_Text: 'Mitmachen',
+  finalCTA_URL: '/mitmachen',
 }
 
 export const navigation = {
   id: 1,
   logo: null,
   logoText: 'IGNITE',
+  ctaLabel: 'Mitmachen',
+  ctaUrl: '/mitmachen',
+  skipLinkLabel: 'Zum Inhalt springen',
+  mainNavLabel: 'Hauptnavigation',
+  menuOpenLabel: 'Menü öffnen',
+  menuCloseLabel: 'Menü schließen',
+  themeToLightLabel: 'Zum hellen Design wechseln',
+  themeToDarkLabel: 'Zum dunklen Design wechseln',
+  mobileSocialHeading: 'Folge uns',
   menuItems: [
-    { label: 'Startseite', url: '/', isExternal: false, order: 1 },
-    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 2 },
-    // { label: 'Über uns', url: '/about', isExternal: false, order: 2 },
+    { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 1 },
     {
       label: 'Events',
       url: '#',
       isExternal: false,
-      order: 4,
+      order: 2,
       children: [
         { label: 'IGNITE Workshops', url: '/IGNITEWorkshops/', isExternal: false, order: 1 },
         { label: 'Peer-to-Peer Workshops', url: '/peer-to-peer', isExternal: false, order: 2 },
       ],
     },
-    { label: 'Newsletter', url: '/subscribe', isExternal: false, order: 5 },
+    { label: 'Materialien', url: '/materialien/', isExternal: false, order: 3 },
+    { label: 'Newsletter', url: '/subscribe', isExternal: false, order: 4 },
   ],
 }
 
@@ -148,6 +199,10 @@ export const footer = {
   description:
     'Startup Initiative an der Leuphana Universität Lüneburg. Wir sind die Anlaufstelle für alle Gründungsinteressierten',
   showNewsletter: true,
+  navigationHeading: 'Navigation',
+  legalHeading: 'Rechtliches',
+  socialHeading: 'Social',
+  footerNavLabel: 'Fußbereich',
   socialLinks: [
     { platform: 'Instagram', url: 'https://www.instagram.com/ignite.lueneburg/', icon: 'ion:logo-instagram', order: 1 },
     {
@@ -221,3 +276,42 @@ export const contactTopics = [
   { id: 4, value: 'workshop', label: 'Workshop veranstalten', requiresAdditionalFields: false, order: 4 },
   { id: 5, value: 'sonstiges', label: 'Sonstiges', requiresAdditionalFields: false, order: 5 },
 ]
+
+export const mitmachenPage = {
+  title: 'Entrepreneurship-Spirit <em>verbindet</em>',
+  lead: 'Werde Teil des IGNITE Startup Club Lüneburg. Wir suchen Studierende, die Lust haben, Events, Netzwerke und Projekte mitzugestalten.',
+  ctaLabel: 'Jetzt bewerben',
+  teamsHeading: 'Unsere <em>Teams</em>',
+  teamsLead: 'Du wählst zwei bis drei Teams, in denen du dir vorstellen kannst mitzuarbeiten.',
+  formHeading: 'Jetzt <em>mitmachen</em>',
+  formLead: 'Bewirb dich schnell und unkompliziert mit diesem Formular.',
+  processHeading: 'Wie geht es <em>weiter</em>?',
+  processLead: 'So wirst du Teil von IGNITE.',
+  steps: [
+    { title: 'Formular ausfüllen', text: 'Fülle unser Formular aus und erzähle uns von dir und deinen Interessen.' },
+    { title: 'Bestätigungsmail', text: 'Du erhältst eine Bestätigungsmail von uns, dass deine Anfrage bei uns eingegangen ist.' },
+    { title: 'Auswertung', text: 'Wir lesen uns deine Anfrage durch und laden dich zu einem kurzen Info-Gespräch ein.' },
+    { title: 'Info-Gespräch', text: 'Das Info-Gespräch führt unser People-Team mit dir. Dabei lernen wir uns gegenseitig kennen.' },
+    { title: 'Team-Matching', text: 'Nach dem Info-Gespräch entscheidet das People-Team, in welchem deiner gewählten Teams du gerade am besten unterstützen kannst.' },
+  ],
+}
+
+export const listingPages = {
+  news: {
+    title: '<em>Was passiert</em> bei IGNITE',
+    lead: 'Einblicke in Events, Begegnungen und die Menschen, die unsere Gründungskultur mitbauen.',
+    empty: 'Noch keine Neuigkeiten vorhanden.',
+    readMore: 'Weiterlesen',
+  },
+  materials: {
+    title: 'Materialien für den <em>nächsten Schritt</em>',
+    lead: 'Klarer denken, besser testen, mutiger loslegen: Guides und Frameworks für deinen Gründerweg.',
+    empty: 'Noch keine Materialien vorhanden.',
+    readMore: 'Ansehen',
+  },
+}
+
+export const subscribePage = {
+  title: 'Bleib auf dem <em>Laufenden</em>',
+  lead: 'Erhalte Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene in Lüneburg.',
+}

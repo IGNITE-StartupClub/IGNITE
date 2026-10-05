@@ -1,0 +1,58 @@
+---
+/**
+ * FAQ in the theresidency pattern: centered serif "Fragen?" headline, full-width list of native <details> with
+ * 1px hairlines, large question text, "+" on the right that becomes "×" when open (CSS only), muted answers.
+ * Props: none. Data: faqs (question, answer HTML, openByDefault) and homepage.faq* in staticContent.ts.
+ */
+import Section from '../ui/Section.astro'
+import Button from '../ui/Button.astro'
+import { faqs, homepage } from '../../data/staticContent'
+
+const items = [...faqs].sort((a, b) => a.order - b.order)
+---
+
+<Section spacing="md" labelledby="faq-title">
+  <h2 id="faq-title" class="text-center text-display-md" set:html={homepage.faqHeading} />
+  <div class="mx-auto mt-14 max-w-4xl border-t border-border md:mt-16">
+    {
+      items.map((faq) => (
+        <details class="faq-item border-b border-border" open={faq.openByDefault}>
+          <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-6 py-6 text-faq font-medium leading-tight md:py-8">
+            <span>{faq.question}</span>
+            <span class="faq-icon shrink-0 text-3xl font-light leading-none text-fg-muted" aria-hidden="true">
+              +
+            </span>
+          </summary>
+          <div class="faq-answer max-w-text pb-8 text-fg-muted" set:html={faq.answer} />
+        </details>
+      ))
+    }
+  </div>
+  <div class="mt-12 text-center">
+    <Button href={homepage.faqCTA_URL} variant="ghost">{homepage.faqCTA_Text}</Button>
+  </div>
+</Section>
+
+<style>
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq-icon {
+    transition: transform var(--duration-fast) ease;
+  }
+  .faq-item[open] .faq-icon {
+    transform: rotate(45deg);
+  }
+  .faq-answer :global(a) {
+    color: var(--color-fg);
+    border-bottom: 1px dashed var(--color-fg-muted);
+  }
+  .faq-answer :global(p + p) {
+    margin-top: 1rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .faq-icon {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,23 @@
+---
+/**
+ * Subpage header: serif h1 with optional <em> emphasis word and an optional lead paragraph.
+ * Props: title (HTML allowed, use one <em>), lead (plain text), id (h1 id), class.
+ * Slots: default (extra content below the lead, e.g. a button).
+ */
+import Section from './Section.astro'
+
+interface Props {
+  title: string
+  lead?: string
+  id?: string
+  class?: string
+}
+
+const { title, lead, id = 'page-title', class: className = '' } = Astro.props
+---
+
+<Section spacing="md" labelledby={id} class={className}>
+  <h1 id={id} class="max-w-text text-display-md" set:html={title} />
+  {lead && <p class="mt-6 max-w-text text-lead text-fg-muted">{lead}</p>}
+  <slot />
+</Section>

@@ -1,51 +1,25 @@
 ---
-import DefaultLayout from '../layouts/DefaultLayout.astro';
-import Contact from '../components/Contact.jsx';
-import CallToAction from '../components/CallToAction.astro';
-import { contactPage } from '../data/staticContent';
+/**
+ * Contact page with the contact form. Supports ?intent=<topic> to preselect the topic.
+ * Data source: contactPage in src/data/staticContent.ts.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import Contact from '../components/forms/Contact.jsx'
+import { contactPage } from '../data/staticContent'
 
-const initialIntent = Astro.url.searchParams.get('intent') || '';
+export const prerender = true
 
-// Static contact page content
-const pageTitle = contactPage.pageTitle;
-const pageIntro = contactPage.pageIntro;
-
-export const prerender = true;
+const initialIntent = Astro.url.searchParams.get('intent') || ''
 ---
 
-<DefaultLayout title="Kontakt" description="Nimm Kontakt mit uns auf! Wir freuen uns über deine Nachricht und stehen dir gerne zur Verfügung.">
-  <main class="mitmachen-container">
-    <h1>{pageTitle}</h1>
-    <div class="intro" set:html={pageIntro} />
+<DefaultLayout
+  title="Kontakt"
+  description="Nimm Kontakt mit uns auf. Wir freuen uns über deine Nachricht und stehen dir gerne zur Verfügung."
+>
+  <PageHeader title={contactPage.pageTitle} lead={contactPage.pageIntro} />
+  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
     <Contact client:load initialIntent={initialIntent} />
-    <CallToAction />
-
-  </main>
-
-  <style lang="css">
-    .mitmachen-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      font-family: var(--font-sans);
-      color: var(--color-text);
-    }
-    .intro {
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-    h1, h2 { 
-      color: var(--color-primary);
-    }
-    .form-section {
-      margin-top: 3rem;
-    }
-    #application-form {
-      margin: 2rem 0 2rem 0;
-    }
-    .text-wrapper {
-      margin-bottom: 2rem;
-    }
-    /* CSS-Variablen im globalen Stylesheet definiert */
-  </style>
+  </Section>
 </DefaultLayout>

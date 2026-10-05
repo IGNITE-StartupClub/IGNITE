@@ -1,0 +1,29 @@
+---
+/**
+ * Simple previous/next pagination for Astro's paginate() pages.
+ * Props: page (Astro Page object), basePath (list root, e.g. '/news'), label (nav aria-label).
+ */
+import type { Page } from 'astro'
+
+interface Props {
+  page: Page<unknown>
+  basePath: string
+  label?: string
+}
+
+const { page, basePath, label = 'Seitennavigation' } = Astro.props
+const prev = page.url.prev ? (page.currentPage === 2 ? basePath : page.url.prev) : null
+const total = Math.ceil(page.total / page.size)
+const linkClass =
+  'inline-flex min-h-11 items-center rounded-button border border-border-strong px-6 text-fg transition-colors hover:border-fg hover:bg-bg-subtle'
+---
+
+{
+  total > 1 && (
+    <nav aria-label={label} class="mt-16 flex items-center justify-between gap-4">
+      {prev ? <a href={prev} rel="prev" class={linkClass}>Zurück</a> : <span />}
+      <p class="text-sm text-fg-muted">Seite {page.currentPage} von {total}</p>
+      {page.url.next ? <a href={page.url.next} rel="next" class={linkClass}>Weiter</a> : <span />}
+    </nav>
+  )
+}

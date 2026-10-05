@@ -1,0 +1,240 @@
+/*
+ * Shared form styles for every React form (Contact, Subscribe, Newsletter, Questionnaire).
+ * Tokens only (see src/styles/global.css). Import once per form component.
+ * Classes: .form, .field, .field-label, .field-hint, .input (input/select/textarea),
+ * .choice (checkbox/radio row), .form-error, .form-success, .form-submit, .form-secondary, .form-note.
+ */
+.form {
+  --radius-field: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.form-row {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-fg);
+}
+
+.field-hint {
+  font-weight: 400;
+  color: var(--color-fg-subtle);
+}
+
+.input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-fg);
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-field, 0.75rem);
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease;
+}
+
+textarea.input {
+  min-height: 8rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+select.input {
+  cursor: pointer;
+}
+
+.input::placeholder {
+  color: var(--color-fg-subtle);
+  opacity: 1;
+}
+
+.input:hover:not(:disabled):not(:focus-visible) {
+  border-color: var(--color-fg-muted);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.input:disabled,
+.input[readonly] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.choice input {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.0625rem 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.choice-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset-legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.form-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.form-success {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+.form-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+}
+
+.form-note a,
+.form-success-box a {
+  color: var(--color-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.form-submit,
+.form-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.5rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-button);
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.form-submit {
+  color: var(--color-primary-fg);
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.form-submit:hover:not(:disabled) {
+  color: var(--color-primary-fg);
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.form-submit:active:not(:disabled) {
+  background-color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.form-secondary {
+  color: var(--color-fg);
+  background-color: transparent;
+  border: 1px solid var(--color-border-strong);
+}
+
+.form-secondary:hover:not(:disabled) {
+  color: var(--color-fg);
+  background-color: var(--color-bg-subtle);
+  border-color: var(--color-fg);
+}
+
+.form-submit:disabled,
+.form-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-success-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.form-success-box h2,
+.form-success-box h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.form-success-box p {
+  margin: 0;
+  color: var(--color-fg-muted);
+}

@@ -1,15 +1,26 @@
 ---
+/**
+ * Layout for Markdown/MDX pages (legal, workshops, peer-to-peer).
+ * Frontmatter: title (required), description (optional). Content is styled by .prose (src/styles/prose.css).
+ */
+import '../styles/prose.css'
 import DefaultLayout from './DefaultLayout.astro'
+import Section from '../components/ui/Section.astro'
+
+interface Props {
+  frontmatter: { title: string; description?: string }
+}
+
 const { frontmatter } = Astro.props
 ---
 
-<DefaultLayout 
-  title={frontmatter.title} 
-  description={frontmatter.description?.substring(0, 160) ?? 'Ignite Startup Club Lüneburg'}>
-  <div class="container">
-    <div class="space-content my-12">
+<DefaultLayout
+  title={frontmatter.title}
+  description={frontmatter.description?.substring(0, 160) ?? 'IGNITE Startup Club Lüneburg'}
+>
+  <Section spacing="md" width="text">
+    <div class="prose">
       <slot />
     </div>
-  </div>
+  </Section>
 </DefaultLayout>
-

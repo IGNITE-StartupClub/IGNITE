@@ -1,0 +1,63 @@
+---
+/**
+ * Homepage hero in the theresidency pattern: centered h1 (gradient key word), one short subline, one primary CTA,
+ * then a single large rounded image below. The image comes from `homepage.heroImage` ({ src, alt }): `src` is a
+ * file name in src/assets/photos (optimized by astro:assets) or a public URL, so the motif can be swapped in
+ * staticContent.ts only.
+ * Props: none. Data: homepage (heroTitle, heroSubtitle, heroCTA_*, heroImage).
+ */
+import { Image } from 'astro:assets'
+import Button from '../ui/Button.astro'
+import { homepage } from '../../data/staticContent'
+
+const assets = import.meta.glob<{ default: ImageMetadata }>('../../assets/photos/*.{jpg,jpeg,png,webp}', { eager: true })
+const { src, alt } = homepage.heroImage
+const asset = assets[`../../assets/photos/${src}`]?.default
+---
+
+<section class="hero-section bg-bg pb-section-sm pt-8 md:pt-14" aria-labelledby="hero-title">
+  <div class="mx-auto max-w-wide px-gutter">
+    <div class="mx-auto max-w-3xl text-center">
+      <h1 id="hero-title" class="text-hero font-bold" set:html={homepage.heroTitle} />
+      <p class="mx-auto mt-6 max-w-prose text-balance text-lead text-fg-muted">{homepage.heroSubtitle}</p>
+      <div class="mt-8 md:mt-10">
+        <Button href={homepage.heroCTA_URL} size="lg">{homepage.heroCTA_Text}</Button>
+      </div>
+    </div>
+    <figure class="hero-object">
+      <img
+        src="/img/heritage/salt-sculpture.png"
+        alt="Skulptur zum Lüneburger Salzhandel und heutiger Gründungskultur"
+        width="720"
+        height="864"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
+    </figure>
+    <figure class="hero-photo">
+      {
+        asset ? (
+          <Image
+            src={asset}
+            alt={alt}
+            widths={[640, 1024, 1536]}
+            sizes="(min-width: 1152px) 1100px, 92vw"
+            loading="eager"
+            fetchpriority="high"
+            class="aspect-[4/3] w-full object-cover md:aspect-[16/9]"
+          />
+        ) : (
+          <img src={src} {alt} width="1152" height="648" class="aspect-[4/3] w-full object-cover md:aspect-[16/9]" />
+        )
+      }
+    </figure>
+  </div>
+</section>
+
+<style>
+  .hero-object { display: grid; place-items: center; margin: clamp(2.5rem, 5vw, 4rem) auto 0; }
+  .hero-object img { display: block; width: min(82vw, 34rem); max-height: 24rem; object-fit: contain; }
+  .hero-photo { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border-radius: var(--radius-card); }
+  @media (max-width: 767px) { .hero-object img { width: min(88vw, 28rem); max-height: 20rem; } }
+</style>

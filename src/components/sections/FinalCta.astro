@@ -1,0 +1,18 @@
+---
+/**
+ * Final call to action on the flat deep brand surface (#311763), centered: headline with one serif accent, one
+ * sentence and the one primary Button of the page. No gradients.
+ * Props: none. Data: homepage (finalHeading, finalText, finalCTA_*) in staticContent.ts.
+ */
+import Section from '../ui/Section.astro'
+import Button from '../ui/Button.astro'
+import { homepage } from '../../data/staticContent'
+---
+
+<Section tone="subtle" spacing="lg" width="text" labelledby="final-title" class="text-center">
+  <h2 id="final-title" class="text-display-md" set:html={homepage.finalHeading} />
+  <p class="mx-auto mt-8 max-w-prose text-lead text-fg-muted">{homepage.finalText}</p>
+  <div class="mt-12">
+    <Button href={homepage.finalCTA_URL} variant="primary" size="lg">{homepage.finalCTA_Text}</Button>
+  </div>
+</Section>

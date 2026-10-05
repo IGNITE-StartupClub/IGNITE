@@ -1,0 +1,29 @@
+---
+/**
+ * Numbered application process as an ordered list with hairline dividers.
+ * Props: steps ({ title, text }[]). Data source: mitmachenPage.steps in src/data/staticContent.ts.
+ */
+interface Step {
+  title: string
+  text: string
+}
+interface Props {
+  steps: Step[]
+}
+
+const { steps } = Astro.props
+---
+
+<ol class="mt-12 max-w-text border-t border-border">
+  {
+    steps.map((step, i) => (
+      <li class="grid grid-cols-[3rem_1fr] gap-4 border-b border-border py-8 md:grid-cols-[5rem_1fr]">
+        <span class="font-display text-display-sm text-accent" aria-hidden="true">{i + 1}</span>
+        <div>
+          <h3 class="text-xl">{step.title}</h3>
+          <p class="mt-2 text-fg-muted">{step.text}</p>
+        </div>
+      </li>
+    ))
+  }
+</ol>

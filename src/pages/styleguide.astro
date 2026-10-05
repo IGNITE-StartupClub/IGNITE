@@ -1,0 +1,84 @@
+---
+/**
+ * Internal styleguide: tokens, type scale, buttons, card, section tones. Not indexed.
+ * Use the theme toggle in the header to check both themes.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import Section from '../components/ui/Section.astro'
+import Button from '../components/ui/Button.astro'
+import Card from '../components/ui/Card.astro'
+
+export const prerender = true
+
+const swatches = [
+  ['bg', 'bg-bg'], ['bg-subtle', 'bg-bg-subtle'], ['fg', 'bg-fg'], ['fg-muted', 'bg-fg-muted'],
+  ['fg-subtle', 'bg-fg-subtle'], ['border', 'bg-border'], ['border-strong', 'bg-border-strong'],
+  ['primary', 'bg-primary'], ['accent', 'bg-accent'], ['danger', 'bg-danger'], ['success', 'bg-success'],
+]
+const variants = ['primary', 'secondary', 'outline', 'ghost'] as const
+---
+
+<DefaultLayout title="Styleguide" description="Interne Übersicht der Design-Tokens und Komponenten." noindex>
+  <Section width="wide" spacing="sm" labelledby="sg-colors">
+    <h1 class="text-display-md">Style<em>guide</em></h1>
+    <h2 id="sg-colors" class="mt-16 text-display-sm">Farben</h2>
+    <ul class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+      {swatches.map(([name, cls]) => (
+        <li>
+          <div class={`h-16 rounded-card border border-border ${cls}`}></div>
+          <p class="mt-2 text-sm text-fg-muted">{name}</p>
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  <Section tone="subtle" width="wide" spacing="sm" labelledby="sg-type">
+    <h2 id="sg-type" class="text-display-sm">Typografie</h2>
+    <div class="mt-8 flex flex-col gap-6">
+      <p class="font-display text-display-lg">Display <em class="text-emphasis">groß</em></p>
+      <p class="font-display text-display-md">Display mittel</p>
+      <p class="font-display text-display-sm">Display klein</p>
+      <p class="text-lead">Lead-Absatz in Inter für einleitende Sätze.</p>
+      <p class="max-w-prose text-base text-fg-muted">Fließtext mit gedämpfter Farbe. Er bleibt linksbündig und auf etwa 65 Zeichen begrenzt, damit er gut lesbar ist.</p>
+      <p class="text-sm text-fg-subtle">Meta und Bildunterschriften</p>
+    </div>
+  </Section>
+
+  <Section width="wide" spacing="sm" labelledby="sg-buttons">
+    <h2 id="sg-buttons" class="text-display-sm">Buttons</h2>
+    <div class="mt-8 flex flex-col gap-8">
+      {variants.map((variant) => (
+        <div class="flex flex-wrap items-center gap-6">
+          <Button variant={variant} href="#">{variant}</Button>
+          <Button variant={variant} href="#" size="lg">{variant} groß</Button>
+          <Button variant={variant} disabled>{variant} deaktiviert</Button>
+        </div>
+      ))}
+    </div>
+    <p class="mt-6 max-w-prose text-fg-muted">Hover, Active und Fokus lassen sich per Maus und Tastatur testen.</p>
+  </Section>
+
+  <Section tone="subtle" width="wide" spacing="sm" labelledby="sg-card">
+    <h2 id="sg-card" class="text-display-sm">Card</h2>
+    <div class="mt-8 grid gap-6 md:grid-cols-2">
+      <Card>
+        <h3 slot="title">Name Nachname</h3>
+        <p slot="meta">Rolle im Team</p>
+        <p>Zwei bis drei Zeilen Text zur Person, ruhig und ohne Hervorhebungen.</p>
+      </Card>
+      <Card>
+        <h3 slot="title">Kurzer Titel</h3>
+        <p>Eine Card ohne Meta zeigt, dass die Slots optional sind.</p>
+      </Card>
+    </div>
+  </Section>
+
+  <Section tone="inverted" width="text" spacing="sm" labelledby="sg-inv">
+    <h2 id="sg-inv" class="text-display-sm">Invertierte <em>Fläche</em></h2>
+    <p class="mt-4 text-fg-muted">Wechselt relativ zum aktiven Design.</p>
+    <div class="mt-8 flex items-center gap-6">
+      <Button href="#">Mitmachen</Button>
+      <Button href="#" variant="secondary">Mehr erfahren</Button>
+    </div>
+  </Section>
+</DefaultLayout>

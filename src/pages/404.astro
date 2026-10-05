@@ -1,26 +1,21 @@
 ---
+/**
+ * 404 page. Data source: globalConfig.error404_* in src/data/staticContent.ts.
+ */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
+import Section from '../components/ui/Section.astro'
+import Button from '../components/ui/Button.astro'
 import { globalConfig } from '../data/staticContent'
-
-// Static 404 config
-const heading = globalConfig.error404_heading
-const message = globalConfig.error404_message
-const buttonText = globalConfig.error404_buttonText
-const buttonUrl = globalConfig.error404_buttonUrl
 
 export const prerender = true
 ---
 
-<DefaultLayout title="404" description="Seite nicht gefunden">
-  <section class="my-12">
-    <div class="container">
-      <h1>{heading}</h1>
+<DefaultLayout title="404" description="Seite nicht gefunden" noindex>
+  <Section spacing="lg" labelledby="notfound-title">
+    <h1 id="notfound-title" class="max-w-text text-display-md">{globalConfig.error404_heading}</h1>
+    <p class="mt-6 max-w-text text-lead text-fg-muted">{globalConfig.error404_message}</p>
+    <div class="mt-10">
+      <Button href={globalConfig.error404_buttonUrl}>{globalConfig.error404_buttonText}</Button>
     </div>
-  </section>
-  <section class="my-12">
-    <div class="space-content container">
-      <p class="text-2xl">{message}</p>
-      <a class="button" href={buttonUrl}>{buttonText}</a>
-    </div>
-  </section>
+  </Section>
 </DefaultLayout>

@@ -1,0 +1,27 @@
+---
+/**
+ * Grid of open teams, rendered with the one Card design.
+ * Props: teams (OpenTeam[]). Data source: src/data/openTeams.ts.
+ */
+import Card from '../ui/Card.astro'
+import type { OpenTeam } from '../../data/openTeams'
+
+interface Props {
+  teams: readonly OpenTeam[]
+}
+
+const { teams } = Astro.props
+const categoryLabel = { intern: 'Intern', extern: 'Extern' }
+---
+
+<ul class="grid gap-6 md:grid-cols-2">
+  {
+    teams.map((team) => (
+      <Card as="li">
+        <h3 slot="title">{team.team}</h3>
+        <span slot="meta">{team.title}, {categoryLabel[team.category]}</span>
+        <p>{team.description}</p>
+      </Card>
+    ))
+  }
+</ul>

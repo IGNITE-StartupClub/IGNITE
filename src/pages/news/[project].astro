@@ -1,31 +1,25 @@
 ---
+/**
+ * News article detail page from the `projects` content collection.
+ */
+import { getCollection, render, type CollectionEntry } from 'astro:content'
 import DefaultLayout from '../../layouts/DefaultLayout.astro'
-import { Breadcrumbs, BreadcrumbsItem } from 'accessible-astro-components'
-import { getCollection, render } from 'astro:content'
-import type { CollectionEntry } from 'astro:content'
+import ArticleView from '../../components/ui/ArticleView.astro'
+
+export const prerender = true
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects')
-  return projects.map((project) => ({
-    params: { project: project.id },
-    props: { project },
-  }))
+  return projects.map((project) => ({ params: { project: project.id }, props: { project } }))
 }
 
 interface Props {
   project: CollectionEntry<'projects'>
 }
 
-export const prerender = true
-
 const { project } = Astro.props
 const { Content } = await render(project)
-
-const formattedDate = new Date(project.data.date).toLocaleDateString('de-DE', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const date = new Date(project.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
 ---
 
 <DefaultLayout
@@ -33,40 +27,16 @@ const formattedDate = new Date(project.data.date).toLocaleDateString('de-DE', {
   description={project.data.description || project.data.title}
   url={project.id}
   image={project.data.image}
-  plainBackground={true}
 >
-  <div class="container article-breadcrumb">
-    <Breadcrumbs>
-      <BreadcrumbsItem href="/" label="Startseite" />
-      <BreadcrumbsItem href="/news" label="Neuigkeiten" />
-      <BreadcrumbsItem currentPage={true} label={project.data.title} />
-    </Breadcrumbs>
-  </div>
-
-  <article>
-    <div class="article-wrap">
-      <header class="article-header">
-        <div class="article-meta-row">
-          <span class="article-tag">Neuigkeit</span>
-          <span class="article-meta-sep" aria-hidden="true">·</span>
-          <time class="article-date">{formattedDate}</time>
-          <span class="article-meta-sep" aria-hidden="true">·</span>
-          <span class="article-author-name">{project.data.author}</span>
-        </div>
-        <h1 class="article-title">{project.data.title}</h1>
-      </header>
-
-      <div class="article-hero">
-        <img src={project.data.image} alt={project.data.title} loading="eager" />
-      </div>
-
-      <div class="article-prose">
-        <Content />
-      </div>
-
-      <div class="article-back">
-        <a href="/news" class="article-back-link">← Zurück zu Neuigkeiten</a>
-      </div>
-    </div>
-  </article>
+  <ArticleView
+    title={project.data.title}
+    date={date}
+    meta={[project.data.author]}
+    image={project.data.image}
+    crumbs={[{ label: 'Startseite', href: '/' }, { label: 'Neuigkeiten', href: '/news' }, { label: project.data.title }]}
+    backHref="/news"
+    backLabel="Zurück zu den Neuigkeiten"
+  >
+    <Content />
+  </ArticleView>
 </DefaultLayout>

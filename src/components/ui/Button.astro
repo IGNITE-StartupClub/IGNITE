@@ -1,0 +1,172 @@
+---
+/**
+ * The one Button. Renders <a> when `href` is set, otherwise <button>.
+ * Variants: primary (purple fill), secondary (pill with gradient outline, the classic IGNITE button),
+ * ghost (text link, dashed underline), outline (hairline pill, quiet secondary action next to a primary).
+ * Props: href, variant, size ('sm' | 'md' | 'lg'; sm is 44px high, used in the header), icon (astro-icon name, e.g. 'ion:people-outline'), type, disabled, class;
+ * other attributes pass through.
+ * States: hover, active, focus-visible (global ring), disabled. Min height 44px.
+ */
+import type { HTMLAttributes } from 'astro/types'
+import { Icon } from 'astro-icon/components'
+
+interface Props extends Omit<HTMLAttributes<'a'>, 'type'> {
+  href?: string
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  icon?: string
+  type?: 'button' | 'submit' | 'reset'
+  disabled?: boolean
+  class?: string
+}
+
+const {
+  href,
+  variant = 'primary',
+  size = 'md',
+  icon,
+  type = 'button',
+  disabled = false,
+  class: className = '',
+  ...rest
+} = Astro.props
+
+const classes = ['btn', `btn-${variant}`, `btn-${size}`, className].filter(Boolean).join(' ')
+---
+
+{
+  href && !disabled ? (
+    <a href={href} class={classes} {...rest}>
+      {icon && <Icon name={icon} class="btn-icon" aria-hidden="true" />}
+      <slot />
+    </a>
+  ) : href ? (
+    <a class={classes} aria-disabled="true" role="link" {...rest}>
+      {icon && <Icon name={icon} class="btn-icon" aria-hidden="true" />}
+      <slot />
+    </a>
+  ) : (
+    <button type={type} class={classes} disabled={disabled} {...rest}>
+      {icon && <Icon name={icon} class="btn-icon" aria-hidden="true" />}
+      <slot />
+    </button>
+  )
+}
+
+<style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+    transition:
+      background-color var(--duration-fast) ease,
+      border-color var(--duration-fast) ease,
+      color var(--duration-fast) ease;
+  }
+
+  .btn-sm {
+    padding-inline: 1.125rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  .btn-lg {
+    min-height: 3.25rem;
+    padding-inline: 2rem;
+  }
+
+  .btn-primary {
+    color: var(--color-primary-fg);
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-button);
+  }
+  .btn-primary:hover {
+    color: var(--color-primary-fg);
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
+  .btn-primary:active {
+    background-color: var(--color-primary-active);
+    border-color: var(--color-primary-active);
+  }
+
+  .btn-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  /* Gradient outline: surface fill clipped to the padding box, gradient shows in the 3px border. */
+  .btn-secondary {
+    color: var(--color-fg);
+    font-weight: 700;
+    border: 3px solid transparent;
+    border-radius: var(--radius-button);
+    background:
+      linear-gradient(var(--color-btn-surface), var(--color-btn-surface)) padding-box,
+      var(--gradient-brand) border-box;
+    box-shadow: var(--shadow-card);
+    transition:
+      transform var(--duration-fast) ease,
+      box-shadow var(--duration-fast) ease,
+      color var(--duration-fast) ease;
+  }
+  .btn-secondary:hover {
+    color: var(--color-fg);
+    transform: translateY(-2px);
+    box-shadow:
+      var(--shadow-card-hover),
+      0 0 0 4px color-mix(in srgb, var(--color-brand-bright) 22%, transparent);
+  }
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  .btn-outline {
+    color: var(--color-fg);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-button);
+    background-color: transparent;
+  }
+  .btn-outline:hover {
+    color: var(--color-fg);
+    border-color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+
+  .btn-ghost {
+    padding-inline: 0;
+    color: var(--color-fg);
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px dashed var(--color-fg-muted);
+    border-radius: 0;
+    min-height: 2.75rem;
+    padding-block: 0.25rem;
+  }
+  .btn-ghost:hover {
+    color: var(--color-fg);
+    border-bottom-style: solid;
+    border-bottom-color: var(--color-fg);
+  }
+  .btn-ghost:active {
+    color: var(--color-fg-muted);
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+</style>

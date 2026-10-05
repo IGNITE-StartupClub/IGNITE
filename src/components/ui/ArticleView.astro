@@ -1,0 +1,38 @@
+---
+/**
+ * Detail view for a news article or material: breadcrumbs, serif title, meta line, optional image, prose, back link.
+ * Props: title, date (formatted string), crumbs (Breadcrumbs items), meta (tag/author strings), image, backHref, backLabel.
+ * Slot: the rendered Markdown content.
+ */
+import '../../styles/prose.css'
+import Section from './Section.astro'
+import Breadcrumbs from './Breadcrumbs.astro'
+
+interface Props {
+  title: string
+  date: string
+  crumbs: { label: string; href?: string }[]
+  meta?: string[]
+  image?: string
+  backHref: string
+  backLabel: string
+}
+
+const { title, date, crumbs, meta = [], image, backHref, backLabel } = Astro.props
+const metaLine = [date, ...meta.filter(Boolean)].join(', ')
+---
+
+<Section spacing="md" width="text" labelledby="article-title">
+  <Breadcrumbs items={crumbs} />
+  <article class="mt-10">
+    <header>
+      <h1 id="article-title" class="text-display-md">{title}</h1>
+      <p class="mt-6 text-fg-muted">{metaLine}</p>
+    </header>
+    {image && <img src={image} alt={`Titelbild: ${title}`} class="mt-10 aspect-video w-full rounded-card object-cover" loading="eager" />}
+    <div class="prose mt-10"><slot /></div>
+  </article>
+  <p class="mt-16 border-t border-border pt-8">
+    <a href={backHref} class="text-accent underline underline-offset-4">{backLabel}</a>
+  </p>
+</Section>

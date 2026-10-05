@@ -1,0 +1,248 @@
+---
+/**
+ * Floating pill navigation. Desktop (lg+): logo, centered links (Events as dropdown), theme toggle and the primary
+ * "Mitmachen" pill. Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
+ * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
+ * `main` reserves the room (global.css). Active page gets aria-current="page".
+ * Data source: navigation in src/data/staticContent.ts.
+ */
+import Logo from '../Logo.astro'
+import Button from '../ui/Button.astro'
+import ThemeToggle from '../ui/ThemeToggle.astro'
+import MobileNav from './MobileNav.astro'
+import { navigation } from '../../data/staticContent'
+
+const items = [...navigation.menuItems].sort((a, b) => a.order - b.order)
+const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
+const currentPath = trim(Astro.url.pathname)
+const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || currentPath.startsWith(`${trim(url)}/`))
+---
+
+<header class="site-header" data-site-header>
+  <div class="pill">
+    <a href="/" class="logo-link" aria-label={navigation.logoText}>
+      <Logo color="currentColor" name={navigation.logoText} />
+    </a>
+
+    <nav class="hidden lg:block" aria-label={navigation.mainNavLabel}>
+      <ul class="flex items-center gap-1">
+        {items.map((item) => (
+          <li class="relative">
+            {'children' in item && item.children ? (
+              <details class="nav-dropdown">
+                <summary class="nav-link" data-active={item.children.some((c) => isCurrent(c.url)) || undefined}>
+                  {item.label}
+                  <svg class="chevron" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                    <path d="m2.5 4.5 3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </summary>
+                <ul class="nav-panel">
+                  {item.children.map((child) => (
+                    <li>
+                      <a class="panel-link" href={child.url} aria-current={isCurrent(child.url) ? 'page' : undefined}>
+                        {child.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : (
+              <a
+                class="nav-link"
+                href={item.url}
+                aria-current={isCurrent(item.url) ? 'page' : undefined}
+                target={item.isExternal ? '_blank' : undefined}
+                rel={item.isExternal ? 'noopener noreferrer' : undefined}
+              >
+                {item.label}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="flex items-center gap-1 sm:gap-2">
+      <div class="hidden lg:block"><ThemeToggle /></div>
+      <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
+      <button
+        type="button"
+        class="menu-trigger lg:hidden"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+        aria-label={navigation.menuOpenLabel}
+        data-label-open={navigation.menuOpenLabel}
+        data-label-close={navigation.menuCloseLabel}
+      >
+        <span class="menu-bars" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<MobileNav items={items} isCurrentPaths={items.flatMap((i) => ('children' in i && i.children ? i.children : [i])).filter((i) => isCurrent(i.url)).map((i) => i.url)} />
+
+<script>
+  // Compact pill after scrolling; closes the desktop dropdown on Escape or outside click.
+  const header = document.querySelector<HTMLElement>('[data-site-header]')
+  const onScroll = () => header?.toggleAttribute('data-scrolled', window.scrollY > 24)
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
+  const closeDropdowns = (except?: Element | null) => {
+    document.querySelectorAll<HTMLDetailsElement>('.nav-dropdown[open]').forEach((d) => {
+      if (d !== except) d.open = false
+    })
+  }
+  document.addEventListener('click', (e) => closeDropdowns((e.target as Element).closest('.nav-dropdown')))
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && closeDropdowns())
+</script>
+
+<style>
+  .site-header {
+    position: fixed;
+    top: 0.75rem;
+    inset-inline: 0;
+    z-index: 50;
+    padding-inline: 0.75rem;
+    pointer-events: none;
+  }
+  .pill {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    max-width: var(--container-wide);
+    min-height: 3.75rem;
+    margin-inline: auto;
+    padding: 0.25rem 0.5rem 0.25rem 1.25rem;
+    background-color: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.12);
+    transition: min-height 0.25s ease, box-shadow 0.25s ease;
+  }
+  [data-scrolled] .pill {
+    min-height: 3.25rem;
+  }
+  .logo-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--color-logo);
+  }
+  .logo-link:hover {
+    color: var(--color-logo);
+  }
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    list-style: none;
+    border-radius: 999px;
+    transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+  }
+  .nav-link:hover,
+  .nav-link[aria-current='page'],
+  .nav-link[data-active],
+  .nav-dropdown[open] > .nav-link {
+    color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+  .nav-link[aria-current='page']::before,
+  .nav-link[data-active]::before {
+    content: '';
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    background-color: var(--color-primary);
+  }
+  summary.nav-link::-webkit-details-marker {
+    display: none;
+  }
+  .chevron {
+    transition: transform var(--duration-fast) ease;
+  }
+  .nav-dropdown[open] .chevron {
+    transform: rotate(180deg);
+  }
+  .nav-panel {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    left: 50%;
+    min-width: 15rem;
+    padding: 0.375rem;
+    transform: translateX(-50%);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 1.25rem;
+    box-shadow: 0 16px 40px rgb(0 0 0 / 0.25);
+  }
+  .panel-link {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    font-size: var(--text-sm);
+    border-radius: 0.875rem;
+    color: var(--color-fg-muted);
+  }
+  .panel-link:hover,
+  .panel-link[aria-current='page'] {
+    color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+  .menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    color: var(--color-fg);
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .menu-bars,
+  .menu-bars::before {
+    display: block;
+    width: 1.25rem;
+    height: 2px;
+    background-color: currentColor;
+    transition: transform var(--duration-fast) ease;
+  }
+  .menu-bars {
+    position: relative;
+    transform: translateY(-3px);
+  }
+  .menu-bars::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+  }
+  .menu-trigger[aria-expanded='true'] .menu-bars {
+    transform: rotate(45deg);
+  }
+  .menu-trigger[aria-expanded='true'] .menu-bars::before {
+    top: 0;
+    transform: rotate(90deg);
+  }
+  @media (min-width: 1024px) {
+    .menu-trigger {
+      display: none;
+    }
+    .pill {
+      padding-inline: 1.5rem 0.5rem;
+    }
+  }
+</style>

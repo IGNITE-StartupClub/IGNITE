@@ -1,0 +1,64 @@
+---
+/**
+ * Advisory board in the theresidency "resident card" pattern: 2-column grid (md+), equal heights. Each card has a
+ * small square photo (8px radius) left, the name large, the board role in serif italic below it, then position,
+ * bio and an underlined LinkedIn link. A quiet dashed card invites new members.
+ * Props: none. Data: advisoryMembers (src/data/advisoryBoard.ts), homepage.advisory* in staticContent.ts.
+ */
+import Section from '../ui/Section.astro'
+import Card from '../ui/Card.astro'
+import Button from '../ui/Button.astro'
+import { homepage } from '../../data/staticContent'
+import { advisoryMembers } from '../../data/advisoryBoard'
+---
+
+<Section spacing="md" labelledby="people-title">
+  <h2 id="people-title" class="max-w-text text-display-md" set:html={homepage.advisoryHeading} />
+  <ul class="mt-14 grid gap-6 md:mt-16 md:grid-cols-2 md:gap-8">
+    {
+      advisoryMembers.map((member) => (
+        <Card as="li" class="h-full">
+          <div class="flex h-full flex-col gap-4">
+          <div class="flex items-start gap-5">
+            <img
+              src={member.image}
+              alt={`${homepage.advisoryPhotoAltPrefix} ${member.name}`}
+              width="80"
+              height="80"
+              loading="lazy"
+              class="h-20 w-20 shrink-0 rounded-lg object-cover"
+            />
+            <div class="min-w-0">
+              <h3 class="text-xl font-semibold leading-tight tracking-tight text-fg">{member.name}</h3>
+              <p class="mt-1 font-accent text-lead italic leading-tight text-accent">{member.boardRole}</p>
+            </div>
+          </div>
+          <p class="text-sm font-medium text-fg">{member.title}</p>
+          <p class="text-sm leading-relaxed text-fg-muted md:text-base md:leading-relaxed">{member.bio}</p>
+          {member.linkedin && (
+            <a
+              href={member.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-auto self-start text-sm font-medium text-fg underline underline-offset-4 hover:text-accent"
+              aria-label={`${homepage.advisoryLinkedinLabel} ${member.name}`}
+            >
+              {homepage.advisoryLinkedinText}
+            </a>
+          )}
+          </div>
+        </Card>
+      ))
+    }
+    <li class="flex h-full flex-col items-start justify-center gap-2 rounded-card border border-dashed border-border-strong p-6 md:p-8">
+      <h3 class="text-xl font-semibold tracking-tight">{homepage.advisoryJoinTitle}</h3>
+      <p class="font-accent text-lead italic leading-tight text-accent">{homepage.advisoryJoinRole}</p>
+      <p class="text-fg-muted">{homepage.advisoryJoinHint}</p>
+      <div class="mt-4">
+        <Button href={homepage.advisoryJoinCTA_URL} variant="outline">
+          {homepage.advisoryJoinCTA_Text}
+        </Button>
+      </div>
+    </li>
+  </ul>
+</Section>

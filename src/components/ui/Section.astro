@@ -1,0 +1,45 @@
+---
+/**
+ * Page section wrapper: surface tone, vertical rhythm and a centered container.
+ * Props: tone ('default' | 'subtle' | 'inverted' | 'brand'), spacing ('sm' | 'md' | 'lg'),
+ * width ('text' 42rem | 'wide' 72rem), id, labelledby (id of the section heading), class.
+ */
+interface Props {
+  tone?: 'default' | 'subtle' | 'inverted' | 'brand'
+  spacing?: 'sm' | 'md' | 'lg'
+  width?: 'text' | 'wide'
+  id?: string
+  labelledby?: string
+  class?: string
+}
+
+const {
+  tone = 'default',
+  spacing = 'md',
+  width = 'wide',
+  id,
+  labelledby,
+  class: className = '',
+} = Astro.props
+
+const toneClass = {
+  default: 'bg-bg text-fg',
+  subtle: 'bg-bg-subtle text-fg',
+  inverted: 'surface-inverted',
+  brand: 'surface-brand',
+}[tone]
+
+const spacingClass = {
+  sm: 'py-section-sm',
+  md: 'py-section-md',
+  lg: 'py-section-lg',
+}[spacing]
+
+const widthClass = width === 'text' ? 'max-w-text' : 'max-w-wide'
+---
+
+<section id={id} aria-labelledby={labelledby} class:list={[toneClass, spacingClass, className]}>
+  <div class:list={['mx-auto px-gutter', widthClass]}>
+    <slot />
+  </div>
+</section>
