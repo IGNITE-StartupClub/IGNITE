@@ -1,0 +1,17 @@
+---
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import Card from '../components/ui/Card.astro'
+export const prerender = true
+---
+
+<DefaultLayout title="Events" description="Workshops, Austausch und Hackathons rund ums Gründen an der Leuphana." url="events">
+  <PageHeader title="Gemeinsam <em>loslegen.</em>" lead="Workshops, Austausch und Hackathons mit der Startup School: Hier findest du künftig die Veranstaltungen von IGNITE." />
+  <Section tone="subtle" labelledby="calendar-title">
+    <Card>
+      <h2 slot="title" id="calendar-title">Unser Eventkalender folgt.</h2>
+      <p>Hier muss der Luma-Kalender von IGNITE eingebunden werden.</p>
+    </Card>
+  </Section>
+</DefaultLayout>

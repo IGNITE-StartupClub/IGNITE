@@ -26,10 +26,10 @@ const asset = assets[`../../assets/photos/${src}`]?.default
     </div>
     <figure class="hero-object">
       <img
-        src="/img/heritage/salt-sculpture.png"
-        alt="Skulptur zum Lüneburger Salzhandel und heutiger Gründungskultur"
-        width="720"
-        height="864"
+        src="/img/heritage/founder-prototype.png"
+        alt="Junge Person als Marmorskulptur betrachtet einen selbstgebauten Technik-Prototyp"
+        width="1024"
+        height="1536"
         loading="eager"
         fetchpriority="high"
         decoding="async"
@@ -43,8 +43,7 @@ const asset = assets[`../../assets/photos/${src}`]?.default
             alt={alt}
             widths={[640, 1024, 1536]}
             sizes="(min-width: 1152px) 1100px, 92vw"
-            loading="eager"
-            fetchpriority="high"
+            loading="lazy"
             class="aspect-[4/3] w-full object-cover md:aspect-[16/9]"
           />
         ) : (
@@ -57,7 +56,6 @@ const asset = assets[`../../assets/photos/${src}`]?.default
 
 <style>
   .hero-object { display: grid; place-items: center; margin: clamp(2.5rem, 5vw, 4rem) auto 0; }
-  .hero-object img { display: block; width: min(82vw, 34rem); max-height: 24rem; object-fit: contain; }
+  .hero-object img { display: block; width: min(76vw, 26rem); height: auto; }
   .hero-photo { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border-radius: var(--radius-card); }
-  @media (max-width: 767px) { .hero-object img { width: min(88vw, 28rem); max-height: 20rem; } }
 </style>

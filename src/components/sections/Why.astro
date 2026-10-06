@@ -1,17 +1,12 @@
 ---
 /**
  * "Warum" statement in the theresidency pattern: a large statement heading (one serif accent word), short paragraphs in
- * large body text with one serif-italic emphasis phrase (<em> in the copy), then a single "Für wen" card with three
- * plain lines (no bullets or icons).
- * A quiet KPI proof row (numbers + labels, no cards) follows the paragraphs.
- * Props: none. Data: kpiData, homepage (whyHeading, whyParagraphs, audienceHeading, audienceLines) in staticContent.ts.
+ * large body text with one serif-italic emphasis phrase (<em> in the copy), followed by an open audience band.
+ * The shared-work sculpture supports the community statement.
+ * Props: none. Data: homepage (whyHeading, whyParagraphs, audienceHeading, audienceLines) in staticContent.ts.
  */
 import Section from '../ui/Section.astro'
-import Card from '../ui/Card.astro'
 import { homepage } from '../../data/staticContent'
-import { kpiData } from '../../data/kpiData'
-
-const format = new Intl.NumberFormat('de-DE')
 ---
 
 <Section spacing="md" labelledby="why-title" class="why-section">
@@ -19,70 +14,43 @@ const format = new Intl.NumberFormat('de-DE')
   <div class="em-inline mt-10 max-w-text space-y-7 text-lead text-fg-muted md:mt-12">
     {homepage.whyParagraphs.map((text) => <p set:html={text} />)}
   </div>
-  <dl class="mt-14 grid max-w-text grid-cols-2 gap-x-8 gap-y-7 border-t border-border pt-8 sm:grid-cols-4" aria-label={homepage.heroKpiLabel}>
-    {
-      kpiData.map((kpi) => (
-        <div class="flex flex-col-reverse gap-1">
-          <dt class="text-sm text-fg-muted">{kpi.label}</dt>
-          <dd class="text-xl font-semibold leading-none tracking-display">
-            {format.format(kpi.value)}
-            {kpi.suffix ?? ''}
-          </dd>
-        </div>
-      ))
-    }
-  </dl>
-  <div class="audience-composition">
-    <Card class="audience-card">
-      <h3 slot="title" class="text-display-sm" set:html={homepage.audienceHeading} />
-      <div class="space-y-4 text-lead text-fg">
-        {homepage.audienceLines.map((line) => <p>{line}</p>)}
-      </div>
-    </Card>
-    <figure class="why-figure">
-      <img src="/img/heritage/saltbag-laptop.png" alt="Offener Laptop auf einem mit Lüneburger Salz gefüllten Jutesack" width="1312" height="1199" loading="lazy" decoding="async" />
-    </figure>
+  <figure class="community-figure">
+    <img src="/img/heritage/salt-sculpture.png" alt="Zwei Marmorskulpturen entwickeln gemeinsam eine Idee am Laptop" width="1536" height="1024" loading="lazy" decoding="async" />
+  </figure>
+</Section>
+
+<Section spacing="sm" labelledby="audience-title" class="audience-band border-y border-border">
+  <div class="audience-layout">
+    <div class="audience-intro">
+      <h2 id="audience-title" class="text-display-sm" set:html={homepage.audienceHeading} />
+    </div>
+    <div class="audience-lines text-lead">
+      {homepage.audienceLines.map((line) => <p>{line}</p>)}
+    </div>
   </div>
 </Section>
 
 <style>
-  .audience-composition {
+  .community-figure { display: grid; place-items: center; margin: 2rem 0 0; }
+  .community-figure img { display: block; width: min(100%, 36rem); height: auto; }
+  .audience-layout {
     display: grid;
-    grid-template-columns: minmax(0, var(--container-text)) minmax(11rem, 15rem);
-    gap: clamp(1.5rem, 4vw, 3.5rem);
-    align-items: center;
-    max-width: 57rem;
-    margin-top: clamp(5rem, 8vw, 6rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
   }
-
-  .why-figure {
-    display: grid;
-    place-items: center;
+  .audience-lines p {
     margin: 0;
+    padding-block: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
   }
-
-  .why-figure img {
-    display: block;
-    width: 100%;
-    max-height: 17rem;
-    object-fit: contain;
-  }
-
-  @media (max-width: 639px) {
-    .audience-composition {
+  .audience-lines p:first-child { padding-top: 0; }
+  .audience-lines p:last-child { padding-bottom: 0; border-bottom: 0; }
+  @media (max-width: 767px) {
+    .audience-layout {
       grid-template-columns: minmax(0, 1fr);
-      gap: 1.5rem;
-      margin-top: 4rem;
+      gap: 2rem;
     }
-
-    .why-figure {
-      justify-self: end;
-      width: min(72vw, 15rem);
-      margin-right: 0.5rem;
-    }
-
-    .why-figure img {
-      max-height: 12rem;
-    }
+    .audience-intro h2 { text-align: center; }
   }
 </style>

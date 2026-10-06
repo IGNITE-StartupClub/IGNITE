@@ -15,7 +15,7 @@ import { navigation } from '../../data/staticContent'
 const items = [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
 const currentPath = trim(Astro.url.pathname)
-const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || currentPath.startsWith(`${trim(url)}/`))
+const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || (url !== '/' && currentPath.startsWith(`${trim(url)}/`)))
 ---
 
 <header class="site-header" data-site-header>

@@ -15,4 +15,21 @@ import { homepage } from '../../data/staticContent'
   <div class="mt-12">
     <Button href={homepage.finalCTA_URL} variant="primary" size="lg">{homepage.finalCTA_Text}</Button>
   </div>
+  <figure class="cta-figure" aria-hidden="true">
+    <img src="/img/heritage/founder-learning.png" alt="" width="1024" height="1536" loading="lazy" decoding="async" />
+  </figure>
 </Section>
+
+<style>
+  .cta-figure {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0 0;
+  }
+  .cta-figure img {
+    display: block;
+    width: min(76vw, 26rem);
+    max-width: 100%;
+    height: auto;
+  }
+</style>

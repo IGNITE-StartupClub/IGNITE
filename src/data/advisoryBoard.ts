@@ -48,6 +48,7 @@ export const advisoryMembers: AdvisoryMember[] = [
   },
   {
     name: 'Prof. Dr. Pauline Reinecke',
+    linkedin: 'https://www.linkedin.com/in/pauline-reinecke-a996a591/',
     title: 'Juniorprofessorin für Betriebswirtschaftslehre, insbesondere Strategic Entrepreneurship',
     department: 'Leuphana Universität Lüneburg',
     boardRole: 'Advisory Board Member',
