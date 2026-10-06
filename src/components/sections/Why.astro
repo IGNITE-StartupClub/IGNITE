@@ -19,7 +19,7 @@ const format = new Intl.NumberFormat('de-DE')
   <div class="em-inline mt-10 max-w-text space-y-7 text-lead text-fg-muted md:mt-12">
     {homepage.whyParagraphs.map((text) => <p set:html={text} />)}
   </div>
-  <dl class="mt-14 flex max-w-text flex-wrap gap-x-10 gap-y-6 border-t border-border pt-8" aria-label={homepage.heroKpiLabel}>
+  <dl class="mt-14 grid max-w-text grid-cols-2 gap-x-8 gap-y-7 border-t border-border pt-8 sm:grid-cols-4" aria-label={homepage.heroKpiLabel}>
     {
       kpiData.map((kpi) => (
         <div class="flex flex-col-reverse gap-1">
@@ -40,7 +40,7 @@ const format = new Intl.NumberFormat('de-DE')
       </div>
     </Card>
     <figure class="why-figure">
-      <img src="/img/heritage/rocket-sculpture.png" alt="Vollständige helle Raketenskulptur als Symbol für Aufbruch" width="520" height="780" loading="lazy" decoding="async" />
+      <img src="/img/heritage/saltbag-laptop.png" alt="Offener Laptop auf einem mit Lüneburger Salz gefüllten Jutesack" width="1312" height="1199" loading="lazy" decoding="async" />
     </figure>
   </div>
 </Section>
@@ -48,7 +48,7 @@ const format = new Intl.NumberFormat('de-DE')
 <style>
   .audience-composition {
     display: grid;
-    grid-template-columns: minmax(0, var(--container-text)) minmax(8rem, 11rem);
+    grid-template-columns: minmax(0, var(--container-text)) minmax(11rem, 15rem);
     gap: clamp(1.5rem, 4vw, 3.5rem);
     align-items: center;
     max-width: 57rem;
@@ -64,24 +64,25 @@ const format = new Intl.NumberFormat('de-DE')
   .why-figure img {
     display: block;
     width: 100%;
-    max-height: 23rem;
+    max-height: 17rem;
     object-fit: contain;
   }
 
   @media (max-width: 639px) {
     .audience-composition {
-      grid-template-columns: minmax(0, 1fr) 3.5rem;
-      gap: 1rem;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
       margin-top: 4rem;
     }
 
     .why-figure {
-      width: 3.5rem;
+      justify-self: end;
+      width: min(72vw, 15rem);
+      margin-right: 0.5rem;
     }
 
     .why-figure img {
-      max-height: 11rem;
+      max-height: 12rem;
     }
   }
 </style>

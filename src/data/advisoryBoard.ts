@@ -47,6 +47,14 @@ export const advisoryMembers: AdvisoryMember[] = [
     image: 'https://www.leuphana.de/fileadmin/_processed_/c/0/csm_wenzel_matthias_87f76fcb0c.jpg',
   },
   {
+    name: 'Prof. Dr. Pauline Reinecke',
+    title: 'Juniorprofessorin für Betriebswirtschaftslehre, insbesondere Strategic Entrepreneurship',
+    department: 'Leuphana Universität Lüneburg',
+    boardRole: 'Advisory Board Member',
+    bio: 'Prof. Reinecke forscht zu Strategic Entrepreneurship und der Frage, wie unternehmerisches Handeln zur Lösung komplexer gesellschaftlicher Herausforderungen beitragen kann. Ihre Arbeit verbindet Strategie, Organisation und Innovation – unter anderem mit Blick auf soziale Unternehmen, digitale Plattformen und nachhaltige Geschäftsmodelle.',
+    image: 'https://www.leuphana.de/fileadmin/_processed_/0/d/csm_reinecke_pauline_795-79587.690x690px.WEB_955b4970ce.jpg',
+  },
+  {
     name: 'Dr. Markus Lemmens',
     title: 'Chief Communication Officer der Leuphana Universität',
     department: 'Leuphana Universität Lüneburg',
