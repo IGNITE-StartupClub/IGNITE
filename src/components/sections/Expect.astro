@@ -43,8 +43,10 @@ const span: Record<string, string> = {
               <Image
                 src={guide}
                 alt={homepage.featuresPhotoAlt}
-                widths={[480, 720]}
-                sizes="(min-width: 1024px) 30vw, 90vw"
+                widths={[384, 640, 960, 1280]}
+                sizes="(min-width: 1152px) 320px, (min-width: 1024px) 30vw, calc(100vw - 96px)"
+                format="webp"
+                quality={82}
                 loading="lazy"
                 class="aspect-[4/3] w-full rounded-xl object-cover"
               />

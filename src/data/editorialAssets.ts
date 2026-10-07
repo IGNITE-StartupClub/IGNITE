@@ -1,10 +1,10 @@
 export const materialCovers: Record<string, string> = {
-  AppLaunchChecklist: '/img/heritage/rocket-sculpture.png',
-  ApplicationHack: '/img/heritage/salt-sculpture.png',
-  EarlyTractionScoreboard: '/img/heritage/cog-sculpture.png',
-  POVClarityFramework: '/img/heritage/cog-sculpture.png',
-  'Sequoia Framework': '/img/heritage/cog-sculpture.png',
+  applaunchchecklist: '/img/heritage/rocket-sculpture.png',
+  applicationhack: '/img/heritage/salt-sculpture.png',
+  earlytractionscoreboard: '/img/heritage/cog-sculpture.png',
+  povclarityframework: '/img/heritage/cog-sculpture.png',
+  'sequoia-framework': '/img/heritage/cog-sculpture.png',
 }
 
 export const getMaterialCover = (id: string, fallback?: string) =>
-  materialCovers[id] ?? fallback ?? '/img/heritage/salt-sculpture.png'
+  materialCovers[id.toLowerCase().replace(/\s+/g, '-')] ?? fallback ?? '/img/heritage/salt-sculpture.png'

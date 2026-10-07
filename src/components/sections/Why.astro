@@ -6,6 +6,7 @@
  * Props: none. Data: homepage (whyHeading, whyParagraphs, audienceHeading, audienceLines) in staticContent.ts.
  */
 import Section from '../ui/Section.astro'
+import OptimizedImage from '../ui/OptimizedImage.astro'
 import { homepage } from '../../data/staticContent'
 ---
 
@@ -15,7 +16,7 @@ import { homepage } from '../../data/staticContent'
     {homepage.whyParagraphs.map((text) => <p set:html={text} />)}
   </div>
   <figure class="community-figure">
-    <img src="/img/heritage/salt-sculpture.png" alt="Zwei Marmorskulpturen entwickeln gemeinsam eine Idee am Laptop" width="1536" height="1024" loading="lazy" decoding="async" />
+    <OptimizedImage src="/img/heritage/salt-sculpture.png" alt="Zwei Marmorskulpturen entwickeln gemeinsam eine Idee am Laptop" width={1536} height={1024} widths={[384, 576, 864, 1152]} sizes="(min-width: 624px) 576px, calc(100vw - 48px)" loading="lazy" />
   </figure>
 </Section>
 
@@ -32,7 +33,7 @@ import { homepage } from '../../data/staticContent'
 
 <style>
   .community-figure { display: grid; place-items: center; margin: 2rem 0 0; }
-  .community-figure img { display: block; width: min(100%, 36rem); height: auto; }
+  .community-figure :global(img) { display: block; width: min(100%, 36rem); height: auto; }
   .audience-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);

@@ -6,6 +6,7 @@
  */
 import Section from '../ui/Section.astro'
 import Button from '../ui/Button.astro'
+import OptimizedImage from '../ui/OptimizedImage.astro'
 import { homepage } from '../../data/staticContent'
 ---
 
@@ -16,7 +17,7 @@ import { homepage } from '../../data/staticContent'
     <Button href={homepage.finalCTA_URL} variant="primary" size="lg">{homepage.finalCTA_Text}</Button>
   </div>
   <figure class="cta-figure" aria-hidden="true">
-    <img src="/img/heritage/founder-learning.png" alt="" width="1024" height="1536" loading="lazy" decoding="async" />
+    <OptimizedImage src="/img/heritage/founder-learning.png" alt="" width={1024} height={1536} widths={[320, 480, 640, 832, 1024]} sizes="(min-width: 548px) 416px, 76vw" loading="lazy" />
   </figure>
 </Section>
 
@@ -26,7 +27,7 @@ import { homepage } from '../../data/staticContent'
     justify-content: center;
     margin: 2rem 0 0;
   }
-  .cta-figure img {
+  .cta-figure :global(img) {
     display: block;
     width: min(76vw, 26rem);
     max-width: 100%;

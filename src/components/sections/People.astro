@@ -8,6 +8,7 @@
 import Section from '../ui/Section.astro'
 import Card from '../ui/Card.astro'
 import Button from '../ui/Button.astro'
+import OptimizedImage from '../ui/OptimizedImage.astro'
 import { homepage } from '../../data/staticContent'
 import { advisoryMembers } from '../../data/advisoryBoard'
 ---
@@ -20,11 +21,13 @@ import { advisoryMembers } from '../../data/advisoryBoard'
         <Card as="li" class="h-full">
           <div class="flex h-full flex-col gap-4">
           <div class="flex items-start gap-5">
-            <img
-              src={member.image}
+            <OptimizedImage
+              src={member.image ?? ''}
               alt={`${homepage.advisoryPhotoAltPrefix} ${member.name}`}
-              width="80"
-              height="80"
+              width={80}
+              height={80}
+              widths={[80, 160, 240]}
+              sizes="80px"
               loading="lazy"
               class="h-20 w-20 shrink-0 rounded-lg object-cover"
             />

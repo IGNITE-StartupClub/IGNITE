@@ -7,6 +7,7 @@
  * Props: none. Data: homepage (heroTitle, heroSubtitle, heroCTA_*, heroImage).
  */
 import { Image } from 'astro:assets'
+import OptimizedImage from '../ui/OptimizedImage.astro'
 import Button from '../ui/Button.astro'
 import { homepage } from '../../data/staticContent'
 
@@ -25,14 +26,15 @@ const asset = assets[`../../assets/photos/${src}`]?.default
       </div>
     </div>
     <figure class="hero-object">
-      <img
+      <OptimizedImage
         src="/img/heritage/founder-prototype.png"
         alt="Junge Person als Marmorskulptur betrachtet einen selbstgebauten Technik-Prototyp"
-        width="1024"
-        height="1536"
+        width={1024}
+        height={1536}
+        widths={[320, 480, 640, 832, 1024]}
+        sizes="(min-width: 548px) 416px, 76vw"
         loading="eager"
         fetchpriority="high"
-        decoding="async"
       />
     </figure>
     <figure class="hero-photo">
@@ -43,6 +45,8 @@ const asset = assets[`../../assets/photos/${src}`]?.default
             alt={alt}
             widths={[640, 1024, 1536]}
             sizes="(min-width: 1152px) 1100px, 92vw"
+            format="webp"
+            quality={82}
             loading="lazy"
             class="aspect-[4/3] w-full object-cover md:aspect-[16/9]"
           />
@@ -56,6 +60,6 @@ const asset = assets[`../../assets/photos/${src}`]?.default
 
 <style>
   .hero-object { display: grid; place-items: center; margin: clamp(2.5rem, 5vw, 4rem) auto 0; }
-  .hero-object img { display: block; width: min(76vw, 26rem); height: auto; }
+  .hero-object :global(img) { display: block; width: min(76vw, 26rem); height: auto; }
   .hero-photo { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border-radius: var(--radius-card); }
 </style>

@@ -7,6 +7,7 @@
 import '../../styles/prose.css'
 import Section from './Section.astro'
 import Breadcrumbs from './Breadcrumbs.astro'
+import OptimizedImage from './OptimizedImage.astro'
 
 interface Props {
   title: string
@@ -29,7 +30,7 @@ const metaLine = [date, ...meta.filter(Boolean)].join(', ')
       <h1 id="article-title" class="text-display-md">{title}</h1>
       <p class="mt-6 text-fg-muted">{metaLine}</p>
     </header>
-    {image && <img src={image} alt={`Titelbild: ${title}`} class="mt-10 aspect-video w-full rounded-card object-cover" loading="eager" />}
+    {image && <OptimizedImage src={image} alt={`Titelbild: ${title}`} width={1280} height={720} widths={[384, 640, 960, 1280]} sizes="(min-width: 672px) 624px, calc(100vw - 48px)" class="mt-10 aspect-video w-full rounded-card object-cover" loading="eager" fetchpriority="high" />}
     <div class="prose mt-10"><slot /></div>
   </article>
   <p class="mt-16 border-t border-border pt-8">

@@ -9,6 +9,7 @@ import DefaultLayout from '../../layouts/DefaultLayout.astro'
 import PageHeader from '../../components/ui/PageHeader.astro'
 import Section from '../../components/ui/Section.astro'
 import Pagination from '../../components/ui/Pagination.astro'
+import OptimizedImage from '../../components/ui/OptimizedImage.astro'
 import { listingPages } from '../../data/staticContent'
 import { getMaterialCover } from '../../data/editorialAssets'
 
@@ -40,7 +41,7 @@ const copy = listingPages.materials
             <li class="editorial-item">
               <a class="editorial-image" href={`/materialien/${item.id}`} aria-label={`Material ansehen: ${item.data.title}`}>
                 <span>{String(index + 1).padStart(2, '0')}</span>
-                <img src={getMaterialCover(item.id, item.data.image)} alt={`Titelbild: ${item.data.title}`} loading={index < 2 ? 'eager' : 'lazy'} decoding="async" />
+                <OptimizedImage src={getMaterialCover(item.id, item.data.image)} alt={`Titelbild: ${item.data.title}`} width={960} height={640} widths={[320, 480, 640, 960]} sizes="(min-width: 1152px) 375px, (min-width: 768px) 33vw, 65vw" loading={index === 0 ? 'eager' : 'lazy'} />
               </a>
               <div class="editorial-content">
                 <p class="editorial-meta">{item.data.tag || 'Ressource'} · {item.data.author?.replace('(AUTHOR)', '').trim() || 'IGNITE Team'}</p>
@@ -61,8 +62,8 @@ const copy = listingPages.materials
   .editorial-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; max-width: var(--container-wide); margin: 0 auto; }
   .editorial-item { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-card); }
   .editorial-image { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; border-radius: calc(var(--radius-card) - .25rem); background: var(--color-bg-subtle); }
-  .editorial-image img { display: block; width: 75%; height: 75%; object-fit: contain; transition: transform .45s ease; }
-  .editorial-image:hover img { transform: scale(1.04); }
+  .editorial-image :global(img) { display: block; width: 75%; height: 75%; object-fit: contain; transition: transform .45s ease; }
+  .editorial-image:hover :global(img) { transform: scale(1.04); }
   .editorial-image span { display: none; }
   .editorial-content { display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
   .editorial-meta { color: var(--color-accent-text); font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
@@ -72,5 +73,5 @@ const copy = listingPages.materials
   .editorial-link { display: inline-flex; gap: .45rem; margin-top: auto; padding-top: 1.5rem; min-height: 2.75rem; color: var(--color-fg); font-size: .95rem; font-weight: 650; }
   .editorial-link:hover { color: var(--color-accent-text); }
   @media (max-width: 767px) { .editorial-list { grid-template-columns: 1fr; gap: 1.5rem; } }
-  @media (prefers-reduced-motion: reduce) { .editorial-image img { transition: none; } .editorial-image:hover img { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .editorial-image :global(img) { transition: none; } .editorial-image:hover :global(img) { transform: none; } }
 </style>
