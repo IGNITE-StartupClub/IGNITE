@@ -24,7 +24,7 @@ Der Salzsack mit Laptop und die Kogge bleiben im Asset-Paket, sind vorerst aber 
 
 Mit dem eingebauten Bildgenerator anhand der drei Residency-Screenshots als Stilreferenzen erstellt.
 
-Hero-Prompt: heutige junge Frau im T-Shirt, die einen kleinen Robotik-Prototyp mit Platine und Greifer untersucht; gesamte Person und Technik als warme Marmorskulptur; ein kleiner lila Statuspunkt; kompakte, aufrechte Halbfigur; transparenter Hintergrund; keine Schrift, kein Sockel, kein Fade.
+Hero-Prompt (überarbeitet): Das vorhandene Frauenmotiv erhalten, nur den kleinen Greifer durch eine vollständige, gut erkennbare Roboterhand als MVP ersetzen. Fünf bewegliche Finger mit sichtbaren Gelenken, offene Handgelenkmechanik und wenige Seilzüge; eine Hand trägt den Prototyp, die andere justiert ihn. Gesicht, Kleidung, Pose und warmer Marmor bleiben erhalten. Genau ein lila Statuspunkt am Handgelenk, transparenter Hintergrund; keine Schrift, kein Sockel, kein Fade. Mit dem eingebauten Bildgenerator bearbeitet. Neues Asset: `founder-robotic-hand.png`; `founder-prototype.png` bleibt im Asset-Paket.
 
 Materialien-Prompt: heutiger junger Student in Hemd und T-Shirt mit Tablet und erklärender Handbewegung; gleiche Marmoroberfläche und Beleuchtung; ein kleiner lila Statuspunkt; kompakte, aufrechte Halbfigur; transparenter Hintergrund; keine Schrift, kein Sockel, kein Fade.
 
