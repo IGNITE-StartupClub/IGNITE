@@ -28,50 +28,72 @@ const span: Record<string, string> = {
       items.map((item) => (
         <Card
           as="li"
-          class={`h-full [&_.card-body]:flex [&_.card-body]:flex-1 [&_.card-body]:flex-col ${span[item.layout] ?? ''}`}
+          class={`h-full [&_.card-body]:flex [&_.card-body]:flex-1 [&_.card-body]:flex-col ${span[item.layout] ?? ''} ${item.layout === 'wide' ? 'expect-wide' : ''}`}
         >
           <Icon slot="icon" name={item.icon} aria-hidden="true" />
+          {item.layout === 'wide' && (
+            <Image
+              slot="media"
+              src={guide}
+              alt={homepage.featuresPhotoAlt}
+              widths={[384, 640, 960, 1280]}
+              sizes="(min-width: 1152px) 528px, (min-width: 1024px) 46vw, calc(100vw - 96px)"
+              format="webp"
+              quality={82}
+              loading="lazy"
+              class="aspect-[16/9] w-full object-cover"
+            />
+          )}
           <h3 slot="title">{item.title}</h3>
-          {item.layout === 'wide' ? (
-            <div class="grid gap-6 lg:grid-cols-2">
-              <div class="flex h-full flex-col items-start">
-                <p>{item.description}</p>
-                {item.link && (
-                  <div class="mt-auto pt-4">
-                    <Button href={item.link.href} variant="outline">
-                      {item.link.label}
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <Image
-                src={guide}
-                alt={homepage.featuresPhotoAlt}
-                widths={[384, 640, 960, 1280]}
-                sizes="(min-width: 1152px) 528px, (min-width: 1024px) 46vw, calc(100vw - 96px)"
-                format="webp"
-                quality={82}
-                loading="lazy"
-                class="aspect-[16/9] w-full rounded-xl object-cover"
-              />
+          <p>{item.description}</p>
+          {!item.link && <Icon name={item.icon} class="mt-auto h-12 w-12 self-end text-accent opacity-30" aria-hidden="true" />}
+          {item.link && (
+            <div class={item.layout === 'wide' ? 'pt-6' : 'mt-auto pt-4'}>
+              <Button href={item.link.href} variant="outline">
+                {item.link.label}
+              </Button>
             </div>
-          ) : (
-            <>
-              <p>{item.description}</p>
-              {!item.link && (
-                <Icon name={item.icon} class="mt-auto h-12 w-12 self-end text-accent opacity-30" aria-hidden="true" />
-              )}
-              {item.link && (
-                <div class="mt-auto pt-4">
-                  <Button href={item.link.href} variant="outline">
-                    {item.link.label}
-                  </Button>
-                </div>
-              )}
-            </>
           )}
         </Card>
       ))
     }
   </ul>
 </Section>
+
+<style>
+  /* Workshops card: the photo sits last on small screens; from lg it fills the right half, from the title down. */
+  :global(.expect-wide .card-media) {
+    order: 1;
+  }
+  @media (min-width: 1024px) {
+    :global(li.card.expect-wide) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto auto 1fr;
+      column-gap: 2rem;
+    }
+    :global(.expect-wide .card-icon) {
+      grid-column: 1;
+      justify-self: start;
+    }
+    :global(.expect-wide .card-title) {
+      grid-row: 2;
+    }
+    :global(.expect-wide .card-body) {
+      grid-row: 3;
+    }
+    :global(.expect-wide .card-media) {
+      grid-column: 2;
+      grid-row: 2 / 4;
+    }
+    /* The text column sets the card height; the photo fills that space instead of stretching the card. */
+    :global(.expect-wide .card-media) {
+      position: relative;
+    }
+    :global(.expect-wide .card-media img) {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+    }
+  }
+</style>
