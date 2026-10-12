@@ -7,7 +7,7 @@ import './forms.css'
 
 export default function NewsletterForm({ copy }) {
   const [email, setEmail] = useState('')
-  const [status, setStatus] = useState(null) // 'success' | 'error' | null
+  const [status, setStatus] = useState(null) // 'success' | 'pending' | 'error' | null
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -28,7 +28,7 @@ export default function NewsletterForm({ copy }) {
       } else {
         const data = await res.json()
         console.error(data.message)
-        setStatus('error')
+        setStatus(res.status === 409 ? 'pending' : 'error')
       }
     } catch (err) {
       console.error(err)
@@ -66,6 +66,7 @@ export default function NewsletterForm({ copy }) {
 
       <div aria-live="polite">
         {status === 'success' && <p className="form-success">{copy.success}</p>}
+        {status === 'pending' && <p className="form-note">{copy.pending}</p>}
         {status === 'error' && <p className="form-error">{copy.error}</p>}
       </div>
     </form>

@@ -24,7 +24,7 @@ export const pageMeta = {
     title: 'Mitmachen',
     description: 'Wir freuen uns auf dich im Team von IGNITE, deinem Startup-Netzwerk in Lüneburg.',
   },
-  newsletter: { title: 'Newsletter' },
+  newsletter: { title: 'Community' },
   events: {
     title: 'Events',
     description: 'Workshops, Austausch und Hackathons rund ums Gründen an der Leuphana.',
@@ -215,7 +215,7 @@ export const navigation = {
     { label: 'Events', url: '/events/', isExternal: false, order: 2 },
     { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 3 },
     { label: 'Materialien', url: '/materialien/', isExternal: false, order: 4 },
-    { label: 'Newsletter', url: '/subscribe', isExternal: false, order: 5 },
+    { label: 'Community', url: '/subscribe', isExternal: false, order: 5 },
   ],
 }
 
@@ -373,7 +373,7 @@ export const eventsPage = {
 
 export const subscribePage = {
   title: 'Bleib auf dem <em>Laufenden</em>',
-  lead: 'Erhalte Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene in Lüneburg.',
+  lead: 'Unser Newsletter läuft über WhatsApp. Trag dich ein und wir schicken dir den Einladungslink zur Community.',
 }
 
 export const newsletterForm = {
@@ -385,11 +385,12 @@ export const newsletterForm = {
   consent: 'Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.',
   success: 'Danke für deine Anmeldung! Schau in dein Postfach, um deine E-Mail-Adresse zu bestätigen.',
   error: 'Da ging etwas schief. Bitte versuch es später erneut.',
+  pending: 'Wir haben dir bereits eine Bestätigungsmail geschickt. Bitte prüfe dein Postfach, auch den Spam-Ordner.',
 }
 
 export const subscribeForm = {
   heading: 'Werde Teil der Community',
-  confirmHeading: 'Bestätige dein Newsletter-Abonnement',
+  confirmHeading: 'Bestätige deine Anmeldung',
   firstNameLabel: 'Vorname',
   lastNameLabel: 'Nachname',
   emailLabel: 'E-Mail',
@@ -398,16 +399,17 @@ export const subscribeForm = {
   confirm: 'Bestätigen',
   submitting: 'Wird gesendet...',
   consent: 'Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.',
-  confirmConsent: 'Mit dem Absenden stimmst du unserer Datenschutzvereinbarung zu und bestätigst deine E-Mail-Adresse für unseren Newsletter.',
+  confirmConsent: 'Mit dem Absenden stimmst du unserer Datenschutzvereinbarung zu und bestätigst deine E-Mail-Adresse.',
   success: 'Danke für deine Anmeldung!',
   error: 'Da ging etwas schief. Bitte versuch es später erneut.',
-  welcomeHeading: 'Willkommen im IGNITE Newsletter!',
-  welcomeText: 'Deine Anmeldung ist jetzt bestätigt. Du erhältst ab sofort Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene.',
+  pending: 'Wir haben dir bereits eine Bestätigungsmail geschickt. Bitte prüfe dein Postfach, auch den Spam-Ordner.',
+  welcomeHeading: 'Willkommen in der IGNITE-Community!',
+  welcomeText: 'Deine Anmeldung ist bestätigt. Unseren Newsletter findest du in der WhatsApp-Community, den Einladungslink haben wir dir per E-Mail geschickt.',
   welcomeMailBefore: 'Wir haben dir eine Willkommens-E-Mail an',
   welcomeMailAfter: ' geschickt.',
   backToHome: 'Zurück zur Startseite',
   backToHomeUrl: '/',
   cancelledHeading: 'Du hast dich erfolgreich abgemeldet',
-  cancelledText: 'Schade, dass du dich vom Newsletter abgemeldet hast!',
+  cancelledText: 'Schade, dass du dich ausgetragen hast!',
   cancelError: 'Fehler beim Abmelden. Bitte versuche es später erneut.',
 }

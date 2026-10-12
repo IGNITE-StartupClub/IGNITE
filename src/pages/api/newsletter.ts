@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid' // Import the uuid module
 import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
+import { assertSent } from '../../lib/resend'
+import { WHATSAPP_INVITE_URL } from '../../templates/emails/links'
 import {
   getWelcomeNewsletterEmailHTML,
   getWelcomeNewsletterSubject,
@@ -96,13 +98,15 @@ export const POST = async ({ request }) => {
           audienceId: AUDIENCE_ID,
         })
 
-        const resendResponse = await resend.contacts.create({
-          email: email,
-          firstName: firstName || pendingConfirmation.firstName || '',
-          lastName: lastName || pendingConfirmation.lastName || '',
-          unsubscribed: false,
-          audienceId: AUDIENCE_ID,
-        })
+        const resendResponse = assertSent(
+          await resend.contacts.create({
+            email: email,
+            firstName: firstName || pendingConfirmation.firstName || '',
+            lastName: lastName || pendingConfirmation.lastName || '',
+            unsubscribed: false,
+            audienceId: AUDIENCE_ID,
+          }),
+        )
 
         console.log('Contact added to Resend successfully:', resendResponse)
 
@@ -113,13 +117,21 @@ export const POST = async ({ request }) => {
         // Send welcome email to the confirmed subscriber
         const confirmedFirstName = firstName || pendingConfirmation.firstName || ''
         console.log('Sending welcome email to:', email)
-        await resend.emails.send({
-          from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-          to: email,
-          subject: getWelcomeNewsletterSubject(),
-          html: getWelcomeNewsletterEmailHTML(confirmedFirstName),
-        })
-        console.log('Welcome email sent successfully')
+        // The contact is already confirmed and the pending entry is gone, so a failed
+        // welcome mail must not turn the confirmation into an error the user would retry.
+        try {
+          assertSent(
+            await resend.emails.send({
+              from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
+              to: email,
+              subject: getWelcomeNewsletterSubject(),
+              html: getWelcomeNewsletterEmailHTML(confirmedFirstName),
+            }),
+          )
+          console.log('Welcome email sent successfully')
+        } catch (err) {
+          console.error('Welcome email failed for confirmed subscriber:', err)
+        }
 
         return new Response(
           JSON.stringify({
@@ -162,7 +174,7 @@ export const POST = async ({ request }) => {
           JSON.stringify({
             message: 'Eine Bestätigungsmail wurde bereits gesendet. Bitte prüfe dein Postfach.',
           }),
-          { status: 400 },
+          { status: 409 },
         )
       }
 
@@ -186,50 +198,58 @@ export const POST = async ({ request }) => {
 
       // Send confirmation email
       console.log('Sending confirmation email...')
-      await resend.emails.send({
-        from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-        to: email,
-        subject: 'Willkommen beim IGNITE Startup Club!',
-        html: `
-          <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
-            <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
-            <p>Schön, dass du dich für unsere Initiative interessierst!</p>
+      try {
+        assertSent(
+          await resend.emails.send({
+            from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
+            to: email,
+            subject: 'Willkommen beim IGNITE Startup Club!',
+            html: `
+            <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
+              <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
+              <p>Schön, dass du dich für unsere Initiative interessierst!</p>
 
-            <p>Du möchtest nichts verpassen? Dann bestätige deine E-Mail und erhalte News durch unseren Newsletter!</p>
+              <p>Unseren Newsletter gibt es bei WhatsApp. Bestätige deine E-Mail-Adresse und tritt der Community bei!</p>
 
-            <p style="text-align: center; margin: 2rem 0;">
-              <a href="${confirmUrl}"
-                style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                📧 Newsletter abonnieren
-              </a>
-            </p>
+              <p style="text-align: center; margin: 2rem 0;">
+                <a href="${confirmUrl}"
+                  style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                  📧 E-Mail bestätigen
+                </a>
+              </p>
 
-            <p>Wenn du dich für unseren Newsletter anmeldest, bleibst du immer auf dem Laufenden über folgende Themen:</p>
-            <ul style="line-height: 1.6;">
-              <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
-              <li>Einblicke in reale Startup-Projekte</li>
-              <li>Austausch mit Gleichgesinnten</li>
-            </ul>
+              <p>In der WhatsApp-Community bleibst du immer auf dem Laufenden über folgende Themen:</p>
+              <ul style="line-height: 1.6;">
+                <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
+                <li>Einblicke in reale Startup-Projekte</li>
+                <li>Austausch mit Gleichgesinnten</li>
+              </ul>
 
-            <p>Noch einfacher? Dann tritt direkt unserer WhatsApp-Community bei:</p>
+              <p>Du kannst auch direkt beitreten:</p>
 
-            <p style="text-align: center; margin: 2rem 0;">
-              <a href="https://chat.whatsapp.com/HtvynOI8sY125MmBZR4C1n"
-                style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                👉 Jetzt WhatsApp-Gruppe beitreten
-              </a>
-            </p>
+              <p style="text-align: center; margin: 2rem 0;">
+                <a href="${WHATSAPP_INVITE_URL}"
+                  style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                  👉 Jetzt WhatsApp-Gruppe beitreten
+                </a>
+              </p>
 
-            <p style="font-size: 0.95rem; color: #555;">
-              Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
-                <a href="${cancelUrl}"
-                style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
-                Vom IGNITE Newsletter abmelden
-              </a> 
-            </p>
-          </div>
-        `,
-      })
+              <p style="font-size: 0.95rem; color: #555;">
+                Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
+                  <a href="${cancelUrl}"
+                  style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
+                  E-Mail-Adresse austragen
+                </a> 
+              </p>
+            </div>
+          `,
+          }),
+        )
+      } catch (err) {
+        // Without the mail the pending entry would block retries for 24 hours.
+        await db.collection('pending_confirmations').deleteOne({ email, token })
+        throw err
+      }
       console.log('Confirmation email sent successfully')
 
       return new Response(JSON.stringify({ message: 'Bestätigungsmail gesendet' }), { status: 200 })

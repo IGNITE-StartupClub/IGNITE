@@ -11,7 +11,7 @@ export default function SubscribeForm({ copy }) {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [status, setStatus] = useState(null); // 'success' | 'error' | null
+  const [status, setStatus] = useState(null); // 'success' | 'pending' | 'error' | 'unsubscribed' | null
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
   const [isCancelled, setIsCancelled] = useState(false); // Track cancellation status
@@ -104,7 +104,7 @@ export default function SubscribeForm({ copy }) {
         }
       } else {
         console.error('Error response from API');
-        setStatus('error');
+        setStatus(res.status === 409 ? 'pending' : 'error');
       }
     } catch (err) {
       console.error('Error in handleSubmit:', err);
@@ -194,6 +194,7 @@ export default function SubscribeForm({ copy }) {
 
       <div aria-live="polite">
         {status === 'success' && <p className="form-success">{copy.success}</p>}
+        {status === 'pending' && <p className="form-note">{copy.pending}</p>}
         {status === 'error' && <p className="form-error">{copy.error}</p>}
       </div>
     </form>

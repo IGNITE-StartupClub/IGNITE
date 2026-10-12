@@ -23,7 +23,7 @@ export const pageMeta = {
     title: 'Join us',
     description: 'We look forward to having you on the IGNITE team, your startup network in Lüneburg.',
   },
-  newsletter: { title: 'Newsletter' },
+  newsletter: { title: 'Community' },
   events: {
     title: 'Events',
     description: 'Workshops, networking and hackathons about founding a startup at Leuphana.',
@@ -214,7 +214,7 @@ export const navigation = {
     { label: 'Events', url: '/en/events/', isExternal: false, order: 2 },
     { label: 'News', url: '/en/news/', isExternal: false, order: 3 },
     { label: 'Materials', url: '/en/materials/', isExternal: false, order: 4 },
-    { label: 'Newsletter', url: '/en/subscribe', isExternal: false, order: 5 },
+    { label: 'Community', url: '/en/subscribe', isExternal: false, order: 5 },
   ],
 }
 
@@ -373,7 +373,7 @@ export const eventsPage = {
 
 export const subscribePage = {
   title: 'Stay in the <em>loop</em>',
-  lead: 'Get updates on events, workshops and news from the startup scene in Lüneburg.',
+  lead: 'Our newsletter runs on WhatsApp. Sign up and we will send you the invitation link to the community.',
 }
 
 export const newsletterForm = {
@@ -385,11 +385,12 @@ export const newsletterForm = {
   consent: 'By submitting your email address you agree to our privacy policy.',
   success: 'Thanks for signing up! Check your inbox to confirm your email address.',
   error: 'Something went wrong. Please try again later.',
+  pending: 'We have already sent you a confirmation email. Please check your inbox, including your spam folder.',
 }
 
 export const subscribeForm = {
   heading: 'Become part of the community',
-  confirmHeading: 'Confirm your newsletter subscription',
+  confirmHeading: 'Confirm your signup',
   firstNameLabel: 'First name',
   lastNameLabel: 'Last name',
   emailLabel: 'Email',
@@ -398,16 +399,17 @@ export const subscribeForm = {
   confirm: 'Confirm',
   submitting: 'Sending...',
   consent: 'By submitting your email address you agree to our privacy policy.',
-  confirmConsent: 'By submitting you agree to our privacy policy and confirm your email address for our newsletter.',
+  confirmConsent: 'By submitting you agree to our privacy policy and confirm your email address.',
   success: 'Thanks for signing up!',
   error: 'Something went wrong. Please try again later.',
-  welcomeHeading: 'Welcome to the IGNITE newsletter!',
-  welcomeText: 'Your subscription is now confirmed. From now on you will receive updates on events, workshops and news from the startup scene.',
+  pending: 'We have already sent you a confirmation email. Please check your inbox, including your spam folder.',
+  welcomeHeading: 'Welcome to the IGNITE community!',
+  welcomeText: 'Your signup is confirmed. Our newsletter lives in the WhatsApp community; we have emailed you the invitation link.',
   welcomeMailBefore: 'We have sent a welcome email to',
   welcomeMailAfter: '.',
   backToHome: 'Back to the home page',
   backToHomeUrl: '/en/',
   cancelledHeading: 'You have unsubscribed successfully',
-  cancelledText: 'Sorry to see you leave the newsletter!',
+  cancelledText: 'Sorry to see you go!',
   cancelError: 'Error while unsubscribing. Please try again later.',
 }
