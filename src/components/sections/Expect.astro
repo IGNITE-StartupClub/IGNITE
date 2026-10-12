@@ -1,8 +1,8 @@
 ---
 /**
  * "Was dich erwartet" as a bento grid. Mobile: stacked list. md: two columns. lg: six-column bento where
- * Workshops is wide (with a real event photo), the Hackathon is tall and the rest are smaller cards.
- * Layout comes from `features[].layout` ('wide' | 'tall' | 'half' | 'third') in staticContent.ts.
+ * Workshops spans the full width (with a real event photo) and the three remaining cards share the row below.
+ * Layout comes from `features[].layout` ('wide' | 'half' | 'third') in staticContent.ts.
  * Props: none. Data: features, homepage.featuresHeading / featuresPhotoAlt.
  */
 import { Icon } from 'astro-icon/components'
@@ -15,8 +15,7 @@ import guide from '../../assets/photos/guide.jpg'
 
 const items = [...features].sort((a, b) => a.order - b.order)
 const span: Record<string, string> = {
-  wide: 'md:col-span-2 lg:col-span-4',
-  tall: 'lg:col-span-2 lg:row-span-2',
+  wide: 'md:col-span-2 lg:col-span-6',
   half: 'lg:col-span-2',
   third: 'lg:col-span-3',
 }
@@ -27,13 +26,16 @@ const span: Record<string, string> = {
   <ul class="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-6 lg:gap-5">
     {
       items.map((item) => (
-        <Card as="li" class={`h-full ${span[item.layout] ?? ''}`}>
+        <Card
+          as="li"
+          class={`h-full [&_.card-body]:flex [&_.card-body]:flex-1 [&_.card-body]:flex-col ${span[item.layout] ?? ''}`}
+        >
           <Icon slot="icon" name={item.icon} aria-hidden="true" />
           <h3 slot="title">{item.title}</h3>
           {item.layout === 'wide' ? (
             <div class="grid gap-6 lg:grid-cols-2">
-              <div class="flex flex-col items-start gap-5">
-                <p>{item.description}</p>
+              <div class="flex h-full flex-col items-start gap-5">
+                <p class="lg:my-auto">{item.description}</p>
                 {item.link && (
                   <Button href={item.link.href} variant="outline">
                     {item.link.label}
@@ -44,22 +46,18 @@ const span: Record<string, string> = {
                 src={guide}
                 alt={homepage.featuresPhotoAlt}
                 widths={[384, 640, 960, 1280]}
-                sizes="(min-width: 1152px) 320px, (min-width: 1024px) 30vw, calc(100vw - 96px)"
+                sizes="(min-width: 1152px) 528px, (min-width: 1024px) 46vw, calc(100vw - 96px)"
                 format="webp"
                 quality={82}
                 loading="lazy"
-                class="aspect-[4/3] w-full rounded-xl object-cover"
+                class="aspect-[16/9] w-full rounded-xl object-cover"
               />
             </div>
           ) : (
             <>
-              <p class={item.layout === 'tall' ? 'text-lead' : ''}>{item.description}</p>
+              <p>{item.description}</p>
               {!item.link && (
-                <Icon
-                  name={item.icon}
-                  class={`mt-auto self-end text-accent opacity-30 ${item.layout === 'tall' ? 'h-24 w-24' : 'h-12 w-12'}`}
-                  aria-hidden="true"
-                />
+                <Icon name={item.icon} class="mt-auto h-12 w-12 self-end text-accent opacity-30" aria-hidden="true" />
               )}
               {item.link && (
                 <div class="mt-auto pt-4">

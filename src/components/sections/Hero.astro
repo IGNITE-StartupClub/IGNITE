@@ -27,12 +27,12 @@ const asset = assets[`../../assets/photos/${src}`]?.default
     </div>
     <figure class="hero-object">
       <OptimizedImage
-        src="/img/heritage/founder-robotic-hand.png"
-        alt="Junge Frau als Marmorskulptur arbeitet an einem Prototyp einer beweglichen Roboterhand"
-        width={1024}
-        height={1536}
-        widths={[320, 480, 640, 832, 1024]}
-        sizes="(min-width: 548px) 416px, 76vw"
+        src="/img/heritage/founder-team-blueprint.png"
+        alt="Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Raketen-Bauplänen"
+        width={1504}
+        height={1023}
+        widths={[480, 768, 1024, 1504]}
+        sizes="(min-width: 913px) 832px, 92vw"
         loading="eager"
         fetchpriority="high"
       />
@@ -60,6 +60,6 @@ const asset = assets[`../../assets/photos/${src}`]?.default
 
 <style>
   .hero-object { display: grid; place-items: center; margin: clamp(2.5rem, 5vw, 4rem) auto 0; }
-  .hero-object :global(img) { display: block; width: min(76vw, 26rem); height: auto; }
+  .hero-object :global(img) { display: block; width: min(92vw, 52rem); height: auto; }
   .hero-photo { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border-radius: var(--radius-card); }
 </style>

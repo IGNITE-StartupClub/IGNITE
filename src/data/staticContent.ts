@@ -29,7 +29,7 @@ export const features = [
       'Gemeinsam mit der Startup School arbeiten wir an Hackathons mit. Du entwickelst im Team Ideen, baust erste Lösungen und holst dir Feedback.',
     link: { label: 'Zur Events-Seite', href: '/events/' },
     order: 2,
-    layout: 'tall',
+    layout: 'half',
   },
   {
     id: 5,
