@@ -16,11 +16,13 @@ export function getApplicationEmailSubject(): string {
 }
 
 export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabels: Record<string, string>): string {
-  // Safely format all data fields
+  // Applicant input is untrusted: escape it so it cannot inject markup or links into the admin email
+  const escapeHtml = (text: string) =>
+    text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!)
   const formatField = (value: any) => {
     if (value === null || value === undefined) return 'Nicht angegeben'
-    if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe'
-    return String(value)
+    if (Array.isArray(value)) return escapeHtml(value.join(', ')) || 'Keine Angabe'
+    return escapeHtml(String(value))
   }
 
   // Build table rows dynamically
