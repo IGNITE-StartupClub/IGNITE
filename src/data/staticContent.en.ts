@@ -248,7 +248,7 @@ export const globalConfig = {
   id: 1,
   siteName: 'IGNITE Startup Club Lüneburg',
   siteTagline: 'Your founder community at Leuphana',
-  contactEmail: 'info@ignite-startupclub.de',
+  contactEmail: 'stud.initiative.ignite@leuphana.de',
   copyrightText: 'IGNITE Startup Club Lüneburg. All rights reserved.',
   error404_heading: '404 - Page not found',
   error404_message: 'The page you are looking for does not exist.',
@@ -287,7 +287,7 @@ export const contactPage = {
   submitButtonText: 'Submit',
   successMessage: '<h3>Thanks for your message!</h3><p>We will get back to you soon.</p>',
   successMessageAdvisory:
-    '<h3>Thank you for your interest!</h3><p>We have received your Advisory Board enquiry and are delighted that you would like to support the IGNITE Startup Club Lüneburg. Our team will contact you shortly to discuss the next steps.</p><p class="contact-info">For urgent questions you can also reach us directly at <a href="mailto:info@ignite-startupclub.de">info@ignite-startupclub.de</a></p>',
+    '<h3>Thank you for your interest!</h3><p>We have received your Advisory Board enquiry and are delighted that you would like to support the IGNITE Startup Club Lüneburg. Our team will contact you shortly to discuss the next steps.</p><p class="contact-info">For urgent questions you can also reach us directly at <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a></p>',
   advisoryInfoMessage:
     'Thank you for your interest in our Advisory Board! To support you as well as we can, please give us some additional information about yourself and your expertise.',
   errorMessage: 'Error sending the message',
