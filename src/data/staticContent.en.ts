@@ -148,7 +148,7 @@ export const homepage = {
     src: 'kickoff.jpg',
     alt: 'Group photo from the IGNITE kick-off event at Utopia: around 35 students in front of the projected IGNITE logo.',
   },
-  heroObjectAlt: 'Four young founders as marble sculptures discuss in front of a stone tablet engraved with rocket blueprints',
+  heroObjectAlt: 'Four young founders as marble sculptures discuss in front of a stone tablet engraved with machine blueprints',
   heroCTA_Text: 'Join us',
   heroCTA_URL: '/en/join',
   heroCTA_Icon: 'ion:people-outline',
