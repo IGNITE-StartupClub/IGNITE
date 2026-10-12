@@ -21,7 +21,19 @@ export const questionnaireConfig = {
   fascination: {
     label: 'Was fasziniert Dich am meisten am Gründen?',
   },
+  ui: {
+    next: 'Weiter',
+    wordsUnit: 'Wörter',
+    submit: 'Anfrage absenden',
+    submitting: 'Wird gesendet...',
+    success: 'Danke für deine Anfrage! Wir freuen uns über dein Interesse und melden uns bald bei dir.',
+    error: 'Es gab einen Fehler beim Absenden. Bitte versuche es erneut oder schreib uns direkt an.',
+  },
   personal: {
+    newsletterConsent: 'Ich möchte den IGNITE Newsletter abonnieren und über Events und Workshops informiert werden.',
+    privacyBefore: 'Ich akzeptiere die',
+    privacyLink: { label: 'Datenschutzbestimmungen', url: '/datenschutz' },
+    privacyAfter: '. (Pflichtfeld)',
     fields: {
       name: {
         label: 'Vorname',

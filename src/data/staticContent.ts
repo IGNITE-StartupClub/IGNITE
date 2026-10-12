@@ -1,5 +1,52 @@
 // Static Content - replaces Strapi CMS
-// All website content is now hardcoded here for fast, offline-capable static generation
+// All website content is now hardcoded here for fast, offline-capable static generation.
+// This file is the German copy (default locale). staticContent.en.ts mirrors every export in English; read both through getCopy() in copy.ts.
+
+export const siteMeta = {
+  title: 'IGNITE Startup Club Lueneburg',
+  shortName: 'IGNITE Startup Club Lüneburg',
+  description: 'IGNITE ist die studentische Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.',
+  author: 'IGNITE Startup Club Lueneburg',
+  keywords: ['Startup', 'Lüneburg', 'Studentische Initiative', 'Leuphana', 'Universität', 'Entrepreneurship', 'Innovation', 'Business', 'Netzwerk', 'Mentoring', 'Community', 'Workshops', 'Pitch', 'Gründung'],
+}
+
+// <title> and meta description per page. A page without description falls back to siteMeta.description.
+export const pageMeta = {
+  home: {
+    title: 'IGNITE - Startup Club Lüneburg',
+    description: 'Willkommen bei IGNITE, deiner studentischen Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.',
+  },
+  contact: {
+    title: 'Kontakt',
+    description: 'Nimm Kontakt mit uns auf. Wir freuen uns über deine Nachricht und stehen dir gerne zur Verfügung.',
+  },
+  join: {
+    title: 'Mitmachen',
+    description: 'Wir freuen uns auf dich im Team von IGNITE, deinem Startup-Netzwerk in Lüneburg.',
+  },
+  newsletter: { title: 'Newsletter' },
+  events: {
+    title: 'Events',
+    description: 'Workshops, Austausch und Hackathons rund ums Gründen an der Leuphana.',
+  },
+  news: { title: 'Neuigkeiten' },
+  materials: { title: 'Materialien und Ressourcen' },
+  notFound: { title: '404', description: 'Seite nicht gefunden' },
+}
+
+// Small strings shared by several components.
+export const commonUi = {
+  breadcrumbsLabel: 'Brotkrumen',
+  homeCrumb: 'Startseite',
+  coverAltPrefix: 'Titelbild:',
+  instagramLink: 'Auf Instagram ansehen',
+  pagination: {
+    label: 'Seitennavigation',
+    previous: 'Zurück',
+    next: 'Weiter',
+    pageOf: (current: number, total: number) => `Seite ${current} von ${total}`,
+  },
+}
 
 export const features = [
   {
@@ -102,10 +149,12 @@ export const homepage = {
     src: 'kickoff.jpg',
     alt: 'Gruppenfoto vom Kick-off-Event von IGNITE im Utopia: rund 35 Studierende vor der Projektion des IGNITE-Logos.',
   },
+  heroObjectAlt: 'Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Raketen-Bauplänen',
   heroCTA_Text: 'Mitmachen',
   heroCTA_URL: '/mitmachen',
   heroCTA_Icon: 'ion:people-outline',
   whyHeading: 'Gute Ideen beginnen mit <em>Menschen</em>, die loslegen.',
+  whyImageAlt: 'Zwei Marmorskulpturen entwickeln gemeinsam eine Idee am Laptop',
   whyParagraphs: [
     'IGNITE ist die studentische Gründungsinitiative an der Leuphana. Wir schaffen Gelegenheiten, Menschen kennenzulernen, Fragen zu stellen und gemeinsam Ideen auszuprobieren.',
     'Unser Ziel: <em>Gründen zugänglich machen</em>. Für alle Fachrichtungen und für alle, die etwas bewegen möchten – auch ohne fertige Geschäftsidee.',
@@ -149,6 +198,7 @@ export const navigation = {
   id: 1,
   logo: null,
   logoText: 'IGNITE',
+  homeUrl: '/',
   ctaLabel: 'Mitmachen',
   ctaUrl: '/mitmachen',
   skipLinkLabel: 'Zum Inhalt springen',
@@ -157,6 +207,8 @@ export const navigation = {
   menuCloseLabel: 'Menü schließen',
   themeToLightLabel: 'Zum hellen Design wechseln',
   themeToDarkLabel: 'Zum dunklen Design wechseln',
+  // Names the target language, written in that language (the toggle link carries lang="en").
+  languageToggle: { code: 'EN', label: 'Switch to English' },
   mobileSocialHeading: 'Folge uns',
   menuItems: [
     { label: 'Startseite', url: '/', isExternal: false, order: 1 },
@@ -255,6 +307,7 @@ export const mitmachenPage = {
   lead: 'Werde Teil des IGNITE Startup Club Lüneburg. Wir suchen Studierende, die Lust haben, Events, Netzwerke und Projekte mitzugestalten.',
   ctaLabel: 'Jetzt bewerben',
   teamsHeading: 'Unsere <em>Teams</em>',
+  teamCategoryLabels: { intern: 'Intern', extern: 'Extern' },
   teamsLead: 'In diesen Teams kannst du bei IGNITE mitarbeiten. Welches davon zu dir passt, finden wir im Kennenlerngespräch gemeinsam heraus.',
   formHeading: 'Jetzt <em>mitmachen</em>',
   formLead: 'Bewirb dich schnell und unkompliziert mit diesem Formular.',
@@ -278,12 +331,24 @@ export const mitmachenPage = {
 
 export const listingPages = {
   news: {
+    path: '/news',
+    crumb: 'Neuigkeiten',
+    readLabel: 'Neuigkeit lesen:',
+    paginationLabel: 'Seiten der Neuigkeiten',
+    backLabel: 'Zurück zu den Neuigkeiten',
     title: '<em>Was passiert</em> bei IGNITE',
     lead: 'Einblicke in Events, Begegnungen und die Menschen, die unsere Gründungskultur mitbauen.',
     empty: 'Noch keine Neuigkeiten vorhanden.',
     readMore: 'Weiterlesen',
   },
   materials: {
+    path: '/materialien',
+    crumb: 'Materialien',
+    readLabel: 'Material ansehen:',
+    paginationLabel: 'Seiten der Materialien',
+    backLabel: 'Zurück zu den Materialien',
+    defaultTag: 'Ressource',
+    defaultAuthor: 'IGNITE Team',
     title: 'Materialien für den <em>nächsten Schritt</em>',
     lead: 'Klarer denken, besser testen, mutiger loslegen: Guides und Frameworks für deinen Gründerweg.',
     empty: 'Noch keine Materialien vorhanden.',
@@ -308,4 +373,40 @@ export const eventsPage = {
 export const subscribePage = {
   title: 'Bleib auf dem <em>Laufenden</em>',
   lead: 'Erhalte Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene in Lüneburg.',
+}
+
+export const newsletterForm = {
+  heading: 'Werde Teil der Community',
+  note: 'Du erhältst eine E-Mail mit einem Einladungslink.',
+  emailPlaceholder: 'dein@email.de',
+  submit: 'Jetzt beitreten',
+  submitting: 'Wird gesendet...',
+  consent: 'Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.',
+  success: 'Danke für deine Anmeldung! Schau in dein Postfach, um deine E-Mail-Adresse zu bestätigen.',
+  error: 'Da ging etwas schief. Bitte versuch es später erneut.',
+}
+
+export const subscribeForm = {
+  heading: 'Werde Teil der Community',
+  confirmHeading: 'Bestätige dein Newsletter-Abonnement',
+  firstNameLabel: 'Vorname',
+  lastNameLabel: 'Nachname',
+  emailLabel: 'E-Mail',
+  emailPlaceholder: 'dein@email.de',
+  submit: 'Jetzt beitreten',
+  confirm: 'Bestätigen',
+  submitting: 'Wird gesendet...',
+  consent: 'Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.',
+  confirmConsent: 'Mit dem Absenden stimmst du unserer Datenschutzvereinbarung zu und bestätigst deine E-Mail-Adresse für unseren Newsletter.',
+  success: 'Danke für deine Anmeldung!',
+  error: 'Da ging etwas schief. Bitte versuch es später erneut.',
+  welcomeHeading: 'Willkommen im IGNITE Newsletter!',
+  welcomeText: 'Deine Anmeldung ist jetzt bestätigt. Du erhältst ab sofort Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene.',
+  welcomeMailBefore: 'Wir haben dir eine Willkommens-E-Mail an',
+  welcomeMailAfter: ' geschickt.',
+  backToHome: 'Zurück zur Startseite',
+  backToHomeUrl: '/',
+  cancelledHeading: 'Du hast dich erfolgreich abgemeldet',
+  cancelledText: 'Schade, dass du dich vom Newsletter abgemeldet hast!',
+  cancelError: 'Fehler beim Abmelden. Bitte versuche es später erneut.',
 }
