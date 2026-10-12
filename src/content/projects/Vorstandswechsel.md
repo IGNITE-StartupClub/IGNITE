@@ -8,7 +8,7 @@ date: 2026-07-12
 
 # Neues Kapitel bei IGNITE: Unser Vorstandswechsel 🚀
 
-Im Juli hat bei IGNITE unser Vorstandswechsel stattgefunden. Mit Ben Kaiser (links), Laurens Rocker (Mitte) und Marie Grevers (rechts) stellt sich unser Vorstand für das neue Kapitel auf.
+Im Juli hat bei IGNITE unser Vorstandswechsel stattgefunden. Mit Ben Kaiser (links), Laurens Rocker (Mitte) und Marie Gevers (rechts) stellt sich unser Vorstand für das neue Kapitel auf.
 
 Gemeinsam wollen wir IGNITE weiterentwickeln, neue Ideen voranbringen und noch mehr Raum für Austausch, Unternehmertum und spannende Projekte schaffen.
 
