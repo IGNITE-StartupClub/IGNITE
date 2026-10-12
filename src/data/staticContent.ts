@@ -405,7 +405,7 @@ export const subscribeForm = {
   pending: 'Wir haben dir bereits eine Bestätigungsmail geschickt. Bitte prüfe dein Postfach, auch den Spam-Ordner.',
   welcomeHeading: 'Willkommen in der IGNITE-Community!',
   welcomeText: 'Deine Anmeldung ist bestätigt. Unseren Newsletter findest du in der WhatsApp-Community, den Einladungslink haben wir dir per E-Mail geschickt.',
-  welcomeMailBefore: 'Wir haben dir eine Willkommens-E-Mail an',
+  welcomeMailBefore: 'Wir haben dir eine Bestätigung an',
   welcomeMailAfter: ' geschickt.',
   backToHome: 'Zurück zur Startseite',
   backToHomeUrl: '/',

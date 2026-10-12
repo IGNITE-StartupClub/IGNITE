@@ -7,9 +7,9 @@ import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
 import { WHATSAPP_INVITE_URL } from '../../templates/emails/links'
 import {
-  getWelcomeNewsletterEmailHTML,
-  getWelcomeNewsletterSubject,
-} from '../../templates/emails/welcomeNewsletterEmail'
+  getSubscriptionConfirmedEmailHTML,
+  getSubscriptionConfirmedSubject,
+} from '../../templates/emails/subscriptionConfirmedEmail'
 
 const resend = new Resend(process.env.RESEND_HOLY_GRAIL!)
 const MONGO_URI = process.env.MONGODB_URI!
@@ -114,23 +114,23 @@ export const POST = async ({ request }) => {
         await db.collection('pending_confirmations').deleteOne({ email })
         console.log('Removed from pending confirmations')
 
-        // Send welcome email to the confirmed subscriber
+        // Send the short confirmation to the confirmed subscriber
         const confirmedFirstName = firstName || pendingConfirmation.firstName || ''
-        console.log('Sending welcome email to:', email)
+        console.log('Sending confirmed email to:', email)
         // The contact is already confirmed and the pending entry is gone, so a failed
-        // welcome mail must not turn the confirmation into an error the user would retry.
+        // confirmed-mail failure must not turn the confirmation into an error the user would retry.
         try {
           assertSent(
             await resend.emails.send({
               from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
               to: email,
-              subject: getWelcomeNewsletterSubject(),
-              html: getWelcomeNewsletterEmailHTML(confirmedFirstName),
+              subject: getSubscriptionConfirmedSubject(),
+              html: getSubscriptionConfirmedEmailHTML(confirmedFirstName),
             }),
           )
-          console.log('Welcome email sent successfully')
+          console.log('Confirmed email sent successfully')
         } catch (err) {
-          console.error('Welcome email failed for confirmed subscriber:', err)
+          console.error('Confirmed email failed for confirmed subscriber:', err)
         }
 
         return new Response(
