@@ -34,12 +34,14 @@ const span: Record<string, string> = {
           <h3 slot="title">{item.title}</h3>
           {item.layout === 'wide' ? (
             <div class="grid gap-6 lg:grid-cols-2">
-              <div class="flex h-full flex-col items-start gap-5">
-                <p class="lg:my-auto">{item.description}</p>
+              <div class="flex h-full flex-col items-start">
+                <p>{item.description}</p>
                 {item.link && (
-                  <Button href={item.link.href} variant="outline">
-                    {item.link.label}
-                  </Button>
+                  <div class="mt-auto pt-4">
+                    <Button href={item.link.href} variant="outline">
+                      {item.link.label}
+                    </Button>
+                  </div>
                 )}
               </div>
               <Image
