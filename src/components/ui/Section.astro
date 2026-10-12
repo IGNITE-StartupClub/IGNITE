@@ -2,12 +2,12 @@
 /**
  * Page section wrapper: surface tone, vertical rhythm and a centered container.
  * Props: tone ('default' | 'subtle' | 'inverted' | 'brand'), spacing ('sm' | 'md' | 'lg'),
- * width ('text' 42rem | 'wide' 72rem), id, labelledby (id of the section heading), class.
+ * width ('text' 42rem | 'article' 48rem | 'wide' 80rem), id, labelledby (id of the section heading), class.
  */
 interface Props {
   tone?: 'default' | 'subtle' | 'inverted' | 'brand'
   spacing?: 'sm' | 'md' | 'lg'
-  width?: 'text' | 'wide'
+  width?: 'text' | 'article' | 'wide'
   id?: string
   labelledby?: string
   class?: string
@@ -35,7 +35,7 @@ const spacingClass = {
   lg: 'py-section-lg',
 }[spacing]
 
-const widthClass = width === 'text' ? 'max-w-text' : 'max-w-wide'
+const widthClass = { text: 'max-w-text', article: 'max-w-article', wide: 'max-w-wide' }[width]
 ---
 
 <section id={id} aria-labelledby={labelledby} class:list={[toneClass, spacingClass, className]}>

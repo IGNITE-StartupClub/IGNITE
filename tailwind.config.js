@@ -66,6 +66,7 @@ module.exports = {
       maxWidth: {
         prose: 'var(--container-text)',
         text: 'var(--container-text)',
+        article: 'var(--container-article)',
         wide: 'var(--container-wide)',
       },
       borderRadius: {

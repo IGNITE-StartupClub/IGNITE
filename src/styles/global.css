@@ -47,7 +47,8 @@
 
   /* Layout */
   --container-text: 42rem;
-  --container-wide: 72rem;
+  --container-article: 48rem;
+  --container-wide: 80rem;
   --header-height: 5.5rem;
 
   /* Motion */

@@ -7,6 +7,15 @@
   color: var(--color-fg);
 }
 
+/* Articles already show the title above the cover image, so a Markdown h1 acts as a subtitle. */
+.prose.prose-article {
+  max-width: none;
+}
+
+.prose.prose-article h1 {
+  font-size: var(--text-display-sm);
+}
+
 .prose > * + * {
   margin-top: 1.25rem;
 }
