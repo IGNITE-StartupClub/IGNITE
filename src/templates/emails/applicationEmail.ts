@@ -1,6 +1,8 @@
 // Application Email Template
 // Sent to admin when a team application is submitted
 
+import { escapeHtml } from './escapeHtml'
+
 export interface ApplicationEmailData {
   startupInterest?: string
   contribution?: string
@@ -16,9 +18,6 @@ export function getApplicationEmailSubject(): string {
 }
 
 export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabels: Record<string, string>): string {
-  // Applicant input is untrusted: escape it so it cannot inject markup or links into the admin email
-  const escapeHtml = (text: string) =>
-    text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!)
   const formatField = (value: any) => {
     if (value === null || value === undefined) return 'Nicht angegeben'
     if (Array.isArray(value)) return escapeHtml(value.join(', ')) || 'Keine Angabe'

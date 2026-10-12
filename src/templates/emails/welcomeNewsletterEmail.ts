@@ -1,12 +1,14 @@
 // Welcome Newsletter Email Template
 // Sent to user immediately after they confirm their newsletter subscription
 
+import { escapeHtml } from './escapeHtml';
+
 export function getWelcomeNewsletterSubject(): string {
   return 'Willkommen im IGNITE Newsletter!';
 }
 
 export function getWelcomeNewsletterEmailHTML(firstName?: string): string {
-  const greeting = firstName ? `Hallo ${firstName}` : 'Hallo';
+  const greeting = firstName ? `Hallo ${escapeHtml(firstName)}` : 'Hallo';
 
   return `
     <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333; max-width: 600px; margin: auto;">
