@@ -1,0 +1,14 @@
+---
+import NewsArticlePage from '../../../views/NewsArticlePage.astro'
+import { getNewsArticlePaths } from '../../../lib/news'
+
+export const prerender = true
+
+export async function getStaticPaths() {
+  return getNewsArticlePaths('en', 'de')
+}
+
+const { project, alternatePath } = Astro.props
+---
+
+<NewsArticlePage project={project} alternatePath={alternatePath} />

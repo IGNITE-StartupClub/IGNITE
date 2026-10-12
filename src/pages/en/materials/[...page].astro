@@ -1,0 +1,17 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { getCollection } from 'astro:content'
+import MaterialsListPage from '../../../views/MaterialsListPage.astro'
+
+export const prerender = true
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const materials = await getCollection('materials')
+  const sorted = [...materials].sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  return paginate(sorted, { pageSize: 9 })
+}) satisfies GetStaticPaths
+
+const { page } = Astro.props
+---
+
+<MaterialsListPage page={page} />

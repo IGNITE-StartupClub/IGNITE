@@ -1,20 +1,7 @@
 ---
-/**
- * Newsletter page: subscribe form, plus double opt-in confirmation (?token=) and unsubscribe (?cancel=).
- * Data source: subscribePage in src/data/staticContent.ts.
- */
-import DefaultLayout from '../layouts/DefaultLayout.astro'
-import PageHeader from '../components/ui/PageHeader.astro'
-import Section from '../components/ui/Section.astro'
-import SubscribeForm from '../components/forms/SubscribeForm.jsx'
-import { subscribePage } from '../data/staticContent'
+import SubscribePage from '../views/SubscribePage.astro'
 
 export const prerender = true
 ---
 
-<DefaultLayout title="Newsletter">
-  <PageHeader title={subscribePage.title} lead={subscribePage.lead} />
-  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <SubscribeForm client:load />
-  </Section>
-</DefaultLayout>
+<SubscribePage />

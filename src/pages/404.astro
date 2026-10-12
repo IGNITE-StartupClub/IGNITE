@@ -1,16 +1,19 @@
 ---
 /**
- * 404 page. Data source: globalConfig.error404_* in src/data/staticContent.ts.
+ * 404 page. Rendered per request (not prerendered) so it follows the language of the requested URL (/en/... gets English).
+ * Data source: globalConfig.error404_*, pageMeta.notFound via getCopy().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
 import Button from '../components/ui/Button.astro'
-import { globalConfig } from '../data/staticContent'
+import { getCopy } from '../data/copy'
 
-export const prerender = true
+export const prerender = false
+
+const { globalConfig, pageMeta } = getCopy(Astro.currentLocale)
 ---
 
-<DefaultLayout title="404" description="Seite nicht gefunden" noindex>
+<DefaultLayout title={pageMeta.notFound.title} description={pageMeta.notFound.description} noindex alternatePath={null}>
   <Section spacing="lg" labelledby="notfound-title">
     <h1 id="notfound-title" class="max-w-text text-display-md">{globalConfig.error404_heading}</h1>
     <p class="mt-6 max-w-text text-lead text-fg-muted">{globalConfig.error404_message}</p>

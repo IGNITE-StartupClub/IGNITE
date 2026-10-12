@@ -1,10 +1,8 @@
 /**
  * Multi-step application questionnaire (React island on /mitmachen). Posts the collected data to /api/submit.
- * Props: initialPosition (unused URL hint, kept for the page contract).
- * Data source: src/data/questionnaireConfig.ts. Step views: ./QuestionnaireSteps.jsx. Styles: ./forms.css.
+ * Props: config (questionnaireConfig in the page language, passed by the page). Step views: ./QuestionnaireSteps.jsx. Styles: ./forms.css.
  */
 import React, { useState } from 'react'
-import { questionnaireConfig as config } from '../../data/questionnaireConfig'
 import { SituationStep, FreeTextStep, PersonalStep, MAX_WORDS, getWordCount } from './QuestionnaireSteps'
 import './forms.css'
 
@@ -23,7 +21,7 @@ const STEPS = ['intro', 'situation', 'contribution', 'fascination', 'personal']
 
 const isFreeTextValid = (text) => !!text.trim() && getWordCount(text) <= MAX_WORDS
 
-export default function Questionnaire() {
+export default function Questionnaire({ config }) {
   const [step, setStep] = useState(0)
   const [data, setData] = useState(INITIAL_DATA)
   const [done, setDone] = useState(false)
@@ -55,12 +53,12 @@ export default function Questionnaire() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.message || `Server-Fehler (${res.status})`)
+        throw new Error(body.message || `Server error (${res.status})`)
       }
       setDone(true)
     } catch (err) {
       console.error('Error submitting application:', err)
-      setError(`Es gab einen Fehler beim Absenden: ${err.message}. Bitte versuche es erneut oder schreib uns direkt an.`)
+      setError(config.ui.error)
     } finally {
       setSubmitting(false)
     }
@@ -69,14 +67,14 @@ export default function Questionnaire() {
   if (done) {
     return (
       <p className="form-success-box" role="status">
-        Danke für deine Anfrage! Wir freuen uns über dein Interesse und melden uns bald bei dir.
+        {config.ui.success}
       </p>
     )
   }
 
   const nextButton = (disabled) => (
     <button type="button" className="form-secondary form-centered" onClick={next} disabled={disabled}>
-      Weiter
+      {config.ui.next}
     </button>
   )
   const current = STEPS[step]
@@ -103,6 +101,7 @@ export default function Questionnaire() {
           <div className="form-step">
             <FreeTextStep
               key={current}
+              wordsUnit={config.ui.wordsUnit}
               name={current}
               config={config[current]}
               value={data[current]}
@@ -116,6 +115,7 @@ export default function Questionnaire() {
       {current === 'personal' && (
         <PersonalStep
           config={config.personal}
+          ui={config.ui}
           data={data}
           onChange={handleChange}
           onToggle={handleToggle}

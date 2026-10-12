@@ -1,12 +1,13 @@
 /**
  * Newsletter subscribe / confirm / unsubscribe form (React island on /subscribe).
  * Reads ?token= (double opt-in confirmation) and ?cancel= (unsubscribe) from the URL.
- * Posts to /api/newsletter, /api/confirm and /api/unsubscribe. Styles: ./forms.css.
+ * Posts to /api/newsletter, /api/confirm and /api/unsubscribe.
+ * Props: copy (subscribeForm in the page language). Styles: ./forms.css.
  */
 import React, { useState, useEffect } from 'react';
 import './forms.css';
 
-export default function SubscribeForm() {
+export default function SubscribeForm({ copy }) {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -116,16 +117,14 @@ export default function SubscribeForm() {
   if (showEndScreen) {
     return (
       <div className="form-success-box" role="status">
-        <h2>Willkommen im IGNITE Newsletter!</h2>
+        <h2>{copy.welcomeHeading}</h2>
+        <p>{copy.welcomeText}</p>
         <p>
-          Deine Anmeldung ist jetzt bestätigt. Du erhältst ab sofort Updates zu Events, Workshops und Neuigkeiten aus
-          der Startup-Szene.
+          {copy.welcomeMailBefore} <strong>{email}</strong>
+          {copy.welcomeMailAfter}
         </p>
-        <p>
-          Wir haben dir eine Willkommens-E-Mail an <strong>{email}</strong> geschickt.
-        </p>
-        <a href="/" className="form-secondary">
-          Zurück zur Startseite
+        <a href={copy.backToHomeUrl} className="form-secondary">
+          {copy.backToHome}
         </a>
       </div>
     );
@@ -134,9 +133,9 @@ export default function SubscribeForm() {
   if (isCancelled) {
     return (
       <div className="form-success-box" role="status">
-        <h2>Du hast dich erfolgreich abgemeldet</h2>
-        <p>Schade, dass du dich vom Newsletter abgemeldet hast!</p>
-        {status === 'error' && <p className="form-error" role="alert">Fehler beim Abmelden. Bitte versuche es später erneut.</p>}
+        <h2>{copy.cancelledHeading}</h2>
+        <p>{copy.cancelledText}</p>
+        {status === 'error' && <p className="form-error" role="alert">{copy.cancelError}</p>}
       </div>
     );
   }
@@ -160,7 +159,7 @@ export default function SubscribeForm() {
 
   const emailField = (
     <label className="field" htmlFor="email">
-      <span className="field-label">E-Mail</span>
+      <span className="field-label">{copy.emailLabel}</span>
       <input
         id="email"
         type="email"
@@ -168,7 +167,7 @@ export default function SubscribeForm() {
         onChange={(e) => setEmail(e.target.value)}
         readOnly={isConfirming}
         required
-        placeholder="dein@email.de"
+        placeholder={copy.emailPlaceholder}
         disabled={loading}
         className="input"
         autoComplete="email"
@@ -178,26 +177,24 @@ export default function SubscribeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="form">
-      <h2 className="fieldset-legend">{isConfirming ? 'Bestätige dein Newsletter-Abonnement' : 'Werde Teil der Community'}</h2>
+      <h2 className="fieldset-legend">{isConfirming ? copy.confirmHeading : copy.heading}</h2>
 
       {isConfirming && emailField}
-      {textField('firstName', 'Vorname', firstName, setFirstName, { autoComplete: 'given-name' })}
-      {textField('lastName', 'Nachname', lastName, setLastName, { autoComplete: 'family-name' })}
+      {textField('firstName', copy.firstNameLabel, firstName, setFirstName, { autoComplete: 'given-name' })}
+      {textField('lastName', copy.lastNameLabel, lastName, setLastName, { autoComplete: 'family-name' })}
       {!isConfirming && emailField}
 
       <button type="submit" className="form-submit" disabled={loading}>
-        {loading ? 'Wird gesendet...' : isConfirming ? 'Bestätigen' : 'Jetzt beitreten'}
+        {loading ? copy.submitting : isConfirming ? copy.confirm : copy.submit}
       </button>
 
       <p className="form-note">
-        {isConfirming
-          ? 'Mit dem Absenden stimmst du unserer Datenschutzvereinbarung zu und bestätigst deine E-Mail-Adresse für unseren Newsletter.'
-          : 'Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.'}
+        {isConfirming ? copy.confirmConsent : copy.consent}
       </p>
 
       <div aria-live="polite">
-        {status === 'success' && <p className="form-success">Danke für deine Anmeldung!</p>}
-        {status === 'error' && <p className="form-error">Da ging etwas schief. Bitte versuch es später erneut.</p>}
+        {status === 'success' && <p className="form-success">{copy.success}</p>}
+        {status === 'error' && <p className="form-error">{copy.error}</p>}
       </div>
     </form>
   );

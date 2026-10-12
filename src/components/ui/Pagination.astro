@@ -1,9 +1,10 @@
 ---
 /**
  * Simple previous/next pagination for Astro's paginate() pages.
- * Props: page (Astro Page object), basePath (list root, e.g. '/news'), label (nav aria-label).
+ * Props: page (Astro Page object), basePath (list root, e.g. '/news'), label (nav aria-label, defaults to commonUi.pagination.label).
  */
 import type { Page } from 'astro'
+import { getCopy } from '../../data/copy'
 
 interface Props {
   page: Page<unknown>
@@ -11,7 +12,8 @@ interface Props {
   label?: string
 }
 
-const { page, basePath, label = 'Seitennavigation' } = Astro.props
+const { commonUi } = getCopy(Astro.currentLocale)
+const { page, basePath, label = commonUi.pagination.label } = Astro.props
 const prev = page.url.prev ? (page.currentPage === 2 ? basePath : page.url.prev) : null
 const total = Math.ceil(page.total / page.size)
 const linkClass =
@@ -21,9 +23,9 @@ const linkClass =
 {
   total > 1 && (
     <nav aria-label={label} class="mt-16 flex items-center justify-between gap-4">
-      {prev ? <a href={prev} rel="prev" class={linkClass}>Zurück</a> : <span />}
-      <p class="text-sm text-fg-muted">Seite {page.currentPage} von {total}</p>
-      {page.url.next ? <a href={page.url.next} rel="next" class={linkClass}>Weiter</a> : <span />}
+      {prev ? <a href={prev} rel="prev" class={linkClass}>{commonUi.pagination.previous}</a> : <span />}
+      <p class="text-sm text-fg-muted">{commonUi.pagination.pageOf(page.currentPage, total)}</p>
+      {page.url.next ? <a href={page.url.next} rel="next" class={linkClass}>{commonUi.pagination.next}</a> : <span />}
     </nav>
   )
 }

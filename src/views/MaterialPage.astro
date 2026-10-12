@@ -1,0 +1,36 @@
+---
+/**
+ * Material detail page from the `materials` content collection, rendered by pages/materialien/[material].astro
+ * and pages/en/materials/[material].astro. Props: material (collection entry).
+ */
+import { render, type CollectionEntry } from 'astro:content'
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import ArticleView from '../components/ui/ArticleView.astro'
+import { getMaterialCover } from '../data/editorialAssets'
+import { getCopy } from '../data/copy'
+import { formatDate, resolveLocale } from '../lib/i18n'
+
+interface Props {
+  material: CollectionEntry<'materials'>
+}
+
+const { material } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const { listingPages, commonUi, navigation } = getCopy(locale)
+const copy = listingPages.materials
+const { Content } = await render(material)
+---
+
+<DefaultLayout title={material.data.title} description={material.data.description} url={'materialien/' + material.id}>
+  <ArticleView
+    title={material.data.title}
+    date={formatDate(material.data.date, locale)}
+    meta={[material.data.tag, material.data.author ?? '']}
+    image={getMaterialCover(material.id, material.data.image)}
+    crumbs={[{ label: commonUi.homeCrumb, href: navigation.homeUrl }, { label: copy.crumb, href: copy.path }, { label: material.data.title }]}
+    backHref={copy.path}
+    backLabel={copy.backLabel}
+  >
+    <Content />
+  </ArticleView>
+</DefaultLayout>

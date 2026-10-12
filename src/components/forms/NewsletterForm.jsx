@@ -1,11 +1,11 @@
 /**
  * Compact newsletter signup (React island), used in the footer. Posts { email } to /api/newsletter.
- * Props: none. Styles: ./forms.css.
+ * Props: copy (newsletterForm in the page language). Styles: ./forms.css.
  */
 import React, { useState } from 'react'
 import './forms.css'
 
-export default function NewsletterForm() {
+export default function NewsletterForm({ copy }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState(null) // 'success' | 'error' | null
   const [loading, setLoading] = useState(false)
@@ -41,9 +41,9 @@ export default function NewsletterForm() {
   return (
     <form onSubmit={handleSubmit} className="form">
       <div className="field">
-        <h3 className="fieldset-legend">Werde Teil der Community</h3>
+        <h3 className="fieldset-legend">{copy.heading}</h3>
         <label htmlFor="newsletter-email" className="form-note">
-          Du erhältst eine E-Mail mit einem Einladungslink.
+          {copy.note}
         </label>
         <input
           id="newsletter-email"
@@ -51,7 +51,7 @@ export default function NewsletterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          placeholder="dein@email.de"
+          placeholder={copy.emailPlaceholder}
           className="input"
           disabled={loading}
           autoComplete="email"
@@ -59,16 +59,14 @@ export default function NewsletterForm() {
       </div>
 
       <button type="submit" className="form-submit" disabled={loading}>
-        {loading ? 'Wird gesendet...' : 'Jetzt beitreten'}
+        {loading ? copy.submitting : copy.submit}
       </button>
 
-      <p className="form-note">Mit dem Absenden deiner E-Mail-Adresse stimmst du unserer Datenschutzvereinbarung zu.</p>
+      <p className="form-note">{copy.consent}</p>
 
       <div aria-live="polite">
-        {status === 'success' && (
-          <p className="form-success">Danke für deine Anmeldung! Schau in dein Postfach, um deine E-Mail-Adresse zu bestätigen.</p>
-        )}
-        {status === 'error' && <p className="form-error">Da ging etwas schief. Bitte versuch es später erneut.</p>}
+        {status === 'success' && <p className="form-success">{copy.success}</p>}
+        {status === 'error' && <p className="form-error">{copy.error}</p>}
       </div>
     </form>
   )

@@ -1,13 +1,13 @@
 ---
 /**
  * Fullscreen mobile menu, opened by `.menu-trigger` in Header.astro (the header pill stays on top and shows the close icon).
- * Props: items (navigation.menuItems; children render as a smaller list under their parent), currentUrls (active pages).
+ * Props: items (navigation.menuItems; children render as a smaller list under their parent), isCurrentPaths (active pages).
  * Behaviour: aria-expanded toggle, scroll lock, Escape and link click close, focus trap, focus returns to the trigger.
  * Bottom: theme toggle and social links (footer.socialLinks).
  */
 import { Icon } from 'astro-icon/components'
 import ThemeToggle from '../ui/ThemeToggle.astro'
-import { footer, navigation } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
 
 interface NavItem {
   label: string
@@ -20,6 +20,7 @@ interface Props {
 }
 
 const { items, isCurrentPaths = [] } = Astro.props
+const { footer, navigation } = getCopy(Astro.currentLocale)
 const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefined)
 ---
 

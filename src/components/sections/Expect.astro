@@ -3,16 +3,17 @@
  * "Was dich erwartet" as a bento grid. Mobile: stacked list. md: two columns. lg: six-column bento where
  * Workshops spans the full width (with a real event photo) and the three remaining cards share the row below.
  * Layout comes from `features[].layout` ('wide' | 'half' | 'third') in staticContent.ts.
- * Props: none. Data: features, homepage.featuresHeading / featuresPhotoAlt.
+ * Props: none. Data: features, homepage.featuresHeading / featuresPhotoAlt via getCopy().
  */
 import { Icon } from 'astro-icon/components'
 import { Image } from 'astro:assets'
 import Section from '../ui/Section.astro'
 import Card from '../ui/Card.astro'
 import Button from '../ui/Button.astro'
-import { features, homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
 import guide from '../../assets/photos/guide.jpg'
 
+const { features, homepage } = getCopy(Astro.currentLocale)
 const items = [...features].sort((a, b) => a.order - b.order)
 const span: Record<string, string> = {
   wide: 'md:col-span-2 lg:col-span-6',

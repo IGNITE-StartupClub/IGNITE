@@ -1,6 +1,6 @@
 /**
  * Stateless step views for the application questionnaire (used by Questionnaire.jsx).
- * Data source: src/data/questionnaireConfig.ts. Styles: ./forms.css.
+ * Copy comes from questionnaireConfig in the page language (passed down by Questionnaire.jsx). Styles: ./forms.css.
  */
 import React from 'react'
 import './forms.css'
@@ -35,7 +35,7 @@ export function SituationStep({ config, value, onChange }) {
   )
 }
 
-export function FreeTextStep({ name, config, value, onChange }) {
+export function FreeTextStep({ name, config, wordsUnit, value, onChange }) {
   const wordCount = getWordCount(value)
   const overLimit = wordCount > MAX_WORDS
   return (
@@ -53,23 +53,22 @@ export function FreeTextStep({ name, config, value, onChange }) {
         aria-invalid={overLimit}
       />
       <span className={overLimit ? 'form-error' : 'form-note'}>
-        {wordCount} / {MAX_WORDS} Wörter
+        {wordCount} / {MAX_WORDS} {wordsUnit}
       </span>
     </div>
   )
 }
 
-export function PersonalStep({ config, data, onChange, onToggle, submitting, error }) {
-  const fields = config?.fields || {}
-  const text = (name, type, fallback, autoComplete) => (
+export function PersonalStep({ config, ui, data, onChange, onToggle, submitting, error }) {
+  const text = (name, type, autoComplete) => (
     <label className="field">
-      <span className="field-label">{fields[name]?.label || fallback}</span>
+      <span className="field-label">{config.fields[name].label}</span>
       <input
         type={type}
         name={name}
         value={data[name]}
         onChange={onChange}
-        required={fields[name]?.required !== false}
+        required={config.fields[name].required}
         autoComplete={autoComplete}
         className="input"
       />
@@ -78,19 +77,20 @@ export function PersonalStep({ config, data, onChange, onToggle, submitting, err
   return (
     <>
       <div className="form-row">
-        {text('name', 'text', 'Vorname', 'given-name')}
-        {text('lastname', 'text', 'Nachname', 'family-name')}
+        {text('name', 'text', 'given-name')}
+        {text('lastname', 'text', 'family-name')}
       </div>
-      {text('email', 'email', 'E-Mail', 'email')}
+      {text('email', 'email', 'email')}
 
       <label className="choice">
         <input type="checkbox" name="subscribeNewsletter" checked={data.subscribeNewsletter} onChange={onToggle} />
-        <span>Ich möchte den IGNITE Newsletter abonnieren und über Events und Workshops informiert werden.</span>
+        <span>{config.newsletterConsent}</span>
       </label>
       <label className="choice">
         <input type="checkbox" name="acceptPrivacy" checked={data.acceptPrivacy} onChange={onToggle} required />
         <span>
-          Ich akzeptiere die <a href="/datenschutz">Datenschutzbestimmungen</a>. (Pflichtfeld)
+          {config.privacyBefore} <a href={config.privacyLink.url}>{config.privacyLink.label}</a>
+          {config.privacyAfter}
         </span>
       </label>
 
@@ -98,7 +98,7 @@ export function PersonalStep({ config, data, onChange, onToggle, submitting, err
         {error}
       </p>
       <button type="submit" className="form-submit form-centered" disabled={submitting || !data.acceptPrivacy}>
-        {submitting ? 'Wird gesendet...' : 'Anfrage absenden'}
+        {submitting ? ui.submitting : ui.submit}
       </button>
     </>
   )

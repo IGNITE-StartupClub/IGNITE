@@ -2,13 +2,14 @@
 /**
  * Site footer: logo with claim and newsletter on the left, link columns (Navigation, Rechtliches) on the right,
  * bottom bar with copyright and social icon links. Calm and compact, no oversized wordmark.
- * Data source: navigation, footer, globalConfig in src/data/staticContent.ts.
+ * Data source: navigation, footer, globalConfig, newsletterForm via getCopy() (src/data/copy.ts).
  */
 import { Icon } from 'astro-icon/components'
 import Logo from '../Logo.astro'
 import NewsletterForm from '../forms/NewsletterForm'
-import { footer, globalConfig, navigation } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
 
+const { footer, globalConfig, navigation, newsletterForm } = getCopy(Astro.currentLocale)
 const year = new Date().getFullYear()
 const navLinks = [...navigation.menuItems]
   .sort((a, b) => a.order - b.order)
@@ -23,9 +24,9 @@ const groups = [
   <div class="mx-auto max-w-wide px-gutter pb-8 pt-section-sm">
     <div class="grid gap-12 lg:grid-cols-[1.3fr_1fr_1fr] lg:gap-16">
       <div class="flex max-w-text flex-col gap-5">
-        <a href="/" class="text-logo hover:text-logo" aria-label={navigation.logoText}><Logo color="currentColor" name={navigation.logoText} /></a>
+        <a href={navigation.homeUrl} class="text-logo hover:text-logo" aria-label={navigation.logoText}><Logo color="currentColor" name={navigation.logoText} /></a>
         <p class="text-sm text-fg-muted">{footer.description}</p>
-        {footer.showNewsletter && <NewsletterForm client:visible />}
+        {footer.showNewsletter && <NewsletterForm client:visible copy={newsletterForm} />}
       </div>
 
       {

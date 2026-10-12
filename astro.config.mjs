@@ -13,6 +13,14 @@ export default defineConfig({
   output: 'server',
   site: 'https://ignite-startupclub.de',
 
+  // German is served at the root, English under /en/. The pages in src/pages/en/ are written by hand; Astro only
+  // provides the locale detection (Astro.currentLocale) and the routing rules.
+  i18n: {
+    defaultLocale: 'de',
+    locales: ['de', 'en'],
+    routing: { prefixDefaultLocale: false },
+  },
+
   integrations: 
   [
     react(), 

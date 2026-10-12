@@ -1,10 +1,12 @@
 ---
 /**
  * Light/dark toggle (44x44). Persists the choice in localStorage ('theme').
- * Labels come from navigation.themeToLightLabel / themeToDarkLabel in staticContent.ts.
+ * Labels come from navigation.themeToLightLabel / themeToDarkLabel (getCopy(), src/data/copy.ts).
  */
 import { Icon } from 'astro-icon/components'
-import { navigation } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
+
+const { navigation } = getCopy(Astro.currentLocale)
 ---
 
 <button

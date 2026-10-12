@@ -1,7 +1,9 @@
 ---
 /**
- * Breadcrumb trail. Props: items ({ label, href? }, the last item is the current page).
+ * Breadcrumb trail. Props: items ({ label, href? }, the last item is the current page). The nav label comes from commonUi.
  */
+import { getCopy } from '../../data/copy'
+
 interface Item {
   label: string
   href?: string
@@ -11,9 +13,10 @@ interface Props {
 }
 
 const { items } = Astro.props
+const { commonUi } = getCopy(Astro.currentLocale)
 ---
 
-<nav aria-label="Brotkrumen" class="text-sm text-fg-muted">
+<nav aria-label={commonUi.breadcrumbsLabel} class="text-sm text-fg-muted">
   <ol class="flex flex-wrap gap-x-2">
     {
       items.map((item, i) => (

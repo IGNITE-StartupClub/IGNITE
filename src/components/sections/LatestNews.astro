@@ -2,17 +2,18 @@
 /**
  * Neuigkeiten as before: heading with lead, then the newest `projects` entry featured as image left, text right,
  * gradient-outline "Mehr lesen!" button. A ghost link leads to the full list.
- * Props: none. Data: projects collection (title, description, author, date, image), homepage (news*) in staticContent.ts.
+ * Props: none. Data: news collection of the current locale (getNews), homepage (news*) via getCopy().
  */
-import { getCollection } from 'astro:content'
 import Section from '../ui/Section.astro'
 import Button from '../ui/Button.astro'
 import OptimizedImage from '../ui/OptimizedImage.astro'
-import { homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
+import { getNews } from '../../lib/news'
+import { formatDate, resolveLocale } from '../../lib/i18n'
 
-const [latest] = (await getCollection('projects')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-const formatDate = (date: Date) =>
-  date.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
+const locale = resolveLocale(Astro.currentLocale)
+const { homepage, listingPages } = getCopy(locale)
+const [latest] = await getNews(locale)
 ---
 
 <Section tone="subtle" spacing="md" labelledby="news-title">
@@ -36,10 +37,10 @@ const formatDate = (date: Date) =>
           <p class="text-lead text-fg-muted">{latest.data.description}</p>
           <p class="text-sm text-fg-muted">
             {homepage.newsAuthorLabel} {latest.data.author} ·{' '}
-            <time datetime={latest.data.date.toISOString()}>{formatDate(latest.data.date)}</time>
+            <time datetime={latest.data.date.toISOString()}>{formatDate(latest.data.date, locale)}</time>
           </p>
           <div class="mt-2 flex flex-wrap items-center gap-x-8 gap-y-4">
-            <Button href={`/news/${latest.id}/`} variant="secondary" size="lg" icon="ion:reader-outline">
+            <Button href={`${listingPages.news.path}/${latest.id}/`} variant="secondary" size="lg" icon="ion:reader-outline">
               {homepage.newsReadMore}
             </Button>
             <Button href={homepage.newsCTA_URL} variant="ghost">

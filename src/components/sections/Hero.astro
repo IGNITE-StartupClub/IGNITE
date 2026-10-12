@@ -4,13 +4,14 @@
  * then a single large rounded image below. The image comes from `homepage.heroImage` ({ src, alt }): `src` is a
  * file name in src/assets/photos (optimized by astro:assets) or a public URL, so the motif can be swapped in
  * staticContent.ts only.
- * Props: none. Data: homepage (heroTitle, heroSubtitle, heroCTA_*, heroImage).
+ * Props: none. Data: homepage (heroTitle, heroSubtitle, heroCTA_*, heroObjectAlt, heroImage) via getCopy().
  */
 import { Image } from 'astro:assets'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import Button from '../ui/Button.astro'
-import { homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
 
+const { homepage } = getCopy(Astro.currentLocale)
 const assets = import.meta.glob<{ default: ImageMetadata }>('../../assets/photos/*.{jpg,jpeg,png,webp}', { eager: true })
 const { src, alt } = homepage.heroImage
 const asset = assets[`../../assets/photos/${src}`]?.default
@@ -28,7 +29,7 @@ const asset = assets[`../../assets/photos/${src}`]?.default
     <figure class="hero-object">
       <OptimizedImage
         src="/img/heritage/founder-team-blueprint.png"
-        alt="Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Raketen-Bauplänen"
+        alt={homepage.heroObjectAlt}
         width={1504}
         height={1023}
         widths={[480, 768, 1024, 1504]}

@@ -1,9 +1,12 @@
 ---
 /**
- * Base page shell: head (SEO, favicons, analytics, theme bootstrap), skip link,
+ * Base page shell: head (SEO, hreflang alternates, favicons, analytics, theme bootstrap), skip link,
  * Header, <main id="main-content">, Footer.
- * Props: title, description, url, image, author, noindex (all optional, German defaults).
- * Data source: navigation/footer content from src/data/staticContent.ts.
+ * Locale: taken from the URL (Astro.currentLocale); sets <html lang> and the defaults.
+ * Props: title, description, url, image, author, noindex (all optional, defaults from siteMeta),
+ * alternatePath (the equivalent page in the other language: omitted = derived from the URL, null = no counterpart,
+ * so no hreflang tags are written).
+ * Data source: getCopy() in src/data/copy.ts.
  */
 import '../styles/global.css'
 import '../assets/scss/globals.scss'
@@ -11,7 +14,8 @@ import { Seo } from 'astro-seo-meta'
 import SiteMeta from '../components/SiteMeta.astro'
 import Header from '../components/layout/Header.astro'
 import Footer from '../components/layout/Footer.astro'
-import { navigation } from '../data/staticContent'
+import { getCopy } from '../data/copy'
+import { resolveLocale, switchLocalePath } from '../lib/i18n'
 
 interface Props {
   title?: string
@@ -20,19 +24,31 @@ interface Props {
   image?: string
   author?: string
   noindex?: boolean
+  alternatePath?: string | null
 }
 
+const locale = resolveLocale(Astro.currentLocale)
+const { navigation, siteMeta } = getCopy(locale)
 const {
-  title = 'IGNITE Startup Club Lueneburg',
-  description = 'IGNITE ist die studentische Initiative für Entrepreneurship an der Leuphana Universität Lüneburg.',
+  title = siteMeta.title,
+  description = siteMeta.description,
   url = Astro.site,
   image = '/og-image.jpg',
-  author = 'IGNITE Startup Club Lueneburg',
+  author = siteMeta.author,
   noindex = false,
+  alternatePath,
 } = Astro.props
+
+const otherLocale = locale === 'de' ? 'en' : 'de'
+const otherPath = alternatePath === undefined ? switchLocalePath(Astro.url.pathname, otherLocale) : alternatePath
+const alternates = otherPath === null ? [] : [
+  { hreflang: locale, href: new URL(Astro.url.pathname, Astro.site).href },
+  { hreflang: otherLocale, href: new URL(otherPath, Astro.site).href },
+]
+const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'de')
 ---
 
-<html lang="de" dir="ltr" data-theme="light">
+<html lang={locale} dir="ltr" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -57,11 +73,12 @@ const {
       })()
     </script>
 
-    <Seo
-      keywords={["Startup", "Lüneburg", "Studentische Initiative", "Leuphana", "Universität", "Entrepreneurship", "Innovation", "Business", "Netzwerk", "Mentoring", "Community", "Workshops", "Pitch", "Gründung"]}/>
+    <Seo keywords={siteMeta.keywords} />
     <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
 
     {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
+    {germanAlternate && <link rel="alternate" hreflang="x-default" href={germanAlternate.href} />}
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.ico" />

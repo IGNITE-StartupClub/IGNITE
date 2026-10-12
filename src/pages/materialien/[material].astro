@@ -1,11 +1,6 @@
 ---
-/**
- * Material detail page from the `materials` content collection.
- */
-import { getCollection, render, type CollectionEntry } from 'astro:content'
-import DefaultLayout from '../../layouts/DefaultLayout.astro'
-import ArticleView from '../../components/ui/ArticleView.astro'
-import { getMaterialCover } from '../../data/editorialAssets'
+import { getCollection } from 'astro:content'
+import MaterialPage from '../../views/MaterialPage.astro'
 
 export const prerender = true
 
@@ -14,25 +9,7 @@ export async function getStaticPaths() {
   return materials.map((material) => ({ params: { material: material.id }, props: { material } }))
 }
 
-interface Props {
-  material: CollectionEntry<'materials'>
-}
-
 const { material } = Astro.props
-const { Content } = await render(material)
-const date = new Date(material.data.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
 ---
 
-<DefaultLayout title={material.data.title} description={material.data.description} url={'materialien/' + material.id}>
-  <ArticleView
-    title={material.data.title}
-    date={date}
-    meta={[material.data.tag, material.data.author ?? '']}
-    image={getMaterialCover(material.id, material.data.image)}
-    crumbs={[{ label: 'Startseite', href: '/' }, { label: 'Materialien', href: '/materialien' }, { label: material.data.title }]}
-    backHref="/materialien"
-    backLabel="Zurück zu den Materialien"
-  >
-    <Content />
-  </ArticleView>
-</DefaultLayout>
+<MaterialPage material={material} />

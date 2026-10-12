@@ -1,25 +1,7 @@
 ---
-/**
- * Contact page with the contact form. Supports ?intent=<topic> to preselect the topic.
- * Data source: contactPage in src/data/staticContent.ts.
- */
-import DefaultLayout from '../layouts/DefaultLayout.astro'
-import PageHeader from '../components/ui/PageHeader.astro'
-import Section from '../components/ui/Section.astro'
-import Contact from '../components/forms/Contact.jsx'
-import { contactPage } from '../data/staticContent'
+import ContactPage from '../views/ContactPage.astro'
 
 export const prerender = true
-
-const initialIntent = Astro.url.searchParams.get('intent') || ''
 ---
 
-<DefaultLayout
-  title="Kontakt"
-  description="Nimm Kontakt mit uns auf. Wir freuen uns über deine Nachricht und stehen dir gerne zur Verfügung."
->
-  <PageHeader title={contactPage.pageTitle} lead={contactPage.pageIntro} />
-  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <Contact client:load initialIntent={initialIntent} />
-  </Section>
-</DefaultLayout>
+<ContactPage />

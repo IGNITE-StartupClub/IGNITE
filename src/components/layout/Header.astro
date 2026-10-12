@@ -4,23 +4,25 @@
  * "Mitmachen" pill. Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
- * Data source: navigation in src/data/staticContent.ts.
+ * Data source: navigation via getCopy() (src/data/copy.ts).
  */
 import Logo from '../Logo.astro'
 import Button from '../ui/Button.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 import MobileNav from './MobileNav.astro'
-import { navigation } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
 
+const { navigation } = getCopy(Astro.currentLocale)
 const items = [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
 const currentPath = trim(Astro.url.pathname)
-const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || (url !== '/' && currentPath.startsWith(`${trim(url)}/`)))
+const home = trim(navigation.homeUrl)
+const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || (trim(url) !== home && currentPath.startsWith(`${trim(url)}/`)))
 ---
 
 <header class="site-header" data-site-header>
   <div class="pill">
-    <a href="/" class="logo-link" aria-label={navigation.logoText}>
+    <a href={navigation.homeUrl} class="logo-link" aria-label={navigation.logoText}>
       <Logo color="currentColor" name={navigation.logoText} />
     </a>
 

@@ -2,12 +2,14 @@
 /**
  * Final call to action on the flat deep brand surface (#311763), centered: headline with one serif accent, one
  * sentence and the one primary Button of the page. No gradients.
- * Props: none. Data: homepage (finalHeading, finalText, finalCTA_*) in staticContent.ts.
+ * Props: none. Data: homepage (finalHeading, finalText, finalCTA_*) via getCopy().
  */
 import Section from '../ui/Section.astro'
 import Button from '../ui/Button.astro'
 import OptimizedImage from '../ui/OptimizedImage.astro'
-import { homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
+
+const { homepage } = getCopy(Astro.currentLocale)
 ---
 
 <Section tone="subtle" spacing="lg" width="text" labelledby="final-title" class="text-center">

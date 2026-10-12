@@ -1,10 +1,9 @@
 /**
  * Contact form (React island). Posts JSON to /api/contact.
- * Props: initialIntent (topic value preselected from the ?intent= URL parameter).
- * Data source: contactPage and contactTopics in src/data/staticContent.ts. Styles: ./forms.css.
+ * Props: copy (contactPage), topics (contactTopics) in the page language, passed by the page so only one language ships
+ * to the browser; initialIntent (topic value preselected from the ?intent= URL parameter). Styles: ./forms.css.
  */
 import React, { useState, useEffect } from 'react'
-import { contactPage as config, contactTopics } from '../../data/staticContent'
 import './forms.css'
 
 const INITIAL_DATA = {
@@ -29,7 +28,7 @@ function Field({ label, children }) {
   )
 }
 
-export default function ContactForm({ initialIntent = '' }) {
+export default function ContactForm({ copy: config, topics: contactTopics, initialIntent = '' }) {
   const [data, setData] = useState(INITIAL_DATA)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -60,10 +59,13 @@ export default function ContactForm({ initialIntent = '' }) {
       if (response.ok) {
         setDone(true)
       } else {
-        setError(result.message || config.errorMessage || 'Ein Fehler ist aufgetreten')
+        // The API answers in German, so the page language's message is shown and the server detail is only logged.
+        console.error('Contact request failed:', result.message)
+        setError(config.errorMessage)
       }
     } catch (err) {
-      setError(config.errorMessage || 'Fehler beim Absenden der Nachricht')
+      console.error('Contact request failed:', err)
+      setError(config.errorMessage)
     }
   }
 

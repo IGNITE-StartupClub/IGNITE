@@ -1,22 +1,24 @@
 ---
 /**
- * Layout for Markdown/MDX pages (legal, workshops, peer-to-peer).
+ * Layout for Markdown/MDX pages (legal, workshops, peer-to-peer). English pages live in src/pages/en/.
  * Frontmatter: title (required), description (optional). Content is styled by .prose (src/styles/prose.css).
  */
 import '../styles/prose.css'
 import DefaultLayout from './DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
+import { getCopy } from '../data/copy'
 
 interface Props {
   frontmatter: { title: string; description?: string }
 }
 
 const { frontmatter } = Astro.props
+const { siteMeta } = getCopy(Astro.currentLocale)
 ---
 
 <DefaultLayout
   title={frontmatter.title}
-  description={frontmatter.description?.substring(0, 160) ?? 'IGNITE Startup Club Lüneburg'}
+  description={frontmatter.description?.substring(0, 160) ?? siteMeta.shortName}
 >
   <Section spacing="md" width="text">
     <div class="prose">

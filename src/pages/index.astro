@@ -1,25 +1,7 @@
 ---
-import DefaultLayout from '../layouts/DefaultLayout.astro'
-import Hero from '../components/sections/Hero.astro'
-import Why from '../components/sections/Why.astro'
-import Expect from '../components/sections/Expect.astro'
-import People from '../components/sections/People.astro'
-import LatestNews from '../components/sections/LatestNews.astro'
-import Faq from '../components/sections/Faq.astro'
-import FinalCta from '../components/sections/FinalCta.astro'
+import HomePage from '../views/HomePage.astro'
 
 export const prerender = true
 ---
 
-<DefaultLayout
-  title="IGNITE - Startup Club Lüneburg"
-  description="Willkommen bei IGNITE, deiner studentischen Initiative für Entrepreneurship an der Leuphana Universität Lüneburg."
->
-  <Hero />
-  <Expect />
-  <Why />
-  <People />
-  <LatestNews />
-  <Faq />
-  <FinalCta />
-</DefaultLayout>
+<HomePage />

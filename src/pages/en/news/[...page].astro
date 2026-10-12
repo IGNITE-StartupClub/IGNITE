@@ -1,0 +1,13 @@
+---
+import type { GetStaticPaths } from 'astro'
+import NewsListPage from '../../../views/NewsListPage.astro'
+import { getNews } from '../../../lib/news'
+
+export const prerender = true
+
+export const getStaticPaths = (async ({ paginate }) => paginate(await getNews('en'), { pageSize: 6 })) satisfies GetStaticPaths
+
+const { page } = Astro.props
+---
+
+<NewsListPage page={page} />

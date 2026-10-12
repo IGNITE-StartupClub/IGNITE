@@ -3,14 +3,15 @@
  * Advisory board in the theresidency "resident card" pattern: 2-column grid (md+), equal heights. Each card has a
  * small square photo (8px radius) left, the name large, the board role in serif italic below it, then position,
  * bio and an underlined LinkedIn link. A quiet dashed card invites new members.
- * Props: none. Data: advisoryMembers (src/data/advisoryBoard.ts), homepage.advisory* in staticContent.ts.
+ * Props: none. Data: advisoryMembers (src/data/advisoryBoard.ts), homepage.advisory* via getCopy().
  */
 import Section from '../ui/Section.astro'
 import Card from '../ui/Card.astro'
 import Button from '../ui/Button.astro'
 import OptimizedImage from '../ui/OptimizedImage.astro'
-import { homepage } from '../../data/staticContent'
-import { advisoryMembers } from '../../data/advisoryBoard'
+import { getCopy } from '../../data/copy'
+
+const { homepage, advisoryMembers } = getCopy(Astro.currentLocale)
 ---
 
 <Section spacing="md" labelledby="people-title">

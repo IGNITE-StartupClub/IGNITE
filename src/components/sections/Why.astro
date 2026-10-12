@@ -3,11 +3,13 @@
  * "Warum" statement in the theresidency pattern: a large statement heading (one serif accent word), short paragraphs in
  * large body text with one serif-italic emphasis phrase (<em> in the copy), followed by an open audience band.
  * The shared-work sculpture supports the community statement.
- * Props: none. Data: homepage (whyHeading, whyParagraphs, audienceHeading, audienceLines) in staticContent.ts.
+ * Props: none. Data: homepage (whyHeading, whyParagraphs, whyImageAlt, audienceHeading, audienceLines) via getCopy().
  */
 import Section from '../ui/Section.astro'
 import OptimizedImage from '../ui/OptimizedImage.astro'
-import { homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
+
+const { homepage } = getCopy(Astro.currentLocale)
 ---
 
 <Section spacing="md" labelledby="why-title" class="why-section">
@@ -21,7 +23,7 @@ import { homepage } from '../../data/staticContent'
     <figure class="community-figure">
       <OptimizedImage
         src="/img/heritage/salt-sculpture.png"
-        alt="Zwei Marmorskulpturen entwickeln gemeinsam eine Idee am Laptop"
+        alt={homepage.whyImageAlt}
         width={1536}
         height={1024}
         widths={[384, 576, 864, 1152]}

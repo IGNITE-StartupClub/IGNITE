@@ -2,11 +2,13 @@
 /**
  * FAQ in the theresidency pattern: centered serif "Fragen?" headline, full-width list of native <details> with
  * 1px hairlines, large question text, "+" on the right that becomes "×" when open (CSS only), muted answers.
- * Props: none. Data: faqs (question, answer HTML, openByDefault) and homepage.faq* in staticContent.ts.
+ * Props: none. Data: faqs (question, answer HTML, openByDefault) and homepage.faq* via getCopy().
  */
 import Section from '../ui/Section.astro'
 import Button from '../ui/Button.astro'
-import { faqs, homepage } from '../../data/staticContent'
+import { getCopy } from '../../data/copy'
+
+const { faqs, homepage } = getCopy(Astro.currentLocale)
 
 const items = [...faqs].sort((a, b) => a.order - b.order)
 ---

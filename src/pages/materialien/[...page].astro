@@ -1,17 +1,7 @@
 ---
-/**
- * Paginated materials list (9 per page) from the `materials` content collection.
- * Data source: src/content/materials, copy in listingPages.materials (staticContent.ts).
- */
-import type { GetStaticPaths, Page } from 'astro'
-import { getCollection, type CollectionEntry } from 'astro:content'
-import DefaultLayout from '../../layouts/DefaultLayout.astro'
-import PageHeader from '../../components/ui/PageHeader.astro'
-import Section from '../../components/ui/Section.astro'
-import Pagination from '../../components/ui/Pagination.astro'
-import OptimizedImage from '../../components/ui/OptimizedImage.astro'
-import { listingPages } from '../../data/staticContent'
-import { getMaterialCover } from '../../data/editorialAssets'
+import type { GetStaticPaths } from 'astro'
+import { getCollection } from 'astro:content'
+import MaterialsListPage from '../../views/MaterialsListPage.astro'
 
 export const prerender = true
 
@@ -21,57 +11,7 @@ export const getStaticPaths = (async ({ paginate }) => {
   return paginate(sorted, { pageSize: 9 })
 }) satisfies GetStaticPaths
 
-interface Props {
-  page: Page<CollectionEntry<'materials'>>
-}
-
 const { page } = Astro.props
-const copy = listingPages.materials
 ---
 
-<DefaultLayout title="Materialien und Ressourcen" description={copy.lead} url="materialien">
-  <PageHeader title={copy.title} lead={copy.lead} />
-  <Section tone="subtle" labelledby="page-title">
-    {
-      page.data.length === 0 ? (
-        <p class="text-fg-muted">{copy.empty}</p>
-      ) : (
-        <ul class="editorial-list">
-          {page.data.map((item, index) => (
-            <li class="editorial-item">
-              <a class="editorial-image" href={`/materialien/${item.id}`} aria-label={`Material ansehen: ${item.data.title}`}>
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <OptimizedImage src={getMaterialCover(item.id, item.data.image)} alt={`Titelbild: ${item.data.title}`} width={960} height={640} widths={[320, 480, 640, 960]} sizes="(min-width: 1152px) 375px, (min-width: 768px) 33vw, 65vw" loading={index === 0 ? 'eager' : 'lazy'} />
-              </a>
-              <div class="editorial-content">
-                <p class="editorial-meta">{item.data.tag || 'Ressource'} · {item.data.author?.replace('(AUTHOR)', '').trim() || 'IGNITE Team'}</p>
-                <h2><a href={`/materialien/${item.id}`}>{item.data.title}</a></h2>
-                <p>{item.data.description}</p>
-                <a class="editorial-link" href={`/materialien/${item.id}`}>{copy.readMore} <span aria-hidden="true">↗</span></a>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    <Pagination page={page} basePath="/materialien" label="Seiten der Materialien" />
-  </Section>
-</DefaultLayout>
-
-<style>
-  .editorial-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; max-width: var(--container-wide); margin: 0 auto; }
-  .editorial-item { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-card); }
-  .editorial-image { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; border-radius: calc(var(--radius-card) - .25rem); background: var(--color-bg-subtle); }
-  .editorial-image :global(img) { display: block; width: 75%; height: 75%; object-fit: contain; transition: transform .45s ease; }
-  .editorial-image:hover :global(img) { transform: scale(1.04); }
-  .editorial-image span { display: none; }
-  .editorial-content { display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
-  .editorial-meta { color: var(--color-accent-text); font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
-  .editorial-content h2 { margin: .75rem 0 1rem; font-size: var(--text-xl); }
-  .editorial-content h2 a:hover { color: var(--color-fg); }
-  .editorial-content > p:not(.editorial-meta) { margin: 0; color: var(--color-fg-muted); }
-  .editorial-link { display: inline-flex; gap: .45rem; margin-top: auto; padding-top: 1.5rem; min-height: 2.75rem; color: var(--color-fg); font-size: .95rem; font-weight: 650; }
-  .editorial-link:hover { color: var(--color-accent-text); }
-  @media (max-width: 767px) { .editorial-list { grid-template-columns: 1fr; gap: 1.5rem; } }
-  @media (prefers-reduced-motion: reduce) { .editorial-image :global(img) { transition: none; } .editorial-image:hover :global(img) { transform: none; } }
-</style>
+<MaterialsListPage page={page} />
