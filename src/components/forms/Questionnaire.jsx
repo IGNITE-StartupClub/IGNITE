@@ -3,16 +3,15 @@
  * Props: initialPosition (unused URL hint, kept for the page contract).
  * Data source: src/data/questionnaireConfig.ts. Step views: ./QuestionnaireSteps.jsx. Styles: ./forms.css.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { questionnaireConfig as config } from '../../data/questionnaireConfig'
-import { DynamicField, TeamStep, SituationStep, PersonalStep, MAX_WORDS } from './QuestionnaireSteps'
+import { SituationStep, FreeTextStep, PersonalStep, MAX_WORDS, getWordCount } from './QuestionnaireSteps'
 import './forms.css'
 
 const INITIAL_DATA = {
-  teams: [],
   startupInterest: '',
-  selectedCustomQuestion: '',
-  customAnswer: '',
+  contribution: '',
+  fascination: '',
   name: '',
   lastname: '',
   email: '',
@@ -20,29 +19,16 @@ const INITIAL_DATA = {
   acceptPrivacy: false,
 }
 
-const LAST_STEP = 6
+const STEPS = ['intro', 'situation', 'contribution', 'fascination', 'personal']
 
-const getWordCount = (text) => (text ? text.trim().split(/\s+/).filter(Boolean).length : 0)
-
-const stepHasQuestions = (stepNum) =>
-  [1, 2, 3, 6].includes(stepNum) || Object.keys(config[`step${stepNum}`]?.questions || {}).length > 0
+const isFreeTextValid = (text) => !!text.trim() && getWordCount(text) <= MAX_WORDS
 
 export default function Questionnaire() {
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
   const [data, setData] = useState(INITIAL_DATA)
   const [done, setDone] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    setData((d) => {
-      const next = { ...d }
-      config.allQuestions.forEach((qId) => {
-        if (!(qId in next)) next[qId] = ''
-      })
-      return next
-    })
-  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -54,22 +40,7 @@ export default function Questionnaire() {
     setData((d) => ({ ...d, [name]: checked }))
   }
 
-  const handleTeamChange = (teamId) => {
-    setData((d) => {
-      const current = d.teams || []
-      const max = config.step2?.maxTeams || 3
-      if (current.includes(teamId)) return { ...d, teams: current.filter((t) => t !== teamId) }
-      if (current.length >= max) return d
-      return { ...d, teams: [...current, teamId] }
-    })
-  }
-
-  const next = () =>
-    setStep((s) => {
-      let n = s + 1
-      while (n <= LAST_STEP && !stepHasQuestions(n)) n++
-      return n
-    })
+  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -103,58 +74,48 @@ export default function Questionnaire() {
     )
   }
 
-  const dynamicQuestions = config[`step${step}`]?.questions || {}
-  const dynamicIds = Object.keys(dynamicQuestions)
-  const isDynamicValid = !dynamicIds.some((id) => dynamicQuestions[id].required && !data[id]?.trim())
-  const wordCount = getWordCount(data.customAnswer)
-  const dynamicFields = dynamicIds.map((id) => (
-    <DynamicField key={id} qId={id} question={dynamicQuestions[id]} value={data[id]} onChange={handleChange} />
-  ))
   const nextButton = (disabled) => (
-    <button type="button" className="form-secondary" onClick={next} disabled={disabled}>
+    <button type="button" className="form-secondary form-centered" onClick={next} disabled={disabled}>
       Weiter
     </button>
   )
+  const current = STEPS[step]
 
   return (
     <form id="application-form" onSubmit={handleSubmit} className="form">
-      {step === 1 && (
+      {current === 'intro' && (
         <button type="button" className="form-submit" onClick={next}>
-          {config.step1?.buttonText || 'Jetzt mitmachen'}
+          {config.intro.buttonText}
         </button>
       )}
 
-      {step === 2 && (
+      {current === 'situation' && (
         <>
-          <TeamStep config={config.step2} selected={data.teams} onToggle={handleTeamChange} />
-          {nextButton(data.teams.length < (config.step2?.minTeams || 2))}
+          <div className="form-step">
+            <SituationStep config={config.situation} value={data.startupInterest} onChange={handleChange} />
+          </div>
+          {nextButton(!data.startupInterest)}
         </>
       )}
 
-      {step === 3 && (
+      {(current === 'contribution' || current === 'fascination') && (
         <>
-          <SituationStep config={config.step3} data={data} onChange={handleChange} wordCount={wordCount} />
-          {dynamicFields}
-          {nextButton(
-            !data.startupInterest ||
-              data.selectedCustomQuestion === '' ||
-              !data.customAnswer.trim() ||
-              wordCount > MAX_WORDS ||
-              !isDynamicValid,
-          )}
+          <div className="form-step">
+            <FreeTextStep
+              key={current}
+              name={current}
+              config={config[current]}
+              value={data[current]}
+              onChange={handleChange}
+            />
+          </div>
+          {nextButton(!isFreeTextValid(data[current]))}
         </>
       )}
 
-      {step > 3 && step < LAST_STEP && dynamicIds.length > 0 && (
-        <>
-          {dynamicFields}
-          {nextButton(!isDynamicValid)}
-        </>
-      )}
-
-      {step === LAST_STEP && (
+      {current === 'personal' && (
         <PersonalStep
-          config={config.step6}
+          config={config.personal}
           data={data}
           onChange={handleChange}
           onToggle={handleToggle}

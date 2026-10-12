@@ -183,6 +183,32 @@ select.input {
     border-color var(--duration-fast) ease;
 }
 
+/* Buttons of the multi-step questionnaire, centered under the centered section heading. */
+.form-centered {
+  align-self: center;
+}
+
+/* Fixed minimum height for a questionnaire step, sized for the tallest one (free-text question),
+   so the "Weiter" button keeps its position when the step changes. */
+.form-step {
+  display: flex;
+  flex-direction: column;
+  min-height: 16.5rem;
+}
+
+.form-step > * {
+  flex: 1;
+}
+
+/* Answer options fill the free height of the step and sit centered between question and button. */
+.choices {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 .form-submit {
   color: var(--color-primary-fg);
   background-color: var(--color-primary);

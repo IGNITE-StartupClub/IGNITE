@@ -255,17 +255,24 @@ export const mitmachenPage = {
   lead: 'Werde Teil des IGNITE Startup Club Lüneburg. Wir suchen Studierende, die Lust haben, Events, Netzwerke und Projekte mitzugestalten.',
   ctaLabel: 'Jetzt bewerben',
   teamsHeading: 'Unsere <em>Teams</em>',
-  teamsLead: 'Du wählst zwei bis drei Teams, in denen du dir vorstellen kannst mitzuarbeiten.',
+  teamsLead: 'In diesen Teams kannst du bei IGNITE mitarbeiten. Welches davon zu dir passt, finden wir im Kennenlerngespräch gemeinsam heraus.',
   formHeading: 'Jetzt <em>mitmachen</em>',
   formLead: 'Bewirb dich schnell und unkompliziert mit diesem Formular.',
   processHeading: 'Wie geht es <em>weiter</em>?',
   processLead: 'So wirst du Teil von IGNITE.',
   steps: [
-    { title: 'Formular ausfüllen', text: 'Fülle unser Formular aus und erzähle uns von dir und deinen Interessen.' },
-    { title: 'Bestätigungsmail', text: 'Du erhältst eine Bestätigungsmail von uns, dass deine Anfrage bei uns eingegangen ist.' },
-    { title: 'Auswertung', text: 'Wir lesen uns deine Anfrage durch und laden dich zu einem kurzen Info-Gespräch ein.' },
-    { title: 'Info-Gespräch', text: 'Das Info-Gespräch führt unser People-Team mit dir. Dabei lernen wir uns gegenseitig kennen.' },
-    { title: 'Team-Matching', text: 'Nach dem Info-Gespräch entscheidet das People-Team, in welchem deiner gewählten Teams du gerade am besten unterstützen kannst.' },
+    {
+      title: 'Bewerbung abschicken',
+      text: 'Fülle das Bewerbungsformular auf dieser Seite aus und schick es ab. Du bekommst direkt eine Bestätigung per E-Mail.',
+    },
+    {
+      title: 'Kennenlerngespräch',
+      text: 'Wir sehen uns deine Bewerbung an und laden dich zu einem kurzen Kennenlerngespräch mit unserem HR-Team ein.',
+    },
+    {
+      title: 'Passendes Team & Einstiegsprojekt',
+      text: 'Gemeinsam finden wir ein Team, das zu deinem Studienschwerpunkt und deinen Interessen passt. Dort setzt du ein erstes Einstiegsprojekt um und wirst damit offiziell Teil des IGNITE-Teams.',
+    },
   ],
 }
 

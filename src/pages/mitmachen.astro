@@ -1,6 +1,6 @@
 ---
 /**
- * Join page: header, open teams, application questionnaire, process steps.
+ * Join page: header, open teams, process steps, application questionnaire.
  * Data sources: mitmachenPage (staticContent.ts), openTeams (data/openTeams.ts), questionnaireConfig.
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -32,15 +32,15 @@ export const prerender = true
     <div class="mt-12"><OpenTeamsGrid teams={openTeams} /></div>
   </Section>
 
-  <Section id="bewerbung" width="text" labelledby="form-heading">
-    <h2 id="form-heading" class="text-display-sm" set:html={c.formHeading} />
-    <p class="mt-6 text-fg-muted">{c.formLead}</p>
-    <div class="mt-10"><Questionnaire client:load /></div>
-  </Section>
-
-  <Section tone="subtle" spacing="sm" labelledby="process-heading">
+  <Section spacing="sm" labelledby="process-heading">
     <h2 id="process-heading" class="max-w-text text-display-sm" set:html={c.processHeading} />
     <p class="mt-6 max-w-text text-lead text-fg-muted">{c.processLead}</p>
     <ProcessSteps steps={c.steps} />
+  </Section>
+
+  <Section id="bewerbung" tone="subtle" labelledby="form-heading">
+    <h2 id="form-heading" class="max-w-text text-display-sm" set:html={c.formHeading} />
+    <p class="mt-6 max-w-text text-fg-muted">{c.formLead}</p>
+    <div class="mt-10 max-w-text"><Questionnaire client:load /></div>
   </Section>
 </DefaultLayout>

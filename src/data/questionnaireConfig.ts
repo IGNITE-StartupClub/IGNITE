@@ -1,18 +1,12 @@
 // Static Questionnaire Configuration
-// Replaces Strapi CMS for questionnaire data
+// Replaces Strapi CMS for questionnaire data.
+// Step order on /mitmachen: intro → situation → contribution → fascination → personal.
 
 export const questionnaireConfig = {
-  step1: {
+  intro: {
     buttonText: 'Bewerbung ausfüllen',
   },
-  step2: {
-    label: 'Wähle 2-3 Teams:',
-    minTeams: 2,
-    maxTeams: 3,
-    hintTooFew: 'Bitte wähle mindestens 2 Teams aus.',
-    hintMaximum: 'Du hast die maximale Anzahl erreicht.',
-  },
-  step3: {
+  situation: {
     legend: 'Was beschreibt deine Situation am besten?',
     options: [
       { value: 'idea', label: 'Ich habe eine Startup-Idee' },
@@ -20,15 +14,14 @@ export const questionnaireConfig = {
       { value: 'learn', label: 'Ich möchte mehr über Entrepreneurship lernen' },
       { value: 'network', label: 'Ich möchte mich vernetzen' },
     ],
-    questions: {},
   },
-  step4: {
-    questions: {},
+  contribution: {
+    label: 'Was denkst du, kannst du zu der Ignite-Community beitragen?',
   },
-  step5: {
-    questions: {},
+  fascination: {
+    label: 'Was fasziniert Dich am meisten am Gründen?',
   },
-  step6: {
+  personal: {
     fields: {
       name: {
         label: 'Vorname',
@@ -47,5 +40,4 @@ export const questionnaireConfig = {
       },
     },
   },
-  allQuestions: [],
-};
+}

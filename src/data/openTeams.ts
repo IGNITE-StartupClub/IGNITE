@@ -1,5 +1,5 @@
 /**
- * Open teams applicants can choose from on /mitmachen and in the application questionnaire.
+ * Open teams presented on /mitmachen.
  * (Team members live elsewhere; this file describes the teams themselves.)
  */
 export interface OpenTeam {
@@ -13,14 +13,6 @@ export interface OpenTeam {
 }
 
 export const openTeams: readonly OpenTeam[] = [
-  {
-    id: 'ignite-events',
-    category: 'extern',
-    team: 'IGNITE Events',
-    title: 'Events Team',
-    description:
-      'Organisiert Workshops, Hackathons, Startup-Breakfasts und Networking-Events. Verantwortlich für alle öffentlichen Veranstaltungen und Community-Building.',
-  },
   {
     id: 'ignite-relations',
     category: 'extern',
@@ -43,7 +35,7 @@ export const openTeams: readonly OpenTeam[] = [
     team: 'IGNITE Human Resources',
     title: 'People Team',
     description:
-      'Organisiert Recruiting, Info-Gespräche und Teambuilding. Ansprechpartner für interne Themen und Meetings.',
+      'Organisiert Recruiting, Kennenlerngespräche und Teambuilding. Ansprechpartner für interne Themen und Meetings.',
   },
   {
     id: 'ignite-finance-legal',
@@ -54,9 +46,9 @@ export const openTeams: readonly OpenTeam[] = [
       'Kümmert sich um Vereinsgründung, Buchhaltung, Budgetierung und Sponsorings. Verwaltet rechtliche und finanzielle Angelegenheiten.',
   },
   {
-    id: 'ignite-quality-control',
+    id: 'ignite-infrastructure',
     category: 'intern',
-    team: 'IGNITE Quality & Control',
+    team: 'IGNITE Infrastructure',
     title: 'Process & Tools Team',
     description:
       'Wählt Tools aus, verwaltet Accounts und optimiert interne Arbeitsabläufe. Sorgt für effiziente Zusammenarbeit im Team.',
