@@ -284,6 +284,20 @@ export const listingPages = {
   },
 }
 
+export const eventsPage = {
+  title: 'Gemeinsam <em>loslegen.</em>',
+  lead: 'Workshops, Austausch und Hackathons mit der Startup School: Hier findest du die kommenden Veranstaltungen von IGNITE.',
+  heading: 'Kommende Events',
+  empty: 'Gerade stehen keine Events an. Folge unserem Luma-Kalender, dann erfährst du als Erstes von neuen Terminen.',
+  unavailable: 'Die Events konnten gerade nicht geladen werden.',
+  register: 'Jetzt anmelden',
+  soldOut: 'Ausgebucht',
+  free: 'Kostenlos',
+  guests: 'Anmeldungen',
+  followCalendar: 'Luma-Kalender abonnieren',
+  close: 'Anmeldung schließen',
+}
+
 export const subscribePage = {
   title: 'Bleib auf dem <em>Laufenden</em>',
   lead: 'Erhalte Updates zu Events, Workshops und Neuigkeiten aus der Startup-Szene in Lüneburg.',
