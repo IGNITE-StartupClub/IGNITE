@@ -1,0 +1,42 @@
+---
+/**
+ * Detail view for a news article or material: breadcrumbs, serif title, meta line, optional image, prose, back link.
+ * Props: title, date (formatted string), crumbs (Breadcrumbs items), meta (tag/author strings), image, backHref, backLabel.
+ * Slots: default (the rendered Markdown content), after (full-width blocks below the prose, e.g. embeds).
+ */
+import '../../styles/prose.css'
+import Section from './Section.astro'
+import Breadcrumbs from './Breadcrumbs.astro'
+import OptimizedImage from './OptimizedImage.astro'
+import { getCopy } from '../../data/copy'
+
+interface Props {
+  title: string
+  date: string
+  crumbs: { label: string; href?: string }[]
+  meta?: string[]
+  image?: string
+  backHref: string
+  backLabel: string
+}
+
+const { title, date, crumbs, meta = [], image, backHref, backLabel } = Astro.props
+const { commonUi } = getCopy(Astro.currentLocale)
+const metaLine = [date, ...meta.filter(Boolean)].join(', ')
+---
+
+<Section spacing="md" width="article" labelledby="article-title">
+  <Breadcrumbs items={crumbs} />
+  <article class="mt-10">
+    <header>
+      <h1 id="article-title" class="text-display-md">{title}</h1>
+      <p class="mt-6 text-fg-muted">{metaLine}</p>
+    </header>
+    {image && <OptimizedImage src={image} alt={`${commonUi.coverAltPrefix} ${title}`} width={1280} height={720} widths={[384, 640, 960, 1280]} sizes="(min-width: 768px) 720px, calc(100vw - 48px)" class="mt-10 aspect-video w-full rounded-card object-cover" loading="eager" fetchpriority="high" />}
+    <div class="prose prose-article mt-10"><slot /></div>
+    <slot name="after" />
+  </article>
+  <p class="mt-16 border-t border-border pt-8">
+    <a href={backHref} class="text-accent underline underline-offset-4">{backLabel}</a>
+  </p>
+</Section>

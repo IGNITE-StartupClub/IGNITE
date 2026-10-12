@@ -1,0 +1,72 @@
+---
+/**
+ * Paginated news list (6 per page) of the current locale, rendered by pages/news/[...page].astro and
+ * pages/en/news/[...page].astro. Props: page (Astro paginate() page of news entries).
+ * Data source: news collections via getNews(), copy in listingPages.news (getCopy()).
+ */
+import type { Page } from 'astro'
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import Pagination from '../components/ui/Pagination.astro'
+import OptimizedImage from '../components/ui/OptimizedImage.astro'
+import { getCopy } from '../data/copy'
+import { formatDate, resolveLocale } from '../lib/i18n'
+import type { NewsEntry } from '../lib/news'
+
+interface Props {
+  page: Page<NewsEntry>
+}
+
+const { page } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const { listingPages, pageMeta, commonUi } = getCopy(locale)
+const copy = listingPages.news
+---
+
+<DefaultLayout title={pageMeta.news.title} description={copy.lead} url="news">
+  <PageHeader title={copy.title} lead={copy.lead} />
+  <Section tone="subtle" labelledby="page-title">
+    {
+      page.data.length === 0 ? (
+        <p class="text-fg-muted">{copy.empty}</p>
+      ) : (
+        <ul class="news-list">
+          {page.data.map((post, index) => (
+            <li class="news-item">
+              <a class="news-image" href={`${copy.path}/${post.id}`} aria-label={`${copy.readLabel} ${post.data.title}`}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <OptimizedImage src={post.data.image} alt={`${commonUi.coverAltPrefix} ${post.data.title}`} width={960} height={720} widths={[384, 640, 960, 1280]} sizes="(min-width: 1152px) 500px, (min-width: 768px) calc(50vw - 64px), calc(100vw - 96px)" loading={index === 0 ? 'eager' : 'lazy'} />
+              </a>
+              <div class="news-content">
+                <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date, locale)}</time>
+                <h2><a href={`${copy.path}/${post.id}`}>{post.data.title}</a></h2>
+                <p>{post.data.description}</p>
+                <a class="news-link" href={`${copy.path}/${post.id}`}>{copy.readMore} <span aria-hidden="true">↗</span></a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <Pagination page={page} basePath={copy.path} label={copy.paginationLabel} />
+  </Section>
+</DefaultLayout>
+
+<style>
+  .news-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; max-width: var(--container-wide); margin: 0 auto; }
+  .news-item { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-card); }
+  .news-image { position: relative; display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: calc(var(--radius-card) - .25rem); background: var(--color-bg-subtle); }
+  .news-image :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+  .news-image:hover :global(img) { transform: scale(1.04); filter: saturate(1) contrast(1.04); }
+  .news-image span { display: none; }
+  .news-content { display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
+  .news-content time { color: var(--color-accent-text); font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+  .news-content h2 { margin: .75rem 0 1rem; font-size: var(--text-xl); }
+  .news-content h2 a:hover { color: var(--color-fg); }
+  .news-content > p { margin: 0; color: var(--color-fg-muted); }
+  .news-link { display: inline-flex; gap: .45rem; margin-top: auto; padding-top: 1.5rem; min-height: 2.75rem; color: var(--color-fg); font-size: .95rem; font-weight: 650; }
+  .news-link:hover { color: var(--color-accent-text); }
+  @media (max-width: 767px) { .news-list { grid-template-columns: 1fr; gap: 1.5rem; } }
+  @media (prefers-reduced-motion: reduce) { .news-image :global(img) { transition: none; } .news-image:hover :global(img) { transform: none; } }
+</style>

@@ -1,18 +1,12 @@
 // Static Questionnaire Configuration
-// Replaces Strapi CMS for questionnaire data
+// Replaces Strapi CMS for questionnaire data.
+// Step order on /mitmachen: intro → situation → contribution → fascination → personal.
 
 export const questionnaireConfig = {
-  step1: {
+  intro: {
     buttonText: 'Bewerbung ausfüllen',
   },
-  step2: {
-    label: 'Wähle 2-3 Teams:',
-    minTeams: 2,
-    maxTeams: 3,
-    hintTooFew: 'Bitte wähle mindestens 2 Teams aus.',
-    hintMaximum: 'Du hast die maximale Anzahl erreicht.',
-  },
-  step3: {
+  situation: {
     legend: 'Was beschreibt deine Situation am besten?',
     options: [
       { value: 'idea', label: 'Ich habe eine Startup-Idee' },
@@ -20,15 +14,26 @@ export const questionnaireConfig = {
       { value: 'learn', label: 'Ich möchte mehr über Entrepreneurship lernen' },
       { value: 'network', label: 'Ich möchte mich vernetzen' },
     ],
-    questions: {},
   },
-  step4: {
-    questions: {},
+  contribution: {
+    label: 'Was denkst du, kannst du zu der Ignite-Community beitragen?',
   },
-  step5: {
-    questions: {},
+  fascination: {
+    label: 'Was fasziniert Dich am meisten am Gründen?',
   },
-  step6: {
+  ui: {
+    next: 'Weiter',
+    wordsUnit: 'Wörter',
+    submit: 'Anfrage absenden',
+    submitting: 'Wird gesendet...',
+    success: 'Danke für deine Anfrage! Wir freuen uns über dein Interesse und melden uns bald bei dir.',
+    error: 'Es gab einen Fehler beim Absenden. Bitte versuche es erneut oder schreib uns direkt an.',
+  },
+  personal: {
+    newsletterConsent: 'Ich möchte der IGNITE WhatsApp-Community beitreten und über Events und Workshops informiert werden.',
+    privacyBefore: 'Ich akzeptiere die',
+    privacyLink: { label: 'Datenschutzbestimmungen', url: '/datenschutz' },
+    privacyAfter: '. (Pflichtfeld)',
     fields: {
       name: {
         label: 'Vorname',
@@ -47,5 +52,4 @@ export const questionnaireConfig = {
       },
     },
   },
-  allQuestions: [],
-};
+}

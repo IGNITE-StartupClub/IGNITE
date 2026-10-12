@@ -3,6 +3,7 @@ export const prerender = false
 import { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import 'dotenv/config'
+import { assertSent } from '../../lib/resend'
 import {
   getContactFormEmailHTML,
   getContactFormSubject,
@@ -26,24 +27,28 @@ const sendContactFormEmail = async (data: ContactFormData) => {
   const subject = getContactFormSubject(isAdvisoryBoard)
   const html = getContactFormEmailHTML(data)
 
-  await resend.emails.send({
-    from: 'IGNITE Startup Club <kontakt@info.ignite-startupclub.de>',
-    to: recipients,
-    subject: subject,
-    html: html,
-  })
+  assertSent(
+    await resend.emails.send({
+      from: 'IGNITE Startup Club <kontakt@info.ignite-startupclub.de>',
+      to: recipients,
+      subject: subject,
+      html: html,
+    }),
+  )
 }
 
 const sendConfirmationEmail = async (email: string, name?: string, isAdvisoryBoard: boolean = false) => {
   const subject = getContactConfirmationSubject(isAdvisoryBoard)
   const html = getContactConfirmationEmailHTML(name, isAdvisoryBoard)
 
-  await resend.emails.send({
-    from: 'kontakt@info.ignite-startupclub.de',
-    to: email,
-    subject: subject,
-    html: html,
-  })
+  assertSent(
+    await resend.emails.send({
+      from: 'kontakt@info.ignite-startupclub.de',
+      to: email,
+      subject: subject,
+      html: html,
+    }),
+  )
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -57,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {
     console.error('Fehler:', error)
-    return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 })
+    return new Response(JSON.stringify({ status: 'error', message: 'Fehler beim E-Mail-Versand' }), { status: 500 })
   }
 }
 

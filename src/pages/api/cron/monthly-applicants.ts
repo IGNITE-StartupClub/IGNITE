@@ -51,6 +51,8 @@ function buildEmailHTML(docs: any[]) {
     email: 'E-Mail',
     teams: 'Teams',
     startupInterest: 'Startup-Interesse',
+    contribution: 'Beitrag zur Community',
+    fascination: 'Faszination am Gründen',
     subscribeNewsletter: 'Newsletter',
   }
 

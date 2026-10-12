@@ -1,0 +1,46 @@
+---
+/**
+ * Join page: header, open teams, process steps, application questionnaire.
+ * Rendered by pages/mitmachen.astro and pages/en/join.astro.
+ * Data sources via getCopy(): mitmachenPage, openTeams, questionnaireConfig, pageMeta.join.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import Button from '../components/ui/Button.astro'
+import OpenTeamsGrid from '../components/mitmachen/OpenTeamsGrid.astro'
+import ProcessSteps from '../components/mitmachen/ProcessSteps.astro'
+import Questionnaire from '../components/forms/Questionnaire.jsx'
+import { getCopy } from '../data/copy'
+
+const { mitmachenPage: c, openTeams, questionnaireConfig, pageMeta } = getCopy(Astro.currentLocale)
+---
+
+<DefaultLayout
+  title={pageMeta.join.title}
+  description={pageMeta.join.description}
+>
+  <PageHeader title={c.title} lead={c.lead}>
+    <div class="mt-10">
+      <Button href="#bewerbung" size="lg">{c.ctaLabel}</Button>
+    </div>
+  </PageHeader>
+
+  <Section tone="subtle" labelledby="teams-heading">
+    <h2 id="teams-heading" class="max-w-text text-display-sm" set:html={c.teamsHeading} />
+    <p class="mt-6 max-w-text text-lead text-fg-muted">{c.teamsLead}</p>
+    <div class="mt-12"><OpenTeamsGrid teams={openTeams} /></div>
+  </Section>
+
+  <Section spacing="sm" labelledby="process-heading">
+    <h2 id="process-heading" class="max-w-text text-display-sm" set:html={c.processHeading} />
+    <p class="mt-6 max-w-text text-lead text-fg-muted">{c.processLead}</p>
+    <ProcessSteps steps={c.steps} />
+  </Section>
+
+  <Section id="bewerbung" tone="subtle" labelledby="form-heading">
+    <h2 id="form-heading" class="max-w-text text-display-sm" set:html={c.formHeading} />
+    <p class="mt-6 max-w-text text-fg-muted">{c.formLead}</p>
+    <div class="mt-10 max-w-text"><Questionnaire client:load config={questionnaireConfig} /></div>
+  </Section>
+</DefaultLayout>

@@ -84,7 +84,6 @@ export const GET = async ({ request }) => {
     console.error('Error in confirm API:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      message: error.message 
     }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

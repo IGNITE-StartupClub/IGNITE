@@ -1,0 +1,12 @@
+---
+import EventsPage from '../../views/EventsPage.astro'
+import { loadEvents } from '../../lib/luma'
+
+export const prerender = false
+
+const [events, pastEvents] = await Promise.all([loadEvents('en', 'future'), loadEvents('en', 'past')])
+// Only cache at the edge when both Luma requests succeeded.
+if (events && pastEvents) Astro.response.headers.set('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400')
+---
+
+<EventsPage events={events} pastEvents={pastEvents} />

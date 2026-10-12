@@ -1,0 +1,49 @@
+---
+/**
+ * Language toggle (44x44), sits next to ThemeToggle and shares its look. A real link to the equivalent page in the
+ * other language; it shows the target language code ("EN" on German pages, "DE" on English pages).
+ * Props: href (URL of the equivalent page in the other language).
+ * Label and code come from navigation.languageToggle (getCopy(), src/data/copy.ts); the label is written in the target language.
+ */
+import { getCopy } from '../../data/copy'
+import { resolveLocale } from '../../lib/i18n'
+
+interface Props {
+  href: string
+}
+
+const { href } = Astro.props
+const { navigation } = getCopy(Astro.currentLocale)
+const targetLocale = resolveLocale(Astro.currentLocale) === 'de' ? 'en' : 'de'
+---
+
+<a class="language-toggle" {href} lang={targetLocale} hreflang={targetLocale} aria-label={navigation.languageToggle.label}>
+  {navigation.languageToggle.code}
+</a>
+
+<style>
+  .language-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-fg);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-button);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) ease;
+  }
+  .language-toggle:hover {
+    color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+  .language-toggle:active {
+    background-color: var(--color-border);
+  }
+</style>

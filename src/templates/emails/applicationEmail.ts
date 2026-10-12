@@ -1,9 +1,12 @@
 // Application Email Template
 // Sent to admin when a team application is submitted
 
+import { escapeHtml } from './escapeHtml'
+
 export interface ApplicationEmailData {
-  teams?: string[]
   startupInterest?: string
+  contribution?: string
+  fascination?: string
   name: string
   lastname: string
   email: string
@@ -15,49 +18,38 @@ export function getApplicationEmailSubject(): string {
 }
 
 export function getApplicationEmailHTML(data: ApplicationEmailData, questionLabels: Record<string, string>): string {
-  // Format teams as a readable list
-  const teamsArray = Array.isArray(data.teams) ? data.teams : []
-  const teamsList = teamsArray.length > 0 ? teamsArray.join(', ') : 'Keine Teams ausgewählt'
-
-  // Safely format all data fields
   const formatField = (value: any) => {
     if (value === null || value === undefined) return 'Nicht angegeben'
-    if (Array.isArray(value)) return value.join(', ') || 'Keine Angabe'
-    return String(value)
+    if (Array.isArray(value)) return escapeHtml(value.join(', ')) || 'Keine Angabe'
+    return escapeHtml(String(value))
   }
 
   // Build table rows dynamically
   let tableRows = `
     <tr style="border-bottom: 1px solid #f0f0f0;">
       <td style="padding: 12px 8px; font-weight: bold; vertical-align: top; width: 35%; min-width: 120px;">
-        <strong>Gewählte Teams:</strong>
-      </td>
-      <td style="padding: 12px 8px; vertical-align: top;">${teamsList}</td>
-    </tr>
-    <tr style="border-bottom: 1px solid #f0f0f0;">
-      <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
         <strong>Startup-Interesse:</strong>
       </td>
       <td style="padding: 12px 8px; vertical-align: top;">${formatField(data.startupInterest)}</td>
     </tr>
   `
 
-  if (data.selectedCustomQuestion) {
-    tableRows += `
+  const freeTextRows: [string, string][] = [
+    ['Beitrag zur Community', 'contribution'],
+    ['Faszination am Gründen', 'fascination'],
+  ]
+  freeTextRows.forEach(([label, key]) => {
+    if (data[key]) {
+      tableRows += `
       <tr style="border-bottom: 1px solid #f0f0f0;">
         <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
-          <strong>Gewählte Frage:</strong>
+          <strong>${label}:</strong>
         </td>
-        <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word;">${formatField(data.selectedCustomQuestion)}</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #f0f0f0;">
-        <td style="padding: 12px 8px; font-weight: bold; vertical-align: top;">
-          <strong>Antwort:</strong>
-        </td>
-        <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word; white-space: pre-wrap;">${formatField(data.customAnswer)}</td>
+        <td style="padding: 12px 8px; vertical-align: top; word-wrap: break-word; white-space: pre-wrap;">${formatField(data[key])}</td>
       </tr>
     `
-  }
+    }
+  })
 
   // Add all questions dynamically
   Object.keys(questionLabels).forEach((qId) => {

@@ -1,0 +1,38 @@
+---
+/**
+ * Final call to action on the flat deep brand surface (#311763), centered: headline with one serif accent, one
+ * sentence and the one primary Button of the page. No gradients.
+ * Props: none. Data: homepage (finalHeading, finalText, finalCTA_*) via getCopy().
+ */
+import Section from '../ui/Section.astro'
+import Button from '../ui/Button.astro'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import { getCopy } from '../../data/copy'
+
+const { homepage } = getCopy(Astro.currentLocale)
+---
+
+<Section tone="subtle" spacing="lg" width="text" labelledby="final-title" class="text-center">
+  <h2 id="final-title" class="text-display-md" set:html={homepage.finalHeading} />
+  <p class="mx-auto mt-8 max-w-prose text-lead text-fg-muted">{homepage.finalText}</p>
+  <div class="mt-12">
+    <Button href={homepage.finalCTA_URL} variant="primary" size="lg">{homepage.finalCTA_Text}</Button>
+  </div>
+  <figure class="cta-figure" aria-hidden="true">
+    <OptimizedImage src="/img/heritage/founder-learning.png" alt="" width={1024} height={1536} widths={[320, 480, 640, 832, 1024]} sizes="(min-width: 548px) 416px, 76vw" loading="lazy" />
+  </figure>
+</Section>
+
+<style>
+  .cta-figure {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0 0;
+  }
+  .cta-figure :global(img) {
+    display: block;
+    width: min(76vw, 26rem);
+    max-width: 100%;
+    height: auto;
+  }
+</style>

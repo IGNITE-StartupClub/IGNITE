@@ -1,72 +1,14 @@
 ---
-import DefaultLayout from '../../layouts/DefaultLayout.astro'
-import { Breadcrumbs, BreadcrumbsItem } from 'accessible-astro-components'
-import { getCollection, render } from 'astro:content'
-import type { CollectionEntry } from 'astro:content'
-
-export async function getStaticPaths() {
-  const projects = await getCollection('projects')
-  return projects.map((project) => ({
-    params: { project: project.id },
-    props: { project },
-  }))
-}
-
-interface Props {
-  project: CollectionEntry<'projects'>
-}
+import NewsArticlePage from '../../views/NewsArticlePage.astro'
+import { getNewsArticlePaths } from '../../lib/news'
 
 export const prerender = true
 
-const { project } = Astro.props
-const { Content } = await render(project)
+export async function getStaticPaths() {
+  return getNewsArticlePaths('de', 'en')
+}
 
-const formattedDate = new Date(project.data.date).toLocaleDateString('de-DE', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const { project, alternatePath } = Astro.props
 ---
 
-<DefaultLayout
-  title={project.data.title}
-  description={project.data.description || project.data.title}
-  url={project.id}
-  image={project.data.image}
-  plainBackground={true}
->
-  <div class="container article-breadcrumb">
-    <Breadcrumbs>
-      <BreadcrumbsItem href="/" label="Startseite" />
-      <BreadcrumbsItem href="/news" label="Neuigkeiten" />
-      <BreadcrumbsItem currentPage={true} label={project.data.title} />
-    </Breadcrumbs>
-  </div>
-
-  <article>
-    <div class="article-wrap">
-      <header class="article-header">
-        <div class="article-meta-row">
-          <span class="article-tag">Neuigkeit</span>
-          <span class="article-meta-sep" aria-hidden="true">·</span>
-          <time class="article-date">{formattedDate}</time>
-          <span class="article-meta-sep" aria-hidden="true">·</span>
-          <span class="article-author-name">{project.data.author}</span>
-        </div>
-        <h1 class="article-title">{project.data.title}</h1>
-      </header>
-
-      <div class="article-hero">
-        <img src={project.data.image} alt={project.data.title} loading="eager" />
-      </div>
-
-      <div class="article-prose">
-        <Content />
-      </div>
-
-      <div class="article-back">
-        <a href="/news" class="article-back-link">← Zurück zu Neuigkeiten</a>
-      </div>
-    </div>
-  </article>
-</DefaultLayout>
+<NewsArticlePage project={project} alternatePath={alternatePath} />

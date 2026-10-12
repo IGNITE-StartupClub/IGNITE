@@ -1,0 +1,28 @@
+---
+/**
+ * Open teams as one full-width card per team, stacked.
+ * Props: teams (OpenTeam[]). Data source: openTeams (src/data/openTeams.ts, via getCopy()), category labels in mitmachenPage.
+ */
+import Card from '../ui/Card.astro'
+import type { OpenTeam } from '../../data/openTeams'
+import { getCopy } from '../../data/copy'
+
+interface Props {
+  teams: readonly OpenTeam[]
+}
+
+const { teams } = Astro.props
+const categoryLabel = getCopy(Astro.currentLocale).mitmachenPage.teamCategoryLabels
+---
+
+<ul class="grid gap-4">
+  {
+    teams.map((team) => (
+      <Card as="li">
+        <h3 slot="title">{team.team}</h3>
+        <span slot="meta">{team.title}, {categoryLabel[team.category]}</span>
+        <p>{team.description}</p>
+      </Card>
+    ))
+  }
+</ul>

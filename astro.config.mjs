@@ -1,7 +1,6 @@
 import { defineConfig } from 'astro/config'
 import mdx from '@astrojs/mdx'
 import tailwind from '@astrojs/tailwind'
-// import compress from 'astro-compress'
 import icon from 'astro-icon'
 import react from '@astrojs/react';
 import vercel from '@astrojs/vercel';
@@ -14,6 +13,14 @@ export default defineConfig({
   output: 'server',
   site: 'https://ignite-startupclub.de',
 
+  // German is served at the root, English under /en/. The pages in src/pages/en/ are written by hand; Astro only
+  // provides the locale detection (Astro.currentLocale) and the routing rules.
+  i18n: {
+    defaultLocale: 'de',
+    locales: ['de', 'en'],
+    routing: { prefixDefaultLocale: false },
+  },
+
   integrations: 
   [
     react(), 
@@ -22,7 +29,6 @@ export default defineConfig({
     tailwind({
     applyBaseStyles: false,
   }),
-  // compress(),
   sitemap()
 ],
 

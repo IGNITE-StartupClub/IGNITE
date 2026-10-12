@@ -1,0 +1,97 @@
+---
+/**
+ * "Warum" statement in the theresidency pattern: a large statement heading (one serif accent word), short paragraphs in
+ * large body text with one serif-italic emphasis phrase (<em> in the copy), followed by an open audience band.
+ * The shared-work sculpture supports the community statement.
+ * Props: none. Data: homepage (whyHeading, whyParagraphs, whyImageAlt, audienceHeading, audienceLines) via getCopy().
+ */
+import Section from '../ui/Section.astro'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import { getCopy } from '../../data/copy'
+
+const { homepage } = getCopy(Astro.currentLocale)
+---
+
+<Section spacing="md" labelledby="why-title" class="why-section">
+  <div class="why-layout">
+    <div>
+      <h2 id="why-title" class="text-display-md" set:html={homepage.whyHeading} />
+      <div class="em-inline mt-10 space-y-7 text-lead text-fg-muted md:mt-12">
+        {homepage.whyParagraphs.map((text) => <p set:html={text} />)}
+      </div>
+    </div>
+    <figure class="community-figure">
+      <OptimizedImage
+        src="/img/heritage/salt-sculpture.png"
+        alt={homepage.whyImageAlt}
+        width={1536}
+        height={1024}
+        widths={[384, 576, 864, 1152]}
+        sizes="(min-width: 1024px) 576px, calc(100vw - 48px)"
+        loading="lazy"
+      />
+    </figure>
+  </div>
+</Section>
+
+<Section spacing="sm" labelledby="audience-title" class="audience-band border-y border-border">
+  <div class="audience-layout">
+    <div class="audience-intro">
+      <h2 id="audience-title" class="text-display-sm" set:html={homepage.audienceHeading} />
+    </div>
+    <div class="audience-lines text-lead">
+      {homepage.audienceLines.map((line) => <p>{line}</p>)}
+    </div>
+  </div>
+</Section>
+
+<style>
+  /* Statement left, sculpture right and vertically centred; stacks below 1024px. */
+  .why-layout {
+    display: grid;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+  .community-figure {
+    display: grid;
+    place-items: center;
+    margin: 0;
+  }
+  .community-figure :global(img) {
+    display: block;
+    width: min(100%, 36rem);
+    height: auto;
+  }
+  @media (min-width: 1024px) {
+    .why-layout {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+  .audience-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: start;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+  .audience-lines p {
+    margin: 0;
+    border-bottom: 1px solid var(--color-border);
+    padding-block: 1.5rem;
+  }
+  .audience-lines p:first-child {
+    padding-top: 0;
+  }
+  .audience-lines p:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  @media (max-width: 767px) {
+    .audience-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+    }
+    .audience-intro h2 {
+      text-align: center;
+    }
+  }
+</style>

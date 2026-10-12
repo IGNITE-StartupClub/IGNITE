@@ -1,18 +1,18 @@
 export const prerender = false
 
-import { v4 as uuidv4 } from 'uuid' // Import the uuid module
 import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
+import { assertSent } from '../../lib/resend'
+import { startDoubleOptIn } from '../../lib/newsletterSignup'
 import {
-  getWelcomeNewsletterEmailHTML,
-  getWelcomeNewsletterSubject,
-} from '../../templates/emails/welcomeNewsletterEmail'
+  getSubscriptionConfirmedEmailHTML,
+  getSubscriptionConfirmedSubject,
+} from '../../templates/emails/subscriptionConfirmedEmail'
 
 const resend = new Resend(process.env.RESEND_HOLY_GRAIL!)
 const MONGO_URI = process.env.MONGODB_URI!
 const MONGO_DB = process.env.MONGODB_DB!
-const SITE_URL = process.env.SITE_URL!
 const AUDIENCE_ID = process.env.AUDIENCE_ID!
 
 let client: MongoClient | null = null
@@ -96,13 +96,15 @@ export const POST = async ({ request }) => {
           audienceId: AUDIENCE_ID,
         })
 
-        const resendResponse = await resend.contacts.create({
-          email: email,
-          firstName: firstName || pendingConfirmation.firstName || '',
-          lastName: lastName || pendingConfirmation.lastName || '',
-          unsubscribed: false,
-          audienceId: AUDIENCE_ID,
-        })
+        const resendResponse = assertSent(
+          await resend.contacts.create({
+            email: email,
+            firstName: firstName || pendingConfirmation.firstName || '',
+            lastName: lastName || pendingConfirmation.lastName || '',
+            unsubscribed: false,
+            audienceId: AUDIENCE_ID,
+          }),
+        )
 
         console.log('Contact added to Resend successfully:', resendResponse)
 
@@ -110,16 +112,24 @@ export const POST = async ({ request }) => {
         await db.collection('pending_confirmations').deleteOne({ email })
         console.log('Removed from pending confirmations')
 
-        // Send welcome email to the confirmed subscriber
+        // Send the short confirmation to the confirmed subscriber
         const confirmedFirstName = firstName || pendingConfirmation.firstName || ''
-        console.log('Sending welcome email to:', email)
-        await resend.emails.send({
-          from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-          to: email,
-          subject: getWelcomeNewsletterSubject(),
-          html: getWelcomeNewsletterEmailHTML(confirmedFirstName),
-        })
-        console.log('Welcome email sent successfully')
+        console.log('Sending confirmed email to:', email)
+        // The contact is already confirmed and the pending entry is gone, so a failed
+        // confirmed-mail failure must not turn the confirmation into an error the user would retry.
+        try {
+          assertSent(
+            await resend.emails.send({
+              from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
+              to: email,
+              subject: getSubscriptionConfirmedSubject(),
+              html: getSubscriptionConfirmedEmailHTML(confirmedFirstName),
+            }),
+          )
+          console.log('Confirmed email sent successfully')
+        } catch (err) {
+          console.error('Confirmed email failed for confirmed subscriber:', err)
+        }
 
         return new Response(
           JSON.stringify({
@@ -145,7 +155,6 @@ export const POST = async ({ request }) => {
         return new Response(
           JSON.stringify({
             message: 'Fehler bei der Bestätigung. Bitte versuche es erneut.',
-            error: error instanceof Error ? error.message : 'Unknown error',
           }),
           { status: 500 },
         )
@@ -154,82 +163,17 @@ export const POST = async ({ request }) => {
       // This is an initial subscription - send confirmation email
       console.log('Processing initial subscription for:', email)
 
-      // Check if email already exists in pending confirmations
-      const existingPending = await db.collection('pending_confirmations').findOne({ email })
-      if (existingPending) {
+      const result = await startDoubleOptIn(db, resend, { email, firstName, lastName })
+
+      if (result === 'pending') {
         console.log('Email already has pending confirmation:', email)
         return new Response(
           JSON.stringify({
             message: 'Eine Bestätigungsmail wurde bereits gesendet. Bitte prüfe dein Postfach.',
           }),
-          { status: 400 },
+          { status: 409 },
         )
       }
-
-      // Generate a token using UUID (v4)
-      const token = uuidv4()
-      const confirmUrl = `${SITE_URL}/subscribe?token=${token}`
-      console.log('Generated confirmation URL:', confirmUrl)
-
-      const cancelUrl = `${SITE_URL}/subscribe?cancel=${email}`
-
-      // Store token and email in DB with additional data
-      console.log('Storing confirmation data in MongoDB')
-      await db.collection('pending_confirmations').insertOne({
-        email,
-        firstName: firstName || '',
-        lastName: lastName || '',
-        token,
-        createdAt: new Date(),
-      })
-      console.log('Confirmation data stored in DB successfully')
-
-      // Send confirmation email
-      console.log('Sending confirmation email...')
-      await resend.emails.send({
-        from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-        to: email,
-        subject: 'Willkommen beim IGNITE Startup Club!',
-        html: `
-          <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
-            <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
-            <p>Schön, dass du dich für unsere Initiative interessierst!</p>
-
-            <p>Du möchtest nichts verpassen? Dann bestätige deine E-Mail und erhalte News durch unseren Newsletter!</p>
-
-            <p style="text-align: center; margin: 2rem 0;">
-              <a href="${confirmUrl}"
-                style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                📧 Newsletter abonnieren
-              </a>
-            </p>
-
-            <p>Wenn du dich für unseren Newsletter anmeldest, bleibst du immer auf dem Laufenden über folgende Themen:</p>
-            <ul style="line-height: 1.6;">
-              <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
-              <li>Einblicke in reale Startup-Projekte</li>
-              <li>Austausch mit Gleichgesinnten</li>
-            </ul>
-
-            <p>Noch einfacher? Dann tritt direkt unserer WhatsApp-Community bei:</p>
-
-            <p style="text-align: center; margin: 2rem 0;">
-              <a href="https://chat.whatsapp.com/HtvynOI8sY125MmBZR4C1n"
-                style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                👉 Jetzt WhatsApp-Gruppe beitreten
-              </a>
-            </p>
-
-            <p style="font-size: 0.95rem; color: #555;">
-              Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
-                <a href="${cancelUrl}"
-                style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
-                Vom IGNITE Newsletter abmelden
-              </a> 
-            </p>
-          </div>
-        `,
-      })
       console.log('Confirmation email sent successfully')
 
       return new Response(JSON.stringify({ message: 'Bestätigungsmail gesendet' }), { status: 200 })

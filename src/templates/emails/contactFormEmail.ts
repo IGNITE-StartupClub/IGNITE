@@ -1,6 +1,8 @@
 // Contact Form Email Template
 // Sent to admin when a contact form is submitted
 
+import { escapeHtml } from './escapeHtml';
+
 export interface ContactFormData {
   topic: string;
   name: string;
@@ -20,6 +22,10 @@ export function getContactFormSubject(isAdvisoryBoard: boolean): string {
     : 'Neue Kontaktanfrage über das Formular';
 }
 
+// Only http(s) URLs become links; anything else (e.g. javascript:) is shown as plain text.
+const linkedinHTML = (url: string) =>
+  /^https?:\/\//i.test(url) ? `<a href="${escapeHtml(url)}" style="color: #8C3974;">${escapeHtml(url)}</a>` : escapeHtml(url);
+
 export function getContactFormEmailHTML(data: ContactFormData): string {
   const isAdvisoryBoard = data.topic === 'advisory';
 
@@ -28,15 +34,15 @@ export function getContactFormEmailHTML(data: ContactFormData): string {
     <div style="background-color: #f9f5ff; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid #8C3974;">
       <h3 style="color: #8C3974; margin: 0 0 0.75rem 0; font-size: 1.1rem;">📋 Advisory Board Details</h3>
       <table style="width: 100%; line-height: 1.6;">
-        ${data.organization ? `<tr><td><strong>Organisation:</strong></td><td>${data.organization}</td></tr>` : ''}
-        ${data.position ? `<tr><td><strong>Position:</strong></td><td>${data.position}</td></tr>` : ''}
-        ${data.phone ? `<tr><td><strong>Telefon:</strong></td><td>${data.phone}</td></tr>` : ''}
-        ${data.linkedin ? `<tr><td><strong>LinkedIn:</strong></td><td><a href="${data.linkedin}" style="color: #8C3974;">${data.linkedin}</a></td></tr>` : ''}
+        ${data.organization ? `<tr><td><strong>Organisation:</strong></td><td>${escapeHtml(data.organization)}</td></tr>` : ''}
+        ${data.position ? `<tr><td><strong>Position:</strong></td><td>${escapeHtml(data.position)}</td></tr>` : ''}
+        ${data.phone ? `<tr><td><strong>Telefon:</strong></td><td>${escapeHtml(data.phone)}</td></tr>` : ''}
+        ${data.linkedin ? `<tr><td><strong>LinkedIn:</strong></td><td>${linkedinHTML(data.linkedin)}</td></tr>` : ''}
       </table>
       ${data.expertise ? `
         <div style="margin-top: 1rem;">
           <p style="margin: 0 0 0.5rem 0;"><strong>Fachgebiet/Expertise:</strong></p>
-          <p style="background-color: #ffffff; padding: 0.75rem; border-radius: 4px; margin: 0; white-space: pre-wrap;">${data.expertise}</p>
+          <p style="background-color: #ffffff; padding: 0.75rem; border-radius: 4px; margin: 0; white-space: pre-wrap;">${escapeHtml(data.expertise)}</p>
         </div>
       ` : ''}
     </div>
@@ -48,17 +54,17 @@ export function getContactFormEmailHTML(data: ContactFormData): string {
       ${isAdvisoryBoard ? '<p style="background-color: #fff9e6; padding: 0.75rem; border-radius: 4px; color: #856404; border: 1px solid #ffeaa7;"><strong>⚡ Priorität:</strong> Advisory Board Interessent – Bitte zeitnah persönlich antworten!</p>' : ''}
 
       <table style="width: 100%; line-height: 1.6;">
-        <tr><td><strong>Anliegen:</strong></td><td>${data.topic}</td></tr>
-        <tr><td><strong>Vorname:</strong></td><td>${data.name}</td></tr>
-        <tr><td><strong>Nachname:</strong></td><td>${data.lastname}</td></tr>
-        <tr><td><strong>E-Mail:</strong></td><td><a href="mailto:${data.email}" style="color: #8C3974;">${data.email}</a></td></tr>
+        <tr><td><strong>Anliegen:</strong></td><td>${escapeHtml(data.topic)}</td></tr>
+        <tr><td><strong>Vorname:</strong></td><td>${escapeHtml(data.name)}</td></tr>
+        <tr><td><strong>Nachname:</strong></td><td>${escapeHtml(data.lastname)}</td></tr>
+        <tr><td><strong>E-Mail:</strong></td><td><a href="mailto:${escapeHtml(data.email)}" style="color: #8C3974;">${escapeHtml(data.email)}</a></td></tr>
       </table>
 
       ${advisoryFieldsHTML}
 
       <div style="margin-top: 1.5rem;">
         <p style="margin: 0 0 0.5rem 0;"><strong>Nachricht:</strong></p>
-        <p style="background-color: #f5f5f5; padding: 1rem; border-radius: 6px; white-space: pre-wrap;">${data.message}</p>
+        <p style="background-color: #f5f5f5; padding: 1rem; border-radius: 6px; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
       </div>
 
       <hr style="margin: 2rem 0; border: none; border-top: 1px solid #ddd;" />

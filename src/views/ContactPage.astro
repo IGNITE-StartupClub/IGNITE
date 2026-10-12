@@ -1,0 +1,24 @@
+---
+/**
+ * Contact page with the contact form. Supports ?intent=<topic> to preselect the topic.
+ * Rendered by pages/kontakt.astro and pages/en/contact.astro. Data source: contactPage, contactTopics, pageMeta.contact via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import Contact from '../components/forms/Contact.jsx'
+import { getCopy } from '../data/copy'
+
+const { contactPage, contactTopics, pageMeta } = getCopy(Astro.currentLocale)
+const initialIntent = Astro.url.searchParams.get('intent') || ''
+---
+
+<DefaultLayout
+  title={pageMeta.contact.title}
+  description={pageMeta.contact.description}
+>
+  <PageHeader title={contactPage.pageTitle} lead={contactPage.pageIntro} />
+  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+    <Contact client:load copy={contactPage} topics={contactTopics} initialIntent={initialIntent} />
+  </Section>
+</DefaultLayout>

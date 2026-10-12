@@ -1,0 +1,45 @@
+---
+/**
+ * News article detail page, rendered by pages/news/[project].astro and pages/en/news/[project].astro.
+ * Props: project (news entry), alternatePath (path of the translated article, null if there is none).
+ */
+import { render } from 'astro:content'
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import ArticleView from '../components/ui/ArticleView.astro'
+import ArticleVideo from '../components/ui/ArticleVideo.astro'
+import { getCopy } from '../data/copy'
+import { formatDate, resolveLocale } from '../lib/i18n'
+import type { NewsEntry } from '../lib/news'
+
+interface Props {
+  project: NewsEntry
+  alternatePath: string | null
+}
+
+const { project, alternatePath } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const { listingPages, commonUi, navigation } = getCopy(locale)
+const copy = listingPages.news
+const { Content } = await render(project)
+---
+
+<DefaultLayout
+  title={project.data.title}
+  description={project.data.description || project.data.title}
+  url={project.id}
+  image={project.data.image}
+  alternatePath={alternatePath}
+>
+  <ArticleView
+    title={project.data.title}
+    date={formatDate(project.data.date, locale)}
+    meta={[project.data.author]}
+    image={project.data.image}
+    crumbs={[{ label: commonUi.homeCrumb, href: navigation.homeUrl }, { label: copy.crumb, href: copy.path }, { label: project.data.title }]}
+    backHref={copy.path}
+    backLabel={copy.backLabel}
+  >
+    <Content />
+    {project.data.video && <ArticleVideo slot="after" {...project.data.video} instagram={project.data.instagram} />}
+  </ArticleView>
+</DefaultLayout>

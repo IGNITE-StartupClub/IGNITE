@@ -1,26 +1,24 @@
 ---
+/**
+ * 404 page. Rendered per request (not prerendered) so it follows the language of the requested URL (/en/... gets English).
+ * Data source: globalConfig.error404_*, pageMeta.notFound via getCopy().
+ */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
-import { globalConfig } from '../data/staticContent'
+import Section from '../components/ui/Section.astro'
+import Button from '../components/ui/Button.astro'
+import { getCopy } from '../data/copy'
 
-// Static 404 config
-const heading = globalConfig.error404_heading
-const message = globalConfig.error404_message
-const buttonText = globalConfig.error404_buttonText
-const buttonUrl = globalConfig.error404_buttonUrl
+export const prerender = false
 
-export const prerender = true
+const { globalConfig, pageMeta } = getCopy(Astro.currentLocale)
 ---
 
-<DefaultLayout title="404" description="Seite nicht gefunden">
-  <section class="my-12">
-    <div class="container">
-      <h1>{heading}</h1>
+<DefaultLayout title={pageMeta.notFound.title} description={pageMeta.notFound.description} noindex alternatePath={null}>
+  <Section spacing="lg" labelledby="notfound-title">
+    <h1 id="notfound-title" class="max-w-text text-display-md">{globalConfig.error404_heading}</h1>
+    <p class="mt-6 max-w-text text-lead text-fg-muted">{globalConfig.error404_message}</p>
+    <div class="mt-10">
+      <Button href={globalConfig.error404_buttonUrl}>{globalConfig.error404_buttonText}</Button>
     </div>
-  </section>
-  <section class="my-12">
-    <div class="space-content container">
-      <p class="text-2xl">{message}</p>
-      <a class="button" href={buttonUrl}>{buttonText}</a>
-    </div>
-  </section>
+  </Section>
 </DefaultLayout>

@@ -1,0 +1,27 @@
+---
+/**
+ * Home page, rendered by pages/index.astro (German) and pages/en/index.astro (English).
+ * Data source: pageMeta.home via getCopy(); section copy is resolved inside the sections.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import Hero from '../components/sections/Hero.astro'
+import Why from '../components/sections/Why.astro'
+import Expect from '../components/sections/Expect.astro'
+import People from '../components/sections/People.astro'
+import LatestNews from '../components/sections/LatestNews.astro'
+import Faq from '../components/sections/Faq.astro'
+import FinalCta from '../components/sections/FinalCta.astro'
+import { getCopy } from '../data/copy'
+
+const { pageMeta } = getCopy(Astro.currentLocale)
+---
+
+<DefaultLayout title={pageMeta.home.title} description={pageMeta.home.description}>
+  <Hero />
+  <Expect />
+  <Why />
+  <People />
+  <LatestNews />
+  <Faq />
+  <FinalCta />
+</DefaultLayout>

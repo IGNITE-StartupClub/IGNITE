@@ -5,15 +5,25 @@ import { defineCollection, z } from 'astro:content'
 import { glob } from 'astro/loaders'
 
 // 3. Define your collection(s)
+const newsSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  description: z.string(),
+  date: z.date(),
+  image: z.string(),
+  video: z.object({ src: z.string(), poster: z.string() }).optional(),
+  instagram: z.string().url().optional(),
+})
+
+// News articles. German files live in projects/, their English translations in projects/en/ under the same file name.
 const projects = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/projects' }),
-  schema: z.object({
-    title: z.string(),
-    author: z.string(),
-    description: z.string(),
-    date: z.date(),
-    image: z.string(),
-  }),
+  loader: glob({ pattern: '*.md', base: './src/content/projects' }),
+  schema: newsSchema,
+})
+
+const projectsEn = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/projects/en' }),
+  schema: newsSchema,
 })
 
 const events = defineCollection({
@@ -47,4 +57,4 @@ const materials = defineCollection({
 })
 
 // 4. Export a single `collections` object to register you collection(s)
-export const collections = { projects, events, materials }
+export const collections = { projects, projectsEn, events, materials }

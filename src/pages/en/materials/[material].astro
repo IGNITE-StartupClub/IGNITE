@@ -1,0 +1,15 @@
+---
+import { getCollection } from 'astro:content'
+import MaterialPage from '../../../views/MaterialPage.astro'
+
+export const prerender = true
+
+export async function getStaticPaths() {
+  const materials = await getCollection('materials')
+  return materials.map((material) => ({ params: { material: material.id }, props: { material } }))
+}
+
+const { material } = Astro.props
+---
+
+<MaterialPage material={material} />
