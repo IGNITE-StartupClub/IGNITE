@@ -1,11 +1,14 @@
 ---
 /**
- * Upcoming events, loaded live from the IGNITE Luma calendar (src/lib/luma.ts).
+ * Upcoming events, loaded live from the IGNITE Luma calendar (src/lib/luma.ts) and merged with the hand-listed
+ * events of src/data/externalEvents.ts.
  * Rendered per request and cached at the edge by pages/events.astro and pages/en/events.astro, so new Luma events
  * appear without a deploy. Props: events (null if Luma could not be reached).
- * The next event is shown large, later ones in a grid. The register button opens Luma's
- * registration embed inside a site-styled <dialog>; without JS the button links to the Luma page.
+ * The next event is shown large, later ones in a grid. For Luma events the register button opens Luma's
+ * registration embed inside a site-styled <dialog>; without JS it links to the Luma page. External events link to
+ * their own registration page.
  * Dates and times follow the page language (24-hour clock with "Uhr" in German, 12-hour clock in English).
+ * Events spanning several days show the date range instead of the times.
  */
 import { Icon } from 'astro-icon/components'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -13,6 +16,7 @@ import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
 import Button from '../components/ui/Button.astro'
 import { lumaCalendarUrl, type LumaEvent } from '../lib/luma'
+import type { ExternalEvent } from '../data/externalEvents'
 import { dateLocales, resolveLocale } from '../lib/i18n'
 import { getCopy } from '../data/copy'
 
@@ -20,13 +24,26 @@ interface Props {
   events: LumaEvent[] | null
 }
 
+type ListedEvent = LumaEvent | ExternalEvent
+
 const { events } = Astro.props
 const locale = resolveLocale(Astro.currentLocale)
-const { eventsPage: copy, pageMeta } = getCopy(locale)
+const { eventsPage: copy, pageMeta, externalEvents } = getCopy(locale)
 
-const format = (event: LumaEvent, options: Intl.DateTimeFormatOptions, date = event.startAt) =>
+const now = new Date()
+const listed: ListedEvent[] = [...(events ?? []), ...externalEvents.filter((event) => event.endAt > now)].sort(
+  (a, b) => a.startAt.getTime() - b.startAt.getTime(),
+)
+
+const format = (event: ListedEvent, options: Intl.DateTimeFormatOptions, date = event.startAt) =>
   date.toLocaleString(dateLocales[locale], { timeZone: event.timezone, ...options })
-const formatTime = (event: LumaEvent) => {
+const isMultiDay = (event: ListedEvent) => format(event, { dateStyle: 'short' }) !== format(event, { dateStyle: 'short' }, event.endAt)
+const formatWhen = (event: ListedEvent, weekday: 'long' | 'short') => {
+  const day: Intl.DateTimeFormatOptions = { timeZone: event.timezone, weekday, day: 'numeric', month: 'long' }
+  if (isMultiDay(event)) return new Intl.DateTimeFormat(dateLocales[locale], day).formatRange(event.startAt, event.endAt)
+  return `${format(event, day)} · ${formatTime(event)}`
+}
+const formatTime = (event: ListedEvent) => {
   const time: Intl.DateTimeFormatOptions = { hour: locale === 'en' ? 'numeric' : '2-digit', minute: '2-digit', hour12: locale === 'en' }
   const start = format(event, time)
   const end = format(event, time, event.endAt)
@@ -46,11 +63,11 @@ const formatTime = (event: LumaEvent) => {
     </div>
 
     {
-      events === null || events.length === 0 ? (
+      listed.length === 0 ? (
         <p class="events-empty">{events === null ? copy.unavailable : copy.empty}</p>
       ) : (
         <ul class="events-list">
-          {events.map((event, index) => (
+          {listed.map((event, index) => (
             <li class:list={['event', { 'event--featured': index === 0 }]}>
               <a class="event-media" href={event.url} target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
                 {event.coverUrl && <img src={event.coverUrl} alt="" loading={index < 4 ? 'eager' : 'lazy'} />}
@@ -61,15 +78,26 @@ const formatTime = (event: LumaEvent) => {
               </a>
               <div class="event-content">
                 <time class="event-time" datetime={event.startAt.toISOString()}>
-                  {format(event, { weekday: index === 0 ? 'long' : 'short', day: 'numeric', month: 'long' })} · {formatTime(event)}
+                  {formatWhen(event, index === 0 ? 'long' : 'short')}
                 </time>
                 <h3><a href={event.url} target="_blank" rel="noopener">{event.name}</a></h3>
                 <ul class="event-facts">
                   {event.location && <li><Icon name="ion:location-outline" aria-hidden="true" /><span>{event.location}</span></li>}
-                  {index === 0 && event.guestCount > 0 && <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {copy.guests}</span></li>}
+                  {index === 0 && 'guestCount' in event && event.guestCount > 0 && <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {copy.guests}</span></li>}
                   {event.isFree && <li><Icon name="ion:ticket-outline" aria-hidden="true" /><span>{copy.free}</span></li>}
                 </ul>
-                {event.isSoldOut ? (
+                {'registerUrl' in event ? (
+                  <Button
+                    href={event.registerUrl}
+                    target="_blank"
+                    rel="noopener"
+                    variant={index === 0 ? 'primary' : 'outline'}
+                    size={index === 0 ? 'md' : 'sm'}
+                    icon="ion:arrow-forward"
+                  >
+                    {copy.register}
+                  </Button>
+                ) : event.isSoldOut ? (
                   <span class="event-soldout">{copy.soldOut}</span>
                 ) : (
                   <Button
