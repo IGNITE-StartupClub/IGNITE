@@ -3,7 +3,8 @@
  * Upcoming events, loaded live from the IGNITE Luma calendar (src/lib/luma.ts) and merged with the hand-listed
  * events of src/data/externalEvents.ts.
  * Rendered per request and cached at the edge by pages/events.astro and pages/en/events.astro, so new Luma events
- * appear without a deploy. Props: events (null if Luma could not be reached).
+ * appear without a deploy. Props: events and pastEvents (each null if Luma could not be reached).
+ * Past events follow in their own section, newest first, as plain cards without a register button.
  * The next event is shown large, later ones in a grid. The whole card links to the event page. For Luma events the register button opens Luma's
  * registration embed inside a site-styled <dialog>; without JS it links to the Luma page. External events link to
  * their own registration page.
@@ -22,18 +23,25 @@ import { getCopy } from '../data/copy'
 
 interface Props {
   events: LumaEvent[] | null
+  pastEvents: LumaEvent[] | null
 }
 
 type ListedEvent = LumaEvent | ExternalEvent
 
-const { events } = Astro.props
+const { events, pastEvents } = Astro.props
 const locale = resolveLocale(Astro.currentLocale)
 const { eventsPage: copy, pageMeta, externalEvents } = getCopy(locale)
 
 const now = new Date()
-const listed: ListedEvent[] = [...(events ?? []), ...externalEvents.filter((event) => event.endAt > now)].sort(
-  (a, b) => a.startAt.getTime() - b.startAt.getTime(),
-)
+const byStart = (a: ListedEvent, b: ListedEvent) => a.startAt.getTime() - b.startAt.getTime()
+const listed: ListedEvent[] = [...(events ?? []), ...externalEvents.filter((event) => event.endAt > now)].sort(byStart)
+const past: ListedEvent[] = [...(pastEvents ?? []), ...externalEvents.filter((event) => event.endAt <= now)].sort((a, b) => byStart(b, a))
+
+// Upcoming events always get a section (with the empty or unavailable note); past events only when there are any.
+const groups = [
+  { headingId: 'events-heading', heading: copy.heading, events: listed, past: false },
+  ...(past.length > 0 ? [{ headingId: 'past-events-heading', heading: copy.pastHeading, events: past, past: true }] : []),
+]
 
 // The next event is large. With only two events both are, so the second does not sit alone in a three-column row.
 const isFeatured = (index: number) => index === 0 || listed.length <= 2
@@ -59,73 +67,81 @@ const formatTime = (event: ListedEvent) => {
 
 <DefaultLayout title={pageMeta.events.title} description={pageMeta.events.description} url="events">
   <PageHeader title={copy.title} lead={copy.lead} />
-  <Section tone="subtle" labelledby="events-heading">
-    <div class="events-head">
-      <h2 id="events-heading" class="text-display-sm">{copy.heading}</h2>
-      <Button href={lumaCalendarUrl} variant="outline" icon="ion:calendar-outline" target="_blank" rel="noopener">{copy.followCalendar}</Button>
-    </div>
+  {
+    groups.map((group) => (
+      <Section tone={group.past ? 'default' : 'subtle'} labelledby={group.headingId}>
+        <div class="events-head">
+          <h2 id={group.headingId} class="text-display-sm">{group.heading}</h2>
+          {!group.past && (
+            <Button href={lumaCalendarUrl} variant="outline" icon="ion:calendar-outline" target="_blank" rel="noopener">{copy.followCalendar}</Button>
+          )}
+        </div>
 
-    {
-      listed.length === 0 ? (
-        <p class="events-empty">{events === null ? copy.unavailable : copy.empty}</p>
-      ) : (
-        <ul class="events-list">
-          {listed.map((event, index) => {
-            const featured = isFeatured(index)
-            return (
-            <li class:list={['event', { 'event--featured': featured }]}>
-              <div class="event-media">
-                {event.coverUrl && <img src={event.coverUrl} alt="" loading={index < 4 ? 'eager' : 'lazy'} />}
-                <span class="event-date">
-                  <span class="event-day">{format(event, { day: '2-digit' })}</span>
-                  <span class="event-month">{format(event, { month: 'short' }).replace('.', '')}</span>
-                </span>
-              </div>
-              <div class="event-content">
-                <time class="event-time" datetime={event.startAt.toISOString()}>
-                  {formatWhen(event, featured ? 'long' : 'short')}
-                </time>
-                <h3><a href={event.url} target="_blank" rel="noopener">{event.name}</a></h3>
-                <ul class="event-facts">
-                  {event.location && <li><Icon name="ion:location-outline" aria-hidden="true" /><span>{event.location}</span></li>}
-                  {featured && 'guestCount' in event && event.guestCount > 0 && <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {copy.guests}</span></li>}
-                  {event.isFree && <li><Icon name="ion:ticket-outline" aria-hidden="true" /><span>{copy.free}</span></li>}
-                </ul>
-                {'registerUrl' in event ? (
-                  <Button
-                    href={event.registerUrl}
-                    target="_blank"
-                    rel="noopener"
-                    variant={featured ? 'primary' : 'outline'}
-                    size={featured ? 'md' : 'sm'}
-                    icon="ion:arrow-forward"
-                  >
-                    {copy.register}
-                  </Button>
-                ) : event.isSoldOut ? (
-                  <span class="event-soldout">{copy.soldOut}</span>
-                ) : (
-                  <Button
-                    href={event.url}
-                    target="_blank"
-                    rel="noopener"
-                    variant={featured ? 'primary' : 'outline'}
-                    size={featured ? 'md' : 'sm'}
-                    icon="ion:arrow-forward"
-                    data-register-event={event.id}
-                    data-event-name={event.name}
-                  >
-                    {copy.register}
-                  </Button>
-                )}
-              </div>
-            </li>
-            )
-          })}
-        </ul>
-      )
-    }
-  </Section>
+        {
+          group.events.length === 0 ? (
+            <p class="events-empty">{events === null ? copy.unavailable : copy.empty}</p>
+          ) : (
+            <ul class="events-list">
+              {group.events.map((event, index) => {
+                const featured = !group.past && isFeatured(index)
+                return (
+                <li class:list={['event', { 'event--featured': featured }]}>
+                  <div class="event-media">
+                    {event.coverUrl && <img src={event.coverUrl} alt="" loading={!group.past && index < 4 ? 'eager' : 'lazy'} />}
+                    <span class="event-date">
+                      <span class="event-day">{format(event, { day: '2-digit' })}</span>
+                      <span class="event-month">{format(event, { month: 'short' }).replace('.', '')}</span>
+                    </span>
+                  </div>
+                  <div class="event-content">
+                    <time class="event-time" datetime={event.startAt.toISOString()}>
+                      {group.past ? format(event, { day: 'numeric', month: 'long', year: 'numeric' }) : formatWhen(event, featured ? 'long' : 'short')}
+                    </time>
+                    <h3><a href={event.url} target="_blank" rel="noopener">{event.name}</a></h3>
+                    <ul class="event-facts">
+                      {event.location && <li><Icon name="ion:location-outline" aria-hidden="true" /><span>{event.location}</span></li>}
+                      {(featured || group.past) && 'guestCount' in event && event.guestCount > 0 && (
+                        <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {group.past ? copy.attended : copy.guests}</span></li>
+                      )}
+                      {!group.past && event.isFree && <li><Icon name="ion:ticket-outline" aria-hidden="true" /><span>{copy.free}</span></li>}
+                    </ul>
+                    {group.past ? null : 'registerUrl' in event ? (
+                      <Button
+                        href={event.registerUrl}
+                        target="_blank"
+                        rel="noopener"
+                        variant={featured ? 'primary' : 'outline'}
+                        size={featured ? 'md' : 'sm'}
+                        icon="ion:arrow-forward"
+                      >
+                        {copy.register}
+                      </Button>
+                    ) : event.isSoldOut ? (
+                      <span class="event-soldout">{copy.soldOut}</span>
+                    ) : (
+                      <Button
+                        href={event.url}
+                        target="_blank"
+                        rel="noopener"
+                        variant={featured ? 'primary' : 'outline'}
+                        size={featured ? 'md' : 'sm'}
+                        icon="ion:arrow-forward"
+                        data-register-event={event.id}
+                        data-event-name={event.name}
+                      >
+                        {copy.register}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+                )
+              })}
+            </ul>
+          )
+        }
+      </Section>
+    ))
+  }
 
   <dialog class="register-dialog">
     <button type="button" class="register-close" data-register-close aria-label={copy.close}>

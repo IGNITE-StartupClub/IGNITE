@@ -1,12 +1,15 @@
 /**
- * Upcoming events of the IGNITE Luma calendar (https://lu.ma/ignite-startupclub).
+ * Upcoming and past events of the IGNITE Luma calendar (https://lu.ma/ignite-startupclub).
  * Uses the public endpoint behind Luma's own calendar pages. The official API needs Luma Plus,
  * which the calendar does not have, so this endpoint is undocumented and may change.
  */
 import type { Locale } from './i18n'
 
 const CALENDAR_ID = 'cal-TIeGyFakEbk5q6K'
-const ITEMS_URL = `https://api.lu.ma/calendar/get-items?calendar_api_id=${CALENDAR_ID}&period=future&pagination_limit=50`
+const itemsUrl = (period: EventPeriod) =>
+  `https://api.lu.ma/calendar/get-items?calendar_api_id=${CALENDAR_ID}&period=${period}&pagination_limit=50`
+
+export type EventPeriod = 'future' | 'past'
 
 export const lumaCalendarUrl = 'https://lu.ma/ignite-startupclub'
 
@@ -45,9 +48,12 @@ const formatLocation = (geo: LumaEntry['event']['geo_address_info'], locale: Loc
   return place.city && !place.address.includes(place.city) ? `${place.address}, ${place.city}` : place.address
 }
 
-/** Upcoming events, soonest first. `locale` picks Luma's localized address where it has one. */
-export async function getUpcomingEvents(locale: Locale): Promise<LumaEvent[]> {
-  const response = await fetch(ITEMS_URL)
+/**
+ * Events of the calendar: upcoming ones soonest first, past ones newest first.
+ * `locale` picks Luma's localized address where it has one.
+ */
+export async function getEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[]> {
+  const response = await fetch(itemsUrl(period))
   if (!response.ok) throw new Error(`Luma calendar request failed: ${response.status} ${response.statusText}`)
   const { entries } = (await response.json()) as { entries: LumaEntry[] }
 
@@ -65,15 +71,15 @@ export async function getUpcomingEvents(locale: Locale): Promise<LumaEvent[]> {
       isFree: ticket_info?.is_free ?? false,
       isSoldOut: ticket_info?.is_sold_out ?? false,
     }))
-    .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+    .sort((a, b) => (period === 'future' ? 1 : -1) * (a.startAt.getTime() - b.startAt.getTime()))
 }
 
-/** Like getUpcomingEvents, but returns null when Luma is unreachable so a page can link to the calendar instead of failing. */
-export async function loadUpcomingEvents(locale: Locale): Promise<LumaEvent[] | null> {
+/** Like getEvents, but returns null when Luma is unreachable so a page can link to the calendar instead of failing. */
+export async function loadEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[] | null> {
   try {
-    return await getUpcomingEvents(locale)
+    return await getEvents(locale, period)
   } catch (error) {
-    console.error('Loading Luma events failed', error)
+    console.error(`Loading ${period} Luma events failed`, error)
     return null
   }
 }

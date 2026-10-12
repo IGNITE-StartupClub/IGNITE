@@ -366,6 +366,8 @@ export const eventsPage = {
   soldOut: 'Sold out',
   free: 'Free',
   guests: 'registrations',
+  attended: 'attendees',
+  pastHeading: 'Past events',
   followCalendar: 'Subscribe to the Luma calendar',
   close: 'Close registration',
 }

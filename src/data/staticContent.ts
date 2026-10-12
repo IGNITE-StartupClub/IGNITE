@@ -366,6 +366,8 @@ export const eventsPage = {
   soldOut: 'Ausgebucht',
   free: 'Kostenlos',
   guests: 'Anmeldungen',
+  attended: 'Teilnehmende',
+  pastHeading: 'Vergangene Events',
   followCalendar: 'Luma-Kalender abonnieren',
   close: 'Anmeldung schließen',
 }
