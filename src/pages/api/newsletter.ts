@@ -1,11 +1,10 @@
 export const prerender = false
 
-import { v4 as uuidv4 } from 'uuid' // Import the uuid module
 import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
-import { WHATSAPP_INVITE_URL } from '../../templates/emails/links'
+import { startDoubleOptIn } from '../../lib/newsletterSignup'
 import {
   getSubscriptionConfirmedEmailHTML,
   getSubscriptionConfirmedSubject,
@@ -14,7 +13,6 @@ import {
 const resend = new Resend(process.env.RESEND_HOLY_GRAIL!)
 const MONGO_URI = process.env.MONGODB_URI!
 const MONGO_DB = process.env.MONGODB_DB!
-const SITE_URL = process.env.SITE_URL!
 const AUDIENCE_ID = process.env.AUDIENCE_ID!
 
 let client: MongoClient | null = null
@@ -165,9 +163,9 @@ export const POST = async ({ request }) => {
       // This is an initial subscription - send confirmation email
       console.log('Processing initial subscription for:', email)
 
-      // Check if email already exists in pending confirmations
-      const existingPending = await db.collection('pending_confirmations').findOne({ email })
-      if (existingPending) {
+      const result = await startDoubleOptIn(db, resend, { email, firstName, lastName })
+
+      if (result === 'pending') {
         console.log('Email already has pending confirmation:', email)
         return new Response(
           JSON.stringify({
@@ -175,79 +173,6 @@ export const POST = async ({ request }) => {
           }),
           { status: 409 },
         )
-      }
-
-      // Generate a token using UUID (v4)
-      const token = uuidv4()
-      const confirmUrl = `${SITE_URL}/subscribe?token=${token}`
-      console.log('Generated confirmation URL:', confirmUrl)
-
-      const cancelUrl = `${SITE_URL}/subscribe?cancel=${email}`
-
-      // Store token and email in DB with additional data
-      console.log('Storing confirmation data in MongoDB')
-      await db.collection('pending_confirmations').insertOne({
-        email,
-        firstName: firstName || '',
-        lastName: lastName || '',
-        token,
-        createdAt: new Date(),
-      })
-      console.log('Confirmation data stored in DB successfully')
-
-      // Send confirmation email
-      console.log('Sending confirmation email...')
-      try {
-        assertSent(
-          await resend.emails.send({
-            from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-            to: email,
-            subject: 'Willkommen beim IGNITE Startup Club!',
-            html: `
-            <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
-              <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
-              <p>Schön, dass du dich für unsere Initiative interessierst!</p>
-
-              <p>Unseren Newsletter gibt es bei WhatsApp. Bestätige deine E-Mail-Adresse und tritt der Community bei!</p>
-
-              <p style="text-align: center; margin: 2rem 0;">
-                <a href="${confirmUrl}"
-                  style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                  📧 E-Mail bestätigen
-                </a>
-              </p>
-
-              <p>In der WhatsApp-Community bleibst du immer auf dem Laufenden über folgende Themen:</p>
-              <ul style="line-height: 1.6;">
-                <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
-                <li>Einblicke in reale Startup-Projekte</li>
-                <li>Austausch mit Gleichgesinnten</li>
-              </ul>
-
-              <p>Du kannst auch direkt beitreten:</p>
-
-              <p style="text-align: center; margin: 2rem 0;">
-                <a href="${WHATSAPP_INVITE_URL}"
-                  style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                  👉 Jetzt WhatsApp-Gruppe beitreten
-                </a>
-              </p>
-
-              <p style="font-size: 0.95rem; color: #555;">
-                Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
-                  <a href="${cancelUrl}"
-                  style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
-                  E-Mail-Adresse austragen
-                </a> 
-              </p>
-            </div>
-          `,
-          }),
-        )
-      } catch (err) {
-        // Without the mail the pending entry would block retries for 24 hours.
-        await db.collection('pending_confirmations').deleteOne({ email, token })
-        throw err
       }
       console.log('Confirmation email sent successfully')
 

@@ -4,7 +4,6 @@ import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import crypto from 'crypto'
-import { v4 as uuidv4 } from 'uuid'
 import 'dotenv/config'
 import { getQuestionLabels } from '../../data/questionnaireParser.js'
 import {
@@ -17,7 +16,8 @@ import {
   getApplicationConfirmationSubject,
 } from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
-import { WHATSAPP_INVITE_URL } from '../../templates/emails/links'
+import { assertSent } from '../../lib/resend'
+import { startDoubleOptIn } from '../../lib/newsletterSignup'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const resendHolyGrail = new Resend(process.env.RESEND_HOLY_GRAIL!)
@@ -79,14 +79,16 @@ async function sendApplicationEmail(data: ApplicationEmailData) {
     const subject = getApplicationEmailSubject()
     const html = getApplicationEmailHTML(data, questionLabels)
 
-    const result = await resend.emails.send({
-      from: 'team@info.ignite-startupclub.de',
-      to: adminRecipients,
-      subject: subject,
-      html: html,
-    })
+    const result = assertSent(
+      await resend.emails.send({
+        from: 'team@info.ignite-startupclub.de',
+        to: adminRecipients,
+        subject: subject,
+        html: html,
+      }),
+    )
     console.log('✅ Team notification sent successfully')
-    console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
+    console.log(`📧 Email ID: ${result.id}`)
   } catch (err) {
     console.error('❌ Error sending team email:', err)
     throw err
@@ -105,14 +107,16 @@ async function sendConfirmationEmail(email: string, name: string) {
     const subject = getApplicationConfirmationSubject()
     const html = getApplicationConfirmationEmailHTML(name)
 
-    const result = await resend.emails.send({
-      from: 'join@info.ignite-startupclub.de',
-      to: email,
-      subject: subject,
-      html: html,
-    })
+    const result = assertSent(
+      await resend.emails.send({
+        from: 'join@info.ignite-startupclub.de',
+        to: email,
+        subject: subject,
+        html: html,
+      }),
+    )
     console.log('✅ Confirmation email sent successfully')
-    console.log(`📧 Email ID: ${result.data?.id || 'unknown'}`)
+    console.log(`📧 Email ID: ${result.id}`)
   } catch (err) {
     console.error('❌ Error sending confirmation email:', err)
     // do not re-throw: we still want to report DB errors and send team notification
@@ -134,12 +138,14 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
     const subject = getErrorReportSubject()
     const html = getErrorReportEmailHTML(errorMessage, context)
 
-    await resend.emails.send({
-      from: 'team@info.ignite-startupclub.de',
-      to: adminRecipients,
-      subject: subject,
-      html: html,
-    })
+    assertSent(
+      await resend.emails.send({
+        from: 'team@info.ignite-startupclub.de',
+        to: adminRecipients,
+        subject: subject,
+        html: html,
+      }),
+    )
     console.log('✅ Error report sent successfully')
   } catch (err) {
     console.error('❌ Could not send error report:', err)
@@ -150,76 +156,12 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
 async function handleNewsletterSubscription(db: any, email: string, firstName: string, lastName: string) {
   try {
     console.log('📧 Starting newsletter double opt-in process for:', email)
-
-    // Check if email already exists in pending confirmations
-    const existingPending = await db.collection('pending_confirmations').findOne({ email })
-    if (existingPending) {
-      console.log('📧 Email already has pending confirmation:', email)
-      return // Don't send duplicate confirmation email
-    }
-
-    // Generate confirmation token
-    const token = uuidv4()
-    const SITE_URL = process.env.SITE_URL || 'https://ignite-startupclub.de'
-    const confirmUrl = `${SITE_URL}/subscribe?token=${token}`
-    const cancelUrl = `${SITE_URL}/subscribe?cancel=${email}`
-
-    // Store in pending confirmations
-    await db.collection('pending_confirmations').insertOne({
-      email,
-      firstName: firstName || '',
-      lastName: lastName || '',
-      token,
-      createdAt: new Date(),
-    })
-    console.log('✅ Newsletter confirmation data stored in DB')
-
-    // Send confirmation email
-    await resendHolyGrail.emails.send({
-      from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
-      to: email,
-      subject: 'Willkommen beim IGNITE Startup Club!',
-      html: `
-        <div style="font-family: Inter, sans-serif; background-color: #f9f9f9; padding: 2rem; border-radius: 8px; color: #333;">
-          <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
-          <p>Schön, dass du dich für unsere Initiative interessierst!</p>
-
-          <p>Unseren Newsletter gibt es bei WhatsApp. Bestätige deine E-Mail-Adresse und tritt der Community bei!</p>
-
-          <p style="text-align: center; margin: 2rem 0;">
-            <a href="${confirmUrl}"
-              style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-              📧 E-Mail bestätigen
-            </a>
-          </p>
-
-          <p>In der WhatsApp-Community bleibst du immer auf dem Laufenden über folgende Themen:</p>
-          <ul style="line-height: 1.6;">
-            <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
-            <li>Einblicke in reale Startup-Projekte</li>
-            <li>Austausch mit Gleichgesinnten</li>
-          </ul>
-
-          <p>Du kannst auch direkt beitreten:</p>
-
-          <p style="text-align: center; margin: 2rem 0;">
-            <a href="${WHATSAPP_INVITE_URL}"
-              style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-              👉 Jetzt WhatsApp-Gruppe beitreten
-            </a>
-          </p>
-
-          <p style="font-size: 0.95rem; color: #555;">
-            Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
-              <a href="${cancelUrl}"
-              style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
-              E-Mail-Adresse austragen
-            </a>
-          </p>
-        </div>
-      `,
-    })
-    console.log('✅ Newsletter confirmation email sent')
+    const result = await startDoubleOptIn(db, resendHolyGrail, { email, firstName, lastName })
+    console.log(
+      result === 'pending'
+        ? `📧 Email already has pending confirmation, no second mail: ${email}`
+        : '✅ Newsletter confirmation email sent',
+    )
   } catch (err) {
     console.error('❌ Error in newsletter subscription:', err)
     // Don't throw - we still want the main application to succeed
@@ -237,13 +179,15 @@ async function addContactToMitmachenSegment(email: string, firstName: string, la
     }
 
     // Create contact in Resend
-    await resendHolyGrail.contacts.create({
-      email: email,
-      firstName: firstName || '',
-      lastName: lastName || '',
-      unsubscribed: false,
-      audienceId: AUDIENCE_ID,
-    })
+    assertSent(
+      await resendHolyGrail.contacts.create({
+        email: email,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        unsubscribed: false,
+        audienceId: AUDIENCE_ID,
+      }),
+    )
     console.log('✅ Contact added to Resend audience')
 
     // TODO: Add to "Mitmachen" segment when Resend API supports it
