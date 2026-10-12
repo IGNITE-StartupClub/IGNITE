@@ -369,7 +369,6 @@ export const eventsPage = {
   attended: 'Teilnehmende',
   pastHeading: 'Vergangene Events',
   followCalendar: 'Luma-Kalender abonnieren',
-  close: 'Anmeldung schließen',
 }
 
 export const subscribePage = {
