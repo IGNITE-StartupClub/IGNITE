@@ -63,10 +63,14 @@ Icons use `astro-icon` with `@iconify-json/ion` and `@iconify-json/mdi` icon set
 
 ## Project rules
 
-- **Language**: All UI text and content is German.
+- **Language**: The site is bilingual. German is the default locale at the root URLs, English lives under `/en/` (Astro `i18n`, `prefixDefaultLocale: false`). Emails and API responses stay German.
+- **Adding or changing copy**: Change the German text in `src/data/` and the English counterpart in the matching `*.en.ts` file in the same commit. `getCopy(Astro.currentLocale)` (`src/data/copy.ts`) returns the copy for the current locale; its `Copy` type flags English files that miss an export when you run `tsc`. React islands get their copy as props from the page, they do not import it.
+- **Pages**: Each page is implemented once in `src/views/` and rendered by a thin German route in `src/pages/` and an English route in `src/pages/en/`. English slugs that differ (`join`, `contact`, `materials`, `imprint`, `privacy`, `workshops`) are listed in `src/lib/i18n.ts`. MDX pages (legal, workshops, peer-to-peer) exist once per language.
+- **News articles**: German in `src/content/projects/`, English translation in `src/content/projects/en/` under the same file name (collection `projectsEn`). `getNews(locale)` in `src/lib/news.ts` reads both.
+- **Language toggle**: `LanguageToggle.astro` sits next to `ThemeToggle` in the header and the mobile nav. `DefaultLayout` derives the target and the hreflang links from the URL; pass `alternatePath` when the counterpart has a different path (`null` = no counterpart).
 - **Dark theme**: The site uses a near-black background (`--dark-100: hsl(240, 4%, 9%)`). New UI should match this palette.
 - **Component file type**: Use `.astro` for static/structural components and `.jsx`/`.tsx` for interactive React components that need `client:*` directives.
-- **Content changes**: Edit copy in `src/data/staticContent.ts` (nav, footer, hero, FAQ, features) or `src/data/teamsData.ts` — not inside components.
+- **Content changes**: Edit copy in `src/data/staticContent.ts` / `staticContent.en.ts` (nav, footer, hero, FAQ, features) or `src/data/teamsData.ts` — not inside components.
 - **Navigation items**: Managed in `src/data/staticContent.ts` under `navigation.menuItems` (supports nested `children` for dropdowns).
 - **New content collection**: Add definition to `src/content.config.mjs`, create directory under `src/content/<name>/`, add `.md` files there.
 - **Shadcn UI components**: Live in `src/components/ui/`. Use `@/lib/utils` for the `cn()` helper (already present at `src/lib/utils.ts`).
