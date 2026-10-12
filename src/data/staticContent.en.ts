@@ -23,7 +23,7 @@ export const pageMeta = {
     title: 'Join us',
     description: 'We look forward to having you on the IGNITE team, your startup network in Lüneburg.',
   },
-  newsletter: { title: 'Community' },
+  community: { title: 'Community' },
   events: {
     title: 'Events',
     description: 'Workshops, networking and hackathons about founding a startup at Leuphana.',
@@ -222,7 +222,7 @@ export const footer = {
   id: 1,
   description:
     'Startup initiative at Leuphana University Lüneburg. We are the first point of contact for everyone interested in founding',
-  showNewsletter: true,
+  showCommunityForm: true,
   navigationHeading: 'Navigation',
   legalHeading: 'Legal',
   socialHeading: 'Social',
@@ -254,8 +254,6 @@ export const globalConfig = {
   error404_message: 'The page you are looking for does not exist.',
   error404_buttonText: 'Back to the home page',
   error404_buttonUrl: '/en/',
-  newsletterSuccessMessage: 'Thanks for signing up!',
-  newsletterErrorMessage: 'An error occurred',
   loadingText: 'Loading...',
   submitButtonText: 'Submit',
 }
@@ -375,40 +373,14 @@ export const subscribePage = {
   lead: 'Our newsletter runs on WhatsApp. Sign up and we will send you the invitation link to the community.',
 }
 
-export const newsletterForm = {
+export const communityForm = {
   heading: 'Become part of the community',
-  note: 'You will receive an email with an invitation link.',
+  note: 'You will receive an email with the invitation link to the WhatsApp community.',
   emailPlaceholder: 'you@email.com',
   submit: 'Join now',
   submitting: 'Sending...',
   consent: 'By submitting your email address you agree to our privacy policy.',
-  success: 'Thanks for signing up! Check your inbox to confirm your email address.',
+  success: 'Thanks! We have emailed you the invitation link. Check your spam folder too.',
+  pending: 'We have already sent you the link. Please check your inbox, including your spam folder.',
   error: 'Something went wrong. Please try again later.',
-  pending: 'We have already sent you a confirmation email. Please check your inbox, including your spam folder.',
-}
-
-export const subscribeForm = {
-  heading: 'Become part of the community',
-  confirmHeading: 'Confirm your signup',
-  firstNameLabel: 'First name',
-  lastNameLabel: 'Last name',
-  emailLabel: 'Email',
-  emailPlaceholder: 'you@email.com',
-  submit: 'Join now',
-  confirm: 'Confirm',
-  submitting: 'Sending...',
-  consent: 'By submitting your email address you agree to our privacy policy.',
-  confirmConsent: 'By submitting you agree to our privacy policy and confirm your email address.',
-  success: 'Thanks for signing up!',
-  error: 'Something went wrong. Please try again later.',
-  pending: 'We have already sent you a confirmation email. Please check your inbox, including your spam folder.',
-  welcomeHeading: 'Welcome to the IGNITE community!',
-  welcomeText: 'Your signup is confirmed. Our newsletter lives in the WhatsApp community; we have emailed you the invitation link.',
-  welcomeMailBefore: 'We have sent a confirmation email to',
-  welcomeMailAfter: '.',
-  backToHome: 'Back to the home page',
-  backToHomeUrl: '/en/',
-  cancelledHeading: 'You have unsubscribed successfully',
-  cancelledText: 'Sorry to see you go!',
-  cancelError: 'Error while unsubscribing. Please try again later.',
 }

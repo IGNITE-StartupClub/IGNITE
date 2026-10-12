@@ -1,20 +1,20 @@
 ---
 /**
- * Newsletter page: subscribe form, plus double opt-in confirmation (?token=) and unsubscribe (?cancel=).
- * Rendered by pages/subscribe.astro and pages/en/subscribe.astro. Data source: subscribePage, subscribeForm, pageMeta via getCopy().
+ * Community page: email form that mails the WhatsApp invite link.
+ * Rendered by pages/subscribe.astro and pages/en/subscribe.astro. Data source: subscribePage, communityForm, pageMeta via getCopy().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
-import SubscribeForm from '../components/forms/SubscribeForm.jsx'
+import CommunityForm from '../components/forms/CommunityForm.jsx'
 import { getCopy } from '../data/copy'
 
-const { subscribePage, subscribeForm, pageMeta } = getCopy(Astro.currentLocale)
+const { subscribePage, communityForm, pageMeta } = getCopy(Astro.currentLocale)
 ---
 
-<DefaultLayout title={pageMeta.newsletter.title}>
+<DefaultLayout title={pageMeta.community.title}>
   <PageHeader title={subscribePage.title} lead={subscribePage.lead} />
   <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <SubscribeForm client:load copy={subscribeForm} />
+    <CommunityForm client:load copy={communityForm} />
   </Section>
 </DefaultLayout>
