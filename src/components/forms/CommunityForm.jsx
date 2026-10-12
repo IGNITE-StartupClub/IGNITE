@@ -1,11 +1,11 @@
 /**
- * Compact newsletter signup (React island), used in the footer. Posts { email } to /api/newsletter.
- * Props: copy (newsletterForm in the page language). Styles: ./forms.css.
+ * Community signup (React island) for the footer and the Community page. Posts { email } to /api/community,
+ * which mails the WhatsApp invite link. Props: copy (communityForm in the page language). Styles: ./forms.css.
  */
 import React, { useState } from 'react'
 import './forms.css'
 
-export default function NewsletterForm({ copy }) {
+export default function CommunityForm({ copy }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState(null) // 'success' | 'pending' | 'error' | null
   const [loading, setLoading] = useState(false)
@@ -16,7 +16,7 @@ export default function NewsletterForm({ copy }) {
     setStatus(null)
 
     try {
-      const res = await fetch('/api/newsletter', {
+      const res = await fetch('/api/community', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -42,11 +42,11 @@ export default function NewsletterForm({ copy }) {
     <form onSubmit={handleSubmit} className="form">
       <div className="field">
         <h3 className="fieldset-legend">{copy.heading}</h3>
-        <label htmlFor="newsletter-email" className="form-note">
+        <label htmlFor="community-email" className="form-note">
           {copy.note}
         </label>
         <input
-          id="newsletter-email"
+          id="community-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

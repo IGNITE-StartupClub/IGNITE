@@ -55,7 +55,7 @@ async function collectReport(): Promise<ReportData> {
     const pingLatencyMs = Date.now() - start
 
     const db = client.db(process.env.MONGODB_DB!)
-    const collectionNames = ['applicant', 'feedbacks', 'pending_confirmations', 'pending_subscribers']
+    const collectionNames = ['applicant', 'feedbacks', 'community_invites']
 
     const collections: CollectionStat[] = await Promise.all(
       collectionNames.map(async (name) => {

@@ -13,13 +13,14 @@ const INITIAL_DATA = {
   name: '',
   lastname: '',
   email: '',
-  subscribeNewsletter: false,
+  emailConfirm: '',
   acceptPrivacy: false,
 }
 
 const STEPS = ['intro', 'situation', 'contribution', 'fascination', 'personal']
 
 const isFreeTextValid = (text) => !!text.trim() && getWordCount(text) <= MAX_WORDS
+const normalizeEmail = (email) => email.trim().toLowerCase()
 
 export default function Questionnaire({ config }) {
   const [step, setStep] = useState(0)
@@ -40,16 +41,23 @@ export default function Questionnaire({ config }) {
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
 
+  const emailMismatch = !!data.emailConfirm && normalizeEmail(data.email) !== normalizeEmail(data.emailConfirm)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (normalizeEmail(data.email) !== normalizeEmail(data.emailConfirm)) {
+      setError(config.personal.emailMismatch)
+      return
+    }
     setSubmitting(true)
     setError(null)
 
     try {
+      const { emailConfirm, ...payload } = data
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -120,7 +128,8 @@ export default function Questionnaire({ config }) {
           onChange={handleChange}
           onToggle={handleToggle}
           submitting={submitting}
-          error={error}
+          error={emailMismatch ? config.personal.emailMismatch : error}
+          emailMismatch={emailMismatch}
         />
       )}
     </form>

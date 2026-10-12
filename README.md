@@ -19,13 +19,11 @@ Kein Test-Setup. ESLint/Prettier manuell: `npx eslint .` / `npx prettier --write
 
 | Variable | Zweck |
 |---|---|
-| `RESEND_API_KEY` | Transaktions-Mails (Bewerbung, Kontakt, Bestätigung) |
-| `RESEND_HOLY_GRAIL` | Newsletter-Mails (separater Resend-Key) |
-| `AUDIENCE_ID` | Resend-Audience für Kontakte |
+| `RESEND_API_KEY` | Alle Mails (Bewerbung, Kontakt, Community-Einladung, Berichte) |
 | `MONGODB_URI`, `MONGODB_DB` | MongoDB |
 | `ENCRYPTION_SECRET` | 32-Byte-Hex-Key (AES-256-GCM für Bewerberdaten) |
 | `EMAIL_RECIPIENT_1`, `EMAIL_RECIPIENT_2` | Admin-Empfänger (2 optional) |
-| `SITE_URL` | Öffentliche URL für Bestätigungslinks |
+| `SITE_URL` | Öffentliche URL, nur für den Datenbankbericht (optional) |
 | `CRON_SECRET` | Absicherung der Cron-Endpunkte |
 
 ## Ordnerstruktur

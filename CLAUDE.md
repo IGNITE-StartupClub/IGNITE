@@ -26,9 +26,9 @@ This is an **Astro 5 site** with **server-side rendering** (output: 'server') de
 **Email Templates (`src/templates/emails/`)** — HTML email templates are fully separated from API logic. Each file exports a subject function and an HTML function. Edit email copy here, not in API routes.
 
 **API Routes (`src/pages/api/`)** — Server endpoints that handle:
-- `submit.ts` — Membership application form: validates input, encrypts all fields with AES-256-GCM, stores encrypted data in **MongoDB**, sends emails via **Resend**, optionally triggers newsletter double opt-in
+- `submit.ts` — Membership application form: validates input, encrypts all fields with AES-256-GCM, stores encrypted data in **MongoDB**, sends the team notification and the applicant confirmation (which carries the WhatsApp link) via **Resend**
 - `contact.ts` — Contact form, sends emails via Resend
-- `newsletter.ts` / `confirm.ts` / `unsubscribe.ts` — Newsletter double opt-in flow using MongoDB `pending_confirmations` collection. `newsletter.ts` handles both the signup and, with `isConfirming` plus the mailed token, the confirmation.
+- `community.ts` — Community signup (Community page and footer): validates the address, mails the WhatsApp invite link, no confirmation step. A Mongo TTL collection `community_invites` allows one invite per address and 24 hours (409 on repeat).
 - `cron/` — Scheduled jobs from `vercel.json` (health check, database report, monthly applicants)
 
 **Content Collections (`src/content/`)** — Markdown-based collections for `events` and `projects`, defined in `src/content.config.mjs`. New content files go in the respective subdirectories.
@@ -47,15 +47,13 @@ The application will throw at startup if any of these are missing:
 
 | Variable | Purpose |
 |---|---|
-| `RESEND_API_KEY` | Transactional emails (application, contact, confirmation) |
-| `RESEND_HOLY_GRAIL` | Newsletter emails (separate Resend key) |
+| `RESEND_API_KEY` | All emails: application, contact, community invite, reports |
 | `MONGODB_URI` | MongoDB connection string |
 | `MONGODB_DB` | MongoDB database name |
 | `ENCRYPTION_SECRET` | 32-byte hex key for AES-256-GCM encryption of applicant data |
 | `EMAIL_RECIPIENT_1` | Primary admin email recipient |
 | `EMAIL_RECIPIENT_2` | (Optional) Secondary admin email recipient |
-| `AUDIENCE_ID` | Resend audience ID for contact management |
-| `SITE_URL` | Public URL for generating confirmation links |
+| `SITE_URL` | (Optional) Public URL, shown in the database report |
 
 ### Icon system
 
@@ -76,6 +74,6 @@ Icons use `astro-icon` with `@iconify-json/ion` and `@iconify-json/mdi` icon set
 - **Shadcn UI components**: Live in `src/components/ui/`. Use `@/lib/utils` for the `cn()` helper (already present at `src/lib/utils.ts`).
 - **Self-updating rule**: After every session where something new is learned about this codebase, append it to this CLAUDE.md under "Project rules".
 - **Events outside Luma**: `/events` shows the upcoming and past events of the Luma calendar (`loadEvents(locale, period)`) in `src/lib/luma.ts`, each merged with hand-listed events from `src/data/externalEvents.ts` (English location in `externalEvents.en.ts`, keyed by id). External events link to their own `registerUrl` instead of the Luma embed and move to the past section after `endAt`.
-- **Newsletter = WhatsApp**: There is no email newsletter. The WhatsApp community is the newsletter. Copy and emails must not promise email updates. The invite link lives once in `src/templates/emails/links.ts` (`WHATSAPP_INVITE_URL`); the double opt-in flow still collects the email address before the link is sent.
-- **Sending mail from API routes**: The Resend SDK returns `{ error }` instead of throwing. Wrap every send and contact call in `assertSent()` (`src/lib/resend.ts`). API responses carry fixed German messages, never `error.message`. The newsletter double opt-in (pending entry, confirmation mail, rollback on send failure) lives in `startDoubleOptIn()` (`src/lib/newsletterSignup.ts`) and is shared by `/api/newsletter` and `/api/submit`. The confirmation mail is `subscriptionConfirmationEmail.ts`; the mail after confirming is `subscriptionConfirmedEmail.ts`.
+- **Newsletter = WhatsApp**: There is no email newsletter, no double opt-in and no Resend audience. The WhatsApp community is the newsletter. Copy and emails must not promise email updates. The invite link lives once in `src/templates/emails/links.ts` (`WHATSAPP_INVITE_URL`) and is sent by the community invite mail and the application confirmation.
+- **Sending mail from API routes**: The Resend SDK returns `{ error }` instead of throwing. Wrap every send in `assertSent()` (`src/lib/resend.ts`). API responses carry fixed German messages, never `error.message`.
 - **Contact address**: `stud.initiative.ignite@leuphana.de` is the only current address. It lives in `globalConfig.contactEmail` (`src/data/staticContent.ts`), which the mail routes use as `replyTo`, because the sending domain `info.ignite-startupclub.de` does not receive mail.

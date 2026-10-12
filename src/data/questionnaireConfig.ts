@@ -30,10 +30,10 @@ export const questionnaireConfig = {
     error: 'Es gab einen Fehler beim Absenden. Bitte versuche es erneut oder schreib uns direkt an.',
   },
   personal: {
-    newsletterConsent: 'Ich möchte der IGNITE WhatsApp-Community beitreten und über Events und Workshops informiert werden.',
     privacyBefore: 'Ich akzeptiere die',
     privacyLink: { label: 'Datenschutzbestimmungen', url: '/datenschutz' },
     privacyAfter: '. (Pflichtfeld)',
+    emailMismatch: 'Die E-Mail-Adressen stimmen nicht überein.',
     fields: {
       name: {
         label: 'Vorname',
@@ -47,6 +47,11 @@ export const questionnaireConfig = {
       },
       email: {
         label: 'E-Mail',
+        type: 'email',
+        required: true,
+      },
+      emailConfirm: {
+        label: 'E-Mail wiederholen',
         type: 'email',
         required: true,
       },

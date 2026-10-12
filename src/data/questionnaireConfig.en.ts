@@ -27,10 +27,10 @@ export const questionnaireConfig = {
     error: 'There was an error sending your application. Please try again or write to us directly.',
   },
   personal: {
-    newsletterConsent: 'I would like to join the IGNITE WhatsApp community and be informed about events and workshops.',
     privacyBefore: 'I accept the',
     privacyLink: { label: 'privacy policy', url: '/en/privacy' },
     privacyAfter: '. (required)',
+    emailMismatch: 'The email addresses do not match.',
     fields: {
       name: {
         label: 'First name',
@@ -44,6 +44,11 @@ export const questionnaireConfig = {
       },
       email: {
         label: 'Email',
+        type: 'email',
+        required: true,
+      },
+      emailConfirm: {
+        label: 'Repeat email',
         type: 'email',
         required: true,
       },
