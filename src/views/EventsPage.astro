@@ -4,7 +4,7 @@
  * events of src/data/externalEvents.ts.
  * Rendered per request and cached at the edge by pages/events.astro and pages/en/events.astro, so new Luma events
  * appear without a deploy. Props: events (null if Luma could not be reached).
- * The next event is shown large, later ones in a grid. For Luma events the register button opens Luma's
+ * The next event is shown large, later ones in a grid. The whole card links to the event page. For Luma events the register button opens Luma's
  * registration embed inside a site-styled <dialog>; without JS it links to the Luma page. External events link to
  * their own registration page.
  * Dates and times follow the page language (24-hour clock with "Uhr" in German, 12-hour clock in English).
@@ -34,6 +34,9 @@ const now = new Date()
 const listed: ListedEvent[] = [...(events ?? []), ...externalEvents.filter((event) => event.endAt > now)].sort(
   (a, b) => a.startAt.getTime() - b.startAt.getTime(),
 )
+
+// The next event is large. With only two events both are, so the second does not sit alone in a three-column row.
+const isFeatured = (index: number) => index === 0 || listed.length <= 2
 
 const format = (event: ListedEvent, options: Intl.DateTimeFormatOptions, date = event.startAt) =>
   date.toLocaleString(dateLocales[locale], { timeZone: event.timezone, ...options })
@@ -67,23 +70,25 @@ const formatTime = (event: ListedEvent) => {
         <p class="events-empty">{events === null ? copy.unavailable : copy.empty}</p>
       ) : (
         <ul class="events-list">
-          {listed.map((event, index) => (
-            <li class:list={['event', { 'event--featured': index === 0 }]}>
-              <a class="event-media" href={event.url} target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+          {listed.map((event, index) => {
+            const featured = isFeatured(index)
+            return (
+            <li class:list={['event', { 'event--featured': featured }]}>
+              <div class="event-media">
                 {event.coverUrl && <img src={event.coverUrl} alt="" loading={index < 4 ? 'eager' : 'lazy'} />}
                 <span class="event-date">
                   <span class="event-day">{format(event, { day: '2-digit' })}</span>
                   <span class="event-month">{format(event, { month: 'short' }).replace('.', '')}</span>
                 </span>
-              </a>
+              </div>
               <div class="event-content">
                 <time class="event-time" datetime={event.startAt.toISOString()}>
-                  {formatWhen(event, index === 0 ? 'long' : 'short')}
+                  {formatWhen(event, featured ? 'long' : 'short')}
                 </time>
                 <h3><a href={event.url} target="_blank" rel="noopener">{event.name}</a></h3>
                 <ul class="event-facts">
                   {event.location && <li><Icon name="ion:location-outline" aria-hidden="true" /><span>{event.location}</span></li>}
-                  {index === 0 && 'guestCount' in event && event.guestCount > 0 && <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {copy.guests}</span></li>}
+                  {featured && 'guestCount' in event && event.guestCount > 0 && <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {copy.guests}</span></li>}
                   {event.isFree && <li><Icon name="ion:ticket-outline" aria-hidden="true" /><span>{copy.free}</span></li>}
                 </ul>
                 {'registerUrl' in event ? (
@@ -91,8 +96,8 @@ const formatTime = (event: ListedEvent) => {
                     href={event.registerUrl}
                     target="_blank"
                     rel="noopener"
-                    variant={index === 0 ? 'primary' : 'outline'}
-                    size={index === 0 ? 'md' : 'sm'}
+                    variant={featured ? 'primary' : 'outline'}
+                    size={featured ? 'md' : 'sm'}
                     icon="ion:arrow-forward"
                   >
                     {copy.register}
@@ -104,8 +109,8 @@ const formatTime = (event: ListedEvent) => {
                     href={event.url}
                     target="_blank"
                     rel="noopener"
-                    variant={index === 0 ? 'primary' : 'outline'}
-                    size={index === 0 ? 'md' : 'sm'}
+                    variant={featured ? 'primary' : 'outline'}
+                    size={featured ? 'md' : 'sm'}
                     icon="ion:arrow-forward"
                     data-register-event={event.id}
                     data-event-name={event.name}
@@ -115,7 +120,8 @@ const formatTime = (event: ListedEvent) => {
                 )}
               </div>
             </li>
-          ))}
+            )
+          })}
         </ul>
       )
     }
@@ -180,6 +186,10 @@ const formatTime = (event: ListedEvent) => {
   .event-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; min-width: 0; }
   .event--featured .event-content { justify-content: center; }
   .event-time { color: var(--color-accent-text); font-size: .7rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+  /* The title link covers the card; the register button sits above it. */
+  .event { position: relative; }
+  .event-content h3 a::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+  .event-content :global(.btn), .event-soldout { position: relative; z-index: 1; }
   .event-content h3 { margin: .6rem 0 1rem; font-size: 1.15rem; font-weight: 600; line-height: 1.25; letter-spacing: -.02em; }
   .event--featured .event-content h3 { margin: .75rem 0 1.25rem; font-size: var(--text-xl); }
   .event-facts { display: grid; gap: .5rem; margin: 0 0 1.5rem; color: var(--color-fg-muted); font-size: var(--text-sm); }

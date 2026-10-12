@@ -16,7 +16,7 @@ export const externalEvents: ExternalEvent[] = [
     name: 'Leuphana AI Hackathon',
     url: 'https://www.leuphana.de/kooperationen/leuphana-entrepreneurship-center/gruendungsunterstuetzung/leuphana-ai-hackathon.html',
     registerUrl: 'https://eveeno.com/leuphana-ai-hackathon',
-    coverUrl: null,
+    coverUrl: '/img/events/leuphana-ai-hackathon.jpg',
     startAt: new Date('2026-11-05T08:30:00+01:00'),
     endAt: new Date('2026-11-06T19:00:00+01:00'),
     timezone: 'Europe/Berlin',
