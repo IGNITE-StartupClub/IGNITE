@@ -5,6 +5,7 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content'
 import DefaultLayout from '../../layouts/DefaultLayout.astro'
 import ArticleView from '../../components/ui/ArticleView.astro'
+import ArticleVideo from '../../components/ui/ArticleVideo.astro'
 
 export const prerender = true
 
@@ -38,5 +39,6 @@ const date = new Date(project.data.date).toLocaleDateString('de-DE', { year: 'nu
     backLabel="Zurück zu den Neuigkeiten"
   >
     <Content />
+    {project.data.video && <ArticleVideo slot="after" {...project.data.video} instagram={project.data.instagram} />}
   </ArticleView>
 </DefaultLayout>

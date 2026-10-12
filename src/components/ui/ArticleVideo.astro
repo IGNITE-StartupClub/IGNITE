@@ -1,0 +1,42 @@
+---
+/**
+ * Self-hosted article video (portrait reels): native <video> with poster, loaded only on play.
+ * Props: src (public path to an H.264 MP4), poster (public image path), instagram (optional permalink shown as a link below).
+ */
+interface Props {
+  src: string
+  poster: string
+  instagram?: string
+}
+
+const { src, poster, instagram } = Astro.props
+---
+
+<figure class="article-video">
+  <video controls playsinline preload="none" {poster}>
+    <source {src} type="video/mp4" />
+  </video>
+  {
+    instagram && (
+      <figcaption>
+        <a href={instagram} target="_blank" rel="noopener noreferrer" class="text-accent underline underline-offset-4">Auf Instagram ansehen</a>
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .article-video {
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+  .article-video video {
+    width: 100%;
+    max-width: 24rem;
+    aspect-ratio: 9 / 16;
+    background-color: var(--color-bg-subtle);
+    border-radius: var(--radius-card);
+  }
+</style>

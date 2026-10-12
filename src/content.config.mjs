@@ -13,6 +13,8 @@ const projects = defineCollection({
     description: z.string(),
     date: z.date(),
     image: z.string(),
+    video: z.object({ src: z.string(), poster: z.string() }).optional(),
+    instagram: z.string().url().optional(),
   }),
 })
 
