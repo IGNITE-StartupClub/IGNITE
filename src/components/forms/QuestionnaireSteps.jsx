@@ -59,7 +59,7 @@ export function FreeTextStep({ name, config, wordsUnit, value, onChange }) {
   )
 }
 
-export function PersonalStep({ config, ui, data, onChange, onToggle, submitting, error }) {
+export function PersonalStep({ config, ui, data, onChange, onToggle, submitting, error, emailMismatch }) {
   const text = (name, type, autoComplete) => (
     <label className="field">
       <span className="field-label">{config.fields[name].label}</span>
@@ -81,6 +81,7 @@ export function PersonalStep({ config, ui, data, onChange, onToggle, submitting,
         {text('lastname', 'text', 'family-name')}
       </div>
       {text('email', 'email', 'email')}
+      {text('emailConfirm', 'email', 'off')}
 
       <label className="choice">
         <input type="checkbox" name="acceptPrivacy" checked={data.acceptPrivacy} onChange={onToggle} required />
@@ -93,7 +94,7 @@ export function PersonalStep({ config, ui, data, onChange, onToggle, submitting,
       <p className="form-error" role="alert">
         {error}
       </p>
-      <button type="submit" className="form-submit form-centered" disabled={submitting || !data.acceptPrivacy}>
+      <button type="submit" className="form-submit form-centered" disabled={submitting || !data.acceptPrivacy || emailMismatch}>
         {submitting ? ui.submitting : ui.submit}
       </button>
     </>

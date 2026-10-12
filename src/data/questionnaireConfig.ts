@@ -33,6 +33,7 @@ export const questionnaireConfig = {
     privacyBefore: 'Ich akzeptiere die',
     privacyLink: { label: 'Datenschutzbestimmungen', url: '/datenschutz' },
     privacyAfter: '. (Pflichtfeld)',
+    emailMismatch: 'Die E-Mail-Adressen stimmen nicht überein.',
     fields: {
       name: {
         label: 'Vorname',
@@ -46,6 +47,11 @@ export const questionnaireConfig = {
       },
       email: {
         label: 'E-Mail',
+        type: 'email',
+        required: true,
+      },
+      emailConfirm: {
+        label: 'E-Mail wiederholen',
         type: 'email',
         required: true,
       },
