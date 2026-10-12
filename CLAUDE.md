@@ -28,8 +28,8 @@ This is an **Astro 5 site** with **server-side rendering** (output: 'server') de
 **API Routes (`src/pages/api/`)** — Server endpoints that handle:
 - `submit.ts` — Membership application form: validates input, encrypts all fields with AES-256-GCM, stores encrypted data in **MongoDB**, sends emails via **Resend**, optionally triggers newsletter double opt-in
 - `contact.ts` — Contact form, sends emails via Resend
-- `subscribe.ts` / `confirm.ts` / `unsubscribe.ts` — Newsletter double opt-in flow using MongoDB `pending_confirmations` collection
-- `feedback.ts` — Feedback form
+- `newsletter.ts` / `confirm.ts` / `unsubscribe.ts` — Newsletter double opt-in flow using MongoDB `pending_confirmations` collection. `newsletter.ts` handles both the signup and, with `isConfirming` plus the mailed token, the confirmation.
+- `cron/` — Scheduled jobs from `vercel.json` (health check, database report, monthly applicants)
 
 **Content Collections (`src/content/`)** — Markdown-based collections for `events` and `projects`, defined in `src/content.config.mjs`. New content files go in the respective subdirectories.
 
@@ -78,3 +78,4 @@ Icons use `astro-icon` with `@iconify-json/ion` and `@iconify-json/mdi` icon set
 - **Events outside Luma**: `/events` shows the upcoming and past events of the Luma calendar (`loadEvents(locale, period)`) in `src/lib/luma.ts`, each merged with hand-listed events from `src/data/externalEvents.ts` (English location in `externalEvents.en.ts`, keyed by id). External events link to their own `registerUrl` instead of the Luma embed and move to the past section after `endAt`.
 - **Newsletter = WhatsApp**: There is no email newsletter. The WhatsApp community is the newsletter. Copy and emails must not promise email updates. The invite link lives once in `src/templates/emails/links.ts` (`WHATSAPP_INVITE_URL`); the double opt-in flow still collects the email address before the link is sent.
 - **Sending mail from API routes**: The Resend SDK returns `{ error }` instead of throwing. Wrap every send and contact call in `assertSent()` (`src/lib/resend.ts`). API responses carry fixed German messages, never `error.message`. The newsletter double opt-in (pending entry, confirmation mail, rollback on send failure) lives in `startDoubleOptIn()` (`src/lib/newsletterSignup.ts`) and is shared by `/api/newsletter` and `/api/submit`. The confirmation mail is `subscriptionConfirmationEmail.ts`; the mail after confirming is `subscriptionConfirmedEmail.ts`.
+- **Contact address**: `stud.initiative.ignite@leuphana.de` is the only current address. It lives in `globalConfig.contactEmail` (`src/data/staticContent.ts`), which the mail routes use as `replyTo`, because the sending domain `info.ignite-startupclub.de` does not receive mail.

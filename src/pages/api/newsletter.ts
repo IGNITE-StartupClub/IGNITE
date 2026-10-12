@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
+import { globalConfig } from '../../data/staticContent'
 import { startDoubleOptIn } from '../../lib/newsletterSignup'
 import {
   getSubscriptionConfirmedEmailHTML,
@@ -60,7 +61,7 @@ export const POST = async ({ request }) => {
     console.log('Received request to newsletter API')
 
     // Parse the request body
-    const { email, firstName, lastName, isConfirming } = await request.json()
+    const { email, firstName, lastName, isConfirming, token } = await request.json()
     console.log('Request data:', { email, firstName, lastName, isConfirming })
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -75,8 +76,10 @@ export const POST = async ({ request }) => {
       console.log('Processing confirmation for:', email)
 
       try {
-        // Find the original subscription data to ensure we have the correct token
-        const pendingConfirmation = await db.collection('pending_confirmations').findOne({ email })
+        // The token from the confirmation link proves control of the mailbox. Matching on the
+        // email alone would let anyone confirm another person's address.
+        const pendingConfirmation =
+          typeof token === 'string' ? await db.collection('pending_confirmations').findOne({ email, token }) : null
 
         if (!pendingConfirmation) {
           console.log('No pending confirmation found for email:', email)
@@ -122,6 +125,7 @@ export const POST = async ({ request }) => {
             await resend.emails.send({
               from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
               to: email,
+              replyTo: globalConfig.contactEmail,
               subject: getSubscriptionConfirmedSubject(),
               html: getSubscriptionConfirmedEmailHTML(confirmedFirstName),
             }),

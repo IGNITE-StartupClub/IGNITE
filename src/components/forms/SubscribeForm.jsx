@@ -14,6 +14,7 @@ export default function SubscribeForm({ copy }) {
   const [status, setStatus] = useState(null); // 'success' | 'pending' | 'error' | 'unsubscribed' | null
   const [loading, setLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false); // True if it's a confirmation form
+  const [confirmToken, setConfirmToken] = useState(null); // Confirmation token from the mailed link
   const [isCancelled, setIsCancelled] = useState(false); // Track cancellation status
   const [showEndScreen, setShowEndScreen] = useState(false); // Show end screen after successful confirmation
 
@@ -25,6 +26,7 @@ export default function SubscribeForm({ copy }) {
 
       if (token) {
         setIsConfirming(true);
+        setConfirmToken(token);
 
         fetch(`/api/confirm?token=${token}`)
           .then(res => {
@@ -82,6 +84,7 @@ export default function SubscribeForm({ copy }) {
       // Add confirmation flag for confirmation submissions
       if (isConfirming) {
         submitData.isConfirming = true;
+        submitData.token = confirmToken;
       }
 
       const res = await fetch('/api/newsletter', {

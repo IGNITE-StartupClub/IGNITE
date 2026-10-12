@@ -149,7 +149,7 @@ export const homepage = {
     src: 'kickoff.jpg',
     alt: 'Gruppenfoto vom Kick-off-Event von IGNITE im Utopia: rund 35 Studierende vor der Projektion des IGNITE-Logos.',
   },
-  heroObjectAlt: 'Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Raketen-Bauplänen',
+  heroObjectAlt: 'Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Maschinen-Bauplänen',
   heroCTA_Text: 'Mitmachen',
   heroCTA_URL: '/mitmachen',
   heroCTA_Icon: 'ion:people-outline',
@@ -249,7 +249,7 @@ export const globalConfig = {
   id: 1,
   siteName: 'IGNITE Startup Club Lüneburg',
   siteTagline: 'Deine Gründer*innen-Community an der Leuphana',
-  contactEmail: 'info@ignite-startupclub.de',
+  contactEmail: 'stud.initiative.ignite@leuphana.de',
   copyrightText: 'IGNITE Startup Club Lüneburg. Alle Rechte vorbehalten.',
   error404_heading: '404 - Seite nicht gefunden',
   error404_message: 'Die Seite, die du suchst, existiert nicht.',
@@ -288,7 +288,7 @@ export const contactPage = {
   submitButtonText: 'Absenden',
   successMessage: '<h3>Danke für deine Nachricht!</h3><p>Wir werden uns bald bei dir melden.</p>',
   successMessageAdvisory:
-    '<h3>Vielen Dank für Ihr Interesse!</h3><p>Wir haben Ihre Anfrage zum Advisory Board erhalten und freuen uns sehr über Ihr Interesse, den IGNITE Startup Club Lüneburg zu unterstützen. Unser Team wird sich zeitnah bei Ihnen melden, um die nächsten Schritte zu besprechen.</p><p class="contact-info">Bei dringenden Fragen erreichen Sie uns auch direkt unter <a href="mailto:info@ignite-startupclub.de">info@ignite-startupclub.de</a></p>',
+    '<h3>Vielen Dank für Ihr Interesse!</h3><p>Wir haben Ihre Anfrage zum Advisory Board erhalten und freuen uns sehr über Ihr Interesse, den IGNITE Startup Club Lüneburg zu unterstützen. Unser Team wird sich zeitnah bei Ihnen melden, um die nächsten Schritte zu besprechen.</p><p class="contact-info">Bei dringenden Fragen erreichen Sie uns auch direkt unter <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a></p>',
   advisoryInfoMessage:
     'Vielen Dank für Ihr Interesse an unserem Advisory Board! Um Sie optimal unterstützen zu können, bitten wir Sie um einige zusätzliche Informationen zu Ihrer Person und Expertise.',
   errorMessage: 'Fehler beim Absenden der Nachricht',
@@ -311,8 +311,7 @@ export const mitmachenPage = {
   teamsLead: 'In diesen Teams kannst du bei IGNITE mitarbeiten. Welches davon zu dir passt, finden wir im Kennenlerngespräch gemeinsam heraus.',
   formHeading: 'Jetzt <em>mitmachen</em>',
   formLead: 'Bewirb dich schnell und unkompliziert mit diesem Formular.',
-  processHeading: 'Wie geht es <em>weiter</em>?',
-  processLead: 'So wirst du Teil von IGNITE.',
+  processHeading: 'Dein Weg zu <em>IGNITE</em>',
   steps: [
     {
       title: 'Bewerbung abschicken',
@@ -351,7 +350,7 @@ export const listingPages = {
     defaultAuthor: 'IGNITE Team',
     title: 'Materialien für den <em>nächsten Schritt</em>',
     lead: 'Klarer denken, besser testen, mutiger loslegen: Guides und Frameworks für deinen Gründerweg.',
-    empty: 'Noch keine Materialien vorhanden.',
+    empty: 'In Zukunft findest du hier spannende Materialien, um das Gründen zugänglicher zu machen.',
     readMore: 'Ansehen',
   },
 }

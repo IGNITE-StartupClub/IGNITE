@@ -148,7 +148,7 @@ export const homepage = {
     src: 'kickoff.jpg',
     alt: 'Group photo from the IGNITE kick-off event at Utopia: around 35 students in front of the projected IGNITE logo.',
   },
-  heroObjectAlt: 'Four young founders as marble sculptures discuss in front of a stone tablet engraved with rocket blueprints',
+  heroObjectAlt: 'Four young founders as marble sculptures discuss in front of a stone tablet engraved with machine blueprints',
   heroCTA_Text: 'Join us',
   heroCTA_URL: '/en/join',
   heroCTA_Icon: 'ion:people-outline',
@@ -248,7 +248,7 @@ export const globalConfig = {
   id: 1,
   siteName: 'IGNITE Startup Club Lüneburg',
   siteTagline: 'Your founder community at Leuphana',
-  contactEmail: 'info@ignite-startupclub.de',
+  contactEmail: 'stud.initiative.ignite@leuphana.de',
   copyrightText: 'IGNITE Startup Club Lüneburg. All rights reserved.',
   error404_heading: '404 - Page not found',
   error404_message: 'The page you are looking for does not exist.',
@@ -287,7 +287,7 @@ export const contactPage = {
   submitButtonText: 'Submit',
   successMessage: '<h3>Thanks for your message!</h3><p>We will get back to you soon.</p>',
   successMessageAdvisory:
-    '<h3>Thank you for your interest!</h3><p>We have received your Advisory Board enquiry and are delighted that you would like to support the IGNITE Startup Club Lüneburg. Our team will contact you shortly to discuss the next steps.</p><p class="contact-info">For urgent questions you can also reach us directly at <a href="mailto:info@ignite-startupclub.de">info@ignite-startupclub.de</a></p>',
+    '<h3>Thank you for your interest!</h3><p>We have received your Advisory Board enquiry and are delighted that you would like to support the IGNITE Startup Club Lüneburg. Our team will contact you shortly to discuss the next steps.</p><p class="contact-info">For urgent questions you can also reach us directly at <a href="mailto:stud.initiative.ignite@leuphana.de">stud.initiative.ignite@leuphana.de</a></p>',
   advisoryInfoMessage:
     'Thank you for your interest in our Advisory Board! To support you as well as we can, please give us some additional information about yourself and your expertise.',
   errorMessage: 'Error sending the message',
@@ -311,8 +311,7 @@ export const mitmachenPage = {
   teamsLead: 'These are the teams you can join at IGNITE. We work out together in the introductory conversation which one suits you.',
   formHeading: 'Join <em>us</em> now',
   formLead: 'Apply quickly and easily with this form.',
-  processHeading: 'What <em>happens next</em>?',
-  processLead: 'This is how you become part of IGNITE.',
+  processHeading: 'Your path to <em>IGNITE</em>',
   steps: [
     {
       title: 'Submit your application',
@@ -351,7 +350,7 @@ export const listingPages = {
     defaultAuthor: 'IGNITE Team',
     title: 'Materials for the <em>next step</em>',
     lead: 'Think more clearly, test better, start more boldly: guides and frameworks for your founding journey.',
-    empty: 'No materials yet.',
+    empty: 'Soon you will find exciting materials here that make founding more accessible.',
     readMore: 'View',
   },
 }
