@@ -17,6 +17,7 @@ import {
   getApplicationConfirmationSubject,
 } from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
+import { WHATSAPP_INVITE_URL } from '../../templates/emails/links'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const resendHolyGrail = new Resend(process.env.RESEND_HOLY_GRAIL!)
@@ -183,26 +184,26 @@ async function handleNewsletterSubscription(db: any, email: string, firstName: s
           <h2 style="color: #8C3974;">Willkommen beim IGNITE Startup Club 🎉</h2>
           <p>Schön, dass du dich für unsere Initiative interessierst!</p>
 
-          <p>Du möchtest nichts verpassen? Dann bestätige deine E-Mail und erhalte News durch unseren Newsletter!</p>
+          <p>Unseren Newsletter gibt es bei WhatsApp. Bestätige deine E-Mail-Adresse und tritt der Community bei!</p>
 
           <p style="text-align: center; margin: 2rem 0;">
             <a href="${confirmUrl}"
               style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
-              📧 Newsletter abonnieren
+              📧 E-Mail bestätigen
             </a>
           </p>
 
-          <p>Wenn du dich für unseren Newsletter anmeldest, bleibst du immer auf dem Laufenden über folgende Themen:</p>
+          <p>In der WhatsApp-Community bleibst du immer auf dem Laufenden über folgende Themen:</p>
           <ul style="line-height: 1.6;">
             <li>Events und Workshops rund ums Gründen in Lüneburg und Hamburg</li>
             <li>Einblicke in reale Startup-Projekte</li>
             <li>Austausch mit Gleichgesinnten</li>
           </ul>
 
-          <p>Noch einfacher? Dann tritt direkt unserer WhatsApp-Community bei:</p>
+          <p>Du kannst auch direkt beitreten:</p>
 
           <p style="text-align: center; margin: 2rem 0;">
-            <a href="https://chat.whatsapp.com/HtvynOI8sY125MmBZR4C1n"
+            <a href="${WHATSAPP_INVITE_URL}"
               style="display: inline-block; background-color: #8C3974; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">
               👉 Jetzt WhatsApp-Gruppe beitreten
             </a>
@@ -212,7 +213,7 @@ async function handleNewsletterSubscription(db: any, email: string, firstName: s
             Falls du dich nicht selbst angemeldet hast, kannst du diese E-Mail einfach ignorieren oder dich jederzeit abmelden. Klicke dazu einfach auf den folgenden Link:
               <a href="${cancelUrl}"
               style="display: text-decoration: none; color: #8C3974; font-weight: bold;">
-              Vom IGNITE Newsletter abmelden
+              E-Mail-Adresse austragen
             </a>
           </p>
         </div>
