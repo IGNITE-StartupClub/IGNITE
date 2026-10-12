@@ -17,6 +17,7 @@ import {
 } from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 import { assertSent } from '../../lib/resend'
+import { globalConfig } from '../../data/staticContent'
 import { startDoubleOptIn } from '../../lib/newsletterSignup'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
@@ -111,6 +112,7 @@ async function sendConfirmationEmail(email: string, name: string) {
       await resend.emails.send({
         from: 'join@info.ignite-startupclub.de',
         to: email,
+        replyTo: globalConfig.contactEmail,
         subject: subject,
         html: html,
       }),

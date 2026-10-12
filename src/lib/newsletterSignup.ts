@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Db } from 'mongodb'
 import type { Resend } from 'resend'
 import { assertSent } from './resend'
+import { globalConfig } from '../data/staticContent'
 import {
   getSubscriptionConfirmationEmailHTML,
   getSubscriptionConfirmationSubject,
@@ -47,6 +48,7 @@ export async function startDoubleOptIn(
       await resend.emails.send({
         from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
         to: email,
+        replyTo: globalConfig.contactEmail,
         subject: getSubscriptionConfirmationSubject(),
         html: getSubscriptionConfirmationEmailHTML(
           `${siteUrl}/subscribe?token=${token}`,

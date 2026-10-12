@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
+import { globalConfig } from '../../data/staticContent'
 import { startDoubleOptIn } from '../../lib/newsletterSignup'
 import {
   getSubscriptionConfirmedEmailHTML,
@@ -124,6 +125,7 @@ export const POST = async ({ request }) => {
             await resend.emails.send({
               from: 'IGNITE Startup Club <news@info.ignite-startupclub.de>',
               to: email,
+              replyTo: globalConfig.contactEmail,
               subject: getSubscriptionConfirmedSubject(),
               html: getSubscriptionConfirmedEmailHTML(confirmedFirstName),
             }),

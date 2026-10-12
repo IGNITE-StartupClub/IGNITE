@@ -4,6 +4,7 @@ import { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
+import { globalConfig } from '../../data/staticContent'
 import {
   getContactFormEmailHTML,
   getContactFormSubject,
@@ -45,6 +46,7 @@ const sendConfirmationEmail = async (email: string, name?: string, isAdvisoryBoa
     await resend.emails.send({
       from: 'kontakt@info.ignite-startupclub.de',
       to: email,
+      replyTo: globalConfig.contactEmail,
       subject: subject,
       html: html,
     }),
