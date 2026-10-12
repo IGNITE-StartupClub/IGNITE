@@ -33,7 +33,7 @@ const asset = assets[`../../assets/photos/${src}`]?.default
         width={1504}
         height={1023}
         widths={[480, 768, 1024, 1504]}
-        sizes="(min-width: 913px) 832px, 92vw"
+        sizes="(min-width: 835px) 768px, 92vw"
         loading="eager"
         fetchpriority="high"
       />
@@ -61,6 +61,6 @@ const asset = assets[`../../assets/photos/${src}`]?.default
 
 <style>
   .hero-object { display: grid; place-items: center; margin: clamp(2.5rem, 5vw, 4rem) auto 0; }
-  .hero-object :global(img) { display: block; width: min(92vw, 52rem); height: auto; }
+  .hero-object :global(img) { display: block; width: min(92vw, 48rem); height: auto; }
   .hero-photo { margin-top: clamp(2rem, 4vw, 3rem); overflow: hidden; border-radius: var(--radius-card); }
 </style>
