@@ -10,6 +10,9 @@ import { getCommunityInviteEmailHTML, getCommunityInviteSubject } from '../../te
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Resend's free plan allows 100 mails a day. Without a cap, a script could use them up on strangers'
+// addresses and block the application and contact mails.
+const MAX_INVITES_PER_HOUR = 20
 
 let client: MongoClient | null = null
 
@@ -37,8 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
       return reply(400, 'Ungültige E-Mail-Adresse.')
     }
 
-    // One invite per address and 24 hours: repeated submits must not mail the same inbox again and again.
     const invites = await getInvites()
+    // Not atomic with the insert below, so a burst can overshoot by a few. Good enough for a cap on abuse.
+    const sentLastHour = await invites.countDocuments({ createdAt: { $gte: new Date(Date.now() - 3600 * 1000) } })
+    if (sentLastHour >= MAX_INVITES_PER_HOUR) {
+      return reply(429, 'Gerade sind zu viele Anmeldungen eingegangen. Bitte versuche es später erneut.')
+    }
+
+    // One invite per address and 24 hours: repeated submits must not mail the same inbox again and again.
     const { upsertedCount } = await invites.updateOne(
       { email },
       { $setOnInsert: { createdAt: new Date() } },
