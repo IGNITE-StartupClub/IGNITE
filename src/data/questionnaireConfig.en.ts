@@ -27,7 +27,6 @@ export const questionnaireConfig = {
     error: 'There was an error sending your application. Please try again or write to us directly.',
   },
   personal: {
-    newsletterConsent: 'I would like to join the IGNITE WhatsApp community and be informed about events and workshops.',
     privacyBefore: 'I accept the',
     privacyLink: { label: 'privacy policy', url: '/en/privacy' },
     privacyAfter: '. (required)',

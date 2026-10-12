@@ -83,10 +83,6 @@ export function PersonalStep({ config, ui, data, onChange, onToggle, submitting,
       {text('email', 'email', 'email')}
 
       <label className="choice">
-        <input type="checkbox" name="subscribeNewsletter" checked={data.subscribeNewsletter} onChange={onToggle} />
-        <span>{config.newsletterConsent}</span>
-      </label>
-      <label className="choice">
         <input type="checkbox" name="acceptPrivacy" checked={data.acceptPrivacy} onChange={onToggle} required />
         <span>
           {config.privacyBefore} <a href={config.privacyLink.url}>{config.privacyLink.label}</a>

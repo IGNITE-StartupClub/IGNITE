@@ -13,7 +13,6 @@ const INITIAL_DATA = {
   name: '',
   lastname: '',
   email: '',
-  subscribeNewsletter: false,
   acceptPrivacy: false,
 }
 

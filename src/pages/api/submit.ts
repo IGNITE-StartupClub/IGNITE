@@ -18,10 +18,8 @@ import {
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 import { assertSent } from '../../lib/resend'
 import { globalConfig } from '../../data/staticContent'
-import { startDoubleOptIn } from '../../lib/newsletterSignup'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
-const resendHolyGrail = new Resend(process.env.RESEND_HOLY_GRAIL!)
 
 // --- ENV-VALIDATION ---
 const requiredEnvs = ['RESEND_API_KEY', 'MONGODB_URI', 'MONGODB_DB', 'ENCRYPTION_SECRET', 'EMAIL_RECIPIENT_1']
@@ -155,55 +153,6 @@ async function sendErrorEmail(errorMessage: string, context?: string) {
   }
 }
 
-async function handleNewsletterSubscription(db: any, email: string, firstName: string, lastName: string) {
-  try {
-    console.log('📧 Starting newsletter double opt-in process for:', email)
-    const result = await startDoubleOptIn(db, resendHolyGrail, { email, firstName, lastName })
-    console.log(
-      result === 'pending'
-        ? `📧 Email already has pending confirmation, no second mail: ${email}`
-        : '✅ Newsletter confirmation email sent',
-    )
-  } catch (err) {
-    console.error('❌ Error in newsletter subscription:', err)
-    // Don't throw - we still want the main application to succeed
-  }
-}
-
-async function addContactToMitmachenSegment(email: string, firstName: string, lastName: string) {
-  try {
-    console.log('👤 Adding contact to Resend with segment "Mitmachen":', email)
-
-    const AUDIENCE_ID = process.env.AUDIENCE_ID
-    if (!AUDIENCE_ID) {
-      console.error('❌ AUDIENCE_ID not configured')
-      return
-    }
-
-    // Create contact in Resend
-    assertSent(
-      await resendHolyGrail.contacts.create({
-        email: email,
-        firstName: firstName || '',
-        lastName: lastName || '',
-        unsubscribed: false,
-        audienceId: AUDIENCE_ID,
-      }),
-    )
-    console.log('✅ Contact added to Resend audience')
-
-    // TODO: Add to "Mitmachen" segment when Resend API supports it
-    // For now, the contact is in the audience and can be manually segmented
-  } catch (err: any) {
-    console.error('❌ Error adding contact to Resend:', err)
-    // Check if it's a duplicate error - that's ok
-    if (err.message && err.message.includes('already exists')) {
-      console.log('ℹ️  Contact already exists in Resend')
-    }
-    // Don't throw - we still want the main application to succeed
-  }
-}
-
 export const POST: APIRoute = async ({ request }) => {
   let client: MongoClient | null = null
 
@@ -263,15 +212,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Confirm to applicant
     await sendConfirmationEmail(data.email, data.name)
-
-    // Handle newsletter subscription or contact creation
-    if (data.subscribeNewsletter === true || data.subscribeNewsletter === 'true') {
-      console.log('📧 User wants newsletter - starting double opt-in')
-      await handleNewsletterSubscription(db, data.email, data.name, data.lastname)
-    } else {
-      console.log('👤 User does not want newsletter - adding to Mitmachen segment')
-      await addContactToMitmachenSegment(data.email, data.name, data.lastname)
-    }
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {
