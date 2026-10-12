@@ -351,7 +351,7 @@ export const listingPages = {
     defaultAuthor: 'IGNITE Team',
     title: 'Materialien für den <em>nächsten Schritt</em>',
     lead: 'Klarer denken, besser testen, mutiger loslegen: Guides und Frameworks für deinen Gründerweg.',
-    empty: 'Noch keine Materialien vorhanden.',
+    empty: 'In Zukunft findest du hier spannende Materialien, um das Gründen zugänglicher zu machen.',
     readMore: 'Ansehen',
   },
 }

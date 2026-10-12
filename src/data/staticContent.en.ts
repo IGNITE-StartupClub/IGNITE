@@ -351,7 +351,7 @@ export const listingPages = {
     defaultAuthor: 'IGNITE Team',
     title: 'Materials for the <em>next step</em>',
     lead: 'Think more clearly, test better, start more boldly: guides and frameworks for your founding journey.',
-    empty: 'No materials yet.',
+    empty: 'Soon you will find exciting materials here that make founding more accessible.',
     readMore: 'View',
   },
 }
