@@ -61,7 +61,7 @@ const span: Record<string, string> = {
 </Section>
 
 <style>
-  /* Workshops card: the photo sits last on small screens; from lg it fills the right half, from the title down. */
+  /* Workshops card: the photo sits last on small screens; from lg it fills the right half, with the same inset from the card edge at top and bottom. */
   :global(.expect-wide .card-media) {
     order: 1;
   }
@@ -84,9 +84,9 @@ const span: Record<string, string> = {
     }
     :global(.expect-wide .card-media) {
       grid-column: 2;
-      grid-row: 2 / 4;
+      grid-row: 1 / 4;
     }
-    /* The text column sets the card height; the photo fills that space instead of stretching the card. */
+    /* The text column sets the card height; the photo fills that height instead of stretching the card. */
     :global(.expect-wide .card-media) {
       position: relative;
     }
