@@ -2,10 +2,10 @@
 /**
  * Base page shell: head (SEO, hreflang alternates, favicons, analytics, theme bootstrap), skip link,
  * Header, <main id="main-content">, Footer.
- * Locale: taken from the URL (Astro.currentLocale); sets <html lang> and the defaults.
+ * Locale: taken from the URL (Astro.currentLocale); sets <html lang>, defaults and the language toggle target.
  * Props: title, description, url, image, author, noindex (all optional, defaults from siteMeta),
  * alternatePath (the equivalent page in the other language: omitted = derived from the URL, null = no counterpart,
- * so no hreflang tags are written).
+ * so the toggle links to the other home page and no hreflang tags are written).
  * Data source: getCopy() in src/data/copy.ts.
  */
 import '../styles/global.css'
@@ -15,7 +15,7 @@ import SiteMeta from '../components/SiteMeta.astro'
 import Header from '../components/layout/Header.astro'
 import Footer from '../components/layout/Footer.astro'
 import { getCopy } from '../data/copy'
-import { resolveLocale, switchLocalePath } from '../lib/i18n'
+import { localizePath, resolveLocale, switchLocalePath } from '../lib/i18n'
 
 interface Props {
   title?: string
@@ -101,7 +101,7 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
     >
       {navigation.skipLinkLabel}
     </a>
-    <Header />
+    <Header switchHref={otherPath ?? localizePath('/', otherLocale)} />
     <main id="main-content" tabindex="-1">
       <slot />
     </main>

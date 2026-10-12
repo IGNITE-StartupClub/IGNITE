@@ -1,7 +1,8 @@
 ---
 /**
- * Floating pill navigation. Desktop (lg+): logo, centered links (Events as dropdown), theme toggle and the primary
- * "Mitmachen" pill. Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
+ * Floating pill navigation. Desktop (lg+): logo, centered links (Events as dropdown), theme and language toggle and the
+ * primary "Mitmachen" pill. Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
+ * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
  * Data source: navigation via getCopy() (src/data/copy.ts).
@@ -9,9 +10,15 @@
 import Logo from '../Logo.astro'
 import Button from '../ui/Button.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
+import LanguageToggle from '../ui/LanguageToggle.astro'
 import MobileNav from './MobileNav.astro'
 import { getCopy } from '../../data/copy'
 
+interface Props {
+  switchHref: string
+}
+
+const { switchHref } = Astro.props
 const { navigation } = getCopy(Astro.currentLocale)
 const items = [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
@@ -65,7 +72,10 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     </nav>
 
     <div class="flex items-center gap-1 sm:gap-2">
-      <div class="hidden lg:block"><ThemeToggle /></div>
+      <div class="hidden items-center gap-1 lg:flex">
+        <LanguageToggle href={switchHref} />
+        <ThemeToggle />
+      </div>
       <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
       <button
         type="button"
@@ -82,7 +92,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
   </div>
 </header>
 
-<MobileNav items={items} isCurrentPaths={items.flatMap((i) => ('children' in i && i.children ? i.children : [i])).filter((i) => isCurrent(i.url)).map((i) => i.url)} />
+<MobileNav items={items} switchHref={switchHref} isCurrentPaths={items.flatMap((i) => ('children' in i && i.children ? i.children : [i])).filter((i) => isCurrent(i.url)).map((i) => i.url)} />
 
 <script>
   // Compact pill after scrolling; closes the desktop dropdown on Escape or outside click.

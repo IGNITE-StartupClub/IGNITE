@@ -1,12 +1,14 @@
 ---
 /**
  * Fullscreen mobile menu, opened by `.menu-trigger` in Header.astro (the header pill stays on top and shows the close icon).
- * Props: items (navigation.menuItems; children render as a smaller list under their parent), isCurrentPaths (active pages).
+ * Props: items (navigation.menuItems; children render as a smaller list under their parent), isCurrentPaths (active pages),
+ * switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * Behaviour: aria-expanded toggle, scroll lock, Escape and link click close, focus trap, focus returns to the trigger.
- * Bottom: theme toggle and social links (footer.socialLinks).
+ * Bottom: social links (footer.socialLinks), language toggle and theme toggle.
  */
 import { Icon } from 'astro-icon/components'
 import ThemeToggle from '../ui/ThemeToggle.astro'
+import LanguageToggle from '../ui/LanguageToggle.astro'
 import { getCopy } from '../../data/copy'
 
 interface NavItem {
@@ -17,9 +19,10 @@ interface NavItem {
 interface Props {
   items: NavItem[]
   isCurrentPaths?: string[]
+  switchHref: string
 }
 
-const { items, isCurrentPaths = [] } = Astro.props
+const { items, isCurrentPaths = [], switchHref } = Astro.props
 const { footer, navigation } = getCopy(Astro.currentLocale)
 const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefined)
 ---
@@ -54,7 +57,10 @@ const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefi
           </li>
         ))}
       </ul>
-      <ThemeToggle />
+      <div class="flex items-center gap-1">
+        <LanguageToggle href={switchHref} />
+        <ThemeToggle />
+      </div>
     </div>
   </nav>
 </div>
