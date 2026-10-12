@@ -311,8 +311,7 @@ export const mitmachenPage = {
   teamsLead: 'These are the teams you can join at IGNITE. We work out together in the introductory conversation which one suits you.',
   formHeading: 'Join <em>us</em> now',
   formLead: 'Apply quickly and easily with this form.',
-  processHeading: 'What <em>happens next</em>?',
-  processLead: 'This is how you become part of IGNITE.',
+  processHeading: 'Your path to <em>IGNITE</em>',
   steps: [
     {
       title: 'Submit your application',
