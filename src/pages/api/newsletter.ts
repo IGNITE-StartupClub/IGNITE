@@ -157,7 +157,6 @@ export const POST = async ({ request }) => {
         return new Response(
           JSON.stringify({
             message: 'Fehler bei der Bestätigung. Bitte versuche es erneut.',
-            error: error instanceof Error ? error.message : 'Unknown error',
           }),
           { status: 500 },
         )
