@@ -15,6 +15,6 @@ const { subscribePage, communityForm, pageMeta } = getCopy(Astro.currentLocale)
 <DefaultLayout title={pageMeta.community.title}>
   <PageHeader title={subscribePage.title} lead={subscribePage.lead} />
   <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <CommunityForm client:load copy={communityForm} />
+    <CommunityForm client:load compact copy={{ ...communityForm, submit: subscribePage.submit }} />
   </Section>
 </DefaultLayout>

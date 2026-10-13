@@ -1,11 +1,12 @@
 /**
  * Community signup (React island) for the footer and the Community page. Posts { email } to /api/community,
- * which mails the WhatsApp invite link. Props: copy (communityForm in the page language). Styles: ./forms.css.
+ * which mails the WhatsApp invite link. Props: copy (communityForm in the page language), compact (input and button only,
+ * no heading or note; the Community page sets it). Styles: ./forms.css.
  */
 import React, { useState } from 'react'
 import './forms.css'
 
-export default function CommunityForm({ copy }) {
+export default function CommunityForm({ copy, compact = false }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState(null) // 'success' | 'pending' | 'error' | null
   const [loading, setLoading] = useState(false)
@@ -41,10 +42,14 @@ export default function CommunityForm({ copy }) {
   return (
     <form onSubmit={handleSubmit} className="form">
       <div className="field">
-        <h3 className="fieldset-legend">{copy.heading}</h3>
-        <label htmlFor="community-email" className="form-note">
-          {copy.note}
-        </label>
+        {!compact && (
+          <>
+            <h3 className="fieldset-legend">{copy.heading}</h3>
+            <label htmlFor="community-email" className="form-note">
+              {copy.note}
+            </label>
+          </>
+        )}
         <input
           id="community-email"
           type="email"
@@ -55,6 +60,7 @@ export default function CommunityForm({ copy }) {
           className="input"
           disabled={loading}
           autoComplete="email"
+          aria-label={compact ? copy.heading : undefined}
         />
       </div>
 
