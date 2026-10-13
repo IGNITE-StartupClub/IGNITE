@@ -5,7 +5,7 @@
  * Rendered per request and cached at the edge by pages/events.astro and pages/en/events.astro, so new Luma events
  * appear without a deploy. Props: events and pastEvents (each null if Luma could not be reached).
  * Past events follow in their own section, newest first, as plain cards without a register button.
- * The next event is shown large, later ones in a grid. The whole card links to the event page. The register button
+ * Upcoming events are all shown large and stacked, past ones in a grid. The whole card links to the event page. The register button
  * opens the Luma event page in a new tab; external events link to their own registration page instead.
  * Dates and times follow the page language (24-hour clock with "Uhr" in German, 12-hour clock in English).
  * Events spanning several days show the date range instead of the times.
@@ -41,9 +41,6 @@ const groups = [
   { headingId: 'events-heading', heading: copy.heading, events: listed, past: false },
   ...(past.length > 0 ? [{ headingId: 'past-events-heading', heading: copy.pastHeading, events: past, past: true }] : []),
 ]
-
-// The next event is large. With only two events both are, so the second does not sit alone in a three-column row.
-const isFeatured = (index: number) => index === 0 || listed.length <= 2
 
 const format = (event: ListedEvent, options: Intl.DateTimeFormatOptions, date = event.startAt) =>
   date.toLocaleString(dateLocales[locale], { timeZone: event.timezone, ...options })
@@ -82,7 +79,7 @@ const formatTime = (event: ListedEvent) => {
           ) : (
             <ul class="events-list">
               {group.events.map((event, index) => {
-                const featured = !group.past && isFeatured(index)
+                const featured = !group.past
                 return (
                 <li class:list={['event', { 'event--featured': featured }]}>
                   <div class="event-media">
@@ -99,7 +96,7 @@ const formatTime = (event: ListedEvent) => {
                     <h3><a href={event.url} target="_blank" rel="noopener">{event.name}</a></h3>
                     <ul class="event-facts">
                       {event.location && <li><Icon name="ion:location-outline" aria-hidden="true" /><span>{event.location}</span></li>}
-                      {(featured || group.past) && 'guestCount' in event && event.guestCount > 0 && (
+                      {'guestCount' in event && event.guestCount > 0 && (
                         <li><Icon name="ion:people-outline" aria-hidden="true" /><span>{event.guestCount} {group.past ? copy.attended : copy.guests}</span></li>
                       )}
                       {!group.past && event.isFree && <li><Icon name="ion:ticket-outline" aria-hidden="true" /><span>{copy.free}</span></li>}
