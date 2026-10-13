@@ -2,7 +2,7 @@
 // Sent right after someone enters their address on the Community page or in the footer.
 // The WhatsApp group is the newsletter, so this mail carries the invite link and nothing to confirm.
 
-import { WHATSAPP_INVITE_URL } from './links';
+import { INSTAGRAM_URL, LINKEDIN_URL, WHATSAPP_INVITE_URL } from './links';
 import { button, link, list, note, paragraph, renderEmail } from './layout';
 
 export function getCommunityInviteSubject(): string {
@@ -23,7 +23,7 @@ export function getCommunityInviteEmailHTML(): string {
       ]),
       button('WhatsApp-Gruppe beitreten', WHATSAPP_INVITE_URL),
       paragraph(
-        `Folge uns auch auf ${link('Instagram', 'https://www.instagram.com/ignite_leuphana/')} und ${link('LinkedIn', 'https://www.linkedin.com/company/ignite-startup-club/')}.`,
+        `Folge uns auch auf ${link('Instagram', INSTAGRAM_URL)} und ${link('LinkedIn', LINKEDIN_URL)}.`,
       ),
       note('Du hast dich nicht angemeldet? Dann ignoriere diese Mail einfach, es passiert nichts weiter.'),
     ].join(''),
