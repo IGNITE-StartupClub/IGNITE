@@ -355,7 +355,7 @@ export const listingPages = {
 
 export const eventsPage = {
   title: 'Gemeinsam <em>loslegen.</em>',
-  lead: 'Workshops, Austausch und Hackathons mit der Startup School: Hier findest du die kommenden Veranstaltungen von IGNITE.',
+  lead: 'Workshops, Austausch und Hackathons mit der Startup School: Hier findest du die kommenden Veranstaltungen von IGNITE und mit IGNITE.',
   heading: 'Kommende Events',
   empty: 'Gerade stehen keine Events an. Folge unserem Luma-Kalender, dann erfährst du als Erstes von neuen Terminen.',
   unavailable: 'Die Events konnten gerade nicht geladen werden.',
