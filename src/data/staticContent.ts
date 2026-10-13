@@ -371,6 +371,7 @@ export const eventsPage = {
 export const subscribePage = {
   title: 'Bleib auf dem <em>Laufenden</em>',
   lead: 'Unser Newsletter läuft über WhatsApp. Trag dich ein und wir schicken dir den Einladungslink zur Community.',
+  submit: 'Ship the dam thing!',
 }
 
 export const communityForm = {
