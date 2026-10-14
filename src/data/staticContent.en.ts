@@ -358,7 +358,7 @@ export const eventsPage = {
   lead: 'Workshops, networking and hackathons with the Startup School: find the upcoming events by IGNITE and with IGNITE here.',
   heading: 'Upcoming events',
   empty: 'There are no events at the moment. Follow our Luma calendar to be the first to hear about new dates.',
-  unavailable: 'The events could not be loaded right now.',
+  unavailable: 'The events from our Luma calendar could not be loaded right now.',
   register: 'Register now',
   soldOut: 'Sold out',
   free: 'Free',
