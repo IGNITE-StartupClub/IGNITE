@@ -4,6 +4,7 @@
  * events of src/data/externalEvents.ts.
  * Rendered per request and cached at the edge by pages/events.astro and pages/en/events.astro, so new Luma events
  * appear without a deploy. Props: events and pastEvents (each null if Luma could not be reached).
+ * If the upcoming Luma events could not be loaded, a note says so, also when external events are listed below it.
  * Past events follow in their own section, newest first, as plain cards without a register button.
  * Upcoming events are all shown large and stacked, past ones in a grid. The whole card links to the event page. The register button
  * opens the Luma event page in a new tab; external events link to their own registration page instead.
@@ -73,9 +74,10 @@ const formatTime = (event: ListedEvent) => {
           )}
         </div>
 
+        {!group.past && events === null && <p class="events-empty">{copy.unavailable}</p>}
         {
           group.events.length === 0 ? (
-            <p class="events-empty">{events === null ? copy.unavailable : copy.empty}</p>
+            events !== null && <p class="events-empty">{copy.empty}</p>
           ) : (
             <ul class="events-list">
               {group.events.map((event, index) => {
@@ -131,6 +133,7 @@ const formatTime = (event: ListedEvent) => {
 <style>
   .events-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem 2rem; margin-bottom: 2.5rem; }
   .events-empty { padding: 2rem; color: var(--color-fg-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-card); }
+  .events-empty + .events-list { margin-top: 1.5rem; }
 
   .events-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
   .event {
