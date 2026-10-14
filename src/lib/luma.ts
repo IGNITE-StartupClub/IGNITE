@@ -8,6 +8,8 @@ import type { Locale } from './i18n'
 const CALENDAR_ID = 'cal-TIeGyFakEbk5q6K'
 const itemsUrl = (period: EventPeriod) =>
   `https://api.lu.ma/calendar/get-items?calendar_api_id=${CALENDAR_ID}&period=${period}&pagination_limit=50`
+// Luma answers 429 to the default User-Agents of Node's fetch and curl (seen 2026-10-14), any other one passes.
+const requestHeaders = { 'User-Agent': 'IGNITE-Website (+https://ignite-startupclub.de)' }
 
 export type EventPeriod = 'future' | 'past'
 
@@ -53,7 +55,7 @@ const formatLocation = (geo: LumaEntry['event']['geo_address_info'], locale: Loc
  * `locale` picks Luma's localized address where it has one.
  */
 export async function getEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[]> {
-  const response = await fetch(itemsUrl(period))
+  const response = await fetch(itemsUrl(period), { headers: requestHeaders })
   if (!response.ok) throw new Error(`Luma calendar request failed: ${response.status} ${response.statusText}`)
   const { entries } = (await response.json()) as { entries: LumaEntry[] }
 
