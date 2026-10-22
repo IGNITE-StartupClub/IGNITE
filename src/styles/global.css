@@ -47,7 +47,7 @@
 
   /* Layout */
   --container-text: 42rem;
-  --container-article: 48rem;
+  --container-article: 60rem;
   --container-wide: 80rem;
   --header-height: 5.5rem;
 
@@ -224,6 +224,17 @@ h3 {
   line-height: var(--leading-display);
   letter-spacing: var(--tracking-display);
   text-wrap: balance;
+  /* Long German compounds ("Gründungsinteressierte") are wider than a phone
+     column at display sizes; break them instead of widening the page. */
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 767.98px) {
+  h1,
+  h2,
+  h3 {
+    hyphens: auto;
+  }
 }
 
 h1 {

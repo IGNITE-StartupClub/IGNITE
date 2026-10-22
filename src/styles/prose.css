@@ -12,6 +12,12 @@
   max-width: none;
 }
 
+/* Justified text needs hyphenation, or narrow columns open wide gaps between words. */
+.prose.prose-article p {
+  text-align: justify;
+  hyphens: auto;
+}
+
 .prose.prose-article h1 {
   font-size: var(--text-display-sm);
 }
