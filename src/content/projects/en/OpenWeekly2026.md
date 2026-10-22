@@ -22,6 +22,8 @@ At the Open Weekly, guests got to know our work, our teams and the different way
 
 #### Shaping IGNITE together
 
+![Group photo of the guests and the team at the IGNITE Open Weekly](../../../assets/optimized-sources/news/open-weekly-gruppe.jpeg)
+
 A big thank you to everyone who was there and enriched the evening with their openness, curiosity and energy! We look forward to deepening the new contacts and developing IGNITE further together.
 
 Would you like to bring in your own ideas, work on projects and become part of our startup community? Then [apply to IGNITE](/en/join)!

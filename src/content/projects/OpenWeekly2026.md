@@ -22,6 +22,8 @@ Beim Open Weekly konnten Interessierte unsere Arbeit, unsere Teams und die versc
 
 #### Gemeinsam IGNITE weiterentwickeln
 
+![Gruppenfoto mit den Gästen und dem Team beim IGNITE Open Weekly](../../assets/optimized-sources/news/open-weekly-gruppe.jpeg)
+
 Ein großes Dankeschön an alle, die dabei waren und den Abend mit ihrer Offenheit, Neugier und Energie bereichert haben! Wir freuen uns darauf, die neuen Kontakte zu vertiefen und IGNITE gemeinsam weiterzuentwickeln.
 
 Du möchtest selbst Ideen einbringen, Projekte umsetzen und Teil unserer Startup-Community werden? Dann [bewirb dich bei IGNITE](/mitmachen)!
