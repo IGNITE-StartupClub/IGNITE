@@ -213,7 +213,7 @@ export const navigation = {
     { label: 'Home', url: '/en/', isExternal: false, order: 1 },
     { label: 'Events', url: '/en/events/', isExternal: false, order: 2 },
     { label: 'News', url: '/en/news/', isExternal: false, order: 3 },
-    { label: 'Materials', url: '/en/materials/', isExternal: false, order: 4 },
+    { label: 'Guide', url: '/en/materials/', isExternal: false, order: 4 },
     { label: 'Community', url: '/en/subscribe', isExternal: false, order: 5 },
   ],
 }
