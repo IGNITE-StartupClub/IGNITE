@@ -214,7 +214,7 @@ export const navigation = {
     { label: 'Startseite', url: '/', isExternal: false, order: 1 },
     { label: 'Events', url: '/events/', isExternal: false, order: 2 },
     { label: 'Neuigkeiten', url: '/news/', isExternal: false, order: 3 },
-    { label: 'Materialien', url: '/materialien/', isExternal: false, order: 4 },
+    { label: 'Guide', url: '/materialien/', isExternal: false, order: 4 },
     { label: 'Community', url: '/subscribe', isExternal: false, order: 5 },
   ],
 }
