@@ -24,7 +24,7 @@ export function getMemberInviteEmailHTML(loginUrl: string, inviter: Inviter): st
       text(`${escapeHtml(inviter.label)} hat dich in den Mitgliederbereich der IGNITE-Website eingeladen. So richtest du deinen Zugang ein:`),
       steps([
         'Öffne die Anmeldeseite.',
-        'Klick unter „Neu im Team?“ auf „Code anfordern“ und gib diese E-Mail-Adresse ein.',
+        'Klick unter „Neu im Team?“ auf „Code anfordern“ und gib die E-Mail-Adresse ein, unter der du diese Einladung erhalten hast.',
         'Gib den Code aus der nächsten Mail ein und leg dein Passwort fest.',
       ]),
       button('Zur Anmeldung', loginUrl),
