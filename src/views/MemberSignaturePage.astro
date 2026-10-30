@@ -2,8 +2,9 @@
 /**
  * Email signature generator for members, rendered on demand by pages/mitglieder/signatur.astro and
  * pages/en/members/signature.astro. Guarded by src/middleware.ts like every members area page.
- * The generator itself is the SignatureGenerator island; only the member's photo is stored on the server.
- * Data source: memberArea, footer.socialLinks via getCopy(), the member's photo via photoIdOf().
+ * The generator itself is the SignatureGenerator island. The server keeps the member's photo and, for admins, the
+ * signature they copied last, which closes the invitations they send.
+ * Data source: memberArea, footer.socialLinks via getCopy(), the member's photo and saved signature via members.ts.
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
@@ -13,7 +14,7 @@ import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 import { photoPath } from '../lib/emailSignature'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
-import { photoIdOf } from '../lib/members'
+import { findMember, photoIdOf } from '../lib/members'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, footer } = getCopy(locale)
@@ -24,7 +25,8 @@ const links = footer.socialLinks
 // The English route has its own slug, which switchLocalePath cannot derive from the German one.
 const alternatePath = memberPagePath('signature', locale === 'de' ? 'en' : 'de')
 const member = Astro.locals.member!
-const photoId = await photoIdOf(member.email)
+const [photoId, saved] = await Promise.all([photoIdOf(member.email), findMember(member.email)])
+const isAdmin = member.role === 'admin'
 ---
 
 <DefaultLayout title={signature.pageTitle} alternatePath={alternatePath} noindex>
@@ -38,6 +40,8 @@ const photoId = await photoIdOf(member.email)
       links={links}
       defaultEmail={member.email}
       photo={photoId ? photoPath(photoId) : ''}
+      saved={isAdmin ? (saved?.signature ?? null) : null}
+      savesSignature={isAdmin}
     />
   </Section>
   <Section width="article" spacing="sm" labelledby="signature-steps">

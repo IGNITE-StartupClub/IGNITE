@@ -1,6 +1,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { BADGE_PATH, isComplete, isPhotoId, LIVE_ORIGIN, photoPath, signatureHtml, type SignatureFields } from './emailSignature.ts'
+import {
+  BADGE_PATH,
+  isComplete,
+  isPhotoId,
+  LIVE_ORIGIN,
+  parseSignature,
+  photoPath,
+  SIGNATURE_MAX_LENGTH,
+  signatureHtml,
+  type SignatureFields,
+} from './emailSignature.ts'
 
 const PHOTO_ID = 'a'.repeat(21) + '-_' + 'B'.repeat(20)
 
@@ -68,4 +78,14 @@ test('falls back to placeholders for empty fields', () => {
 test('requires name, role and email', () => {
   assert.equal(isComplete(fields()), true)
   assert.equal(isComplete(fields({ role: '  ' })), false)
+})
+
+test('parseSignature keeps only complete, trimmed text fields', () => {
+  const body = { name: ' Alex Beispiel ', role: 'Events', email: 'alex@example.org', phone: '', photo: '/x', admin: true }
+  assert.deepEqual(parseSignature(body), { name: 'Alex Beispiel', role: 'Events', email: 'alex@example.org', phone: '' })
+  assert.equal(parseSignature({ ...body, role: ' ' }), null)
+  assert.equal(parseSignature({ ...body, phone: undefined }), null)
+  assert.equal(parseSignature({ ...body, name: 'x'.repeat(SIGNATURE_MAX_LENGTH + 1) }), null)
+  assert.equal(parseSignature({ ...body, email: 42 }), null)
+  assert.equal(parseSignature(null), null)
 })

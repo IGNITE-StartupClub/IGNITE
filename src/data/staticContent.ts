@@ -550,6 +550,8 @@ export const memberArea = {
       copyHtml: 'HTML-Code kopieren',
       copied: 'Kopiert. Jetzt in Outlook einfügen.',
       copiedHtml: 'HTML-Code kopiert.',
+      savesHint: 'Als Admin speicherst du beim Kopieren Name, Rolle und Kontakt. Damit endet jede Einladung, die du verschickst, mit deiner Signatur.',
+      notSaved: 'Für deine Einladungen konnte sie nicht gespeichert werden. Kopier sie noch einmal.',
       missing: 'Bitte Name, Rolle und E-Mail-Adresse ausfüllen.',
       copyFailed: 'Kopieren hat nicht geklappt. Versuch es in einem anderen Browser.',
       signature: {

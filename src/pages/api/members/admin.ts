@@ -46,12 +46,12 @@ async function perform(action: Action, email: string, role: unknown, actor: stri
   if (action === 'add') {
     if (!(await addMember(email, role as 'member' | 'admin'))) return 'exists'
     await logAdminAction({ actor, action, email, role: role as 'member' | 'admin' })
-    return (await invite(email, locale, origin)) ? 'added' : 'addedMailFailed'
+    return (await invite(email, actor, locale, origin)) ? 'added' : 'addedMailFailed'
   }
   if (!(await findMember(email))) return 'unknown'
   if (action === 'invite') {
     await logAdminAction({ actor, action, email })
-    return (await invite(email, locale, origin)) ? 'invited' : 'mailFailed'
+    return (await invite(email, actor, locale, origin)) ? 'invited' : 'mailFailed'
   }
   if (action === 'role') {
     await setRole(email, role as 'member' | 'admin')
@@ -63,10 +63,13 @@ async function perform(action: Action, email: string, role: unknown, actor: stri
   return 'removed'
 }
 
-/** False when the mail could not be sent; the member stays added and the admin can send the invitation again. */
-async function invite(email: string, locale: 'de' | 'en', origin: string): Promise<boolean> {
+/**
+ * Sends the invitation in the name of `actor`, the signed-in admin. False when the mail could not be sent; the member
+ * stays added and the admin can send the invitation again.
+ */
+async function invite(email: string, actor: string, locale: 'de' | 'en', origin: string): Promise<boolean> {
   try {
-    await sendInvite(email, locale, origin)
+    await sendInvite(email, locale, origin, actor)
     return true
   } catch (err) {
     console.error('Member invitation mail failed:', err)
