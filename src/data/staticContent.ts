@@ -754,6 +754,7 @@ export const memberArea = {
     lead: 'Füll deine Angaben aus und kopier die Signatur. In Outlook legst du sie als zusätzliche Signatur an. Dann steht sie nur in den Mails, in die du sie selbst einfügst, und deine privaten Mails bleiben ohne.',
     back: 'Zurück zum Mitgliederbereich',
     stepsHeading: 'So kommt sie in Outlook',
+    stepsLead: 'Einmal einrichten, danach fügst du sie in jede IGNITE-Mail mit zwei Klicks ein.',
     // HTML allowed.
     steps: [
       'Oben auf <strong>Signatur kopieren</strong> klicken.',
@@ -763,6 +764,11 @@ export const memberArea = {
       'In einer IGNITE-Mail: <strong>Einfügen → Signatur → IGNITE</strong>.',
     ],
     generator: {
+      formHeading: 'Deine Angaben',
+      formNote: 'Bleiben in diesem Browser gespeichert, nur für dein Konto.',
+      previewLabel: 'Vorschau',
+      sampleTo: 'An: kontakt@beispiel-startup.de',
+      sampleSubject: 'Betreff: Unser Gespräch heute',
       labels: { name: 'Name', role: 'Rolle bei IGNITE', email: 'E-Mail-Adresse', phone: 'Telefon' },
       placeholders: {
         name: 'Vorname Nachname',

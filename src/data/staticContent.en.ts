@@ -754,6 +754,7 @@ export const memberArea = {
     lead: 'Fill in your details and copy the signature. In Outlook you add it as an extra signature. It then only appears in the emails you insert it into, and your private emails stay without it.',
     back: 'Back to the members area',
     stepsHeading: 'How to add it to Outlook',
+    stepsLead: 'Set it up once, then add it to any IGNITE email in two clicks.',
     // HTML allowed.
     steps: [
       'Click <strong>Copy signature</strong> above.',
@@ -763,6 +764,11 @@ export const memberArea = {
       'In an IGNITE email: <strong>Insert → Signature → IGNITE</strong>.',
     ],
     generator: {
+      formHeading: 'Your details',
+      formNote: 'Kept in this browser, for your account only.',
+      previewLabel: 'Preview',
+      sampleTo: 'To: contact@example-startup.com',
+      sampleSubject: 'Subject: Our conversation today',
       labels: { name: 'Name', role: 'Role at IGNITE', email: 'Email address', phone: 'Phone' },
       placeholders: {
         name: 'First Last',
