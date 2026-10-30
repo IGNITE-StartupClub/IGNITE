@@ -3,7 +3,7 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { isJsonRequest, isMemberRole, normalizeEmail } from '../../../lib/memberAuth'
 import { addMember, findMember, listMembers, logAdminAction, memberSummary, removeMember, setRole } from '../../../lib/members'
-import { sendPasswordLink } from '../../../lib/memberMail'
+import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 
 const ACTIONS = ['add', 'remove', 'role', 'invite'] as const
@@ -66,7 +66,7 @@ async function perform(action: Action, email: string, role: unknown, actor: stri
 /** False when the mail could not be sent; the member stays added and the admin can send the invitation again. */
 async function invite(email: string, locale: 'de' | 'en', origin: string): Promise<boolean> {
   try {
-    await sendPasswordLink(email, 'invite', locale, origin)
+    await sendInvite(email, locale, origin)
     return true
   } catch (err) {
     console.error('Member invitation mail failed:', err)

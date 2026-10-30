@@ -8,8 +8,8 @@
  *   node scripts/members.mjs role max@leuphana.de admin|member
  *   node scripts/members.mjs remove max@leuphana.de [...]
  *
- * `add` sends no invitation: the member requests a password link on the login page ("Passwort vergessen oder noch
- * keins?"). `remove` also ends the open sessions and password links of that address.
+ * `add` sends no invitation: the member requests a code on the login page ("Noch kein Passwort oder vergessen?").
+ * `remove` also ends the open sessions and codes of that address.
  */
 
 import { MongoClient } from 'mongodb'
@@ -81,7 +81,7 @@ try {
     for (const email of emails) {
       const { deletedCount } = await members.deleteOne({ email })
       const sessions = await db.collection('member_sessions').deleteMany({ email })
-      await db.collection('member_password_tokens').deleteMany({ email })
+      await db.collection('member_codes').deleteMany({ email })
       console.log(deletedCount ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)
     }
   }

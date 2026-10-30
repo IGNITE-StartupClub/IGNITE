@@ -1,41 +1,43 @@
 /**
- * Sends the one-time link to set a members area password (invitation or reset). Shared by
- * /api/members/password-link and /api/members/admin.
+ * Mails of the members area: the one-time code to set a password (/api/members/code) and the invitation an admin
+ * sends (/api/members/admin).
  */
 import { Resend } from 'resend'
 import 'dotenv/config'
 import { assertSent } from './resend'
-import { INVITE_TTL_SECONDS, type MemberLocale, memberPagePath, PASSWORD_LINK_TTL_SECONDS } from './memberAuth'
-import { createPasswordToken, deletePasswordToken } from './members'
+import { type MemberLocale, memberPagePath } from './memberAuth'
+import { createCode, deleteCode } from './members'
 import { globalConfig } from '../data/staticContent'
-import {
-  getMemberPasswordEmailHTML,
-  getMemberPasswordSubject,
-  type MemberPasswordMailKind,
-} from '../templates/emails/memberPasswordEmail'
+import { getMemberCodeEmailHTML, getMemberCodeSubject } from '../templates/emails/memberCodeEmail'
+import { getMemberInviteEmailHTML, getMemberInviteSubject } from '../templates/emails/memberInviteEmail'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
-export async function sendPasswordLink(email: string, kind: MemberPasswordMailKind, locale: MemberLocale, requestOrigin: string) {
-  const token = await createPasswordToken(email, kind === 'invite' ? INVITE_TTL_SECONDS : PASSWORD_LINK_TTL_SECONDS)
-  // Production links always point to the configured site, never to the Host header of the request.
-  const origin = import.meta.env.DEV ? requestOrigin : import.meta.env.SITE
-  const url = new URL(memberPagePath('password', locale), origin)
-  url.searchParams.set('token', token)
+const send = async (to: string, subject: string, html: string) =>
+  assertSent(
+    await resend.emails.send({
+      from: 'IGNITE Startup Club <mitglieder@info.ignite-startupclub.de>',
+      to,
+      replyTo: globalConfig.contactEmail,
+      subject,
+      html,
+    }),
+  )
 
+export async function sendCode(email: string) {
+  const code = await createCode(email)
   try {
-    assertSent(
-      await resend.emails.send({
-        from: 'IGNITE Startup Club <mitglieder@info.ignite-startupclub.de>',
-        to: email,
-        replyTo: globalConfig.contactEmail,
-        subject: getMemberPasswordSubject(kind),
-        html: getMemberPasswordEmailHTML(kind, url.href),
-      }),
-    )
+    await send(email, getMemberCodeSubject(code), getMemberCodeEmailHTML(code))
   } catch (err) {
-    // Without the mail the link is useless, and it would hold back a retry (rate limit).
-    await deletePasswordToken(token)
+    // Without the mail the code is useless, and it would hold back a retry (rate limit).
+    await deleteCode(email)
     throw err
   }
+}
+
+export async function sendInvite(email: string, locale: MemberLocale, requestOrigin: string) {
+  // Production links always point to the configured site, never to the Host header of the request.
+  const origin = import.meta.env.DEV ? requestOrigin : import.meta.env.SITE
+  const url = new URL(memberPagePath('login', locale), origin)
+  await send(email, getMemberInviteSubject(), getMemberInviteEmailHTML(url.href))
 }

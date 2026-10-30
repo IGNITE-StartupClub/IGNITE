@@ -114,7 +114,7 @@ With regard to the storage period, the following types of cookies are distinguis
 
 ## Members area
 
-IGNITE members sign in to the members area of the website with their email address and a password of their choice. An IGNITE admin adds the address. We then send an invitation with a link that lets the member set their password. A forgotten password can be reset the same way. Invitation links are valid for 7 days, all other links for 60 minutes, and every link works only once.
+IGNITE members sign in to the members area of the website with their email address and a password of their choice. An IGNITE admin adds the address, and we send an invitation by email. To set the first password or replace a forgotten one, the member requests a six-digit code on the sign-in page, which we send to the registered address. The code is valid for 10 minutes, works only once and stops working after five wrong entries.
 
 We do not store the password in plain text, only as a salted hash (scrypt), from which the password cannot be recovered. After five wrong passwords in a row we lock sign-in for 15 minutes.
 
@@ -122,9 +122,9 @@ After sign-in we set the cookie "ignite_member". It holds a random identifier th
 
 We log changes to the member list (adding, removing, changing a role, sending an invitation) with the time, the affected address and the address of the admin who made the change.
 
-- **Data processed:** email address, role (member or admin), password hash, time of joining and of the last password change, number of failed attempts, session identifier and links (stored only as hashes), log of changes.
+- **Data processed:** email address, role (member or admin), password hash, time of joining and of the last password change, number of failed attempts, session identifier and codes (stored only as hashes), log of changes.
 - **Purpose:** access to internal content for members only, protection of the accounts against unauthorised access, traceability of changes to the member list.
-- **Storage period:** links are deleted once they expire, sessions after 30 days or on sign-out, log entries after one year. Email address, role and password hash stay stored until the membership ends or the member asks for their deletion.
+- **Storage period:** codes are deleted one hour after they were sent, sessions after 30 days or on sign-out, log entries after one year. Email address, role and password hash stay stored until the membership ends or the member asks for their deletion.
 - **Legal bases:** performance of a contract and pre-contractual enquiries (Art. 6 (1) sentence 1 lit. b) GDPR); the cookie is strictly necessary (Section 25 (2) no. 2 TDDDG).
 
 ## Blogs and publication media

@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  CODE_LENGTH,
+  codeKey,
+  hashCode,
   hashPassword,
   hashToken,
   isAdminPath,
@@ -9,9 +12,12 @@ import {
   isProtectedPath,
   memberAreaLocale,
   memberPagePath,
+  newCode,
   newToken,
+  normalizeCode,
   normalizeEmail,
   passwordProblem,
+  sameDigest,
   verifyPassword,
 } from './memberAuth.ts'
 
@@ -67,6 +73,29 @@ test('passwordProblem enforces length only', () => {
   // Counts characters, not UTF-16 units: ten emoji are ten characters.
   assert.equal(passwordProblem('🔥'.repeat(10)), null)
 })
+test('newCode returns CODE_LENGTH digits, leading zeros included', () => {
+  for (let i = 0; i < 200; i++) {
+    assert.equal(normalizeCode(newCode()) !== null, true)
+  }
+  assert.equal(newCode().length, CODE_LENGTH)
+})
+
+test('normalizeCode accepts exactly the code length in digits and ignores spaces', () => {
+  assert.equal(normalizeCode('042 917'), '042917')
+  for (const value of [undefined, 42917, '', '04291', '0429170', '04291a', '-42917']) {
+    assert.equal(normalizeCode(value), null, String(value))
+  }
+})
+
+test('hashCode depends on code, address and key', () => {
+  const key = codeKey('a'.repeat(64))
+  const hash = hashCode('042917', 'max@leuphana.de', key)
+  assert.match(hash, /^[0-9a-f]{64}$/)
+  assert.equal(sameDigest(hash, hashCode('042917', 'max@leuphana.de', key)), true)
+  assert.equal(sameDigest(hash, hashCode('042918', 'max@leuphana.de', key)), false)
+  assert.equal(sameDigest(hash, hashCode('042917', 'eva@leuphana.de', key)), false)
+  assert.equal(sameDigest(hash, hashCode('042917', 'max@leuphana.de', codeKey('b'.repeat(64)))), false)
+})
 
 test('isMemberRole accepts only known roles', () => {
   assert.equal(isMemberRole('admin'), true)
@@ -74,11 +103,11 @@ test('isMemberRole accepts only known roles', () => {
   assert.equal(isMemberRole('root'), false)
 })
 
-test('isProtectedPath covers the members area except login and password pages', () => {
-  for (const path of ['/mitglieder', '/mitglieder/', '/mitglieder/signatur', '/mitglieder/verwaltung', '/en/members', '/en/members/x']) {
+test('isProtectedPath covers the members area except the login page', () => {
+  for (const path of ['/mitglieder', '/mitglieder/', '/mitglieder/signatur', '/mitglieder/verwaltung', '/mitglieder/passwort', '/en/members', '/en/members/x']) {
     assert.equal(isProtectedPath(path), true, path)
   }
-  for (const path of ['/mitglieder/login', '/mitglieder/login/', '/mitglieder/passwort', '/en/members/login', '/en/members/password/', '/', '/mitgliederbereich', '/en/', '/materialien/']) {
+  for (const path of ['/mitglieder/login', '/mitglieder/login/', '/en/members/login', '/', '/mitgliederbereich', '/en/', '/materialien/']) {
     assert.equal(isProtectedPath(path), false, path)
   }
 })
@@ -95,7 +124,7 @@ test('memberAreaLocale and memberPagePath map both languages', () => {
   assert.equal(memberAreaLocale('/en/members/'), 'en')
   assert.equal(memberAreaLocale('/news/'), null)
   assert.equal(memberPagePath('login', 'de'), '/mitglieder/login')
-  assert.equal(memberPagePath('password', 'en'), '/en/members/password')
+  assert.equal(memberPagePath('signature', 'en'), '/en/members/signature')
   assert.equal(memberPagePath('admin', 'de'), '/mitglieder/verwaltung')
 })
 

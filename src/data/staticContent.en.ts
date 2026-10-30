@@ -387,8 +387,8 @@ export const communityForm = {
   error: 'Something went wrong. Please try again later.',
 }
 
-// Members area behind the password login (/en/members). `form` and `linkForm` go to the MemberLoginForm island,
-// `password.form` to SetPasswordForm, `admin.manager` to MemberAdmin.
+// Members area behind the password login (/en/members). `login.card` goes to the MemberLoginCard island,
+// `admin.manager` to MemberAdmin.
 export const memberArea = {
   pageTitle: 'Members area',
   // Entry point on the Community page.
@@ -398,26 +398,60 @@ export const memberArea = {
     link: 'Go to the members area',
   },
   login: {
-    title: 'Members <em>area</em>',
-    lead: 'Sign in with your email address and your password.',
-  },
-  form: {
-    emailLabel: 'Email address',
-    emailPlaceholder: 'you@email.com',
-    passwordLabel: 'Password',
-    submit: 'Sign in',
-    submitting: 'Signing in...',
-    rejected: 'Email address or password is wrong. After five failed attempts, sign-in is locked for 15 minutes.',
-    forgot: 'Forgot your password or have none yet?',
-    error: 'Something went wrong. Please try again later.',
-  },
-  linkForm: {
-    lead: 'Enter your email address. If it is enabled, we will send you a link to set a new password.',
-    submit: 'Send link',
-    submitting: 'Sending...',
-    sent: 'If your address is enabled for the members area, you will receive an email with the link shortly. It is valid for 60 minutes. Check your spam folder too.',
-    tooMany: 'Too many links are being requested right now. Please try again in an hour.',
-    back: 'Back to sign-in',
+    area: 'Members area',
+    backHome: 'Back to the website',
+    card: {
+      brand: 'IGNITE Startup Club',
+      badge: 'Members only',
+      steps: { login: 'Sign in', code: 'Code', set: 'Password', done: 'Done' },
+      login: {
+        title: 'Welcome back.',
+        lead: 'Sign in with your email address and your password.',
+        emailLabel: 'Email address',
+        emailPlaceholder: 'firstname.lastname@stud.leuphana.de',
+        passwordLabel: 'Password',
+        passwordPlaceholder: 'Your password',
+        submit: 'Sign in',
+        submitting: 'Signing in...',
+        rejected: 'Email address or password is wrong. After five failed attempts, sign-in is locked for 15 minutes.',
+        forgot: 'No password yet or forgot it?',
+      },
+      request: {
+        title: 'Get a code',
+        lead: 'Enter your email address. If it is enabled, we will send you a code to set your password. Your current password stays valid until you save a new one.',
+        submit: 'Send code',
+        submitting: 'Sending...',
+        back: 'Back to sign-in',
+      },
+      code: {
+        title: 'Check your inbox',
+        lead: 'If the address is enabled, a 6-digit code is on its way to',
+        hint: 'It is valid for 10 minutes. Nothing there? Check your spam folder too.',
+        // {n} and {total} are replaced.
+        digitLabel: 'Digit {n} of {total}',
+        changeEmail: 'Use another address',
+        resend: 'Send a new code',
+        // {s} is replaced with the remaining seconds.
+        resendIn: 'Send again in {s} s',
+        resent: 'A new code is on its way.',
+        wrong: 'The code is wrong or has expired. Enter it again or request a new one.',
+      },
+      set: {
+        title: 'Set your password',
+        lead: 'At least 10 characters. A sentence of several words is easy to remember and hard to guess.',
+        passwordLabel: 'New password',
+        repeatLabel: 'Repeat password',
+        submit: 'Save and sign in',
+        submitting: 'Saving...',
+        tooShort: 'The password needs at least 10 characters.',
+        tooLong: 'The password can have at most 128 characters.',
+        mismatch: 'The two passwords do not match.',
+      },
+      done: { title: "You're in", lead: 'Opening the members area...' },
+      emailMissing: 'Enter your email address first.',
+      tooMany: 'Too many codes are being requested right now. Please try again in an hour.',
+      error: 'Something went wrong. Please try again later.',
+    },
   },
   home: {
     title: 'Welcome to the <em>members area</em>',
@@ -428,30 +462,10 @@ export const memberArea = {
     passwordLink: 'Change password',
     adminLink: 'Manage members',
   },
-  password: {
-    pageTitle: 'Set password',
-    title: 'Set your <em>password</em>',
-    lead: 'Choose a password with at least 10 characters. A sentence of several words is easy to remember and hard to guess. You will be signed in right after.',
-    requestTitle: 'New <em>password</em>',
-    requestLead: 'Request a link to set a new password. Your current password stays valid until you save the new one.',
-    form: {
-      passwordLabel: 'New password',
-      repeatLabel: 'Repeat password',
-      hint: 'At least 10 characters. Special characters are allowed but not required.',
-      submit: 'Save password',
-      submitting: 'Saving...',
-      tooShort: 'The password needs at least 10 characters.',
-      tooLong: 'The password may have at most 128 characters.',
-      mismatch: 'The two passwords do not match.',
-      linkInvalid: 'This link has expired or was already used.',
-      requestNew: 'Request a new link',
-      error: 'Something went wrong. Please try again later.',
-    },
-  },
   admin: {
     pageTitle: 'Member management',
     title: 'Member <em>management</em>',
-    lead: 'Add members, assign roles and remove access here. New members receive an invitation to set their password. Every change is logged.',
+    lead: 'Add members, assign roles and remove access here. New members receive an invitation and set their password on the sign-in page with a code. Every change is logged.',
     back: 'Back to the members area',
     manager: {
       addHeading: 'Add a member',

@@ -3,14 +3,14 @@
  * memberAuth.test.ts can run under `node --test` without a bundler.
  * Database access lives in members.ts, the request handling in middleware.ts and pages/api/members/.
  */
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, hkdfSync, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
 
 export const SESSION_COOKIE = 'ignite_member'
 export const SESSION_TTL_SECONDS = 30 * 24 * 3600
-/** Validity of a "set your password" link requested by the member (first password or reset). */
-export const PASSWORD_LINK_TTL_SECONDS = 60 * 60
-/** Validity of the invitation an admin sends when adding a member. */
-export const INVITE_TTL_SECONDS = 7 * 24 * 3600
+/** One-time code to set a password (first password or reset): length, validity and wrong entries per code. */
+export const CODE_LENGTH = 6
+export const CODE_TTL_SECONDS = 10 * 60
+export const CODE_MAX_ATTEMPTS = 5
 export const LOGIN_MAX_FAILURES = 5
 export const LOGIN_LOCK_SECONDS = 15 * 60
 export const PASSWORD_MIN_LENGTH = 10
@@ -28,12 +28,34 @@ export function normalizeEmail(value: unknown): string | null {
   return email.length <= 254 && EMAIL_PATTERN.test(email) ? email : null
 }
 
-/** Random token for a password link or a session cookie. Only its hash is stored. */
+/** Random token for a session cookie. Only its hash is stored. */
 export const newToken = (): string => randomBytes(32).toString('base64url')
 
-// A leaked database must not yield usable links or sessions, so tokens are stored as SHA-256 hashes.
+// A leaked database must not yield usable sessions, so tokens are stored as SHA-256 hashes.
 // The tokens carry 256 random bits, so a fast unsalted hash is enough.
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex')
+
+/** Random numeric code with leading zeros, e.g. "042917". */
+export const newCode = (): string => String(randomInt(10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0')
+
+/** Digits only and exactly CODE_LENGTH of them, or null. */
+export function normalizeCode(value: unknown): string | null {
+  const code = typeof value === 'string' ? value.replace(/\s/g, '') : ''
+  return code.length === CODE_LENGTH && /^\d+$/.test(code) ? code : null
+}
+
+/** Key for hashCode, derived from ENCRYPTION_SECRET so the applicant data key is never used directly. */
+export const codeKey = (secret: string): Buffer =>
+  Buffer.from(hkdfSync('sha256', Buffer.from(secret, 'hex'), Buffer.alloc(0), 'ignite-member-code', 32))
+
+// A code has only a million values, so a plain hash would fall to brute force once the database leaks. The keyed
+// HMAC needs the server secret as well, and binding the address keeps a code from working for another member.
+export const hashCode = (code: string, email: string, key: Buffer): string =>
+  createHmac('sha256', key).update(`${email}\n${code}`).digest('hex')
+
+/** Constant-time comparison of two hex digests. */
+export const sameDigest = (a: string, b: string): boolean =>
+  a.length === b.length && timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'))
 
 /** Why a new password is rejected, or null when it is acceptable. Length only: composition rules do not add strength. */
 export function passwordProblem(password: unknown): 'tooShort' | 'tooLong' | null {
@@ -91,14 +113,13 @@ export type MemberLocale = (typeof AREAS)[number]['locale']
 // Sub pages of the members area with their slug per language (pages/mitglieder/*, pages/en/members/*).
 const PAGES = {
   login: { de: 'login', en: 'login' },
-  password: { de: 'passwort', en: 'password' },
   signature: { de: 'signatur', en: 'signature' },
   admin: { de: 'verwaltung', en: 'admin' },
 } as const
 export type MemberPage = keyof typeof PAGES
 
 /** Reachable without a session. */
-const PUBLIC_PAGES: MemberPage[] = ['login', 'password']
+const PUBLIC_PAGES: MemberPage[] = ['login']
 
 const areaOf = (pathname: string) =>
   AREAS.find(({ prefix }) => pathname === prefix || pathname.startsWith(prefix + '/'))
@@ -117,7 +138,7 @@ function isPage(pathname: string, pages: MemberPage[]): boolean {
   return !!area && pages.some((page) => path === memberPagePath(page, area.locale))
 }
 
-/** True for every page of the members area except the login and password pages. */
+/** True for every page of the members area except the login page. */
 export const isProtectedPath = (pathname: string): boolean => !!areaOf(pathname) && !isPage(pathname, PUBLIC_PAGES)
 
 /** Pages only admins may open. */

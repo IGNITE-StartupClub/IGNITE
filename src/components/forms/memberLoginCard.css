@@ -1,0 +1,132 @@
+/*
+ * Styles of the MemberLoginCard island that Tailwind utilities do not cover: the step fade, the code boxes,
+ * the icons and the progress dots. Tokens only (see src/styles/global.css).
+ */
+.member-card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  letter-spacing: var(--tracking-display);
+  outline: none;
+}
+
+.member-card-step {
+  animation: member-card-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes member-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .member-card-step {
+    animation: none;
+  }
+}
+
+.member-card-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-primary-fg);
+  background-color: var(--color-primary);
+  border-radius: 0.5rem;
+}
+
+.member-card .member-card-mark svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.member-card .member-card-submit {
+  align-self: stretch;
+}
+
+.member-card-link {
+  padding: 0.25rem 0;
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.member-card-link:hover:not(:disabled) {
+  color: var(--color-fg);
+}
+
+.member-card-link:disabled {
+  text-decoration: none;
+  cursor: default;
+}
+
+.member-card-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.member-card .member-card-digit {
+  min-height: 3.25rem;
+  padding: 0;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.member-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+}
+
+.member-card-icon svg {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.member-card-icon-done {
+  width: 4.5rem;
+  height: 4.5rem;
+  color: var(--color-primary-fg);
+  background-color: var(--color-success);
+  border: none;
+  border-radius: 999px;
+}
+
+.member-card-icon-done svg {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.member-card-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  font-size: 0.625rem;
+  border-radius: 999px;
+  background-color: var(--color-border);
+}
+
+.member-card-dot[data-state='active'] {
+  color: var(--color-primary-fg);
+  background-color: var(--color-success);
+}
+
+.member-card-dot[data-state='done'] {
+  color: var(--color-primary-fg);
+  background-color: var(--color-primary);
+}

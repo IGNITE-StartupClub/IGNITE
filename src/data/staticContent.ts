@@ -387,8 +387,8 @@ export const communityForm = {
   error: 'Da ging etwas schief. Bitte versuch es später erneut.',
 }
 
-// Members area behind the password login (/mitglieder). `form` and `linkForm` go to the MemberLoginForm island,
-// `password.form` to SetPasswordForm, `admin.manager` to MemberAdmin.
+// Members area behind the password login (/mitglieder). `login.card` goes to the MemberLoginCard island,
+// `admin.manager` to MemberAdmin.
 export const memberArea = {
   pageTitle: 'Mitgliederbereich',
   // Entry point on the Community page.
@@ -398,26 +398,60 @@ export const memberArea = {
     link: 'Zum Mitgliederbereich',
   },
   login: {
-    title: 'Mitglieder<em>bereich</em>',
-    lead: 'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.',
-  },
-  form: {
-    emailLabel: 'E-Mail-Adresse',
-    emailPlaceholder: 'dein@email.de',
-    passwordLabel: 'Passwort',
-    submit: 'Anmelden',
-    submitting: 'Wird angemeldet...',
-    rejected: 'E-Mail-Adresse oder Passwort stimmt nicht. Nach fünf Fehlversuchen ist die Anmeldung 15 Minuten gesperrt.',
-    forgot: 'Passwort vergessen oder noch keins?',
-    error: 'Da ging etwas schief. Bitte versuch es später erneut.',
-  },
-  linkForm: {
-    lead: 'Gib deine E-Mail-Adresse ein. Wenn sie freigeschaltet ist, schicken wir dir einen Link, mit dem du ein neues Passwort festlegst.',
-    submit: 'Link anfordern',
-    submitting: 'Wird gesendet...',
-    sent: 'Wenn deine Adresse für den Mitgliederbereich freigeschaltet ist, bekommst du gleich eine E-Mail mit dem Link. Er gilt 60 Minuten. Schau auch in deinen Spam-Ordner.',
-    tooMany: 'Gerade werden zu viele Links angefordert. Bitte versuch es in einer Stunde erneut.',
-    back: 'Zurück zur Anmeldung',
+    area: 'Mitgliederbereich',
+    backHome: 'Zur Startseite',
+    card: {
+      brand: 'IGNITE Startup Club',
+      badge: 'Nur für Mitglieder',
+      steps: { login: 'Anmelden', code: 'Code', set: 'Passwort', done: 'Drin' },
+      login: {
+        title: 'Willkommen zurück.',
+        lead: 'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.',
+        emailLabel: 'E-Mail-Adresse',
+        emailPlaceholder: 'vorname.nachname@stud.leuphana.de',
+        passwordLabel: 'Passwort',
+        passwordPlaceholder: 'Dein Passwort',
+        submit: 'Anmelden',
+        submitting: 'Wird angemeldet...',
+        rejected: 'E-Mail-Adresse oder Passwort stimmt nicht. Nach fünf Fehlversuchen ist die Anmeldung 15 Minuten gesperrt.',
+        forgot: 'Noch kein Passwort oder vergessen?',
+      },
+      request: {
+        title: 'Code anfordern',
+        lead: 'Gib deine E-Mail-Adresse ein. Wenn sie freigeschaltet ist, schicken wir dir einen Code, mit dem du dein Passwort festlegst. Dein bisheriges Passwort gilt, bis du ein neues gespeichert hast.',
+        submit: 'Code anfordern',
+        submitting: 'Wird gesendet...',
+        back: 'Zurück zur Anmeldung',
+      },
+      code: {
+        title: 'Schau in dein Postfach',
+        lead: 'Wenn die Adresse freigeschaltet ist, geht gleich ein 6-stelliger Code an',
+        hint: 'Er gilt 10 Minuten. Nichts da? Schau auch im Spam-Ordner.',
+        // {n} and {total} are replaced.
+        digitLabel: 'Ziffer {n} von {total}',
+        changeEmail: 'Andere Adresse',
+        resend: 'Code neu senden',
+        // {s} is replaced with the remaining seconds.
+        resendIn: 'Neu senden in {s} s',
+        resent: 'Ein neuer Code ist unterwegs.',
+        wrong: 'Der Code stimmt nicht oder ist abgelaufen. Gib ihn noch einmal ein oder fordere einen neuen an.',
+      },
+      set: {
+        title: 'Passwort festlegen',
+        lead: 'Mindestens 10 Zeichen. Ein Satz aus mehreren Wörtern ist leicht zu merken und schwer zu erraten.',
+        passwordLabel: 'Neues Passwort',
+        repeatLabel: 'Passwort wiederholen',
+        submit: 'Speichern und anmelden',
+        submitting: 'Wird gespeichert...',
+        tooShort: 'Das Passwort braucht mindestens 10 Zeichen.',
+        tooLong: 'Das Passwort darf höchstens 128 Zeichen haben.',
+        mismatch: 'Die beiden Passwörter stimmen nicht überein.',
+      },
+      done: { title: 'Du bist drin', lead: 'Weiter zum Mitgliederbereich...' },
+      emailMissing: 'Gib zuerst deine E-Mail-Adresse ein.',
+      tooMany: 'Gerade werden zu viele Codes angefordert. Bitte versuch es in einer Stunde erneut.',
+      error: 'Da ging etwas schief. Bitte versuch es später erneut.',
+    },
   },
   home: {
     title: 'Willkommen im <em>Mitgliederbereich</em>',
@@ -428,30 +462,10 @@ export const memberArea = {
     passwordLink: 'Passwort ändern',
     adminLink: 'Mitglieder verwalten',
   },
-  password: {
-    pageTitle: 'Passwort festlegen',
-    title: 'Passwort <em>festlegen</em>',
-    lead: 'Wähl ein Passwort mit mindestens 10 Zeichen. Ein Satz aus mehreren Wörtern ist leicht zu merken und schwer zu erraten. Danach bist du direkt angemeldet.',
-    requestTitle: 'Neues <em>Passwort</em>',
-    requestLead: 'Fordere einen Link an, mit dem du ein neues Passwort festlegst. Dein bisheriges Passwort gilt, bis du das neue gespeichert hast.',
-    form: {
-      passwordLabel: 'Neues Passwort',
-      repeatLabel: 'Passwort wiederholen',
-      hint: 'Mindestens 10 Zeichen. Sonderzeichen sind erlaubt, aber nicht nötig.',
-      submit: 'Passwort speichern',
-      submitting: 'Wird gespeichert...',
-      tooShort: 'Das Passwort braucht mindestens 10 Zeichen.',
-      tooLong: 'Das Passwort darf höchstens 128 Zeichen haben.',
-      mismatch: 'Die beiden Passwörter stimmen nicht überein.',
-      linkInvalid: 'Der Link ist abgelaufen oder wurde schon benutzt.',
-      requestNew: 'Neuen Link anfordern',
-      error: 'Da ging etwas schief. Bitte versuch es später erneut.',
-    },
-  },
   admin: {
     pageTitle: 'Mitgliederverwaltung',
     title: 'Mitglieder<em>verwaltung</em>',
-    lead: 'Hier fügst du Mitglieder hinzu, vergibst Rollen und entfernst Zugänge. Neue Mitglieder bekommen eine Einladung, mit der sie ihr Passwort festlegen. Jede Änderung wird protokolliert.',
+    lead: 'Hier fügst du Mitglieder hinzu, vergibst Rollen und entfernst Zugänge. Neue Mitglieder bekommen eine Einladung und legen ihr Passwort auf der Anmeldeseite mit einem Code fest. Jede Änderung wird protokolliert.',
     back: 'Zurück zum Mitgliederbereich',
     manager: {
       addHeading: 'Mitglied hinzufügen',

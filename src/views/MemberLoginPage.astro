@@ -1,24 +1,46 @@
 ---
 /**
  * Members area sign-in, rendered on demand by pages/mitglieder/login.astro and pages/en/members/login.astro.
- * Email and password form (MemberLoginForm island), which also requests a link to set a password.
+ * A page of its own without the site header and footer: a slim top bar and the centred MemberLoginCard island,
+ * which also handles "no password yet or forgot it" with a one-time code. `?reset` opens the card at the code request,
+ * which is how signed-in members change their password.
  * Data source: memberArea via getCopy().
  */
+import { Icon } from 'astro-icon/components'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
-import PageHeader from '../components/ui/PageHeader.astro'
-import Section from '../components/ui/Section.astro'
-import MemberLoginForm from '../components/forms/MemberLoginForm.jsx'
+import Logo from '../components/Logo.astro'
+import MemberLoginCard from '../components/forms/MemberLoginCard.jsx'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 
 const locale = resolveLocale(Astro.currentLocale)
-const { memberArea } = getCopy(locale)
+const { memberArea, navigation } = getCopy(locale)
+const { login } = memberArea
 Astro.response.headers.set('Cache-Control', 'private, no-store')
 ---
 
-<DefaultLayout title={memberArea.pageTitle} noindex>
-  <PageHeader title={memberArea.login.title} lead={memberArea.login.lead} />
-  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <MemberLoginForm client:load copy={memberArea.form} linkCopy={memberArea.linkForm} locale={locale} />
-  </Section>
+<DefaultLayout title={memberArea.pageTitle} noindex bare>
+  <div class="flex min-h-dvh flex-col">
+    <div class="flex items-center justify-between gap-4 px-gutter py-5">
+      <a href={navigation.homeUrl} class="flex items-center gap-3 text-fg no-underline" aria-label={navigation.logoText}>
+        <span class="w-28"><Logo color="currentColor" name={navigation.logoText} /></span>
+        <span class="whitespace-nowrap border-l border-border pl-3 text-sm text-fg-muted" aria-hidden="true">{login.area}</span>
+      </a>
+      <a href={navigation.homeUrl} class="flex min-h-11 items-center gap-1.5 text-sm text-fg-muted no-underline hover:text-fg" aria-label={login.backHome}>
+        <Icon name="ion:arrow-back" aria-hidden="true" />
+        <span class="hidden whitespace-nowrap sm:inline">{login.backHome}</span>
+      </a>
+    </div>
+    <div class="flex flex-1 items-center justify-center px-4 pb-16 pt-4">
+      <h1 class="sr-only">{memberArea.pageTitle}</h1>
+      <MemberLoginCard
+        client:load
+        copy={login.card}
+        locale={locale}
+        initialStep={Astro.url.searchParams.has('reset') ? 'request' : 'login'}
+      >
+        <Logo color="currentColor" name={navigation.logoText} markOnly />
+      </MemberLoginCard>
+    </div>
+  </div>
 </DefaultLayout>

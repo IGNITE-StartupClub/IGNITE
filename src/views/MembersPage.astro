@@ -22,7 +22,7 @@ const { email, role } = Astro.locals.member!
     <ul class="mb-8 flex flex-wrap gap-3">
       <li><a href={memberPagePath('signature', locale)} class="form-secondary">{memberArea.home.signatureLink}</a></li>
       {role === 'admin' && <li><a href={memberPagePath('admin', locale)} class="form-secondary">{memberArea.home.adminLink}</a></li>}
-      <li><a href={memberPagePath('password', locale)} class="form-secondary">{memberArea.home.passwordLink}</a></li>
+      <li><a href={`${memberPagePath('login', locale)}?reset`} class="form-secondary">{memberArea.home.passwordLink}</a></li>
     </ul>
     <form method="post" action="/api/members/logout" class="form">
       <p class="form-note">{memberArea.home.signedInAs} <strong>{email}</strong></p>
