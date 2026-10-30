@@ -10,7 +10,9 @@
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useState } from 'react'
+import { Check, CircleAlert, Code, Copy, Info } from 'lucide-react'
 import { isComplete, LIVE_ORIGIN, signatureHtml, signatureStorageKey } from '../../lib/emailSignature'
+import { PRIMARY_BUTTON, TOOL_BUTTON } from './memberUi.jsx'
 import PhotoCropper from './PhotoCropper.jsx'
 import './forms.css'
 
@@ -142,8 +144,12 @@ export default function SignatureGenerator({ copy, links, defaultEmail, photo, s
   )
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-      <form className="form" onSubmit={(e) => e.preventDefault()}>
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-8">
+      <form className="form rounded-card border border-border bg-bg p-5 sm:p-6" onSubmit={(e) => e.preventDefault()}>
+        <div>
+          <h2 className="text-lg font-semibold">{copy.formHeading}</h2>
+          <p className="text-sm text-fg-subtle">{copy.formNote}</p>
+        </div>
         {field('name', 'text', 'name')}
         {field('role', 'text', 'organization-title')}
         {field('email', 'email', 'email')}
@@ -156,28 +162,61 @@ export default function SignatureGenerator({ copy, links, defaultEmail, photo, s
         />
       </form>
 
-      <div className="flex min-w-0 flex-col gap-6">
-        <div className="overflow-x-auto rounded-xl bg-white p-6 text-[#1a1a1a]" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 14 }}>
-          {copy.sampleMail.map((paragraph) => (
-            <p key={paragraph} className="mb-4">
-              {paragraph}
-            </p>
-          ))}
-          {/* signatureHtml escapes every input and allows only uploaded photo paths (emailSignature.test.ts). */}
-          <div dangerouslySetInnerHTML={{ __html: preview }} />
-        </div>
-        <div className="form-actions items-center">
-          <button type="button" className="form-submit" onClick={handleCopy(true)}>
+      {/* Sticky on wide screens, so the preview stays in view while the form is filled in. */}
+      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-28">
+        <figure className="overflow-hidden rounded-card border border-border bg-bg">
+          <figcaption className="flex items-center gap-3 border-b border-border px-4 py-3 text-sm font-medium text-fg-muted">
+            <span aria-hidden="true" className="flex gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-border-strong" />
+              <span className="h-2.5 w-2.5 rounded-full bg-border-strong" />
+              <span className="h-2.5 w-2.5 rounded-full bg-border-strong" />
+            </span>
+            {copy.previewLabel}
+          </figcaption>
+          <div className="bg-white text-[#1a1a1a]" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 14 }}>
+            <div className="border-b border-[#e6e6e6] px-6 py-3 text-[13px] leading-6 text-[#6b6b6b]">
+              <p>{copy.sampleTo}</p>
+              <p>{copy.sampleSubject}</p>
+            </div>
+            <div className="overflow-x-auto p-6">
+              {copy.sampleMail.map((paragraph) => (
+                <p key={paragraph} className="mb-4">
+                  {paragraph}
+                </p>
+              ))}
+              {/* signatureHtml escapes every input and allows only uploaded photo paths (emailSignature.test.ts). */}
+              <div dangerouslySetInnerHTML={{ __html: preview }} />
+            </div>
+          </div>
+        </figure>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className={`${PRIMARY_BUTTON} h-11 px-4`} onClick={handleCopy(true)}>
+            <Copy aria-hidden="true" className="h-4 w-4" />
             {copy.copy}
           </button>
-          <button type="button" className="form-secondary" onClick={handleCopy(false)}>
+          <button type="button" className={`${TOOL_BUTTON} h-11`} onClick={handleCopy(false)}>
+            <Code aria-hidden="true" className="h-4 w-4" />
             {copy.copyHtml}
           </button>
+          <div aria-live="polite" className="min-w-0 basis-full sm:basis-auto">
+            {status && (
+              <p className={`flex items-center gap-1.5 ${status.isError ? 'form-error' : 'form-success'}`}>
+                {status.isError ? (
+                  <CircleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
+                ) : (
+                  <Check aria-hidden="true" className="h-4 w-4 shrink-0" />
+                )}
+                {status.message}
+              </p>
+            )}
+          </div>
         </div>
-        {savesSignature && <p className="field-hint">{copy.savesHint}</p>}
-        <div aria-live="polite">
-          {status && <p className={status.isError ? 'form-error' : 'form-success'}>{status.message}</p>}
-        </div>
+        {savesSignature && (
+          <p className="flex gap-3 rounded-lg border border-border bg-bg-subtle px-4 py-3 text-sm text-fg-muted">
+            <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            {copy.savesHint}
+          </p>
+        )}
       </div>
     </div>
   )

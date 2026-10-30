@@ -33,7 +33,7 @@ const isAdmin = member.role === 'admin'
   <PageHeader title={signature.title} lead={signature.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{signature.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" width="article" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
     <SignatureGenerator
       client:load
       copy={signature.generator}
@@ -44,10 +44,27 @@ const isAdmin = member.role === 'admin'
       savesSignature={isAdmin}
     />
   </Section>
-  <Section width="article" spacing="sm" labelledby="signature-steps">
-    <h2 id="signature-steps" class="text-display-sm mb-6">{signature.stepsHeading}</h2>
-    <ol class="list-decimal space-y-3 pl-5 text-fg-muted">
-      {signature.steps.map((step) => <li set:html={step} />)}
-    </ol>
+  <Section spacing="sm" labelledby="signature-steps">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-8">
+      <div>
+        <h2 id="signature-steps" class="text-display-sm">{signature.stepsHeading}</h2>
+        <p class="mt-3 text-fg-muted">{signature.stepsLead}</p>
+      </div>
+      <ol class="grid gap-3">
+        {
+          signature.steps.map((step, index) => (
+            <li class="flex gap-4 rounded-card border border-border bg-bg p-4 sm:p-5">
+              <span
+                aria-hidden="true"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-bright text-sm font-semibold text-white"
+              >
+                {index + 1}
+              </span>
+              <p class="pt-1 text-fg-muted" set:html={step} />
+            </li>
+          ))
+        }
+      </ol>
+    </div>
   </Section>
 </DefaultLayout>

@@ -7,6 +7,8 @@
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
+import { UserRound } from 'lucide-react'
+import { PRIMARY_BUTTON, TOOL_BUTTON } from './memberUi.jsx'
 
 const FRAME = 224 // px, the frame on screen
 const OUTPUT = 192 // px, twice the 96 px the signature shows, so it stays sharp on high-density screens
@@ -164,30 +166,36 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
             </label>
             <input id="signature-photo-zoom" type="range" min="1" max={MAX_ZOOM} step="0.01" value={zoom} onChange={changeZoom} />
           </div>
-          <p className="field-hint">{copy.cropHint}</p>
+          <p className="field-hint text-sm">{copy.cropHint}</p>
           <div className="form-actions">
-            <button type="button" className="form-submit" onClick={save} disabled={busy}>
+            <button type="button" className={PRIMARY_BUTTON} onClick={save} disabled={busy}>
               {copy.save}
             </button>
-            <button type="button" className="form-secondary" onClick={() => setImage(null)} disabled={busy}>
+            <button type="button" className={TOOL_BUTTON} onClick={() => setImage(null)} disabled={busy}>
               {copy.cancel}
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-4">
-          {photo && <img src={photo} alt={copy.current} width="64" height="64" className="h-16 w-16 rounded-full object-cover" />}
-          <button type="button" className="form-secondary" onClick={() => fileInput.current.click()} disabled={busy}>
+        <div className="flex flex-wrap items-center gap-3">
+          {photo ? (
+            <img src={photo} alt={copy.current} width="56" height="56" className="h-14 w-14 rounded-full object-cover" />
+          ) : (
+            <span aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border-strong text-fg-subtle">
+              <UserRound className="h-6 w-6" />
+            </span>
+          )}
+          <button type="button" className={TOOL_BUTTON} onClick={() => fileInput.current.click()} disabled={busy}>
             {photo ? copy.change : copy.upload}
           </button>
           {photo && (
-            <button type="button" className="form-secondary" onClick={remove} disabled={busy}>
+            <button type="button" className={TOOL_BUTTON} onClick={remove} disabled={busy}>
               {copy.remove}
             </button>
           )}
         </div>
       )}
-      {!image && <p className="field-hint">{copy.hint}</p>}
+      {!image && <p className="field-hint text-sm">{copy.hint}</p>}
       <div aria-live="polite">{status && <p className={status.isError ? 'form-error' : 'form-success'}>{status.message}</p>}</div>
     </div>
   )
