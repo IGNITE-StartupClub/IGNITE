@@ -23,6 +23,7 @@ import {
   type MemberRole,
   newCode,
   newToken,
+  passwordKey,
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
@@ -161,6 +162,10 @@ export async function logAdminAction(entry: Omit<AuditEntry, 'at'>): Promise<voi
 
 let key: Buffer | null = null
 const secretKey = () => (key ??= codeKey(process.env.ENCRYPTION_SECRET!))
+
+let pepper: Buffer | null = null
+/** Pepper for hashPassword and verifyPassword (memberAuth.ts). */
+export const passwordPepper = () => (pepper ??= passwordKey(process.env.ENCRYPTION_SECRET!))
 
 /** Codes sent since `since`. Lets /api/members/code answer every address alike while the global limit is reached. */
 export async function countCodes(since: Date): Promise<number> {

@@ -2,7 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { hashPassword, isJsonRequest, memberHomePath, normalizeCode, normalizeEmail, passwordProblem } from '../../../lib/memberAuth'
-import { redeemCode, setPassword } from '../../../lib/members'
+import { passwordPepper, redeemCode, setPassword } from '../../../lib/members'
 import { reply, startSession } from '../../../lib/memberSession'
 
 // Sets a password with the code from /api/members/code: stores the new password, ends all other sessions and signs
@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return reply(400, { code: 'code', message: 'Der Code stimmt nicht oder ist abgelaufen.' })
     }
 
-    await setPassword(email, await hashPassword(password))
+    await setPassword(email, await hashPassword(password, passwordPepper()))
     await startSession(cookies, email)
     return reply(200, { redirect: memberHomePath(locale === 'en' ? 'en' : 'de') })
   } catch (err) {

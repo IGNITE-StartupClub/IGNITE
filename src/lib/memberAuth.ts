@@ -49,9 +49,14 @@ export function normalizeCode(value: unknown): string | null {
   return code.length === CODE_LENGTH && /^\d+$/.test(code) ? code : null
 }
 
+const deriveKey = (secret: string, purpose: string): Buffer =>
+  Buffer.from(hkdfSync('sha256', Buffer.from(secret, 'hex'), Buffer.alloc(0), purpose, 32))
+
 /** Key for hashCode, derived from ENCRYPTION_SECRET so the applicant data key is never used directly. */
-export const codeKey = (secret: string): Buffer =>
-  Buffer.from(hkdfSync('sha256', Buffer.from(secret, 'hex'), Buffer.alloc(0), 'ignite-member-code', 32))
+export const codeKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-code')
+
+/** Pepper for hashPassword, derived from ENCRYPTION_SECRET like codeKey but for this purpose only. */
+export const passwordKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-password')
 
 // A code has only a million values, so a plain hash would fall to brute force once the database leaks. The keyed
 // HMAC needs the server secret as well, and binding the address keeps a code from working for another member.
@@ -75,22 +80,33 @@ export function passwordProblem(password: unknown): 'tooShort' | 'tooLong' | nul
 // Passwords are guessable, unlike tokens, so they get a slow, salted hash. N = 2^15, r = 8 costs 32 MiB
 // (128 * N * r bytes) and roughly 50-100 ms per hash; maxmem must exceed Node's 32 MiB default.
 const SCRYPT = { N: 2 ** 15, r: 8, p: 1, keyLength: 32, maxmem: 64 * 1024 * 1024 }
+// The password goes through an HMAC with the pepper before scrypt, so a leaked database alone is not enough to try
+// passwords offline: that also needs ENCRYPTION_SECRET, which lives only in the server environment.
+// A new pepper needs a new scheme name, because existing hashes can only be checked with the old one.
+const SCHEME = 'scrypt-hmac'
 
-function derive(password: string, salt: Buffer, N: number, r: number, p: number, keyLength: number): Promise<Buffer> {
+function derive(
+  password: string,
+  pepper: Buffer,
+  salt: Buffer,
+  N: number,
+  r: number,
+  p: number,
+  keyLength: number,
+): Promise<Buffer> {
+  // NFC so the same password typed on different systems yields the same bytes.
+  const peppered = createHmac('sha256', pepper).update(password.normalize('NFC')).digest()
   return new Promise((resolve, reject) => {
-    // NFC so the same password typed on different systems yields the same bytes.
-    scrypt(password.normalize('NFC'), salt, keyLength, { N, r, p, maxmem: SCRYPT.maxmem }, (err, key) =>
-      err ? reject(err) : resolve(key),
-    )
+    scrypt(peppered, salt, keyLength, { N, r, p, maxmem: SCRYPT.maxmem }, (err, key) => (err ? reject(err) : resolve(key)))
   })
 }
 
-/** Stored form: scrypt$N$r$p$salt$hash (salt and hash base64url), so the cost can be raised later. */
-export async function hashPassword(password: string): Promise<string> {
+/** Stored form: scrypt-hmac$N$r$p$salt$hash (salt and hash base64url), so the cost can be raised later. */
+export async function hashPassword(password: string, pepper: Buffer): Promise<string> {
   const salt = randomBytes(16)
   const { N, r, p, keyLength } = SCRYPT
-  const key = await derive(password, salt, N, r, p, keyLength)
-  return ['scrypt', N, r, p, salt.toString('base64url'), key.toString('base64url')].join('$')
+  const key = await derive(password, pepper, salt, N, r, p, keyLength)
+  return [SCHEME, N, r, p, salt.toString('base64url'), key.toString('base64url')].join('$')
 }
 
 let dummyHash: Promise<string> | null = null
@@ -99,16 +115,16 @@ let dummyHash: Promise<string> | null = null
  * Checks `password` against a stored hash. Without a stored hash (unknown address, no password yet) it still hashes
  * once against a dummy, so the response time does not reveal whether an address has an account.
  */
-export async function verifyPassword(password: string, stored: string | undefined): Promise<boolean> {
+export async function verifyPassword(password: string, stored: string | undefined, pepper: Buffer): Promise<boolean> {
   if (!stored) {
-    dummyHash ??= hashPassword(newToken())
-    await verifyPassword(password, await dummyHash)
+    dummyHash ??= hashPassword(newToken(), pepper)
+    await verifyPassword(password, await dummyHash, pepper)
     return false
   }
   const [scheme, N, r, p, salt, hash] = stored.split('$')
-  if (scheme !== 'scrypt' || !salt || !hash) return false
+  if (scheme !== SCHEME || !salt || !hash) return false
   const expected = Buffer.from(hash, 'base64url')
-  const actual = await derive(password, Buffer.from(salt, 'base64url'), Number(N), Number(r), Number(p), expected.length)
+  const actual = await derive(password, pepper, Buffer.from(salt, 'base64url'), Number(N), Number(r), Number(p), expected.length)
   return timingSafeEqual(actual, expected)
 }
 

@@ -17,6 +17,7 @@ import {
   newToken,
   normalizeCode,
   normalizeEmail,
+  passwordKey,
   passwordProblem,
   sameDigest,
   verifyPassword,
@@ -45,25 +46,39 @@ test('hashToken is deterministic and does not contain the token', () => {
   assert.ok(!hashToken(token).includes(token))
 })
 
+const pepper = passwordKey('a'.repeat(64))
+
 test('hashPassword salts every hash and verifyPassword accepts only the right password', async () => {
-  const stored = await hashPassword('korrekt pferd batterie')
-  assert.match(stored, /^scrypt\$32768\$8\$1\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/)
+  const stored = await hashPassword('korrekt pferd batterie', pepper)
+  assert.match(stored, /^scrypt-hmac\$32768\$8\$1\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/)
   assert.ok(!stored.includes('korrekt'))
-  assert.notEqual(stored, await hashPassword('korrekt pferd batterie'))
-  assert.equal(await verifyPassword('korrekt pferd batterie', stored), true)
-  assert.equal(await verifyPassword('korrekt pferd batteri', stored), false)
-  assert.equal(await verifyPassword('', stored), false)
+  assert.notEqual(stored, await hashPassword('korrekt pferd batterie', pepper))
+  assert.equal(await verifyPassword('korrekt pferd batterie', stored, pepper), true)
+  assert.equal(await verifyPassword('korrekt pferd batteri', stored, pepper), false)
+  assert.equal(await verifyPassword('', stored, pepper), false)
+})
+
+test('verifyPassword needs the pepper the hash was made with', async () => {
+  const stored = await hashPassword('korrekt pferd batterie', pepper)
+  assert.equal(await verifyPassword('korrekt pferd batterie', stored, passwordKey('b'.repeat(64))), false)
+})
+
+test('passwordKey differs from codeKey for the same secret', () => {
+  const secret = 'c'.repeat(64)
+  assert.equal(passwordKey(secret).length, 32)
+  assert.notDeepEqual(passwordKey(secret), codeKey(secret))
 })
 
 test('verifyPassword treats composed and decomposed umlauts alike', async () => {
-  const stored = await hashPassword('Grüße aus Lüneburg')
-  assert.equal(await verifyPassword('Grüße aus Lüneburg'.normalize('NFD'), stored), true)
+  const stored = await hashPassword('Grüße aus Lüneburg', pepper)
+  assert.equal(await verifyPassword('Grüße aus Lüneburg'.normalize('NFD'), stored, pepper), true)
 })
 
-test('verifyPassword rejects missing and malformed hashes', async () => {
-  assert.equal(await verifyPassword('irgendein passwort', undefined), false)
-  assert.equal(await verifyPassword('irgendein passwort', 'plain'), false)
-  assert.equal(await verifyPassword('irgendein passwort', 'bcrypt$x$y$z$a$b'), false)
+test('verifyPassword rejects missing, malformed and unpeppered hashes', async () => {
+  assert.equal(await verifyPassword('irgendein passwort', undefined, pepper), false)
+  assert.equal(await verifyPassword('irgendein passwort', 'plain', pepper), false)
+  assert.equal(await verifyPassword('irgendein passwort', 'bcrypt$x$y$z$a$b', pepper), false)
+  assert.equal(await verifyPassword('irgendein passwort', 'scrypt$32768$8$1$c2FsdA$aGFzaA', pepper), false)
 })
 
 test('passwordProblem enforces length only', () => {

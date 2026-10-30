@@ -2,7 +2,13 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest, memberHomePath, normalizeEmail, verifyPassword } from '../../../lib/memberAuth'
-import { clearFailedLogins, releaseClientAttempt, reserveClientAttempt, reserveLoginAttempt } from '../../../lib/members'
+import {
+  clearFailedLogins,
+  passwordPepper,
+  releaseClientAttempt,
+  reserveClientAttempt,
+  reserveLoginAttempt,
+} from '../../../lib/members'
 import { reply, startSession } from '../../../lib/memberSession'
 
 // One message for unknown address, wrong password and lock, so the form does not reveal who is a member.
@@ -29,7 +35,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     // Unknown address, no password yet and locked account all end in the same answer.
     const member = await reserveLoginAttempt(email)
     // Runs scrypt even without a member, so timing does not reveal one either.
-    const correct = await verifyPassword(password, member?.passwordHash)
+    const correct = await verifyPassword(password, member?.passwordHash, passwordPepper())
     if (!member || !correct) {
       return reply(401, { message: REJECTED })
     }
