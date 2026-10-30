@@ -3,8 +3,8 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { isJsonRequest, memberHomePath, normalizeEmail, verifyPassword } from '../../../lib/memberAuth'
 import {
-  clearFailedLogins,
   passwordPepper,
+  recordLogin,
   releaseClientAttempt,
   reserveClientAttempt,
   reserveLoginAttempt,
@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
       return reply(401, { message: REJECTED })
     }
 
-    await Promise.all([clearFailedLogins(email), releaseClientAttempt(clientAttempt)])
+    await Promise.all([recordLogin(email), releaseClientAttempt(clientAttempt)])
     await startSession(cookies, email)
     return reply(200, { redirect: memberHomePath(locale === 'en' ? 'en' : 'de') })
   } catch (err) {

@@ -2,7 +2,7 @@
 /**
  * Member management, rendered on demand by pages/mitglieder/verwaltung.astro and pages/en/members/admin.astro.
  * src/middleware.ts lets only members with the admin role in; /api/members/admin checks the role again.
- * The list is rendered from the database and handed to the MemberAdmin island.
+ * The list is rendered from the database and handed to the MemberAdmin island, which shows it as a table.
  * Data source: memberArea via getCopy(), members with their signature photos via memberSummaries().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -23,7 +23,14 @@ const members = await memberSummaries()
   <PageHeader title={admin.title} lead={admin.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{admin.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" width="article" spacing="sm" labelledby="page-title">
-    <MemberAdmin client:load copy={admin.manager} initialMembers={members} currentEmail={Astro.locals.member!.email} locale={locale} />
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
+    <MemberAdmin
+      client:load
+      copy={admin.manager}
+      initialMembers={members}
+      currentEmail={Astro.locals.member!.email}
+      locale={locale}
+      now={Date.now()}
+    />
   </Section>
 </DefaultLayout>
