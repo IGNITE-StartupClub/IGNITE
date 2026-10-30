@@ -24,13 +24,16 @@ const send = async (to: string, subject: string, html: string) =>
     }),
   )
 
-export async function sendCode(email: string) {
-  const code = await createCode(email)
+/** Mails a new code unless a rate limit forbids it (see createCode); false when nothing was sent. */
+export async function sendCode(email: string, maxPerHour: number, maxPerAddressPerHour: number): Promise<boolean> {
+  const reservation = await createCode(email, maxPerHour, maxPerAddressPerHour)
+  if (reservation === 'limited') return false
   try {
-    await send(email, getMemberCodeSubject(code), getMemberCodeEmailHTML(code))
+    await send(email, getMemberCodeSubject(reservation.code), getMemberCodeEmailHTML(reservation.code))
+    return true
   } catch (err) {
     // Without the mail the code is useless, and it would hold back a retry (rate limit).
-    await deleteCode(email)
+    await deleteCode(reservation.id)
     throw err
   }
 }

@@ -35,6 +35,8 @@ export interface Member {
 }
 
 interface PasswordCode {
+  /** Address and minute of sending, so the unique _id allows one code per address and minute. */
+  _id: string
   email: string
   codeHash: string
   createdAt: Date
@@ -149,33 +151,55 @@ export async function logAdminAction(entry: Omit<AuditEntry, 'at'>): Promise<voi
 let key: Buffer | null = null
 const secretKey = () => (key ??= codeKey(process.env.ENCRYPTION_SECRET!))
 
-/** Codes sent since `since`, across all addresses or for one. Used as rate limit. */
-export async function countCodes(since: Date, email?: string): Promise<number> {
+/** Codes sent since `since`. Lets /api/members/code answer every address alike while the global limit is reached. */
+export async function countCodes(since: Date): Promise<number> {
   const { codes } = await collections()
-  return codes.countDocuments({ createdAt: { $gte: since }, ...(email && { email }) })
+  return codes.countDocuments({ createdAt: { $gte: since } })
 }
 
-/** Stores a new code for `email` and returns it for the mail. Older codes of the address stop working. */
-export async function createCode(email: string): Promise<string> {
+export type CodeReservation = { id: string; code: string } | 'limited'
+
+/**
+ * Stores a new code for `email` and returns it for the mail, or 'limited' when a rate limit forbids another one.
+ * The insert is the reservation: the unique _id fails a second request in the same minute, and the hourly limits
+ * are counted after the insert, so the k-th parallel request sees at least k codes and cannot slip under them.
+ * Older codes of the address stop working.
+ */
+export async function createCode(email: string, maxPerHour: number, maxPerAddressPerHour: number): Promise<CodeReservation> {
   const { codes } = await collections()
   const code = newCode()
   const now = new Date()
+  const id = `${email}:${Math.floor(now.getTime() / 60_000)}`
+  try {
+    await codes.insertOne({
+      _id: id,
+      email,
+      codeHash: hashCode(code, email, secretKey()),
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + CODE_TTL_SECONDS * 1000),
+      attempts: 0,
+    })
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return 'limited'
+    throw err
+  }
+  const hourAgo = new Date(now.getTime() - 3600 * 1000)
+  if (
+    (await codes.countDocuments({ createdAt: { $gte: hourAgo } })) > maxPerHour ||
+    (await codes.countDocuments({ email, createdAt: { $gte: hourAgo } })) > maxPerAddressPerHour
+  ) {
+    await deleteCode(id)
+    return 'limited'
+  }
   // Spent codes stay for the rate limit, but only the newest one may be entered.
-  await codes.updateMany({ email, expiresAt: { $gt: now } }, { $set: { expiresAt: now } })
-  await codes.insertOne({
-    email,
-    codeHash: hashCode(code, email, secretKey()),
-    createdAt: now,
-    expiresAt: new Date(now.getTime() + CODE_TTL_SECONDS * 1000),
-    attempts: 0,
-  })
-  return code
+  await codes.updateMany({ email, _id: { $ne: id }, expiresAt: { $gt: now } }, { $set: { expiresAt: now } })
+  return { id, code }
 }
 
-/** Withdraws a code whose mail could not be sent, so it holds back neither a retry nor the rate limit. */
-export async function deleteCode(email: string): Promise<void> {
+/** Withdraws a code that was refused or whose mail could not be sent, so it holds back neither a retry nor a limit. */
+export async function deleteCode(id: string): Promise<void> {
   const { codes } = await collections()
-  await codes.deleteOne({ email }, { sort: { createdAt: -1 } })
+  await codes.deleteOne({ _id: id })
 }
 
 /**

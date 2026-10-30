@@ -7,9 +7,10 @@ import { sendCode } from '../../../lib/memberMail'
 import { reply } from '../../../lib/memberSession'
 
 // Resend's free plan allows 100 mails a day, shared with the application, contact and community mails.
+// Together with CODE_MAX_ATTEMPTS the per-address limit also caps guessing at 25 entries per address and hour.
+// One code per address and minute follows from createCode.
 const MAX_CODES_PER_HOUR = 30
 const MAX_CODES_PER_ADDRESS_PER_HOUR = 5
-const MIN_SECONDS_BETWEEN_CODES = 60
 
 // Same answer whether or not the address is a member, so the form does not reveal who is one.
 const accepted = () => reply(200, { message: 'Wenn die Adresse freigeschaltet ist, ist der Code unterwegs.' })
@@ -26,23 +27,14 @@ export const POST: APIRoute = async ({ request }) => {
       return reply(400, { message: 'Ungültige E-Mail-Adresse.' })
     }
 
-    const hourAgo = new Date(Date.now() - 3600 * 1000)
-    if ((await countCodes(hourAgo)) >= MAX_CODES_PER_HOUR) {
+    // Checked before the member lookup, so a full limit gets the same answer for every address. createCode checks
+    // again atomically; a request that loses that race just gets no mail.
+    if ((await countCodes(new Date(Date.now() - 3600 * 1000))) >= MAX_CODES_PER_HOUR) {
       return reply(429, { message: 'Gerade werden zu viele Codes angefordert. Bitte versuche es später erneut.' })
     }
-    if (!(await findMember(email))) {
-      return accepted()
+    if (await findMember(email)) {
+      await sendCode(email, MAX_CODES_PER_HOUR, MAX_CODES_PER_ADDRESS_PER_HOUR)
     }
-    // A double click must not send a second mail, and a member's inbox must not be flooded. Together with
-    // CODE_MAX_ATTEMPTS this also caps guessing at 25 entries per address and hour.
-    if (
-      (await countCodes(new Date(Date.now() - MIN_SECONDS_BETWEEN_CODES * 1000), email)) > 0 ||
-      (await countCodes(hourAgo, email)) >= MAX_CODES_PER_ADDRESS_PER_HOUR
-    ) {
-      return accepted()
-    }
-
-    await sendCode(email)
     return accepted()
   } catch (err) {
     console.error('Member code failed:', err)

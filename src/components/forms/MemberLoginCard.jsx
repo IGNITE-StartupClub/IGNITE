@@ -16,7 +16,7 @@ import './forms.css'
 import './memberLoginCard.css'
 
 const CODE_LENGTH = 6
-// Matches MIN_SECONDS_BETWEEN_CODES in /api/members/code; an earlier resend would silently send nothing.
+// createCode allows one code per address and minute; an earlier resend would silently send nothing.
 const RESEND_SECONDS = 60
 const PASSWORD_MIN_LENGTH = 10
 const PASSWORD_MAX_LENGTH = 128
