@@ -29,7 +29,7 @@ export function getMemberInviteEmailHTML(loginUrl: string, inviter: Inviter): st
       ]),
       button('Zur Anmeldung', loginUrl),
       inviter.signatureHtml ? `<div style="padding-top: 24px;">${text('Bis bald')}<div style="padding-top: 12px;">${inviter.signatureHtml}</div></div>` : '',
-      closingNote('Du kennst IGNITE nicht? Dann kannst du diese Mail ignorieren. Ohne dich passiert nichts.'),
+      closingNote('Du kennst IGNITE nicht? Dann kannst du diese Mail ignorieren.'),
     ].join(''),
   });
 }
