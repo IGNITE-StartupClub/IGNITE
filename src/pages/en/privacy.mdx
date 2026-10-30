@@ -18,6 +18,7 @@ title: Privacy policy
 - [Rights of data subjects](#rights-of-data-subjects)
 - [Provision of the online service and web hosting](#provision-of-the-online-service-and-web-hosting)
 - [Use of cookies](#use-of-cookies)
+- [Members area](#members-area)
 - [Blogs and publication media](#blogs-and-publication-media)
 - [Contact and enquiry management](#contact-and-enquiry-management)
 - [Presence on social networks (social media)](#presence-on-social-networks-social-media)
@@ -110,6 +111,21 @@ With regard to the storage period, the following types of cookies are distinguis
 
 - **Temporary cookies (also: session cookies):** Temporary cookies are deleted at the latest after a user has left an online service and closed their device (e.g. browser or mobile application).
 - **Permanent cookies:** Permanent cookies remain stored even after the device is closed. For example, the login status can be saved and preferred content displayed directly when the user visits a website again.
+
+## Members area
+
+IGNITE members sign in to the members area of the website with their email address and a password of their choice. An IGNITE admin adds the address, and we send an invitation by email. To set the first password or replace a forgotten one, the member requests a six-digit code on the sign-in page, which we send to the registered address. The code is valid for 10 minutes, works only once and stops working after five wrong entries.
+
+We do not store the password in plain text, only as a salted hash (scrypt, additionally keyed with a secret server key), from which the password cannot be recovered. After five wrong passwords in a row we lock sign-in for 15 minutes. To protect against trying passwords across many accounts, we also store a pseudonym of the IP address for 15 minutes after a failed sign-in (a hash formed with a secret key, not the address itself).
+
+After sign-in we set the cookie "ignite_member". It holds a random identifier that lets us recognise the sign-in and is technically necessary for the members area. It is deleted on sign-out and becomes invalid after 30 days at the latest.
+
+We log changes to the member list (adding, removing, changing a role, sending an invitation) with the time, the affected address and the address of the admin who made the change.
+
+- **Data processed:** email address, role (member or admin), password hash, time of joining and of the last password change, number of failed attempts, pseudonym of the IP address after a failed sign-in, session identifier and codes (stored only as hashes), log of changes.
+- **Purpose:** access to internal content for members only, protection of the accounts against unauthorised access, traceability of changes to the member list.
+- **Storage period:** codes are deleted one hour after they were sent, IP pseudonyms after 15 minutes, sessions after 30 days or on sign-out, log entries after one year. Email address, role and password hash stay stored until the membership ends or the member asks for their deletion.
+- **Legal bases:** performance of a contract and pre-contractual enquiries (Art. 6 (1) sentence 1 lit. b) GDPR); for the lock after failed attempts, the IP pseudonyms and the change log our legitimate interest in secure accounts and traceable changes (Art. 6 (1) sentence 1 lit. f) GDPR); the cookie is strictly necessary (Section 25 (2) no. 2 TDDDG).
 
 ## Blogs and publication media
 

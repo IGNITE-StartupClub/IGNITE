@@ -5,7 +5,8 @@
  * Locale: taken from the URL (Astro.currentLocale); sets <html lang>, defaults and the language toggle target.
  * Props: title, description, url, image, author, noindex (all optional, defaults from siteMeta),
  * alternatePath (the equivalent page in the other language: omitted = derived from the URL, null = no counterpart,
- * so the toggle links to the other home page and no hreflang tags are written).
+ * so the toggle links to the other home page and no hreflang tags are written), bare (no Header and Footer, for pages
+ * that bring their own slim top bar, such as the members login).
  * Data source: getCopy() in src/data/copy.ts.
  */
 import '../styles/global.css'
@@ -25,6 +26,7 @@ interface Props {
   author?: string
   noindex?: boolean
   alternatePath?: string | null
+  bare?: boolean
 }
 
 const locale = resolveLocale(Astro.currentLocale)
@@ -37,6 +39,7 @@ const {
   author = siteMeta.author,
   noindex = false,
   alternatePath,
+  bare = false,
 } = Astro.props
 
 const otherLocale = locale === 'de' ? 'en' : 'de'
@@ -101,10 +104,10 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
     >
       {navigation.skipLinkLabel}
     </a>
-    <Header switchHref={otherPath ?? localizePath('/', otherLocale)} />
-    <main id="main-content" tabindex="-1">
+    {!bare && <Header switchHref={otherPath ?? localizePath('/', otherLocale)} />}
+    <main id="main-content" tabindex="-1" class:list={[bare && 'pt-0']}>
       <slot />
     </main>
-    <Footer />
+    {!bare && <Footer />}
   </body>
 </html>

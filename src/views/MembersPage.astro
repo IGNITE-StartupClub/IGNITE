@@ -1,0 +1,33 @@
+---
+/**
+ * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
+ * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
+ * Astro.locals.member. Data source: memberArea via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const { email, role } = Astro.locals.member!
+---
+
+<DefaultLayout title={memberArea.pageTitle} noindex>
+  <PageHeader title={memberArea.home.title} lead={memberArea.home.lead} />
+  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+    <ul class="mb-8 flex flex-wrap gap-3">
+      <li><a href={memberPagePath('signature', locale)} class="form-secondary">{memberArea.home.signatureLink}</a></li>
+      {role === 'admin' && <li><a href={memberPagePath('admin', locale)} class="form-secondary">{memberArea.home.adminLink}</a></li>}
+      <li><a href={`${memberPagePath('login', locale)}?reset`} class="form-secondary">{memberArea.home.passwordLink}</a></li>
+    </ul>
+    <form method="post" action="/api/members/logout" class="form">
+      <p class="form-note">{memberArea.home.signedInAs} <strong>{email}</strong></p>
+      <input type="hidden" name="locale" value={locale} />
+      <button type="submit" class="form-secondary">{memberArea.home.logout}</button>
+    </form>
+  </Section>
+</DefaultLayout>

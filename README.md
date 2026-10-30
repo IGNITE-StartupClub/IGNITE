@@ -24,7 +24,7 @@ Kein Test-Setup. ESLint/Prettier manuell: `npx eslint .` / `npx prettier --write
 | `ENCRYPTION_SECRET` | 32-Byte-Hex-Key (AES-256-GCM für Bewerberdaten) |
 | `EMAIL_RECIPIENT_1`, `EMAIL_RECIPIENT_2` | Admin-Empfänger (2 optional) |
 | `SITE_URL` | Öffentliche URL, nur für den Datenbankbericht (optional) |
-| `CRON_SECRET` | Absicherung der Cron-Endpunkte |
+| `CRON_SECRET` | Pflicht für die Cron-Jobs: Vercel schickt es mit, ohne den Wert lehnen alle Cron-Endpunkte ab (401) |
 
 ## Ordnerstruktur
 
