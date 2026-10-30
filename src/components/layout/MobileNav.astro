@@ -1,7 +1,8 @@
 ---
 /**
  * Fullscreen mobile menu, opened by `.menu-trigger` in Header.astro (the header pill stays on top and shows the close icon).
- * Props: items (navigation.menuItems; children render as a smaller list under their parent), isCurrentPaths (active pages),
+ * Props: items (navigation.menuItems or the members area items; children render as a smaller list under their parent;
+ * isExternal opens in a new tab), isCurrentPaths (active pages),
  * switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * Behaviour: aria-expanded toggle, scroll lock, Escape and link click close, focus trap, focus returns to the trigger.
  * Bottom: social links (footer.socialLinks), language toggle and theme toggle.
@@ -15,6 +16,7 @@ import { getCopy } from '../../data/copy'
 interface NavItem {
   label: string
   url: string
+  isExternal?: boolean
   children?: NavItem[]
 }
 interface Props {
@@ -43,7 +45,15 @@ const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefi
               </ul>
             </>
           ) : (
-            <a class="mobile-link" href={item.url} aria-current={current(item.url)}>{item.label}</a>
+            <a
+              class="mobile-link"
+              href={item.url}
+              aria-current={current(item.url)}
+              target={item.isExternal ? '_blank' : undefined}
+              rel={item.isExternal ? 'noopener noreferrer' : undefined}
+            >
+              {item.label}
+            </a>
           )}
         </li>
       ))}

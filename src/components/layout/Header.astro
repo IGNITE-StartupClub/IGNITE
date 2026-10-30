@@ -2,12 +2,16 @@
 /**
  * Floating pill navigation. Desktop (lg+): logo, centered links (Events as dropdown), theme and language toggle, the
  * members area link and the primary "Mitmachen" pill (kept outermost). Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
+ * Inside the members area (signed in; the login page has no header) the pill switches: "IGNITE Member" logo linking to
+ * the members home, the member navigation (memberArea.nav) and a profile menu with photo instead of the members link
+ * and "Mitmachen".
  * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
  * With a mouse, a highlight stretches between the links and the pill grows slightly while hovered; both states survive navigation.
- * Data source: navigation via getCopy() (src/data/copy.ts).
+ * Data source: navigation and memberArea.nav via getCopy() (src/data/copy.ts), the member's photo via members.ts.
  */
+import { Icon } from 'astro-icon/components'
 import Logo from '../Logo.astro'
 import Button from '../ui/Button.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
@@ -15,27 +19,56 @@ import LanguageToggle from '../ui/LanguageToggle.astro'
 import MemberLink from '../ui/MemberLink.astro'
 import MobileNav from './MobileNav.astro'
 import { getCopy } from '../../data/copy'
+import { photoPath } from '../../lib/emailSignature'
+import { resolveLocale } from '../../lib/i18n'
+import { memberAreaLocale, memberHomePath, memberPagePath } from '../../lib/memberAuth'
+import { photoIdOf } from '../../lib/members'
 
 interface Props {
   switchHref: string
 }
 
+interface NavItem {
+  label: string
+  url: string
+  isExternal?: boolean
+  children?: NavItem[]
+}
+
 const { switchHref } = Astro.props
-const { navigation } = getCopy(Astro.currentLocale)
-const items = [...navigation.menuItems].sort((a, b) => a.order - b.order)
+const locale = resolveLocale(Astro.currentLocale)
+const { navigation, memberArea } = getCopy(locale)
+const memberNav = memberArea.nav
+// Set by the middleware on every members area page that needs a session.
+const member = memberAreaLocale(Astro.url.pathname) ? Astro.locals.member : undefined
+const photoId = member ? await photoIdOf(member.email) : null
+const memberHome = memberHomePath(locale)
+const items: NavItem[] = member
+  ? [
+      { label: memberNav.home, url: memberHome },
+      { label: memberNav.signature, url: memberPagePath('signature', locale) },
+      { label: memberNav.guide, url: memberNav.guideUrl },
+      { label: memberNav.mentoring, url: memberNav.mentoringUrl, isExternal: true },
+    ]
+  : [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
 const currentPath = trim(Astro.url.pathname)
-const home = trim(navigation.homeUrl)
+const home = trim(member ? memberHome : navigation.homeUrl)
 const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || (trim(url) !== home && currentPath.startsWith(`${trim(url)}/`)))
 ---
 
 <header class="site-header" data-site-header transition:animate="none">
   <div class="pill">
-    <a href={navigation.homeUrl} class="logo-link" aria-label={navigation.logoText}>
+    <a
+      href={member ? memberHome : navigation.homeUrl}
+      class="logo-link"
+      aria-label={member ? `${navigation.logoText} ${memberNav.badge}` : navigation.logoText}
+    >
       <Logo color="currentColor" name={navigation.logoText} />
+      {member && <span class="member-badge" aria-hidden="true">{memberNav.badge}</span>}
     </a>
 
-    <nav class="main-nav hidden lg:block" aria-label={navigation.mainNavLabel} data-main-nav>
+    <nav class="main-nav hidden lg:block" aria-label={member ? memberNav.label : navigation.mainNavLabel} data-main-nav>
       <span class="nav-indicator" aria-hidden="true" data-nav-indicator></span>
       <ul class="flex items-center gap-1">
         {items.map((item) => (
@@ -70,6 +103,14 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                 rel={item.isExternal ? 'noopener noreferrer' : undefined}
               >
                 {item.label}
+                {item.isExternal && (
+                  <>
+                    <svg class="external" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                      <path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="sr-only">({memberNav.newTab})</span>
+                  </>
+                )}
               </a>
             )}
           </li>
@@ -81,9 +122,48 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       <div class="hidden items-center gap-1 lg:flex">
         <LanguageToggle href={switchHref} />
         <ThemeToggle />
-        <MemberLink />
+        {!member && <MemberLink />}
       </div>
-      <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
+      {
+        member ? (
+          <details class="nav-dropdown profile-menu">
+            <summary class="profile-trigger" aria-label={memberNav.profile}>
+              {photoId ? (
+                <img src={photoPath(photoId)} alt="" width="36" height="36" />
+              ) : (
+                <Icon name="ion:person-outline" aria-hidden="true" />
+              )}
+            </summary>
+            <ul class="nav-panel profile-panel">
+              <li class="profile-account" style="--i: 0">
+                {memberNav.signedInAs}
+                <strong>{member.email}</strong>
+              </li>
+              {member.role === 'admin' && (
+                <li style="--i: 1">
+                  <a class="panel-link" href={memberPagePath('admin', locale)} aria-current={isCurrent(memberPagePath('admin', locale)) ? 'page' : undefined}>
+                    {memberNav.admin}
+                  </a>
+                </li>
+              )}
+              <li style="--i: 2">
+                <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
+              </li>
+              <li style="--i: 3">
+                <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
+              </li>
+              <li style="--i: 4">
+                <form method="post" action="/api/members/logout">
+                  <input type="hidden" name="locale" value={locale} />
+                  <button type="submit" class="panel-link logout">{memberNav.logout}</button>
+                </form>
+              </li>
+            </ul>
+          </details>
+        ) : (
+          <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
+        )
+      }
       <button
         type="button"
         class="menu-trigger lg:hidden"
@@ -275,8 +355,21 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
   .logo-link:active :global(svg) {
     transform: scale(0.97);
   }
+  .member-badge {
+    margin-left: 0.625rem;
+    padding: 0.125rem 0.5rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--color-accent-text);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+  }
   .main-nav {
     position: relative;
+  }
+  .external {
+    opacity: 0.7;
   }
   /* Shared hover highlight; JS sets --l/--r (distance to the nav edges) to the hovered link. */
   .nav-indicator {
@@ -445,6 +538,86 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
   .panel-link:focus-visible .panel-arrow {
     opacity: 1;
     transform: translateX(0);
+  }
+  .profile-menu {
+    position: relative;
+  }
+  .profile-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    color: var(--color-fg);
+    list-style: none;
+    cursor: pointer;
+    border-radius: 999px;
+    transition:
+      background-color var(--duration-fast) ease,
+      transform 0.25s var(--ease-out);
+  }
+  .profile-trigger::-webkit-details-marker {
+    display: none;
+  }
+  .profile-trigger:hover,
+  .profile-menu[open] > .profile-trigger {
+    background-color: var(--color-bg-subtle);
+  }
+  .profile-trigger:active {
+    transform: scale(0.96);
+  }
+  .profile-trigger img {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    object-fit: cover;
+  }
+  .profile-trigger :global(svg) {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  /* Right-aligned under the trigger; the shared panel is centered, which would overflow the pill's right edge. */
+  .profile-panel {
+    left: auto;
+    right: 0;
+    transform: none;
+    transform-origin: top right;
+    animation-name: profile-panel-in;
+  }
+  .profile-menu[data-closing] .profile-panel {
+    transform: translateY(-4px) scale(0.98);
+  }
+  @keyframes profile-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.96);
+    }
+  }
+  .profile-account {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem 1rem 0.75rem;
+    margin-bottom: 0.375rem;
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .profile-account strong {
+    font-weight: 500;
+    color: var(--color-fg);
+    overflow-wrap: anywhere;
+  }
+  /* The site's base styles give every button a border, padding and line-height 1. */
+  .logout {
+    width: 100%;
+    font: inherit;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
   }
   .pill :global(.btn) {
     transition:
