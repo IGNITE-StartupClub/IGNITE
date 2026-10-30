@@ -1,0 +1,48 @@
+---
+/**
+ * Members area login, rendered on demand by pages/mitglieder/login.astro and pages/en/members/login.astro.
+ * Without ?token it shows the email form (MemberLoginForm island). With ?token, the target of the login mail, it
+ * shows a confirm button that posts the token to /api/members/verify. The link itself must not sign in:
+ * mail scanners (e.g. Outlook Safe Links) open links before the recipient does and would use up the one-time token.
+ * ?error=link reports an expired or used link. Data source: memberArea, pageMeta via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import MemberLoginForm from '../components/forms/MemberLoginForm.jsx'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const token = Astro.url.searchParams.get('token')
+const linkInvalid = Astro.url.searchParams.get('error') === 'link'
+// The URL can carry a login token: keep it out of caches and out of the Referer of outgoing requests.
+Astro.response.headers.set('Cache-Control', 'private, no-store')
+Astro.response.headers.set('Referrer-Policy', 'no-referrer')
+---
+
+<DefaultLayout title={memberArea.pageTitle} noindex>
+  {
+    token ? (
+      <>
+        <PageHeader title={memberArea.login.confirmTitle} lead={memberArea.login.confirmLead} />
+        <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+          <form method="post" action="/api/members/verify" class="form">
+            <input type="hidden" name="token" value={token} />
+            <input type="hidden" name="locale" value={locale} />
+            <button type="submit" class="form-submit">{memberArea.login.confirm}</button>
+          </form>
+        </Section>
+      </>
+    ) : (
+      <>
+        <PageHeader title={memberArea.login.title} lead={memberArea.login.lead} />
+        <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+          {linkInvalid && <p class="form-error mb-6" role="alert">{memberArea.login.linkInvalid}</p>}
+          <MemberLoginForm client:load copy={memberArea.form} locale={locale} />
+        </Section>
+      </>
+    )
+  }
+</DefaultLayout>

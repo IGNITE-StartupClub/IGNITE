@@ -1,20 +1,29 @@
 ---
 /**
- * Community page: email form that mails the WhatsApp invite link.
- * Rendered by pages/subscribe.astro and pages/en/subscribe.astro. Data source: subscribePage, communityForm, pageMeta via getCopy().
+ * Community page: email form that mails the WhatsApp invite link, then the entry point to the members area.
+ * Rendered by pages/subscribe.astro and pages/en/subscribe.astro. Data source: subscribePage, communityForm, memberArea, pageMeta via getCopy().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
+import Button from '../components/ui/Button.astro'
 import CommunityForm from '../components/forms/CommunityForm.jsx'
 import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath } from '../lib/memberAuth'
 
-const { subscribePage, communityForm, pageMeta } = getCopy(Astro.currentLocale)
+const locale = resolveLocale(Astro.currentLocale)
+const { subscribePage, communityForm, memberArea, pageMeta } = getCopy(locale)
 ---
 
 <DefaultLayout title={pageMeta.community.title}>
   <PageHeader title={subscribePage.title} lead={subscribePage.lead} />
   <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
     <CommunityForm client:load compact copy={{ ...communityForm, submit: subscribePage.submit }} />
+  </Section>
+  <Section spacing="sm" labelledby="members-heading">
+    <h2 id="members-heading" class="max-w-text text-display-sm" set:html={memberArea.teaser.heading} />
+    <p class="mt-6 max-w-text text-lead text-fg-muted">{memberArea.teaser.lead}</p>
+    <Button href={memberHomePath(locale)} variant="outline" icon="ion:lock-closed-outline" class="mt-8">{memberArea.teaser.link}</Button>
   </Section>
 </DefaultLayout>

@@ -8,9 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # Start dev server at localhost:4321
 npm run build      # Build for production
 npm run preview    # Preview the production build
+npm test           # Unit tests (node --test, needs Node >= 22.18 for TypeScript)
 ```
 
-No test suite is configured. There is no lint script — ESLint and Prettier are configured but must be run manually (`npx eslint .` / `npx prettier --write .`).
+Tests use Node's built-in runner on `src/**/*.test.ts`; only modules without extensionless local imports can be tested this way. There is no lint script — ESLint and Prettier are configured but must be run manually (`npx eslint .` / `npx prettier --write .`).
 
 ## Architecture
 
@@ -29,6 +30,7 @@ This is an **Astro 5 site** with **server-side rendering** (output: 'server') de
 - `submit.ts` — Membership application form: validates input, encrypts all fields with AES-256-GCM, stores encrypted data in **MongoDB**, sends the team notification and the applicant confirmation (which carries the WhatsApp link) via **Resend**
 - `contact.ts` — Contact form, sends emails via Resend
 - `community.ts` — Community signup (Community page and footer): validates the address, mails the WhatsApp invite link, no confirmation step. A Mongo TTL collection `community_invites` allows one invite per address and 24 hours (409 on repeat).
+- `members/` — Members area login: `login.ts` mails a magic link to allowlisted addresses, `verify.ts` redeems it and sets the session cookie, `logout.ts` ends the session
 - `cron/` — Scheduled jobs from `vercel.json` (health check, database report, monthly applicants)
 
 **Content Collections (`src/content/`)** — Markdown-based collections for `events` and `projects`, defined in `src/content.config.mjs`. New content files go in the respective subdirectories.
@@ -80,4 +82,5 @@ Icons use `astro-icon` with `@iconify-json/ion` and `@iconify-json/mdi` icon set
 - **Social links**: Instagram is `instagram.com/ignite.lueneburg`, LinkedIn is `linkedin.com/company/ignite-leuphana`. The website uses `socialLinks` in `src/data/staticContent.ts` (+ `.en.ts`), emails use `INSTAGRAM_URL` / `LINKEDIN_URL` in `src/templates/emails/links.ts`. Change both together.
 - **Luma requests need a User-Agent**: `api.lu.ma` answers 429 to the default User-Agent of Node's `fetch` and curl. `src/lib/luma.ts` sends its own; keep it when changing the request.
 - **Links in news articles**: Use Markdown links (`[Text](/mitmachen)`, English `[Text](/en/join)`). A `<link href>` tag renders as plain, unclickable text. Each article's URL is its lowercased file name (`OpenWeekly2026.md` → `/news/openweekly2026`), so a second article on the same topic needs its own file name and image. Covers are cut to 4:3 on the news cards and 16:9 on the article page, so pick a cover near 4:3; put wide group photos inside the text as `![alt](../../assets/optimized-sources/news/<file>)` (one `../` more from `en/`), which shows them uncropped and as WebP.
+- **Members area**: `/mitglieder/` and `/en/members/` are only reachable with a session. `src/middleware.ts` guards them and sets `Astro.locals.member`; new member pages go below these paths with `prerender = false`. The allowlist is the Mongo collection `members`, maintained only with `node scripts/members.mjs list|add|remove` (needs `MONGODB_URI`/`MONGODB_DB` locally), never from the website. The login mail opens the login page with `?token=`, and a button posts it to `/api/members/verify`, because mail scanners open links and would use up the one-time token. Tokens and sessions are stored only as SHA-256 hashes. Cross-site form posts are blocked by Astro's `checkOrigin`, which is active in the production build but not in `astro dev`.
 - **Header and ViewTransitions**: `ViewTransitions` (`SiteMeta.astro`) swaps the header on every navigation and module scripts run only once, so header scripts bind element listeners on `astro:page-load` (it also fires on the first load). The pill's hover state is the `data-hovered` attribute, not `:hover`: after a swap `:hover` only returns with the next pointer move, and during the transition the overlay is hit-tested instead of the page. `astro:before-swap` carries hover, highlight and scroll state into the new header.

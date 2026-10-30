@@ -13,6 +13,7 @@ const englishSlugs = new Map([
   ['mitmachen', 'join'],
   ['kontakt', 'contact'],
   ['materialien', 'materials'],
+  ['mitglieder', 'members'],
   ['impressum', 'imprint'],
   ['datenschutz', 'privacy'],
   ['IGNITEWorkshops', 'workshops'],

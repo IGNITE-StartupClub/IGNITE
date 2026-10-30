@@ -1,0 +1,27 @@
+---
+/**
+ * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
+ * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
+ * Astro.locals.member. Data source: memberArea via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const { email } = Astro.locals.member!
+---
+
+<DefaultLayout title={memberArea.pageTitle} noindex>
+  <PageHeader title={memberArea.home.title} lead={memberArea.home.lead} />
+  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+    <form method="post" action="/api/members/logout" class="form">
+      <p class="form-note">{memberArea.home.signedInAs} <strong>{email}</strong></p>
+      <input type="hidden" name="locale" value={locale} />
+      <button type="submit" class="form-secondary">{memberArea.home.logout}</button>
+    </form>
+  </Section>
+</DefaultLayout>

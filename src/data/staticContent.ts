@@ -385,3 +385,37 @@ export const communityForm = {
   pending: 'Wir haben dir den Link bereits geschickt. Bitte prüfe dein Postfach, auch den Spam-Ordner.',
   error: 'Da ging etwas schief. Bitte versuch es später erneut.',
 }
+
+// Members area behind the magic-link login (/mitglieder). `form` goes to the MemberLoginForm island.
+export const memberArea = {
+  pageTitle: 'Mitgliederbereich',
+  // Entry point on the Community page.
+  teaser: {
+    heading: 'Für <em>Mitglieder</em>',
+    lead: 'Du bist schon im Team? Im Mitgliederbereich findest du interne Infos, Dokumente und Termine.',
+    link: 'Zum Mitgliederbereich',
+  },
+  login: {
+    title: 'Mitglieder<em>bereich</em>',
+    lead: 'Melde dich mit der E-Mail-Adresse an, mit der du bei IGNITE eingetragen bist. Wir schicken dir einen Link, ein Passwort brauchst du nicht.',
+    linkInvalid: 'Der Login-Link ist abgelaufen oder wurde schon benutzt. Fordere einfach einen neuen an.',
+    confirmTitle: 'Anmeldung <em>bestätigen</em>',
+    confirmLead: 'Ein Klick noch, dann bist du im Mitgliederbereich.',
+    confirm: 'Jetzt anmelden',
+  },
+  form: {
+    emailLabel: 'E-Mail-Adresse',
+    emailPlaceholder: 'dein@email.de',
+    submit: 'Login-Link anfordern',
+    submitting: 'Wird gesendet...',
+    sent: 'Wenn deine Adresse für den Mitgliederbereich freigeschaltet ist, bekommst du gleich eine E-Mail mit dem Login-Link. Er gilt 15 Minuten. Schau auch in deinen Spam-Ordner.',
+    tooMany: 'Gerade werden zu viele Login-Links angefordert. Bitte versuch es in einer Stunde erneut.',
+    error: 'Da ging etwas schief. Bitte versuch es später erneut.',
+  },
+  home: {
+    title: 'Willkommen im <em>Mitgliederbereich</em>',
+    lead: 'Hier findest du bald interne Infos, Dokumente und Termine für IGNITE-Mitglieder.',
+    signedInAs: 'Angemeldet als',
+    logout: 'Abmelden',
+  },
+}

@@ -385,3 +385,37 @@ export const communityForm = {
   pending: 'We have already sent you the link. Please check your inbox, including your spam folder.',
   error: 'Something went wrong. Please try again later.',
 }
+
+// Members area behind the magic-link login (/en/members). `form` goes to the MemberLoginForm island.
+export const memberArea = {
+  pageTitle: 'Members area',
+  // Entry point on the Community page.
+  teaser: {
+    heading: 'For <em>members</em>',
+    lead: 'Already on the team? The members area has internal news, documents and dates.',
+    link: 'Go to the members area',
+  },
+  login: {
+    title: 'Members <em>area</em>',
+    lead: 'Sign in with the email address IGNITE has on file for you. We will send you a link, no password needed.',
+    linkInvalid: 'This login link has expired or was already used. Just request a new one.',
+    confirmTitle: 'Confirm <em>sign-in</em>',
+    confirmLead: 'One more click and you are in the members area.',
+    confirm: 'Sign in now',
+  },
+  form: {
+    emailLabel: 'Email address',
+    emailPlaceholder: 'you@email.com',
+    submit: 'Send login link',
+    submitting: 'Sending...',
+    sent: 'If your address is enabled for the members area, you will receive an email with the login link shortly. It is valid for 15 minutes. Check your spam folder too.',
+    tooMany: 'Too many login links are being requested right now. Please try again in an hour.',
+    error: 'Something went wrong. Please try again later.',
+  },
+  home: {
+    title: 'Welcome to the <em>members area</em>',
+    lead: 'Soon you will find internal news, documents and dates for IGNITE members here.',
+    signedInAs: 'Signed in as',
+    logout: 'Sign out',
+  },
+}
