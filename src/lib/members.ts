@@ -107,13 +107,18 @@ async function connect(): Promise<MongoClient> {
   return client
 }
 
-async function collections() {
+/** The members area database, shared with contactsStore.ts. */
+export async function database() {
   connecting ??= connect().catch((err) => {
     // Let the next request try again instead of caching the failed connection forever.
     connecting = null
     throw err
   })
-  const db = (await connecting).db(process.env.MONGODB_DB!)
+  return (await connecting).db(process.env.MONGODB_DB!)
+}
+
+async function collections() {
+  const db = await database()
   return {
     members: db.collection<Member>('members'),
     codes: db.collection<PasswordCode>('member_codes'),

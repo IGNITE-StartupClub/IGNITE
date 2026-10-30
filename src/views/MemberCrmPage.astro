@@ -1,0 +1,31 @@
+---
+/**
+ * The CRM of the members area, rendered on demand by pages/mitglieder/crm.astro and pages/en/members/crm.astro.
+ * Every signed-in member sees it (src/middleware.ts). The contacts are rendered from the database and handed to the
+ * CrmBoard island, which talks to /api/members/crm.
+ * Data source: memberArea.crm via getCopy(), contacts via contactSummaries().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import CrmBoard from '../components/forms/CrmBoard.jsx'
+import { getCopy } from '../data/copy'
+import { berlinDay } from '../lib/contacts'
+import { contactSummaries } from '../lib/contactsStore'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { crm } = getCopy(locale).memberArea
+const member = Astro.locals.member!
+const contacts = await contactSummaries(member)
+---
+
+<DefaultLayout title={crm.pageTitle} alternatePath={memberPagePath('crm', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader title={crm.title} lead={crm.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{crm.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
+    <CrmBoard client:load copy={crm.board} initialContacts={contacts} locale={locale} today={berlinDay(Date.now())} />
+  </Section>
+</DefaultLayout>

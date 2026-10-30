@@ -21,6 +21,8 @@ const { home, nav } = memberArea
 const { role } = Astro.locals.member!
 
 const cards = [
+  { ...home.cards.crm, icon: 'ion:briefcase-outline', url: memberPagePath('crm', locale) },
+  { ...home.cards.alumni, icon: 'ion:school-outline', url: memberPagePath('alumni', locale) },
   { ...home.cards.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
   { ...home.cards.guide, icon: 'ion:book-outline', url: nav.guideUrl },
   { ...home.cards.mentoring, icon: 'ion:people-outline', url: nav.mentoringUrl, isExternal: true },
