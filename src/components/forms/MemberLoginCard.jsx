@@ -7,8 +7,7 @@
  * - set: new password, posts { email, code, password } to /api/members/password. A wrong or expired code sends the
  *   member back to the code step; the server checks the code only here, so a wrong code costs one of its attempts.
  * - done: shown while the members home loads.
- * Props: copy (memberArea.login.card), locale ('de' | 'en'), initialStep ('login' | 'request', default 'login'),
- * children (the IGNITE mark for the card header, static HTML from the page).
+ * Props: copy (memberArea.login.card), locale ('de' | 'en'), initialStep ('login' | 'request', default 'login').
  * Styles: ./forms.css, ./memberLoginCard.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
@@ -25,12 +24,19 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const postJson = (url, body) =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
-const CODE_STEPS = ['request', 'code', 'set']
+// Titles may carry <em> for the serif accent word. The copy is static text from src/data, never user input.
+const Title = ({ html, className = '' }) => (
+  <h2 tabIndex={-1} className={`member-card-title ${className}`} dangerouslySetInnerHTML={{ __html: html }} />
+)
 
-export default function MemberLoginCard({ copy, locale, initialStep = 'login', children }) {
+const ArrowIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+)
+
+export default function MemberLoginCard({ copy, locale, initialStep = 'login' }) {
   const [step, setStep] = useState(initialStep)
-  // Which progress bar to show: sign-in alone, or code and new password.
-  const [viaCode, setViaCode] = useState(CODE_STEPS.includes(initialStep))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -60,7 +66,6 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
     moved.current = true
     setMessage(nextMessage)
     setStep(next)
-    if (next !== 'done') setViaCode(CODE_STEPS.includes(next))
   }
   const fail = (text) => setMessage({ tone: 'error', text })
 
@@ -94,7 +99,8 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
 
   const requestCode = (resend = false) => {
     if (!EMAIL_PATTERN.test(email.trim())) {
-      if (step === 'login') goTo('request')
+      // From the sign-in form the request step asks for the address; only there a missing one is an error.
+      if (step === 'login') return goTo('request')
       return fail(copy.emailMissing)
     }
     run(async () => {
@@ -158,9 +164,6 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
     })
   }
 
-  const flow = viaCode ? ['code', 'set', 'done'] : ['login', 'done']
-  const current = flow.indexOf(step === 'request' ? 'code' : step)
-
   const feedback = message && (
     <p role={message.tone === 'error' ? 'alert' : 'status'} className={message.tone === 'error' ? 'form-error' : 'form-success'}>
       {message.text}
@@ -168,21 +171,13 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
   )
 
   return (
-    <div className="member-card w-full max-w-[26rem] rounded-[1.75rem] border border-border bg-card text-fg">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-3">
-        <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium">
-          <span aria-hidden="true" className="member-card-mark">{children}</span>
-          <span className="truncate">{copy.brand}</span>
-        </span>
-        <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs text-fg-muted">{copy.badge}</span>
-      </div>
-
-      <div ref={body} key={step} className="member-card-step px-6 py-6 sm:px-7">
+    <div className="member-card w-full max-w-[24rem] text-fg">
+      <div ref={body} key={step} className="member-card-step">
         {step === 'login' && (
           <form onSubmit={signIn} className="form" aria-busy={busy}>
-            <div>
-              <h2 tabIndex={-1} className="member-card-title">{copy.login.title}</h2>
-              <p className="form-note mt-1">{copy.login.lead}</p>
+            <div className="member-card-head">
+              <Title html={copy.login.title} />
+              <p className="form-note">{copy.login.lead}</p>
             </div>
             <div className="field">
               <label htmlFor="member-email" className="field-label">{copy.login.emailLabel}</label>
@@ -201,7 +196,12 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
               />
             </div>
             <div className="field">
-              <label htmlFor="member-password" className="field-label">{copy.login.passwordLabel}</label>
+              <div className="flex items-baseline justify-between gap-3">
+                <label htmlFor="member-password" className="field-label">{copy.login.passwordLabel}</label>
+                <button type="button" className="member-card-link" disabled={busy} onClick={() => requestCode()}>
+                  {copy.login.forgot}
+                </button>
+              </div>
               <input
                 id="member-password"
                 type="password"
@@ -217,18 +217,25 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
             {feedback}
             <button type="submit" className="form-submit member-card-submit" disabled={busy}>
               {busy ? copy.login.submitting : copy.login.submit}
+              {!busy && <ArrowIcon />}
             </button>
-            <button type="button" className="member-card-link self-center" disabled={busy} onClick={() => requestCode()}>
-              {copy.login.forgot}
-            </button>
+            <div className="member-card-new">
+              <p className="m-0 text-sm font-semibold">{copy.login.newHeading}</p>
+              <p className="form-note m-0">
+                {copy.login.newText}{' '}
+                <button type="button" className="member-card-link member-card-link-accent" disabled={busy} onClick={() => requestCode()}>
+                  {copy.login.newAction}
+                </button>
+              </p>
+            </div>
           </form>
         )}
 
         {step === 'request' && (
           <form onSubmit={(e) => (e.preventDefault(), requestCode())} className="form" aria-busy={busy}>
-            <div>
-              <h2 tabIndex={-1} className="member-card-title">{copy.request.title}</h2>
-              <p className="form-note mt-1">{copy.request.lead}</p>
+            <div className="member-card-head">
+              <Title html={copy.request.title} />
+              <p className="form-note">{copy.request.lead}</p>
             </div>
             <div className="field">
               <label htmlFor="member-request-email" className="field-label">{copy.login.emailLabel}</label>
@@ -257,17 +264,19 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
         )}
 
         {step === 'code' && (
-          <div className="flex flex-col gap-4" aria-busy={busy}>
-            <div className="text-center">
-              <span aria-hidden="true" className="member-card-icon">
+          <div className="flex flex-col gap-6" aria-busy={busy}>
+            <div className="member-card-head">
+              <span aria-hidden="true" className="member-card-icon mb-2 self-start">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="5" width="18" height="14" rx="2" />
                   <path d="m3 7 9 6 9-6" />
                 </svg>
               </span>
-              <h2 tabIndex={-1} className="member-card-title mt-3">{copy.code.title}</h2>
-              <p className="form-note mt-1">{copy.code.lead}</p>
-              <p className="break-all text-sm font-medium">{email}</p>
+              <Title html={copy.code.title} />
+              <div>
+                <p className="form-note">{copy.code.lead}</p>
+                <p className="m-0 break-all text-sm font-medium">{email}</p>
+              </div>
             </div>
             <div role="group" aria-label={copy.code.title} className="grid grid-cols-6 gap-2">
               {Array.from({ length: CODE_LENGTH }, (_, index) => (
@@ -293,7 +302,7 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
                 />
               ))}
             </div>
-            {feedback ?? <p className="form-note text-center">{copy.code.hint}</p>}
+            {feedback ?? <p className="form-note">{copy.code.hint}</p>}
             <div className="flex items-center justify-between gap-3">
               <button type="button" className="member-card-link" disabled={busy} onClick={() => goTo('request')}>
                 {copy.code.changeEmail}
@@ -312,9 +321,9 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
 
         {step === 'set' && (
           <form onSubmit={savePassword} className="form" aria-busy={busy}>
-            <div>
-              <h2 tabIndex={-1} className="member-card-title">{copy.set.title}</h2>
-              <p className="form-note mt-1">{copy.set.lead}</p>
+            <div className="member-card-head">
+              <Title html={copy.set.title} />
+              <p className="form-note">{copy.set.lead}</p>
             </div>
             {/* Lets password managers store the new password under the right address. */}
             <input type="email" value={email} autoComplete="username" readOnly hidden />
@@ -358,22 +367,11 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login', c
                 <path d="m5 12 5 5L20 7" />
               </svg>
             </span>
-            <h2 tabIndex={-1} className="member-card-title mt-4">{copy.done.title}</h2>
-            <p className="form-note mt-1">{copy.done.lead}</p>
+            <Title html={copy.done.title} className="mt-4" />
+            <p className="form-note mt-2">{copy.done.lead}</p>
           </div>
         )}
       </div>
-
-      <ol aria-hidden="true" className="flex items-center justify-center gap-4 border-t border-border px-6 py-3 text-xs">
-        {flow.map((item, index) => (
-          <li key={item} className={`flex items-center gap-1.5 ${index <= current ? 'text-fg' : 'text-fg-muted'}`}>
-            <span className="member-card-dot" data-state={index < current ? 'done' : index === current ? 'active' : 'todo'}>
-              {index < current ? '✓' : index + 1}
-            </span>
-            {copy.steps[item]}
-          </li>
-        ))}
-      </ol>
     </div>
   )
 }

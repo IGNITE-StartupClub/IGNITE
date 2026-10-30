@@ -400,12 +400,14 @@ export const memberArea = {
   login: {
     area: 'Members area',
     backHome: 'Back to the website',
+    panel: {
+      title: 'Everything for the team, <em>in one place.</em>',
+      lead: 'Internal news and contacts for everyone who is part of IGNITE.',
+      footer: 'IGNITE Startup Club · Student initiative at Leuphana University Lüneburg',
+    },
     card: {
-      brand: 'IGNITE Startup Club',
-      badge: 'Members only',
-      steps: { login: 'Sign in', code: 'Code', set: 'Password', done: 'Done' },
       login: {
-        title: 'Welcome back.',
+        title: 'Welcome <em>back</em>',
         lead: 'Sign in with your email address and your password.',
         emailLabel: 'Email address',
         emailPlaceholder: 'firstname.lastname@stud.leuphana.de',
@@ -414,7 +416,10 @@ export const memberArea = {
         submit: 'Sign in',
         submitting: 'Signing in...',
         rejected: 'Email address or password is wrong. After five failed attempts, sign-in is locked for 15 minutes.',
-        forgot: 'No password yet or forgot it?',
+        forgot: 'Forgot it?',
+        newHeading: 'New to the team?',
+        newText: 'Use your enabled address to get a code and set your password.',
+        newAction: 'Get a code',
       },
       request: {
         title: 'Get a code',
@@ -425,7 +430,7 @@ export const memberArea = {
       },
       code: {
         title: 'Check your inbox',
-        lead: 'If the address is enabled, a 6-digit code is on its way to',
+        lead: 'If the address is enabled, a 6‑digit code is on its way to',
         hint: 'It is valid for 10 minutes. Nothing there? Check your spam folder too.',
         // {n} and {total} are replaced.
         digitLabel: 'Digit {n} of {total}',

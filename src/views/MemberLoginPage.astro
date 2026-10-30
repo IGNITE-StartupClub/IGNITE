@@ -1,9 +1,11 @@
 ---
 /**
  * Members area sign-in, rendered on demand by pages/mitglieder/login.astro and pages/en/members/login.astro.
- * A page of its own without the site header and footer: a slim top bar and the centred MemberLoginCard island,
- * which also handles "no password yet or forgot it" with a one-time code. `?reset` opens the card at the code request,
- * which is how signed-in members change their password.
+ * A page of its own without the site header and footer, split in two: the deep purple brand panel (in both themes)
+ * with eyebrow, claim and lead, and the MemberLoginCard island on the page
+ * background. Below lg the panel shrinks to a bar with the logo. The island also handles "no password yet or forgot
+ * it" with a one-time code; `?reset` opens it at the code request, which is how signed-in members change their
+ * password.
  * Data source: memberArea via getCopy().
  */
 import { Icon } from 'astro-icon/components'
@@ -20,27 +22,73 @@ Astro.response.headers.set('Cache-Control', 'private, no-store')
 ---
 
 <DefaultLayout title={memberArea.pageTitle} noindex bare>
-  <div class="flex min-h-dvh flex-col">
-    <div class="flex items-center justify-between gap-4 px-gutter py-5">
-      <a href={navigation.homeUrl} class="flex items-center gap-3 text-fg no-underline" aria-label={navigation.logoText}>
+  <div class="grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-2 lg:grid-rows-none">
+    <section
+      aria-label={login.area}
+      class="surface-brand relative flex items-center justify-between gap-4 overflow-hidden px-gutter py-4 lg:flex-col lg:items-stretch lg:gap-12 lg:px-16 lg:py-12"
+    >
+      <a href={navigation.homeUrl} class="relative flex items-center gap-3 text-fg no-underline hover:text-fg" aria-label={navigation.logoText}>
         <span class="w-28"><Logo color="currentColor" name={navigation.logoText} /></span>
         <span class="whitespace-nowrap border-l border-border pl-3 text-sm text-fg-muted" aria-hidden="true">{login.area}</span>
       </a>
-      <a href={navigation.homeUrl} class="flex min-h-11 items-center gap-1.5 text-sm text-fg-muted no-underline hover:text-fg" aria-label={login.backHome}>
-        <Icon name="ion:arrow-back" aria-hidden="true" />
-        <span class="hidden whitespace-nowrap sm:inline">{login.backHome}</span>
-      </a>
-    </div>
-    <div class="flex flex-1 items-center justify-center px-4 pb-16 pt-4">
-      <h1 class="sr-only">{memberArea.pageTitle}</h1>
-      <MemberLoginCard
-        client:load
-        copy={login.card}
-        locale={locale}
-        initialStep={Astro.url.searchParams.has('reset') ? 'request' : 'login'}
+      <a
+        href={navigation.homeUrl}
+        class="flex min-h-11 min-w-11 items-center justify-center text-fg-muted no-underline hover:text-fg lg:hidden"
+        aria-label={login.backHome}
       >
-        <Logo color="currentColor" name={navigation.logoText} markOnly />
-      </MemberLoginCard>
+        <Icon name="ion:arrow-back" aria-hidden="true" />
+      </a>
+
+      <span aria-hidden="true" class="member-login-watermark hidden lg:block">
+        <Logo color="currentColor" markOnly />
+      </span>
+
+      <div class="relative hidden max-w-xl flex-col gap-5 lg:flex">
+        <p class="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-fg-muted">{login.area}</p>
+        <h2 class="member-login-panel-title" set:html={login.panel.title} />
+        <p class="m-0 max-w-md text-fg-muted">{login.panel.lead}</p>
+      </div>
+      <p class="relative m-0 hidden text-sm text-fg-muted lg:block">{login.panel.footer}</p>
+    </section>
+
+    <div class="flex flex-col px-gutter pb-16 pt-4 lg:px-16 lg:py-12">
+      <div class="hidden justify-end lg:flex">
+        <a href={navigation.homeUrl} class="flex min-h-11 items-center gap-1.5 text-sm text-fg-muted no-underline hover:text-fg">
+          <Icon name="ion:arrow-back" aria-hidden="true" />
+          <span class="whitespace-nowrap">{login.backHome}</span>
+        </a>
+      </div>
+      <div class="flex flex-1 items-center justify-center pt-8 lg:pt-0">
+        <h1 class="sr-only">{memberArea.pageTitle}</h1>
+        <MemberLoginCard
+          client:load
+          copy={login.card}
+          locale={locale}
+          initialStep={Astro.url.searchParams.has('reset') ? 'request' : 'login'}
+        />
+      </div>
     </div>
   </div>
 </DefaultLayout>
+
+<style>
+  .member-login-watermark {
+    position: absolute;
+    right: -9rem;
+    bottom: -8rem;
+    width: 36rem;
+    color: rgb(255 255 255 / 0.06);
+    pointer-events: none;
+  }
+
+  /* More specific than Logo's own width rule. */
+  .member-login-watermark :global(svg) {
+    width: 100%;
+  }
+
+  .member-login-panel-title {
+    margin: 0;
+    font-size: var(--text-display-md);
+    font-weight: 600;
+  }
+</style>

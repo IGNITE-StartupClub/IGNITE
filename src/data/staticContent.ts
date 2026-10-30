@@ -400,12 +400,14 @@ export const memberArea = {
   login: {
     area: 'Mitgliederbereich',
     backHome: 'Zur Startseite',
+    panel: {
+      title: 'Alles fürs Team, <em>an einem Ort.</em>',
+      lead: 'Interne Infos und Kontakte für alle, die bei IGNITE mitmachen.',
+      footer: 'IGNITE Startup Club · Studentische Initiative an der Leuphana Universität Lüneburg',
+    },
     card: {
-      brand: 'IGNITE Startup Club',
-      badge: 'Nur für Mitglieder',
-      steps: { login: 'Anmelden', code: 'Code', set: 'Passwort', done: 'Drin' },
       login: {
-        title: 'Willkommen zurück.',
+        title: 'Willkommen <em>zurück</em>',
         lead: 'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.',
         emailLabel: 'E-Mail-Adresse',
         emailPlaceholder: 'vorname.nachname@stud.leuphana.de',
@@ -414,7 +416,10 @@ export const memberArea = {
         submit: 'Anmelden',
         submitting: 'Wird angemeldet...',
         rejected: 'E-Mail-Adresse oder Passwort stimmt nicht. Nach fünf Fehlversuchen ist die Anmeldung 15 Minuten gesperrt.',
-        forgot: 'Noch kein Passwort oder vergessen?',
+        forgot: 'Vergessen?',
+        newHeading: 'Neu im Team?',
+        newText: 'Mit deiner freigeschalteten Adresse holst du dir einen Code und legst dein Passwort fest.',
+        newAction: 'Code anfordern',
       },
       request: {
         title: 'Code anfordern',
@@ -425,7 +430,7 @@ export const memberArea = {
       },
       code: {
         title: 'Schau in dein Postfach',
-        lead: 'Wenn die Adresse freigeschaltet ist, geht gleich ein 6-stelliger Code an',
+        lead: 'Wenn die Adresse freigeschaltet ist, geht gleich ein 6‑stelliger Code an',
         hint: 'Er gilt 10 Minuten. Nichts da? Schau auch im Spam-Ordner.',
         // {n} and {total} are replaced.
         digitLabel: 'Ziffer {n} von {total}',
