@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import {
   CODE_LENGTH,
   codeKey,
@@ -7,6 +8,7 @@ import {
   hashPassword,
   hashToken,
   isAdminPath,
+  isInitialAdmin,
   isJsonRequest,
   isMemberRole,
   isProtectedApiPath,
@@ -22,6 +24,8 @@ import {
   sameDigest,
   verifyPassword,
 } from './memberAuth.ts'
+
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
 test('normalizeEmail trims and lowercases valid addresses', () => {
   assert.equal(normalizeEmail('  Max.Muster@Leuphana.DE '), 'max.muster@leuphana.de')
@@ -159,4 +163,11 @@ test('isJsonRequest requires an application/json content type', () => {
   assert.equal(isJsonRequest('text/plain'), false)
   assert.equal(isJsonRequest('application/x-www-form-urlencoded'), false)
   assert.equal(isJsonRequest(null), false)
+})
+
+test('isInitialAdmin matches the SHA-256 of the normalized address only', () => {
+  const hashes = [sha256('other@leuphana.de'), sha256('max@leuphana.de')]
+  assert.equal(isInitialAdmin('max@leuphana.de', hashes), true)
+  assert.equal(isInitialAdmin('eva@leuphana.de', hashes), false)
+  assert.equal(isInitialAdmin('max@leuphana.de', []), false)
 })

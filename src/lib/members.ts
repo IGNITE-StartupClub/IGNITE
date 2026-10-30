@@ -17,6 +17,7 @@ import {
   hashClientAddress,
   hashCode,
   hashToken,
+  isInitialAdmin,
   LOGIN_LOCK_SECONDS,
   LOGIN_MAX_FAILURES,
   LOGIN_MAX_FAILURES_PER_CLIENT,
@@ -27,6 +28,7 @@ import {
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
+import { INITIAL_ADMIN_HASHES } from './initialAdmins'
 
 export interface Member {
   email: string
@@ -139,6 +141,19 @@ export async function addMember(email: string, role: MemberRole): Promise<boolea
     { upsert: true },
   )
   return upsertedCount === 1
+}
+
+/**
+ * Adds `email` as admin when it is on INITIAL_ADMIN_HASHES and the area has no admin yet; does nothing otherwise.
+ * Two listed people asking at the same moment can both become admin, which the list allows anyway.
+ */
+export async function ensureInitialAdmin(email: string): Promise<void> {
+  if (!isInitialAdmin(email, INITIAL_ADMIN_HASHES)) return
+  const { members } = await collections()
+  if (await members.findOne({ role: 'admin' }, { projection: { _id: 1 } })) return
+  if (await addMember(email, 'admin')) {
+    await logAdminAction({ actor: 'initial-admins', action: 'add', email, role: 'admin' })
+  }
 }
 
 /** Removes a member together with their sessions and open codes, so access ends at once. */

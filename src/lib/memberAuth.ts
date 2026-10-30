@@ -40,6 +40,10 @@ export const newToken = (): string => randomBytes(32).toString('base64url')
 // The tokens carry 256 random bits, so a fast unsalted hash is enough.
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex')
 
+/** Whether `email` (normalized) is on the list of possible first admins, given as SHA-256 hashes (initialAdmins.ts). */
+export const isInitialAdmin = (email: string, hashes: readonly string[]): boolean =>
+  hashes.includes(createHash('sha256').update(email).digest('hex'))
+
 /** Random numeric code with leading zeros, e.g. "042917". */
 export const newCode = (): string => String(randomInt(10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0')
 

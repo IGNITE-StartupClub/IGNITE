@@ -2,7 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest, normalizeEmail } from '../../../lib/memberAuth'
-import { countCodes, findMember } from '../../../lib/members'
+import { countCodes, ensureInitialAdmin, findMember } from '../../../lib/members'
 import { sendCode } from '../../../lib/memberMail'
 import { reply } from '../../../lib/memberSession'
 
@@ -40,6 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
     if ((await countCodes(new Date(Date.now() - 3600 * 1000))) >= MAX_CODES_PER_HOUR) {
       return reply(429, { message: 'Gerade werden zu viele Codes angefordert. Bitte versuche es später erneut.' })
     }
+    await ensureInitialAdmin(email)
     if (await findMember(email)) {
       await sendCode(email, MAX_CODES_PER_HOUR, MAX_CODES_PER_ADDRESS_PER_HOUR)
     }
