@@ -4,7 +4,7 @@
 // sent it and closes with their stored signature (/api/members/signature).
 
 import { escapeHtml } from './escapeHtml';
-import { button, note, paragraph, renderEmail } from './layout';
+import { button, closingNote, renderMemberEmail, steps, text } from './memberLayout';
 
 /** The admin who sent the invitation: their name and signature once they stored one, otherwise their address. */
 export interface Inviter {
@@ -17,19 +17,19 @@ export function getMemberInviteSubject(): string {
 }
 
 export function getMemberInviteEmailHTML(loginUrl: string, inviter: Inviter): string {
-  const invitedBy = `${inviter.label} hat dich in den IGNITE-Mitgliederbereich eingeladen.`;
-  return renderEmail({
-    title: 'Willkommen im Mitgliederbereich',
-    preheader: invitedBy,
-    // A signature already carries badge and links, so the mail then closes with the contact line only.
-    audience: inviter.signatureHtml ? 'visitor' : 'member',
+  return renderMemberEmail({
+    title: 'Du bist eingeladen',
+    preheader: `${inviter.label} hat dich in den IGNITE-Mitgliederbereich eingeladen.`,
     contentHtml: [
-      paragraph(
-        `${escapeHtml(inviter.label)} hat dich in den Mitgliederbereich der IGNITE-Website eingeladen. Öffne die Anmeldeseite, klick unter „Neu im Team?“ auf „Code anfordern“ und gib diese E-Mail-Adresse ein. Wir schicken dir dann einen Code, mit dem du dein Passwort festlegst.`,
-      ),
+      text(`${escapeHtml(inviter.label)} hat dich in den Mitgliederbereich der IGNITE-Website eingeladen. So richtest du deinen Zugang ein:`),
+      steps([
+        'Öffne die Anmeldeseite.',
+        'Klick unter „Neu im Team?“ auf „Code anfordern“ und gib die E-Mail-Adresse ein, unter der du diese Einladung erhalten hast.',
+        'Gib den Code aus der nächsten Mail ein und leg dein Passwort fest.',
+      ]),
       button('Zur Anmeldung', loginUrl),
-      inviter.signatureHtml ? `${paragraph('Bis bald')}${inviter.signatureHtml}` : '',
-      note('Du kennst IGNITE nicht? Dann ignoriere diese Mail einfach. Ohne dich passiert nichts.'),
+      inviter.signatureHtml ? `<div style="padding-top: 24px;">${text('Bis bald')}<div style="padding-top: 12px;">${inviter.signatureHtml}</div></div>` : '',
+      closingNote('Du kennst IGNITE nicht? Dann kannst du diese Mail ignorieren.'),
     ].join(''),
   });
 }

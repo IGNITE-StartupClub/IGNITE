@@ -89,3 +89,9 @@ test('parseSignature keeps only complete, trimmed text fields', () => {
   assert.equal(parseSignature({ ...body, email: 42 }), null)
   assert.equal(parseSignature(null), null)
 })
+
+test('lets contact lines wrap after a separator, never before it', () => {
+  const html = signatureHtml(fields({ phone: '+49 151 0000000' }), text, links, '')
+  assert.ok(html.includes('&nbsp;· </span>'))
+  assert.ok(!html.includes('·&nbsp;'))
+})

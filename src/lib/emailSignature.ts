@@ -55,7 +55,8 @@ export interface SignatureLink {
   url: string
 }
 
-const DOT = '<span style="color:#9a9a9a;">&nbsp;·&nbsp;</span>'
+// A plain space after the dot lets long lines wrap on phones; the dot stays at the end of the line.
+const DOT = '<span style="color:#9a9a9a;">&nbsp;· </span>'
 
 export const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!)
