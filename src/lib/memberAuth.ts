@@ -173,6 +173,7 @@ const PAGES = {
   alumni: { de: 'alumni', en: 'alumni' },
   team: { de: 'team', en: 'team' },
   guide: { de: 'guide', en: 'guide' },
+  branding: { de: 'branding', en: 'branding' },
   benefits: { de: 'vorteile', en: 'benefits' },
 } as const
 export type MemberPage = keyof typeof PAGES

@@ -1,0 +1,136 @@
+---
+/**
+ * The brand kit of the members area, rendered on demand by pages/mitglieder/branding.astro and
+ * pages/en/members/branding.astro: logos, mark, profile pictures and team icons to download, plus colours, fonts and
+ * a few rules. The previews sit on a light or dark tile depending on the logo colour, in both themes.
+ * Data source: brandGroups (brandKit.ts, files in public/brand), memberArea.branding via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import { BRAND_PATH, brandGroups } from '../data/brandKit'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { branding, nav } = getCopy(locale).memberArea
+const downloadLabel = (name: string, format: string) =>
+  branding.downloadLabel.replace('{name}', name).replace('{format}', format)
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ')
+// The badge's fixed dark, so the white logo reads the same in both themes.
+const TILE = { light: 'bg-white', dark: 'bg-[#0c0b0e]' }
+const BUTTON =
+  'inline-flex h-9 items-center gap-1.5 rounded-lg border border-border-strong px-3 text-sm font-medium text-fg no-underline transition-colors hover:bg-bg-subtle'
+---
+
+<DefaultLayout
+  title={branding.pageTitle}
+  alternatePath={memberPagePath('branding', locale === 'de' ? 'en' : 'de')}
+  noindex
+>
+  <PageHeader title={branding.title} lead={branding.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{branding.back}</a></p>
+  </PageHeader>
+
+  {
+    brandGroups.map(({ id, assets }, index) => (
+      <Section tone={index % 2 === 0 ? 'subtle' : undefined} spacing="sm" labelledby={`brand-${id}`}>
+        <h2 id={`brand-${id}`} class="text-display-sm">
+          {branding.groups[id].heading}
+        </h2>
+        <p class="mb-6 mt-2 text-fg-muted">{branding.groups[id].text}</p>
+        <ul
+          class:list={[
+            'grid gap-4',
+            id === 'teams' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'sm:grid-cols-2 lg:grid-cols-3',
+          ]}
+        >
+          {assets.map((asset) => {
+            const name = branding.assets[asset.id]
+            return (
+              <li class="flex flex-col overflow-hidden rounded-card border border-border bg-bg">
+                <div class:list={['flex aspect-video items-center justify-center p-6', TILE[asset.tone]]}>
+                  <img
+                    src={BRAND_PATH + asset.preview}
+                    alt=""
+                    loading="lazy"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div class="flex flex-1 flex-col gap-3 border-t border-border p-4">
+                  <h3 class="text-base font-semibold">{name}</h3>
+                  <div class="mt-auto flex flex-wrap gap-2">
+                    {asset.files.map(({ format, file, detail }) => (
+                      <a href={BRAND_PATH + file} download class={BUTTON} aria-label={downloadLabel(name, format)}>
+                        {format}
+                        {detail && <span class="font-normal text-fg-subtle">{detail}</span>}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </Section>
+    ))
+  }
+
+  <Section tone="subtle" spacing="sm" labelledby="brand-colors">
+    <h2 id="brand-colors" class="mb-6 text-display-sm">{branding.colorsHeading}</h2>
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        branding.colors.map(({ name, hex, use }) => (
+          <li class="flex overflow-hidden rounded-card border border-border bg-bg">
+            <span aria-hidden="true" class="w-20 shrink-0 border-r border-border" style={{ backgroundColor: hex }} />
+            <div class="flex flex-col gap-1 p-4">
+              <h3 class="text-base font-semibold">{name}</h3>
+              <p class="select-all font-mono text-sm">{hex}</p>
+              <p class="font-mono text-xs text-fg-subtle">RGB {rgb(hex)}</p>
+              <p class="text-sm text-fg-muted">{use}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section spacing="sm" labelledby="brand-fonts">
+    <div class="grid gap-10 lg:grid-cols-2">
+      <div>
+        <h2 id="brand-fonts" class="mb-6 text-display-sm">{branding.fontsHeading}</h2>
+        <ul class="grid gap-4">
+          {
+            branding.fonts.map(({ name, use, url }) => (
+              <li class="rounded-card border border-border bg-bg p-5">
+                <p class:list={['text-3xl', name.startsWith('Newsreader') ? 'font-accent italic' : 'font-semibold']}>
+                  Aa Bb Cc 123
+                </p>
+                <h3 class="mt-3 text-base font-semibold">{name}</h3>
+                <p class="text-sm text-fg-muted">{use}</p>
+                <a href={url} target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-sm">
+                  {branding.fontLink}
+                  <span class="sr-only"> ({nav.newTab})</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <div>
+        <h2 class="mb-6 text-display-sm">{branding.rulesHeading}</h2>
+        <ul class="grid gap-3">
+          {
+            branding.rules.map((rule) => (
+              <li class="flex gap-3 rounded-card border border-border bg-bg p-4 text-fg-muted">
+                <span aria-hidden="true" class="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand-bright" />
+                {rule}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </Section>
+</DefaultLayout>
