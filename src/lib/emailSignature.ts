@@ -100,9 +100,11 @@ export function signatureHtml(
     ...links.map(({ platform, url }) => link(url, platform, '#5227ff')),
   ]
 
-  // Only our own uploads, which the cropper has already cut square.
+  // Only our own uploads, which the cropper has already cut square. Outlook for iOS forces `max-width: 100%` on
+  // images and let the narrow column squeeze the photo to an oval under its fixed height: the cell's width keeps
+  // the column wide, min-width outranks max-width, and `height:auto` keeps it round if a client narrows it anyway.
   const photoCell = isPhotoId(photoId)
-    ? `<td valign="top" style="padding:0 18px 0 0;"><img src="${assetOrigin}${photoPath(photoId)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;max-width:none;height:96px;border-radius:48px;object-fit:cover;border:0;"></td>`
+    ? `<td valign="top" width="96" style="width:96px;min-width:96px;padding:0 18px 0 0;"><img src="${assetOrigin}${photoPath(photoId)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;min-width:96px;max-width:none;height:auto;border-radius:48px;object-fit:cover;border:0;"></td>`
     : ''
 
   const rows = [

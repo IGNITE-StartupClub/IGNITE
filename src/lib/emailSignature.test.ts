@@ -50,6 +50,17 @@ test('sizes every table to its content, whatever the host page sets for tables',
   for (const table of tables) assert.match(table, /width:auto;table-layout:auto;/)
 })
 
+test('keeps the photo square when a mail client narrows images', () => {
+  const html = signatureHtml(fields({ photo: photoPath(PHOTO_ID) }), text, links, '')
+  const cell = html.match(/<td [^>]*>(?=<img [^>]*signature-photo)/)?.[0] ?? ''
+  const photo = html.match(/<img [^>]*signature-photo[^>]*>/)?.[0] ?? ''
+  // The cell holds its width in the column, min-width outranks a forced max-width, and height follows the width.
+  assert.match(cell, /width="96"/)
+  assert.match(cell, /min-width:96px;/)
+  assert.match(photo, /min-width:96px;/)
+  assert.match(photo, /height:auto;/)
+})
+
 test('shows only uploaded photos, from the given origin', () => {
   const photo = photoPath(PHOTO_ID)
   assert.ok(signatureHtml(fields({ photo }), text, links, '').includes(`src="${photo}"`))
