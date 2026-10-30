@@ -41,7 +41,7 @@ export const newToken = (): string => randomBytes(32).toString('base64url')
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex')
 
 /** Whether `email` (normalized) is on the list of possible first admins, given as SHA-256 hashes (initialAdmins.ts). */
-export const isInitialAdmin = (email: string, hashes: readonly string[]): boolean =>
+export const isListedAddress = (email: string, hashes: readonly string[]): boolean =>
   hashes.includes(createHash('sha256').update(email).digest('hex'))
 
 /** Upper limit for a signature photo; the cropper's 192 px JPEGs stay far below it. */

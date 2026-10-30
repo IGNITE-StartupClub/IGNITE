@@ -2,13 +2,13 @@
  * Member management for admins (React island). Posts { action, email, role?, locale } to /api/members/admin and
  * shows the member list the API returns after each action.
  * Props: copy (memberArea.admin.manager), initialMembers (memberSummary objects), currentEmail (the signed-in admin,
- * whose own row has no actions), locale ('de' | 'en').
+ * whose own row has no actions), locale ('de' | 'en'). Owners show as such and offer no role change or removal.
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useState } from 'react'
 import './forms.css'
 
-const ERROR_CODES = ['exists', 'unknown', 'self', 'invalid', 'forbidden', 'error', 'mailFailed', 'addedMailFailed']
+const ERROR_CODES = ['exists', 'unknown', 'self', 'owner', 'invalid', 'forbidden', 'error', 'mailFailed', 'addedMailFailed']
 
 export default function MemberAdmin({ copy, initialMembers, currentEmail, locale }) {
   const [members, setMembers] = useState(initialMembers)
@@ -107,7 +107,7 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                   {member.email === currentEmail && <span className="text-fg-muted"> ({copy.you})</span>}
                 </p>
                 <p className="text-sm text-fg-muted">
-                  {copy.roles[member.role]} · {copy.status[statusOf(member)]}
+                  {member.owner ? copy.owner : copy.roles[member.role]} · {copy.status[statusOf(member)]}
                 </p>
               </div>
               {member.email !== currentEmail && (
@@ -117,17 +117,21 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                       {copy.invite}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="form-secondary"
-                    disabled={busy}
-                    onClick={() => run({ action: 'role', email: member.email, role: member.role === 'admin' ? 'member' : 'admin' })}
-                  >
-                    {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
-                  </button>
-                  <button type="button" className="form-secondary" disabled={busy} onClick={() => handleRemove(member.email)}>
-                    {copy.remove}
-                  </button>
+                  {!member.owner && (
+                    <>
+                      <button
+                        type="button"
+                        className="form-secondary"
+                        disabled={busy}
+                        onClick={() => run({ action: 'role', email: member.email, role: member.role === 'admin' ? 'member' : 'admin' })}
+                      >
+                        {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
+                      </button>
+                      <button type="button" className="form-secondary" disabled={busy} onClick={() => handleRemove(member.email)}>
+                        {copy.remove}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </li>
