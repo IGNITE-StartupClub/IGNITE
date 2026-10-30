@@ -28,6 +28,7 @@ const EMPTY_PROFILE = {
   email: '',
   open: true,
   consent: false,
+  mayToggleOpen: true,
 }
 const GROUPS = [
   ['help', ALUMNI_HELP, 'help'],
@@ -83,6 +84,7 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
             igniteFrom: person.igniteFrom ?? '',
             igniteTo: person.igniteTo ?? '',
             open: person.open,
+            mayToggleOpen: person.mayDelete,
             // The profile exists, so the consent was recorded when it was added.
             consent: true,
           }
@@ -383,7 +385,13 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
           </Field>
         </div>
         <label className="choice">
-          <input type="checkbox" checked={form.open} onChange={(e) => setForm({ ...form, open: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={form.open}
+            // Opening a profile shows its email to everyone, so only admins and its creator switch it (contactsStore).
+            disabled={!form.mayToggleOpen}
+            onChange={(e) => setForm({ ...form, open: e.target.checked })}
+          />
           {copy.form.open}
         </label>
         <label className="choice">

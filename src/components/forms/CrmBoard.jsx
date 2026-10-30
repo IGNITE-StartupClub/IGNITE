@@ -26,7 +26,7 @@ import {
 } from './memberUi'
 import './forms.css'
 
-const ERROR_CODES = ['invalid', 'unknown', 'forbidden', 'error']
+const ERROR_CODES = ['invalid', 'unknown', 'forbidden', 'duplicate', 'error']
 const EMPTY_CONTACT = {
   name: '',
   organization: '',

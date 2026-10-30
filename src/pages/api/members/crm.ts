@@ -17,7 +17,8 @@ import { currentMember, reply } from '../../../lib/memberSession'
  * The CRM of the members area (CrmBoard island). Body: { action, id?, contact?, entry?, entryId? } with action
  * 'save' (create without id), 'delete', 'entry' (log a mail, meeting, event or note), 'removeEntry' or 'done' (log
  * the next step as done and clear it). Answers with { code, contacts, id? } so the island shows the current list.
- * Every member may use it; deleting a contact or an entry is up to admins and whoever created it.
+ * Every member may use it; deleting a contact or an entry is up to admins and whoever created it. A second contact
+ * with an email address that is already in the CRM is refused with 409 'duplicate'.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -43,8 +44,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (action === 'save') {
       const contact = parseContact(body.contact)
       if (!contact) return invalid()
-      savedId = await saveContact(id, contact, member)
-      code = savedId ? 'saved' : 'unknown'
+      const saved = await saveContact(id, contact, member)
+      code = typeof saved === 'string' ? saved : 'saved'
+      savedId = typeof saved === 'string' ? null : saved.id
     } else if (action === 'entry' && id) {
       const entry = parseEntry(body.entry)
       if (!entry) return invalid()
@@ -60,6 +62,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
     if (code === 'unknown') status = 404
     if (code === 'forbidden') status = 403
+    if (code === 'duplicate') status = 409
     return reply(status, { code, id: savedId, contacts: await contactSummaries(member) })
   } catch (err) {
     console.error('CRM action failed:', err)

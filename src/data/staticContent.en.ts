@@ -577,6 +577,7 @@ export const memberArea = {
         deleted: 'Contact deleted.',
         invalid: 'Please check the details. Name and "How we know them" are required, LinkedIn must be a LinkedIn link.',
         unknown: 'This contact no longer exists. Reload the page.',
+        duplicate: 'This email address already belongs to another contact. Search for it in the list.',
         forbidden: 'Only admins and whoever added it can delete this.',
         error: 'Something went wrong. Please try again later.',
       },
