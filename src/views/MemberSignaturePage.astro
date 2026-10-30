@@ -11,7 +11,7 @@ import Section from '../components/ui/Section.astro'
 import SignatureGenerator from '../components/forms/SignatureGenerator.jsx'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
-import { memberHomePath, memberSignaturePath } from '../lib/memberAuth'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, footer } = getCopy(locale)
@@ -20,7 +20,7 @@ const links = footer.socialLinks
   .filter(({ platform }) => ['Instagram', 'LinkedIn'].includes(platform))
   .map(({ platform, url }) => ({ platform, url }))
 // The English route has its own slug, which switchLocalePath cannot derive from the German one.
-const alternatePath = memberSignaturePath(locale === 'de' ? 'en' : 'de')
+const alternatePath = memberPagePath('signature', locale === 'de' ? 'en' : 'de')
 ---
 
 <DefaultLayout title={signature.pageTitle} alternatePath={alternatePath} noindex>

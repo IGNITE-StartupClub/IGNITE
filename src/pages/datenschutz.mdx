@@ -112,13 +112,17 @@ Im Hinblick auf die Speicherdauer werden die folgenden Arten von Cookies untersc
 
 ## Mitgliederbereich
 
-Mitglieder von IGNITE können sich ohne Passwort im Mitgliederbereich der Website anmelden. Dazu geben sie ihre E-Mail-Adresse ein. Steht die Adresse auf unserer Liste freigeschalteter Mitglieder, senden wir einen Anmeldelink an diese Adresse. Der Link gilt 15 Minuten und lässt sich nur einmal verwenden.
+Mitglieder von IGNITE melden sich im Mitgliederbereich der Website mit ihrer E-Mail-Adresse und einem selbst gewählten Passwort an. Ein Admin von IGNITE trägt die Adresse ein. Wir senden dann eine Einladung mit einem Link, über den das Mitglied sein Passwort festlegt. Über denselben Weg lässt sich ein vergessenes Passwort neu festlegen. Einladungslinks gelten 7 Tage, alle anderen Links 60 Minuten, und jeder Link lässt sich nur einmal verwenden.
+
+Wir speichern das Passwort nicht im Klartext, sondern nur als gesalzenen Hashwert (Verfahren scrypt), aus dem sich das Passwort nicht zurückrechnen lässt. Nach fünf falschen Passwörtern in Folge sperren wir die Anmeldung für 15 Minuten.
 
 Nach der Anmeldung setzen wir das Cookie „ignite_member“. Es enthält eine zufällige Kennung, über die wir die Anmeldung wiedererkennen, und ist für den Mitgliederbereich technisch erforderlich. Es wird beim Abmelden gelöscht, spätestens aber nach 30 Tagen ungültig.
 
-- **Verarbeitete Daten:** E-Mail-Adresse, Zeitpunkt der Anmeldung, Sitzungskennung (nur als Hashwert gespeichert).
-- **Zweck:** Zugang zu internen Inhalten nur für Mitglieder.
-- **Speicherdauer:** Anmeldelinks werden nach 15 Minuten gelöscht, Sitzungen nach 30 Tagen oder beim Abmelden. Die E-Mail-Adresse bleibt auf der Mitgliederliste, bis die Mitgliedschaft endet oder das Mitglied die Löschung verlangt.
+Änderungen an der Mitgliederliste (hinzufügen, entfernen, Rolle ändern, Einladung senden) protokollieren wir mit Zeitpunkt, der betroffenen Adresse und der Adresse des Admins, der die Änderung vorgenommen hat.
+
+- **Verarbeitete Daten:** E-Mail-Adresse, Rolle (Mitglied oder Admin), Hashwert des Passworts, Zeitpunkt der Aufnahme und der letzten Passwortänderung, Zahl der Fehlversuche, Sitzungskennung und Links (nur als Hashwert gespeichert), Protokoll der Änderungen.
+- **Zweck:** Zugang zu internen Inhalten nur für Mitglieder, Schutz der Konten vor unbefugtem Zugriff, Nachvollziehbarkeit von Änderungen an der Mitgliederliste.
+- **Speicherdauer:** Links werden nach Ablauf gelöscht, Sitzungen nach 30 Tagen oder beim Abmelden, Protokolleinträge nach einem Jahr. E-Mail-Adresse, Rolle und Passwort-Hashwert bleiben gespeichert, bis die Mitgliedschaft endet oder das Mitglied die Löschung verlangt.
 - **Rechtsgrundlagen:** Vertragserfüllung und vorvertragliche Anfragen (Art. 6 Abs. 1 S. 1 lit. b) DSGVO); das Cookie ist unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).
 
 ## Blogs und Publikationsmedien

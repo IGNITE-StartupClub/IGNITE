@@ -1,69 +1,38 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { Resend } from 'resend'
-import 'dotenv/config'
-import { assertSent } from '../../../lib/resend'
-import { memberLoginPath, normalizeEmail } from '../../../lib/memberAuth'
-import { countLoginTokens, createLoginToken, deleteLoginToken, isAllowed } from '../../../lib/members'
-import { globalConfig } from '../../../data/staticContent'
-import { getMemberLoginEmailHTML, getMemberLoginSubject } from '../../../templates/emails/memberLoginEmail'
+import { isJsonRequest, memberHomePath, normalizeEmail, verifyPassword } from '../../../lib/memberAuth'
+import { clearFailedLogins, findMember, isLocked, recordFailedLogin } from '../../../lib/members'
+import { reply, startSession } from '../../../lib/memberSession'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-// Resend's free plan allows 100 mails a day, shared with the application, contact and community mails.
-const MAX_LINKS_PER_HOUR = 30
-const MIN_SECONDS_BETWEEN_LINKS = 60
+// One message for unknown address, wrong password and lock, so the form does not reveal who is a member.
+const REJECTED = 'E-Mail-Adresse oder Passwort stimmt nicht, oder die Anmeldung ist nach mehreren Fehlversuchen kurz gesperrt.'
 
-const reply = (status: number, message: string) =>
-  new Response(JSON.stringify({ message }), { status, headers: { 'Content-Type': 'application/json' } })
-
-// Same answer whether or not the address is on the allowlist, so the form does not reveal who is a member.
-const accepted = () => reply(200, 'Wenn die Adresse freigeschaltet ist, ist der Login-Link unterwegs.')
-
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
+  if (!isJsonRequest(request.headers.get('content-type'))) {
+    return reply(415, { message: 'Erwartet JSON.' })
+  }
   try {
-    const { email: rawEmail, locale } = await request.json()
+    const { email: rawEmail, password, locale } = await request.json()
     const email = normalizeEmail(rawEmail)
-    if (!email) {
-      return reply(400, 'Ungültige E-Mail-Adresse.')
+    // The length cap keeps oversized input away from scrypt; real passwords are far shorter.
+    if (!email || typeof password !== 'string' || password.length > 1024) {
+      return reply(400, { message: 'Bitte E-Mail-Adresse und Passwort angeben.' })
     }
 
-    if ((await countLoginTokens(new Date(Date.now() - 3600 * 1000))) >= MAX_LINKS_PER_HOUR) {
-      return reply(429, 'Gerade werden zu viele Login-Links angefordert. Bitte versuche es später erneut.')
-    }
-    if (!(await isAllowed(email))) {
-      return accepted()
-    }
-    // A double click or a reload must not send a second mail.
-    if ((await countLoginTokens(new Date(Date.now() - MIN_SECONDS_BETWEEN_LINKS * 1000), email)) > 0) {
-      return accepted()
+    const member = await findMember(email)
+    // Runs scrypt even without an account, so timing does not reveal one either.
+    const correct = await verifyPassword(password, member?.passwordHash)
+    if (!member || !correct || isLocked(member)) {
+      if (member?.passwordHash && !correct && !isLocked(member)) await recordFailedLogin(email)
+      return reply(401, { message: REJECTED })
     }
 
-    const token = await createLoginToken(email)
-    // Production links always point to the configured site, never to the Host header of the request.
-    const origin = import.meta.env.DEV ? url.origin : import.meta.env.SITE
-    const loginUrl = new URL(memberLoginPath(locale === 'en' ? 'en' : 'de'), origin)
-    loginUrl.searchParams.set('token', token)
-
-    try {
-      assertSent(
-        await resend.emails.send({
-          from: 'IGNITE Startup Club <mitglieder@info.ignite-startupclub.de>',
-          to: email,
-          replyTo: globalConfig.contactEmail,
-          subject: getMemberLoginSubject(),
-          html: getMemberLoginEmailHTML(loginUrl.href),
-        }),
-      )
-    } catch (err) {
-      // Without the mail the entry would block a retry for a minute.
-      await deleteLoginToken(token)
-      throw err
-    }
-
-    return accepted()
+    await clearFailedLogins(email)
+    await startSession(cookies, email)
+    return reply(200, { redirect: memberHomePath(locale === 'en' ? 'en' : 'de') })
   } catch (err) {
-    console.error('Member login link failed:', err)
-    return reply(500, 'Fehler beim E-Mail-Versand')
+    console.error('Member login failed:', err)
+    return reply(500, { message: 'Fehler bei der Anmeldung' })
   }
 }

@@ -4,6 +4,6 @@
 declare namespace App {
   interface Locals {
     /** Set by src/middleware.ts on pages of the members area. */
-    member?: { email: string }
+    member?: { email: string; role: 'member' | 'admin' }
   }
 }
