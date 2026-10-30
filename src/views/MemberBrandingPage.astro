@@ -50,12 +50,14 @@ const BUTTON =
             const name = branding.assets[asset.id]
             return (
               <li class="flex flex-col overflow-hidden rounded-card border border-border bg-bg">
-                <div class:list={['flex aspect-video items-center justify-center p-6', TILE[asset.tone]]}>
+                {/* The image fills the tile absolutely: Safari ignores max-height: 100% inside an aspect-ratio box,
+                    which let the icons grow the tile and slide off centre. */}
+                <div class:list={['relative aspect-video', TILE[asset.tone]]}>
                   <img
                     src={BRAND_PATH + asset.preview}
                     alt=""
                     loading="lazy"
-                    class="max-h-full max-w-full object-contain"
+                    class="absolute inset-0 h-full w-full object-contain p-6"
                   />
                 </div>
                 <div class="flex flex-1 flex-col gap-3 border-t border-border p-4">
