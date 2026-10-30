@@ -112,17 +112,17 @@ export async function hashPassword(password: string, pepper: Buffer): Promise<st
 let dummyHash: Promise<string> | null = null
 
 /**
- * Checks `password` against a stored hash. Without a stored hash (unknown address, no password yet) it still hashes
- * once against a dummy, so the response time does not reveal whether an address has an account.
+ * Checks `password` against a stored hash. Without a usable hash (unknown address, no password yet, another scheme or
+ * a malformed value) it still hashes once against a dummy, so the response time does not reveal whether an address
+ * has an account, nor what kind of hash it holds.
  */
 export async function verifyPassword(password: string, stored: string | undefined, pepper: Buffer): Promise<boolean> {
-  if (!stored) {
+  const [scheme, N, r, p, salt, hash] = stored?.split('$') ?? []
+  if (scheme !== SCHEME || !salt || !hash) {
     dummyHash ??= hashPassword(newToken(), pepper)
     await verifyPassword(password, await dummyHash, pepper)
     return false
   }
-  const [scheme, N, r, p, salt, hash] = stored.split('$')
-  if (scheme !== SCHEME || !salt || !hash) return false
   const expected = Buffer.from(hash, 'base64url')
   const actual = await derive(password, pepper, Buffer.from(salt, 'base64url'), Number(N), Number(r), Number(p), expected.length)
   return timingSafeEqual(actual, expected)
