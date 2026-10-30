@@ -466,10 +466,9 @@ export const memberArea = {
     signature: 'Email signature',
     crm: 'CRM',
     alumni: 'Alumni',
+    team: 'Team',
     guide: 'Guide',
-    guideUrl: '/en/materials/',
-    mentoring: 'Mentoring',
-    mentoringUrl: 'https://www.europeanmentorshipnetwork.com',
+    benefits: 'Benefits',
     newTab: 'opens in a new tab',
     profile: 'Profile and sign out',
     signedInAs: 'Signed in as',
@@ -480,19 +479,39 @@ export const memberArea = {
   },
   home: {
     title: 'Welcome to the <em>members area</em>',
-    lead: 'Everything you need as an IGNITE member, in one place.',
+    lead: 'Everything you need as an IGNITE member.',
     cardsHeading: 'What you find here',
     cards: {
       signature: { title: 'Email signature', text: 'Your IGNITE signature for Outlook, with photo and links to the website and social media.' },
+      team: { title: 'Team', text: 'The teams of IGNITE and what each one takes care of. Team photos will follow.' },
       guide: { title: 'Guide', text: 'Guides and frameworks for your founder journey, to look up and pass on.' },
-      mentoring: {
-        title: 'European Mentorship Network',
-        text: 'Free mentoring with mentors from all over Europe. The IGNITE community has its own space there.',
-      },
+      benefits: { title: 'Benefits', text: 'What you get on top as a member, for example free mentoring in the European Mentorship Network.' },
       crm: { title: 'CRM', text: 'Partners, sponsors, startups and contact persons, with history and next steps.' },
       alumni: { title: 'Alumni network', text: 'Former members who help with mentoring, pitches, funding and jobs.' },
       admin: { title: 'Member management', text: 'Invite members, assign roles and remove access. Admins only.' },
     },
+  },
+  // The benefits page (MemberBenefitsPage.astro): one card per offer, new offers go into `items`.
+  benefits: {
+    pageTitle: 'Benefits',
+    title: 'Your <em>benefits</em>',
+    lead: 'What you get on top as an IGNITE member.',
+    back: 'Back to the members area',
+    items: [
+      {
+        id: 'emn',
+        title: 'European Mentorship Network',
+        text: 'Free mentoring with mentors from all over Europe. The IGNITE community has its own space there.',
+        url: 'https://www.europeanmentorshipnetwork.com',
+        icon: 'ion:people-outline',
+      },
+    ],
+  },
+  team: {
+    pageTitle: 'Team',
+    title: 'Our <em>team</em>',
+    lead: 'The teams of IGNITE and what each one takes care of. Team photos will be added here later.',
+    back: 'Back to the members area',
   },
   crm: {
     pageTitle: 'CRM',

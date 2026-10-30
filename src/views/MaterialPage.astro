@@ -1,7 +1,9 @@
 ---
 /**
  * Material detail page from the `materials` content collection, rendered by pages/materialien/[material].astro
- * and pages/en/materials/[material].astro. Props: material (collection entry).
+ * and pages/en/materials/[material].astro, and inside the members area by pages/mitglieder/guide/[...path].astro
+ * (+ English). Props: material (collection entry); members area only: basePath (guide root for the crumbs and the
+ * back link), homeHref and homeLabel (first crumb), alternatePath (the other language's page, also marks it noindex).
  */
 import { render, type CollectionEntry } from 'astro:content'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -12,23 +14,39 @@ import { formatDate, resolveLocale } from '../lib/i18n'
 
 interface Props {
   material: CollectionEntry<'materials'>
+  basePath?: string
+  homeHref?: string
+  homeLabel?: string
+  alternatePath?: string
 }
 
-const { material } = Astro.props
 const locale = resolveLocale(Astro.currentLocale)
 const { listingPages, commonUi, navigation } = getCopy(locale)
 const copy = listingPages.materials
+const {
+  material,
+  basePath = copy.path,
+  homeHref = navigation.homeUrl,
+  homeLabel = commonUi.homeCrumb,
+  alternatePath,
+} = Astro.props
 const { Content } = await render(material)
 ---
 
-<DefaultLayout title={material.data.title} description={material.data.description} url={'materialien/' + material.id}>
+<DefaultLayout
+  title={material.data.title}
+  description={material.data.description}
+  url={alternatePath ? undefined : 'materialien/' + material.id}
+  alternatePath={alternatePath}
+  noindex={!!alternatePath}
+>
   <ArticleView
     title={material.data.title}
     date={formatDate(material.data.date, locale)}
     meta={[material.data.tag, material.data.author ?? '']}
     image={getMaterialCover(material.id, material.data.image)}
-    crumbs={[{ label: commonUi.homeCrumb, href: navigation.homeUrl }, { label: copy.crumb, href: copy.path }, { label: material.data.title }]}
-    backHref={copy.path}
+    crumbs={[{ label: homeLabel, href: homeHref }, { label: copy.crumb, href: basePath }, { label: material.data.title }]}
+    backHref={basePath}
     backLabel={copy.backLabel}
   >
     <Content />

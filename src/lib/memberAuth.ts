@@ -159,6 +159,9 @@ const PAGES = {
   admin: { de: 'verwaltung', en: 'admin' },
   crm: { de: 'crm', en: 'crm' },
   alumni: { de: 'alumni', en: 'alumni' },
+  team: { de: 'team', en: 'team' },
+  guide: { de: 'guide', en: 'guide' },
+  benefits: { de: 'vorteile', en: 'benefits' },
 } as const
 export type MemberPage = keyof typeof PAGES
 

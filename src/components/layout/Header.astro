@@ -46,11 +46,12 @@ const memberHome = memberHomePath(locale)
 const items: NavItem[] = member
   ? [
       { label: memberNav.home, url: memberHome },
-      { label: memberNav.signature, url: memberPagePath('signature', locale) },
       { label: memberNav.crm, url: memberPagePath('crm', locale) },
       { label: memberNav.alumni, url: memberPagePath('alumni', locale) },
-      { label: memberNav.guide, url: memberNav.guideUrl },
-      { label: memberNav.mentoring, url: memberNav.mentoringUrl, isExternal: true },
+      { label: memberNav.team, url: memberPagePath('team', locale) },
+      { label: memberNav.guide, url: memberPagePath('guide', locale) },
+      { label: memberNav.benefits, url: memberPagePath('benefits', locale) },
+      { label: memberNav.signature, url: memberPagePath('signature', locale) },
     ]
   : [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
@@ -417,6 +418,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     padding: 0 1rem;
     font-size: var(--text-sm);
     font-weight: 500;
+    white-space: nowrap;
     color: var(--color-fg-muted);
     cursor: pointer;
     list-style: none;

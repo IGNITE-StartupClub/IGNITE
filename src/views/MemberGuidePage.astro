@@ -1,0 +1,40 @@
+---
+/**
+ * The guide inside the members area, rendered on demand by pages/mitglieder/guide/[...path].astro and
+ * pages/en/members/guide/[...path].astro, so members keep the member header while reading. It shows the same
+ * `materials` collection as the public guide (MaterialsListPage, MaterialPage) with links that stay in the area.
+ * Props: route (from resolveGuide).
+ */
+import type { CollectionEntry } from 'astro:content'
+import MaterialsListPage from './MaterialsListPage.astro'
+import MaterialPage from './MaterialPage.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import type { GuideRoute } from '../lib/memberGuide'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+interface Props {
+  route: NonNullable<GuideRoute<CollectionEntry<'materials'>>>
+}
+
+const { route } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const other = locale === 'de' ? 'en' : 'de'
+const base = memberPagePath('guide', locale)
+const otherBase = memberPagePath('guide', other)
+const { nav } = getCopy(locale).memberArea
+---
+
+{
+  route.kind === 'list' ? (
+    <MaterialsListPage page={route.page} basePath={base} alternatePath={otherBase} />
+  ) : (
+    <MaterialPage
+      material={route.material}
+      basePath={base}
+      homeHref={memberHomePath(locale)}
+      homeLabel={nav.home}
+      alternatePath={`${otherBase}/${route.material.id}`}
+    />
+  )
+}

@@ -1,7 +1,10 @@
 ---
 /**
  * Paginated materials list (9 per page) from the `materials` content collection, rendered by
- * pages/materialien/[...page].astro and pages/en/materials/[...page].astro. Props: page (Astro paginate() page).
+ * pages/materialien/[...page].astro and pages/en/materials/[...page].astro, and inside the members area by
+ * pages/mitglieder/guide/[...path].astro (+ English). Props: page (Astro paginate() page or the same shape from
+ * resolveGuide), basePath (list root the links use; default the public guide), alternatePath (members area only:
+ * the other language's guide, which also marks the page noindex).
  * The collection is not translated yet and is shared by both languages. Copy in listingPages.materials (getCopy()).
  */
 import type { Page } from 'astro'
@@ -13,17 +16,26 @@ import Pagination from '../components/ui/Pagination.astro'
 import OptimizedImage from '../components/ui/OptimizedImage.astro'
 import { getCopy } from '../data/copy'
 import { getMaterialCover } from '../data/editorialAssets'
+import type { GuidePage } from '../lib/memberGuide'
 
 interface Props {
-  page: Page<CollectionEntry<'materials'>>
+  page: Page<CollectionEntry<'materials'>> | GuidePage<CollectionEntry<'materials'>>
+  basePath?: string
+  alternatePath?: string
 }
 
-const { page } = Astro.props
 const { listingPages, pageMeta, commonUi } = getCopy(Astro.currentLocale)
 const copy = listingPages.materials
+const { page, basePath = copy.path, alternatePath } = Astro.props
 ---
 
-<DefaultLayout title={pageMeta.materials.title} description={copy.lead} url="materialien">
+<DefaultLayout
+  title={pageMeta.materials.title}
+  description={copy.lead}
+  url={alternatePath ? undefined : 'materialien'}
+  alternatePath={alternatePath}
+  noindex={!!alternatePath}
+>
   <PageHeader title={copy.title} lead={copy.lead} />
   <Section tone="subtle" labelledby="page-title">
     {
@@ -33,22 +45,22 @@ const copy = listingPages.materials
         <ul class="editorial-list">
           {page.data.map((item, index) => (
             <li class="editorial-item">
-              <a class="editorial-image" href={`${copy.path}/${item.id}`} aria-label={`${copy.readLabel} ${item.data.title}`}>
+              <a class="editorial-image" href={`${basePath}/${item.id}`} aria-label={`${copy.readLabel} ${item.data.title}`}>
                 <span>{String(index + 1).padStart(2, '0')}</span>
                 <OptimizedImage src={getMaterialCover(item.id, item.data.image)} alt={`${commonUi.coverAltPrefix} ${item.data.title}`} width={960} height={640} widths={[320, 480, 640, 960]} sizes="(min-width: 1152px) 375px, (min-width: 768px) 33vw, 65vw" loading={index === 0 ? 'eager' : 'lazy'} />
               </a>
               <div class="editorial-content">
                 <p class="editorial-meta">{item.data.tag || copy.defaultTag} · {item.data.author?.replace('(AUTHOR)', '').trim() || copy.defaultAuthor}</p>
-                <h2><a href={`${copy.path}/${item.id}`}>{item.data.title}</a></h2>
+                <h2><a href={`${basePath}/${item.id}`}>{item.data.title}</a></h2>
                 <p>{item.data.description}</p>
-                <a class="editorial-link" href={`${copy.path}/${item.id}`}>{copy.readMore} <span aria-hidden="true">↗</span></a>
+                <a class="editorial-link" href={`${basePath}/${item.id}`}>{copy.readMore} <span aria-hidden="true">↗</span></a>
               </div>
             </li>
           ))}
         </ul>
       )
     }
-    <Pagination page={page} basePath={copy.path} label={copy.paginationLabel} />
+    <Pagination page={page as Page<unknown>} basePath={basePath} label={copy.paginationLabel} />
   </Section>
 </DefaultLayout>
 

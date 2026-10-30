@@ -17,15 +17,16 @@ import { memberPagePath } from '../lib/memberAuth'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea } = getCopy(locale)
-const { home, nav } = memberArea
+const { home } = memberArea
 const { role } = Astro.locals.member!
 
 const cards = [
   { ...home.cards.crm, icon: 'ion:briefcase-outline', url: memberPagePath('crm', locale) },
   { ...home.cards.alumni, icon: 'ion:school-outline', url: memberPagePath('alumni', locale) },
+  { ...home.cards.team, icon: 'ion:people-circle-outline', url: memberPagePath('team', locale) },
+  { ...home.cards.guide, icon: 'ion:book-outline', url: memberPagePath('guide', locale) },
+  { ...home.cards.benefits, icon: 'ion:gift-outline', url: memberPagePath('benefits', locale) },
   { ...home.cards.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
-  { ...home.cards.guide, icon: 'ion:book-outline', url: nav.guideUrl },
-  { ...home.cards.mentoring, icon: 'ion:people-outline', url: nav.mentoringUrl, isExternal: true },
   ...(role === 'admin'
     ? [{ ...home.cards.admin, icon: 'ion:shield-checkmark-outline', url: memberPagePath('admin', locale) }]
     : []),
@@ -41,16 +42,10 @@ const cards = [
         cards.map((card) => (
           <Card as="li" class="h-full">
             <Icon slot="icon" name={card.icon} aria-hidden="true" />
-            <h3 slot="title" class="text-xl">
+            <h3 slot="title" class="text-xl hyphens-auto">
               {/* The link stretches over the whole card, so the card is one click target. */}
-              <a
-                href={card.url}
-                class="after:absolute after:inset-0 after:content-['']"
-                target={card.isExternal ? '_blank' : undefined}
-                rel={card.isExternal ? 'noopener noreferrer' : undefined}
-              >
+              <a href={card.url} class="after:absolute after:inset-0 after:content-['']">
                 {card.title}
-                {card.isExternal && <span class="sr-only"> ({nav.newTab})</span>}
               </a>
             </h3>
             <p class="text-fg-muted">{card.text}</p>

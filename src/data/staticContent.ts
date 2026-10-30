@@ -466,10 +466,9 @@ export const memberArea = {
     signature: 'Mail-Signatur',
     crm: 'CRM',
     alumni: 'Alumni',
+    team: 'Team',
     guide: 'Guide',
-    guideUrl: '/materialien/',
-    mentoring: 'Mentoring',
-    mentoringUrl: 'https://www.europeanmentorshipnetwork.com',
+    benefits: 'Vorteile',
     newTab: 'öffnet in neuem Tab',
     profile: 'Profil und Abmelden',
     signedInAs: 'Angemeldet als',
@@ -480,19 +479,39 @@ export const memberArea = {
   },
   home: {
     title: 'Willkommen im <em>Mitgliederbereich</em>',
-    lead: 'Alles, was du als IGNITE-Mitglied brauchst, an einem Ort.',
+    lead: 'Alles, was du als IGNITE-Mitglied brauchst.',
     cardsHeading: 'Was es hier gibt',
     cards: {
       signature: { title: 'Mail-Signatur', text: 'Deine IGNITE-Signatur für Outlook, mit Foto und Links zu Website und Social Media.' },
+      team: { title: 'Team', text: 'Die Teams von IGNITE und wofür sie zuständig sind. Teamfotos folgen.' },
       guide: { title: 'Guide', text: 'Guides und Frameworks für den Gründerweg, zum Nachschlagen und Weitergeben.' },
-      mentoring: {
-        title: 'European Mentorship Network',
-        text: 'Kostenloses Mentoring mit Mentor:innen aus ganz Europa. Die IGNITE-Community hat dort einen eigenen Bereich.',
-      },
+      benefits: { title: 'Vorteile', text: 'Was du als Mitglied zusätzlich bekommst, zum Beispiel kostenloses Mentoring im European Mentorship Network.' },
       crm: { title: 'CRM', text: 'Partner, Sponsoren, Startups und Ansprechpartner:innen, mit Verlauf und nächsten Schritten.' },
       alumni: { title: 'Alumni-Netzwerk', text: 'Ehemalige, die bei Mentoring, Pitches, Finanzierung und Jobs weiterhelfen.' },
       admin: { title: 'Mitgliederverwaltung', text: 'Mitglieder einladen, Rollen vergeben und Zugänge entfernen. Nur für Admins.' },
     },
+  },
+  // The benefits page (MemberBenefitsPage.astro): one card per offer, new offers go into `items`.
+  benefits: {
+    pageTitle: 'Vorteile',
+    title: 'Deine <em>Vorteile</em>',
+    lead: 'Was du als IGNITE-Mitglied zusätzlich bekommst.',
+    back: 'Zurück zum Mitgliederbereich',
+    items: [
+      {
+        id: 'emn',
+        title: 'European Mentorship Network',
+        text: 'Kostenloses Mentoring mit Mentor:innen aus ganz Europa. Die IGNITE-Community hat dort einen eigenen Bereich.',
+        url: 'https://www.europeanmentorshipnetwork.com',
+        icon: 'ion:people-outline',
+      },
+    ],
+  },
+  team: {
+    pageTitle: 'Team',
+    title: 'Unser <em>Team</em>',
+    lead: 'Die Teams von IGNITE und wofür sie zuständig sind. Hier kommen später auch die Teamfotos hin.',
+    back: 'Zurück zum Mitgliederbereich',
   },
   crm: {
     pageTitle: 'CRM',
