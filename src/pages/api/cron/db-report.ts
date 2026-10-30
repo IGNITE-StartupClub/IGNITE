@@ -1,6 +1,7 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
+import { rejectCron } from '../../../lib/cron'
 import { MongoClient } from 'mongodb'
 import { Resend } from 'resend'
 
@@ -196,12 +197,8 @@ function buildEmailHtml(report: ReportData): string {
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  // Verify Vercel cron secret
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 })
-  }
+  const rejected = rejectCron(request)
+  if (rejected) return rejected
 
   const recipients = [process.env.EMAIL_RECIPIENT_1, process.env.EMAIL_RECIPIENT_2].filter(Boolean) as string[]
   if (recipients.length === 0) {

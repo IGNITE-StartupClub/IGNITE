@@ -31,7 +31,7 @@ This is an **Astro 5 site** with **server-side rendering** (output: 'server') de
 - `contact.ts` — Contact form, sends emails via Resend
 - `community.ts` — Community signup (Community page and footer): validates the address, mails the WhatsApp invite link, no confirmation step. A Mongo TTL collection `community_invites` allows one invite per address and 24 hours (409 on repeat).
 - `members/` — Members area: `login.ts` checks email and password and sets the session cookie, `code.ts` mails a one-time code to set a password, `password.ts` sets it with that code, `admin.ts` is the member management for admins, `logout.ts` ends the session
-- `cron/` — Scheduled jobs from `vercel.json` (health check, database report, monthly applicants)
+- `cron/` — Scheduled jobs from `vercel.json` (health check, database report, monthly applicants). Each starts with `rejectCron(request)` (`src/lib/cron.ts`), which answers 401 unless the request carries `Authorization: Bearer <CRON_SECRET>`; without `CRON_SECRET` every cron request is refused.
 
 **Content Collections (`src/content/`)** — Markdown-based collections for `events` and `projects`, defined in `src/content.config.mjs`. New content files go in the respective subdirectories.
 
@@ -56,6 +56,7 @@ The application will throw at startup if any of these are missing:
 | `EMAIL_RECIPIENT_1` | Primary admin email recipient |
 | `EMAIL_RECIPIENT_2` | (Optional) Secondary admin email recipient |
 | `SITE_URL` | (Optional) Public URL, shown in the database report |
+| `CRON_SECRET` | Secret Vercel sends to the cron jobs; without it they all answer 401 |
 
 ### Icon system
 

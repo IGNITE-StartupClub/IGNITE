@@ -1,6 +1,7 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
+import { rejectCron } from '../../../lib/cron'
 import { MongoClient } from 'mongodb'
 import { Resend } from 'resend'
 import crypto from 'crypto'
@@ -91,10 +92,8 @@ function buildEmailHTML(docs: any[]) {
 // --- Main API Route ---
 export const GET: APIRoute = async ({ request }) => {
   // 1. Auth Check
-  const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
+  const rejected = rejectCron(request)
+  if (rejected) return rejected
 
   const client = new MongoClient(process.env.MONGODB_URI!)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
