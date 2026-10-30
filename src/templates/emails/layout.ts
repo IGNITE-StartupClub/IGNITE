@@ -3,7 +3,9 @@
 // field() and message() escape their input themselves.
 
 import { escapeHtml } from './escapeHtml';
-import { globalConfig } from '../../data/staticContent';
+import { INSTAGRAM_URL, LINKEDIN_URL } from './links';
+import { globalConfig, memberArea } from '../../data/staticContent';
+import { BADGE_PATH, LIVE_ORIGIN } from '../../lib/emailSignature';
 
 const BRAND = '#8C3974';
 const FONT = "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -44,15 +46,45 @@ interface EmailOptions {
   title: string;
   preheader: string;
   contentHtml: string;
-  // 'visitor' mails offer the contact address, 'team' mails say where they came from.
-  audience: 'visitor' | 'team';
+  // 'visitor' mails offer the contact address, 'member' mails close like the member signature,
+  // 'team' mails say where they came from.
+  audience: 'visitor' | 'member' | 'team';
+}
+
+const contactLine = (): string =>
+  `Fragen? Schreib uns an <a href="mailto:${escapeHtml(globalConfig.contactEmail)}" style="color: #777777;">${escapeHtml(globalConfig.contactEmail)}</a>.`;
+
+// Same look as the member signature (src/lib/emailSignature.ts): purple bar, badge, tagline and links.
+// The badge loads from the live site, as in pasted signatures.
+function memberFooter(): string {
+  const dot = '<span style="color: #9a9a9a;">&nbsp;·&nbsp;</span>';
+  const links = [
+    ['ignite-startupclub.de', LIVE_ORIGIN],
+    ['Instagram', INSTAGRAM_URL],
+    ['LinkedIn', LINKEDIN_URL],
+  ]
+    .map(([label, url]) => `<a href="${escapeHtml(url)}" style="color: #5227ff; text-decoration: none; white-space: nowrap;">${escapeHtml(label)}</a>`)
+    .join(dot);
+
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="border-left: 2px solid #311763; padding: 0 0 0 14px;">
+          <a href="${LIVE_ORIGIN}" style="text-decoration: none;"><img src="${LIVE_ORIGIN}${BADGE_PATH}" width="152" height="44" alt="IGNITE" style="display: block; width: 152px; height: 44px; border: 0;" /></a>
+          <div style="padding-top: 8px; font: 400 12px/1.5 ${FONT}; color: #777777;">${escapeHtml(memberArea.signature.generator.signature.tagline)}</div>
+          <div style="padding-top: 4px; font: 400 12px/1.5 ${FONT};">${links}</div>
+          <div style="padding-top: 8px; font: 400 12px/1.5 ${FONT}; color: #777777;">${contactLine()}</div>
+        </td>
+      </tr>
+    </table>`;
 }
 
 export function renderEmail({ title, preheader, contentHtml, audience }: EmailOptions): string {
-  const footer =
-    audience === 'visitor'
-      ? `IGNITE Startup Club Lüneburg · Leuphana Universität Lüneburg<br />Fragen? Schreib uns an <a href="mailto:${escapeHtml(globalConfig.contactEmail)}" style="color: #777777;">${escapeHtml(globalConfig.contactEmail)}</a>.`
-      : 'Automatische Nachricht der IGNITE-Website.';
+  const footer = {
+    visitor: `IGNITE Startup Club Lüneburg · Leuphana Universität Lüneburg<br />${contactLine()}`,
+    member: memberFooter(),
+    team: 'Automatische Nachricht der IGNITE-Website.',
+  }[audience];
 
   return `<!DOCTYPE html>
 <html lang="de">

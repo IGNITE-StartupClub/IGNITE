@@ -550,6 +550,8 @@ export const memberArea = {
       copyHtml: 'Copy HTML code',
       copied: 'Copied. Now paste it into Outlook.',
       copiedHtml: 'HTML code copied.',
+      savesHint: 'As an admin, copying stores your name, role and contact details. Every invitation you send then ends with your signature.',
+      notSaved: 'It could not be stored for your invitations. Copy it again.',
       missing: 'Please fill in name, role and email address.',
       copyFailed: 'Copying did not work. Try another browser.',
       signature: {

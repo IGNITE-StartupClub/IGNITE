@@ -2,8 +2,11 @@
  * Email signature generator (React island, members area). Builds the signature from the member's input, shows it in
  * a sample mail and copies it as rich text for pasting into Outlook, or as raw HTML.
  * Props: copy (memberArea.signature.generator in the page language), links (social links shown in the signature),
- * defaultEmail (the signed-in member's address, prefilled), photo (path of the member's stored photo or '').
- * Text inputs are remembered in localStorage per browser; the photo lives on the server (PhotoCropper).
+ * defaultEmail (the signed-in member's address, prefilled), photo (path of the member's stored photo or ''),
+ * saved (the admin's stored signature or null), savesSignature (true for admins: copying stores the signature, which
+ * then closes the invitations they send).
+ * Text inputs are remembered in localStorage per browser and win over `saved`; the photo lives on the server
+ * (PhotoCropper).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useState } from 'react'
@@ -50,8 +53,23 @@ function copyViaSelection(html, asRichText) {
   if (!copied) throw new Error('execCommand("copy") returned false')
 }
 
-export default function SignatureGenerator({ copy, links, defaultEmail, photo }) {
-  const [fields, setFields] = useState({ name: '', role: '', email: defaultEmail, phone: '', photo })
+async function saveSignature({ name, role, email, phone }) {
+  try {
+    const res = await fetch('/api/members/signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, role, email, phone }),
+    })
+    if (!res.ok) throw new Error(`/api/members/signature answered ${res.status}`)
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+export default function SignatureGenerator({ copy, links, defaultEmail, photo, saved, savesSignature }) {
+  const [fields, setFields] = useState({ name: '', role: '', email: defaultEmail, phone: '', ...saved, photo })
   const [status, setStatus] = useState(null) // { message, isError } | null
 
   useEffect(() => {
@@ -86,11 +104,18 @@ export default function SignatureGenerator({ copy, links, defaultEmail, photo })
     const plain = new DOMParser().parseFromString(html.replaceAll('</tr>', '</tr>\n'), 'text/html').body.textContent.trim()
     try {
       await writeClipboard(html, plain, asRichText).catch(() => copyViaSelection(html, asRichText))
-      setStatus({ message: asRichText ? copy.copied : copy.copiedHtml, isError: false })
     } catch (err) {
       console.error(err)
       setStatus({ message: copy.copyFailed, isError: true })
+      return
     }
+    const copied = asRichText ? copy.copied : copy.copiedHtml
+    // Stored after copying: awaiting the request first would end the click's permission to write the clipboard.
+    if (savesSignature && !(await saveSignature(fields))) {
+      setStatus({ message: `${copied} ${copy.notSaved}`, isError: true })
+      return
+    }
+    setStatus({ message: copied, isError: false })
   }
 
   const field = (key, type, autoComplete, optional = false) => (
@@ -145,6 +170,7 @@ export default function SignatureGenerator({ copy, links, defaultEmail, photo })
             {copy.copyHtml}
           </button>
         </div>
+        {savesSignature && <p className="field-hint">{copy.savesHint}</p>}
         <div aria-live="polite">
           {status && <p className={status.isError ? 'form-error' : 'form-success'}>{status.message}</p>}
         </div>

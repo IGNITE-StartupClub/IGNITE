@@ -26,6 +26,22 @@ export interface SignatureFields {
   photo: string
 }
 
+/** The text fields an admin stores for the invitations they send (/api/members/signature); the photo is stored apart. */
+export type SavedSignature = Omit<SignatureFields, 'photo'>
+
+const SAVED_FIELDS = ['name', 'role', 'email', 'phone'] as const
+export const SIGNATURE_MAX_LENGTH = 120
+
+/** The trimmed fields of a complete signature from a request body, or null when a field is missing or too long. */
+export function parseSignature(input: unknown): SavedSignature | null {
+  if (typeof input !== 'object' || input === null) return null
+  const values = SAVED_FIELDS.map((key) => (input as Record<string, unknown>)[key])
+  if (!values.every((value) => typeof value === 'string' && value.trim().length <= SIGNATURE_MAX_LENGTH)) return null
+  const [name, role, email, phone] = (values as string[]).map((value) => value.trim())
+  const signature = { name, role, email, phone }
+  return isComplete({ ...signature, photo: '' }) ? signature : null
+}
+
 /** Locale-dependent text, from memberArea.signature.generator.signature. */
 export interface SignatureText {
   tagline: string

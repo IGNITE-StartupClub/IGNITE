@@ -1,6 +1,6 @@
 /**
  * MongoDB access for the members area. Collections:
- * - `members`: one document per member ({ email, role, addedAt, passwordHash?, failedLogins?, lockedUntil? }).
+ * - `members`: one document per member ({ email, role, addedAt, passwordHash?, failedLogins?, lockedUntil?, signature? }).
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -30,6 +30,7 @@ import {
   SESSION_TTL_SECONDS,
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES } from './initialAdmins'
+import type { SavedSignature } from './emailSignature'
 
 export interface Member {
   email: string
@@ -39,6 +40,8 @@ export interface Member {
   passwordSetAt?: Date
   failedLogins?: number
   lockedUntil?: Date
+  /** Admins only: the signature under the invitations they send, stored when they copy it. */
+  signature?: SavedSignature
 }
 
 interface PasswordCode {
@@ -204,9 +207,16 @@ export async function deletePhotos(email: string): Promise<void> {
   await photos.deleteMany({ email })
 }
 
+export async function saveSignature(email: string, signature: SavedSignature): Promise<void> {
+  const { members } = await collections()
+  await members.updateOne({ email }, { $set: { signature } })
+}
+
+/** Changes the role; a former admin's saved signature goes, because only admins send invitations. */
 export async function setRole(email: string, role: MemberRole): Promise<boolean> {
   const { members } = await collections()
-  const { matchedCount } = await members.updateOne({ email }, { $set: { role } })
+  const update = role === 'admin' ? { $set: { role } } : { $set: { role }, $unset: { signature: '' as const } }
+  const { matchedCount } = await members.updateOne({ email }, update)
   return matchedCount === 1
 }
 
