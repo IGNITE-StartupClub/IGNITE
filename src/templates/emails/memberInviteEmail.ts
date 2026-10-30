@@ -12,10 +12,10 @@ export function getMemberInviteEmailHTML(loginUrl: string): string {
   return renderEmail({
     title: 'Willkommen im Mitgliederbereich',
     preheader: 'Du wurdest in den IGNITE-Mitgliederbereich eingeladen.',
-    audience: 'visitor',
+    audience: 'member',
     contentHtml: [
       paragraph(
-        'Du wurdest in den Mitgliederbereich der IGNITE-Website eingeladen. Öffne die Anmeldeseite, gib diese E-Mail-Adresse ein und wähle „Noch kein Passwort oder vergessen?“. Wir schicken dir dann einen Code, mit dem du dein Passwort festlegst.',
+        'Du wurdest in den Mitgliederbereich der IGNITE-Website eingeladen. Öffne die Anmeldeseite, klick unter „Neu im Team?“ auf „Code anfordern“ und gib diese E-Mail-Adresse ein. Wir schicken dir dann einen Code, mit dem du dein Passwort festlegst.',
       ),
       button('Zur Anmeldung', loginUrl),
       note('Du kennst IGNITE nicht? Dann ignoriere diese Mail einfach. Ohne dich passiert nichts.'),

@@ -14,7 +14,7 @@ export function getMemberCodeEmailHTML(code: string): string {
   return renderEmail({
     title: 'Dein Code',
     preheader: `${code} ist dein Code für den IGNITE-Mitgliederbereich.`,
-    audience: 'visitor',
+    audience: 'member',
     contentHtml: [
       paragraph('Gib diesen Code auf der Anmeldeseite des Mitgliederbereichs ein und leg dann dein Passwort fest.'),
       `<p style="margin: 24px 0; text-align: center; font: 600 32px/1.2 'SFMono-Regular', Menlo, Consolas, monospace; letter-spacing: 0.3em; color: #1a1a1a;">${code}</p>`,
