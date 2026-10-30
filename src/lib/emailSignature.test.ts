@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { BADGE_PATH, isComplete, LIVE_ORIGIN, signatureHtml, type SignatureFields } from './emailSignature.ts'
+import { BADGE_PATH, isComplete, isPhotoId, LIVE_ORIGIN, photoPath, signatureHtml, type SignatureFields } from './emailSignature.ts'
+
+const PHOTO_ID = 'a'.repeat(21) + '-_' + 'B'.repeat(20)
 
 const text = {
   tagline: 'Tagline',
@@ -31,17 +33,25 @@ test('prefixes the badge with the given origin', () => {
 })
 
 test('sizes every table to its content, whatever the host page sets for tables', () => {
-  const html = signatureHtml(fields({ photo: 'https://example.org/me.jpg' }), text, links, '')
+  const html = signatureHtml(fields({ photo: photoPath(PHOTO_ID) }), text, links, '')
   const tables = html.match(/<table [^>]*>/g) ?? []
   assert.equal(tables.length, 2)
   for (const table of tables) assert.match(table, /width:auto;table-layout:auto;/)
 })
 
-test('shows only https photos', () => {
-  const photo = 'https://example.org/me.jpg'
+test('shows only uploaded photos, from the given origin', () => {
+  const photo = photoPath(PHOTO_ID)
   assert.ok(signatureHtml(fields({ photo }), text, links, '').includes(`src="${photo}"`))
-  assert.ok(!signatureHtml(fields({ photo: 'http://example.org/me.jpg' }), text, links, '').includes('me.jpg'))
-  assert.ok(!signatureHtml(fields({ photo: 'javascript:alert(1)' }), text, links, '').includes('javascript:'))
+  assert.ok(signatureHtml(fields({ photo }), text, links, LIVE_ORIGIN).includes(`src="${LIVE_ORIGIN}${photo}"`))
+  for (const other of ['https://example.org/me.jpg', `${photo}"onerror="alert(1)`, photoPath('short'), 'javascript:alert(1)']) {
+    assert.equal((signatureHtml(fields({ photo: other }), text, links, '').match(/<img /g) ?? []).length, 1, other)
+  }
+})
+
+test('isPhotoId accepts only 43 base64url characters', () => {
+  assert.ok(isPhotoId(PHOTO_ID))
+  assert.ok(!isPhotoId(`${PHOTO_ID}x`))
+  assert.ok(!isPhotoId('../../etc/passwd'))
 })
 
 test('links the phone number with digits only and omits it when empty', () => {

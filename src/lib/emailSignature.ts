@@ -10,11 +10,19 @@ export const LIVE_ORIGIN = 'https://www.ignite-startupclub.de'
 // Public on purpose: recipients' mail clients load it without a member session.
 export const BADGE_PATH = '/email/ignite-badge.png'
 
+// Uploaded photos (api/members/photo.ts) are served publicly under this prefix (api/signature-photo/[id].ts).
+const PHOTO_PREFIX = '/api/signature-photo/'
+
+/** Photo ids are newToken() values: 32 random bytes as base64url, so nobody can guess another member's photo. */
+export const isPhotoId = (id: string): boolean => /^[A-Za-z0-9_-]{43}$/.test(id)
+export const photoPath = (id: string): string => `${PHOTO_PREFIX}${id}`
+
 export interface SignatureFields {
   name: string
   role: string
   email: string
   phone: string
+  /** Path of the uploaded photo (photoPath) or ''. */
   photo: string
 }
 
@@ -48,7 +56,7 @@ const row = (content: string, style: string) =>
 
 /**
  * Signature markup. Empty fields fall back to the placeholders so the preview never collapses.
- * `assetOrigin` prefixes the badge image: '' for the on-page preview, LIVE_ORIGIN for the copied signature.
+ * `assetOrigin` prefixes badge and photo: '' for the on-page preview, LIVE_ORIGIN for the copied signature.
  */
 export function signatureHtml(
   fields: SignatureFields,
@@ -60,7 +68,7 @@ export function signatureHtml(
   const role = fields.role.trim() || text.rolePlaceholder
   const email = fields.email.trim() || text.emailPlaceholder
   const phone = fields.phone.trim()
-  const photo = fields.photo.trim()
+  const photoId = fields.photo.startsWith(PHOTO_PREFIX) ? fields.photo.slice(PHOTO_PREFIX.length) : ''
 
   const contact = [link(`mailto:${email}`, email, '#555555')]
   if (phone) contact.push(link(`tel:${phone.replace(/[^\d+]/g, '')}`, phone, '#555555'))
@@ -69,9 +77,9 @@ export function signatureHtml(
     ...links.map(({ platform, url }) => link(url, platform, '#5227ff')),
   ]
 
-  // Only https photos: mail clients block or warn on plain http images.
-  const photoCell = /^https:\/\/\S+$/.test(photo)
-    ? `<td valign="top" style="padding:0 18px 0 0;"><img src="${escapeHtml(photo)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;max-width:none;height:96px;border-radius:48px;object-fit:cover;border:0;"></td>`
+  // Only our own uploads, which the cropper has already cut square.
+  const photoCell = isPhotoId(photoId)
+    ? `<td valign="top" style="padding:0 18px 0 0;"><img src="${assetOrigin}${photoPath(photoId)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;max-width:none;height:96px;border-radius:48px;object-fit:cover;border:0;"></td>`
     : ''
 
   const rows = [

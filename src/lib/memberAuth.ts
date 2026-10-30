@@ -44,6 +44,19 @@ export const hashToken = (token: string): string => createHash('sha256').update(
 export const isInitialAdmin = (email: string, hashes: readonly string[]): boolean =>
   hashes.includes(createHash('sha256').update(email).digest('hex'))
 
+/** Upper limit for a signature photo; the cropper's 192 px JPEGs stay far below it. */
+export const PHOTO_MAX_BYTES = 100_000
+const JPEG_DATA_URL = 'data:image/jpeg;base64,'
+
+/** The JPEG behind a data URL from the photo cropper, or null when it is no JPEG or larger than PHOTO_MAX_BYTES. */
+export function decodePhoto(dataUrl: unknown): Buffer | null {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith(JPEG_DATA_URL)) return null
+  const image = Buffer.from(dataUrl.slice(JPEG_DATA_URL.length), 'base64')
+  // Start and end markers of a JPEG file (SOI, EOI).
+  const isJpeg = image.length > 4 && image[0] === 0xff && image[1] === 0xd8 && image.at(-2) === 0xff && image.at(-1) === 0xd9
+  return isJpeg && image.length <= PHOTO_MAX_BYTES ? image : null
+}
+
 /** Random numeric code with leading zeros, e.g. "042917". */
 export const newCode = (): string => String(randomInt(10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0')
 
