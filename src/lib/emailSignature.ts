@@ -96,7 +96,7 @@ export function signatureHtml(
 
   // Only our own uploads, which the cropper has already cut square.
   const photoCell = isPhotoId(photoId)
-    ? `<td class="sig-photo" valign="top" style="padding:0 18px 0 0;"><img src="${assetOrigin}${photoPath(photoId)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;max-width:none;height:96px;border-radius:48px;object-fit:cover;border:0;"></td>`
+    ? `<td valign="top" style="padding:0 18px 0 0;"><img src="${assetOrigin}${photoPath(photoId)}" width="96" height="96" alt="${escapeHtml(name)}" style="display:block;width:96px;max-width:none;height:96px;border-radius:48px;object-fit:cover;border:0;"></td>`
     : ''
 
   const rows = [
@@ -114,8 +114,6 @@ export function signatureHtml(
     row(escapeHtml(text.tagline), 'font-size:11px;line-height:15px;color:#777777;padding-top:6px;'),
   ]
 
-  // The classes sig-photo and sig-text let a mail stack photo and text on phones (memberLayout.ts); pasted
-  // signatures carry them without effect.
   // Width and layout inline, because host pages and some mail clients stretch tables to full width
   // (the site's reset sets `table { width: 100%; table-layout: fixed }`), which split photo and text in half.
   // The photo's `max-width:none` likewise keeps the reset's `img { max-width: 100% }` from shrinking it.
@@ -123,6 +121,6 @@ export function signatureHtml(
     `<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:auto;table-layout:auto;border-collapse:collapse;color:#1a1a1a;">${content}</table>`
 
   return table(
-    `<tr>${photoCell}<td class="sig-text" valign="top" style="border-left:2px solid #311763;padding:0 0 0 14px;">${table(rows.join(''))}</td></tr>`,
+    `<tr>${photoCell}<td valign="top" style="border-left:2px solid #311763;padding:0 0 0 14px;">${table(rows.join(''))}</td></tr>`,
   )
 }

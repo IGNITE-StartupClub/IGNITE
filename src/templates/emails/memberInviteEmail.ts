@@ -28,7 +28,7 @@ export function getMemberInviteEmailHTML(loginUrl: string, inviter: Inviter): st
         'Gib den Code aus der nächsten Mail ein und leg dein Passwort fest.',
       ]),
       button('Zur Anmeldung', loginUrl),
-      inviter.signatureHtml ? `<div style="padding-top: 24px;">${text('Bis bald')}<div style="padding-top: 12px;">${inviter.signatureHtml}</div></div>` : '',
+      inviter.signatureHtml ? `<div style="padding-top: 40px;">${text('Bis bald')}<div style="padding-top: 20px;">${inviter.signatureHtml}</div></div>` : '',
       closingNote('Du kennst IGNITE nicht? Dann kannst du diese Mail ignorieren.'),
     ].join(''),
   });

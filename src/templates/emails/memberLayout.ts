@@ -66,13 +66,9 @@ export function renderMemberEmail({ title, preheader, contentHtml }: MemberEmail
     <meta name="color-scheme" content="light" />
     <title>${escapeHtml(title)}</title>
     <style>
-      /* Phones: less padding, and the inviter's signature (emailSignature.ts) puts its photo above the text instead of
-         squeezing the text into a narrow column. Clients without media queries keep the desktop layout. */
+      /* Phones: less padding leaves room for the signature next to its photo. Clients without media queries keep 40px. */
       @media (max-width: 480px) {
         .member-pad { padding-left: 20px !important; padding-right: 20px !important; }
-        .sig-photo, .sig-text { display: block !important; }
-        .sig-photo { padding: 0 0 14px 0 !important; }
-        .sig-photo img { width: 72px !important; height: 72px !important; border-radius: 36px !important; }
       }
     </style>
   </head>
