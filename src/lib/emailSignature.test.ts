@@ -30,6 +30,13 @@ test('prefixes the badge with the given origin', () => {
   assert.ok(signatureHtml(fields(), text, links, LIVE_ORIGIN).includes(`src="${LIVE_ORIGIN}${BADGE_PATH}"`))
 })
 
+test('sizes every table to its content, whatever the host page sets for tables', () => {
+  const html = signatureHtml(fields({ photo: 'https://example.org/me.jpg' }), text, links, '')
+  const tables = html.match(/<table [^>]*>/g) ?? []
+  assert.equal(tables.length, 2)
+  for (const table of tables) assert.match(table, /width:auto;table-layout:auto;/)
+})
+
 test('shows only https photos', () => {
   const photo = 'https://example.org/me.jpg'
   assert.ok(signatureHtml(fields({ photo }), text, links, '').includes(`src="${photo}"`))
