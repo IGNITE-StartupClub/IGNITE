@@ -9,6 +9,7 @@
 import { Icon } from 'astro-icon/components'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 import LanguageToggle from '../ui/LanguageToggle.astro'
+import MemberLink from '../ui/MemberLink.astro'
 import { getCopy } from '../../data/copy'
 
 interface NavItem {
@@ -60,6 +61,7 @@ const current = (url: string) => (isCurrentPaths.includes(url) ? 'page' : undefi
       <div class="flex items-center gap-1">
         <LanguageToggle href={switchHref} />
         <ThemeToggle />
+        <MemberLink />
       </div>
     </div>
   </nav>

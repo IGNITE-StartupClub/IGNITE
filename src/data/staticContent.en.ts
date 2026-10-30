@@ -204,6 +204,7 @@ export const navigation = {
   mainNavLabel: 'Main navigation',
   menuOpenLabel: 'Open menu',
   menuCloseLabel: 'Close menu',
+  memberLinkLabel: 'Members area',
   themeToLightLabel: 'Switch to light theme',
   themeToDarkLabel: 'Switch to dark theme',
   // Names the target language, written in that language (the toggle link carries lang="de").

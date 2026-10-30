@@ -1,0 +1,45 @@
+---
+/**
+ * Person icon (44x44) linking to the members area; middleware.ts sends visitors without a session to the login page.
+ * Sits next to ThemeToggle and shares its look. Label comes from navigation.memberLinkLabel (getCopy(), src/data/copy.ts).
+ */
+import { Icon } from 'astro-icon/components'
+import { getCopy } from '../../data/copy'
+import { resolveLocale } from '../../lib/i18n'
+import { memberAreaLocale, memberHomePath } from '../../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { navigation } = getCopy(locale)
+const inMemberArea = memberAreaLocale(Astro.url.pathname) !== null
+---
+
+<a class="member-link" href={memberHomePath(locale)} aria-label={navigation.memberLinkLabel} aria-current={inMemberArea ? 'page' : undefined}>
+  <Icon name="ion:person-outline" aria-hidden="true" />
+</a>
+
+<style>
+  .member-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    color: var(--color-fg);
+    background: transparent;
+    border-radius: var(--radius-button);
+    transition: background-color var(--duration-fast) ease;
+  }
+  .member-link:hover,
+  .member-link[aria-current='page'] {
+    color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+  .member-link:active {
+    background-color: var(--color-border);
+  }
+  .member-link :global(svg) {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+</style>
