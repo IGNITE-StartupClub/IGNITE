@@ -1,6 +1,6 @@
 /**
  * MongoDB access for the members area. Collections:
- * - `members`: one document per member ({ email, role, addedAt, passwordHash?, failedLogins?, lockedUntil?, signature? }).
+ * - `members`: one document per member ({ email, role, addedAt, passwordHash?, lastLoginAt?, failedLogins?, lockedUntil?, signature? }).
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -30,7 +30,7 @@ import {
   SESSION_TTL_SECONDS,
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
-import type { SavedSignature } from './emailSignature'
+import { photoPath, type SavedSignature } from './emailSignature'
 
 export interface Member {
   email: string
@@ -38,6 +38,8 @@ export interface Member {
   addedAt: Date
   passwordHash?: string
   passwordSetAt?: Date
+  /** Last successful password login, shown in the admin list. */
+  lastLoginAt?: Date
   failedLogins?: number
   lockedUntil?: Date
   /** Admins only: the signature under the invitations they send, stored when they copy it. */
@@ -131,24 +133,41 @@ export async function findMember(email: string): Promise<Member | null> {
   return member && withRole(member)
 }
 
-export async function listMembers(): Promise<Member[]> {
+async function listMembers(): Promise<Member[]> {
   const { members } = await collections()
   return (await members.find({}, { sort: { email: 1 } }).toArray()).map(withRole)
 }
 
-/** What the admin page may see of a member: never the password hash. */
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
 
-export const memberSummary = (member: Member) => ({
+/** What the admin page may see of a member: never the password hash. */
+const memberSummary = (member: Member, photoId: string | undefined) => ({
   email: member.email,
+  /** Only admins have a stored signature, so only they show a name. */
+  name: member.signature?.name ?? '',
   role: member.role,
   owner: isOwner(member.email),
+  /** Signature photo shown in the admin list, or ''. */
+  photo: photoId ? photoPath(photoId) : '',
   addedAt: member.addedAt.toISOString(),
+  lastLoginAt: member.lastLoginAt?.toISOString() ?? '',
   hasPassword: !!member.passwordHash,
   locked: isLocked(member),
 })
 export type MemberSummary = ReturnType<typeof memberSummary>
+
+/** All members for the admin list, each with their signature photo, in two queries. */
+export async function memberSummaries(): Promise<MemberSummary[]> {
+  const { photos } = await collections()
+  const [members, photoList] = await Promise.all([
+    listMembers(),
+    photos.find({}, { projection: { _id: 1, email: 1 }, sort: { createdAt: 1 } }).toArray(),
+  ])
+  // Sorted oldest first, so the newest photo of an address wins, as in photoIdOf.
+  const photoIds = new Map(photoList.map(({ _id, email }) => [email, _id]))
+  return members.map((member) => memberSummary(member, photoIds.get(member.email)))
+}
 
 /** Adds a member; false when the address is already on the list. */
 export async function addMember(email: string, role: MemberRole): Promise<boolean> {
@@ -319,7 +338,7 @@ export const isLocked = (member: Member): boolean => !!member.lockedUntil && mem
 /**
  * Takes one login attempt for `email` before the password is checked and returns the member, or null when the
  * address has no password or is locked. The counter goes up atomically, so parallel requests cannot run more than
- * LOGIN_MAX_FAILURES checks; a correct password resets it (clearFailedLogins), a wrong one keeps it.
+ * LOGIN_MAX_FAILURES checks; a correct password resets it (recordLogin), a wrong one keeps it.
  */
 export async function reserveLoginAttempt(email: string): Promise<Member | null> {
   const { members } = await collections()
@@ -343,9 +362,10 @@ async function lock(email: string): Promise<void> {
   )
 }
 
-export async function clearFailedLogins(email: string): Promise<void> {
+/** After a correct password: resets the failure counter and notes the time for the admin list. */
+export async function recordLogin(email: string): Promise<void> {
   const { members } = await collections()
-  await members.updateOne({ email }, { $unset: { failedLogins: '', lockedUntil: '' } })
+  await members.updateOne({ email }, { $set: { lastLoginAt: new Date() }, $unset: { failedLogins: '', lockedUntil: '' } })
 }
 
 /**
