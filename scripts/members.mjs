@@ -8,7 +8,7 @@
  *   node scripts/members.mjs role max@leuphana.de admin|member
  *   node scripts/members.mjs remove max@leuphana.de [...]
  *
- * `add` sends no invitation: the member requests a code on the login page ("Noch kein Passwort oder vergessen?").
+ * `add` sends no invitation: the member requests a code on the login page ("Neu im Team?" → "Code anfordern").
  * `remove` also ends the open sessions and codes of that address.
  */
 
