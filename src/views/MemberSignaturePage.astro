@@ -2,8 +2,8 @@
 /**
  * Email signature generator for members, rendered on demand by pages/mitglieder/signatur.astro and
  * pages/en/members/signature.astro. Guarded by src/middleware.ts like every members area page.
- * The generator itself is the SignatureGenerator island; nothing is stored on the server.
- * Data source: memberArea, footer.socialLinks via getCopy().
+ * The generator itself is the SignatureGenerator island; only the member's photo is stored on the server.
+ * Data source: memberArea, footer.socialLinks via getCopy(), the member's photo via photoIdOf().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
@@ -11,7 +11,9 @@ import Section from '../components/ui/Section.astro'
 import SignatureGenerator from '../components/forms/SignatureGenerator.jsx'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
+import { photoPath } from '../lib/emailSignature'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+import { photoIdOf } from '../lib/members'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, footer } = getCopy(locale)
@@ -21,6 +23,8 @@ const links = footer.socialLinks
   .map(({ platform, url }) => ({ platform, url }))
 // The English route has its own slug, which switchLocalePath cannot derive from the German one.
 const alternatePath = memberPagePath('signature', locale === 'de' ? 'en' : 'de')
+const member = Astro.locals.member!
+const photoId = await photoIdOf(member.email)
 ---
 
 <DefaultLayout title={signature.pageTitle} alternatePath={alternatePath} noindex>
@@ -28,7 +32,13 @@ const alternatePath = memberPagePath('signature', locale === 'de' ? 'en' : 'de')
     <p class="form-note"><a href={memberHomePath(locale)}>{signature.back}</a></p>
   </PageHeader>
   <Section tone="subtle" width="article" spacing="sm" labelledby="page-title">
-    <SignatureGenerator client:load copy={signature.generator} links={links} defaultEmail={Astro.locals.member!.email} />
+    <SignatureGenerator
+      client:load
+      copy={signature.generator}
+      links={links}
+      defaultEmail={member.email}
+      photo={photoId ? photoPath(photoId) : ''}
+    />
   </Section>
   <Section width="article" spacing="sm" labelledby="signature-steps">
     <h2 id="signature-steps" class="text-display-sm mb-6">{signature.stepsHeading}</h2>

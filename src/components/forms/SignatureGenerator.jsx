@@ -2,15 +2,17 @@
  * Email signature generator (React island, members area). Builds the signature from the member's input, shows it in
  * a sample mail and copies it as rich text for pasting into Outlook, or as raw HTML.
  * Props: copy (memberArea.signature.generator in the page language), links (social links shown in the signature),
- * defaultEmail (the signed-in member's address, prefilled).
- * Inputs are remembered in localStorage per browser. Styles: ./forms.css plus Tailwind utilities.
+ * defaultEmail (the signed-in member's address, prefilled), photo (path of the member's stored photo or '').
+ * Text inputs are remembered in localStorage per browser; the photo lives on the server (PhotoCropper).
+ * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useState } from 'react'
 import { isComplete, LIVE_ORIGIN, signatureHtml } from '../../lib/emailSignature'
+import PhotoCropper from './PhotoCropper.jsx'
 import './forms.css'
 
 const STORAGE_KEY = 'ignite-signature'
-const FIELDS = ['name', 'role', 'email', 'phone', 'photo']
+const FIELDS = ['name', 'role', 'email', 'phone']
 
 async function writeClipboard(html, plain, asRichText) {
   if (asRichText) {
@@ -48,8 +50,8 @@ function copyViaSelection(html, asRichText) {
   if (!copied) throw new Error('execCommand("copy") returned false')
 }
 
-export default function SignatureGenerator({ copy, links, defaultEmail }) {
-  const [fields, setFields] = useState({ name: '', role: '', email: defaultEmail, phone: '', photo: '' })
+export default function SignatureGenerator({ copy, links, defaultEmail, photo }) {
+  const [fields, setFields] = useState({ name: '', role: '', email: defaultEmail, phone: '', photo })
   const [status, setStatus] = useState(null) // { message, isError } | null
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function SignatureGenerator({ copy, links, defaultEmail }) {
     setFields(next)
     setStatus(null)
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(FIELDS.map((name) => [name, next[name]]))))
     } catch {
       // Storage only remembers the inputs between visits; the generator works without it.
     }
@@ -107,7 +109,6 @@ export default function SignatureGenerator({ copy, links, defaultEmail }) {
         required={!optional}
         className="input"
       />
-      {copy.hints[key] && <p className="field-hint">{copy.hints[key]}</p>}
     </div>
   )
 
@@ -118,7 +119,12 @@ export default function SignatureGenerator({ copy, links, defaultEmail }) {
         {field('role', 'text', 'organization-title')}
         {field('email', 'email', 'email')}
         {field('phone', 'tel', 'tel', true)}
-        {field('photo', 'url', 'photo', true)}
+        <PhotoCropper
+          copy={copy.photo}
+          optional={copy.optional}
+          photo={fields.photo}
+          onChange={(path) => setFields((current) => ({ ...current, photo: path }))}
+        />
       </form>
 
       <div className="flex min-w-0 flex-col gap-6">
@@ -128,7 +134,7 @@ export default function SignatureGenerator({ copy, links, defaultEmail }) {
               {paragraph}
             </p>
           ))}
-          {/* signatureHtml escapes every input and allows only https photo URLs (emailSignature.test.ts). */}
+          {/* signatureHtml escapes every input and allows only uploaded photo paths (emailSignature.test.ts). */}
           <div dangerouslySetInnerHTML={{ __html: preview }} />
         </div>
         <div className="form-actions items-center">

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import {
   CODE_LENGTH,
   codeKey,
+  decodePhoto,
   hashCode,
   hashPassword,
   hashToken,
@@ -19,6 +20,7 @@ import {
   newToken,
   normalizeCode,
   normalizeEmail,
+  PHOTO_MAX_BYTES,
   passwordKey,
   passwordProblem,
   sameDigest,
@@ -163,6 +165,16 @@ test('isJsonRequest requires an application/json content type', () => {
   assert.equal(isJsonRequest('text/plain'), false)
   assert.equal(isJsonRequest('application/x-www-form-urlencoded'), false)
   assert.equal(isJsonRequest(null), false)
+})
+
+test('decodePhoto accepts only JPEG data URLs up to PHOTO_MAX_BYTES', () => {
+  const jpeg = (size: number) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(size - 5), Buffer.from([0xff, 0xd9])])
+  const dataUrl = (bytes: Buffer, type = 'jpeg') => `data:image/${type};base64,${bytes.toString('base64')}`
+  assert.deepEqual(decodePhoto(dataUrl(jpeg(1000))), jpeg(1000))
+  assert.equal(decodePhoto(dataUrl(jpeg(PHOTO_MAX_BYTES + 1))), null)
+  assert.equal(decodePhoto(dataUrl(jpeg(1000), 'png')), null)
+  assert.equal(decodePhoto(dataUrl(Buffer.from('<svg onload="alert(1)"></svg>'))), null)
+  assert.equal(decodePhoto(42), null)
 })
 
 test('isInitialAdmin matches the SHA-256 of the normalized address only', () => {

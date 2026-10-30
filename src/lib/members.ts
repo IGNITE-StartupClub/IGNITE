@@ -1,5 +1,5 @@
 /**
- * MongoDB access for the members area. Four collections:
+ * MongoDB access for the members area. Collections:
  * - `members`: one document per member ({ email, role, addedAt, passwordHash?, failedLogins?, lockedUntil? }).
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
@@ -7,8 +7,9 @@
  * - `member_sessions`: hashed session tokens behind the login cookie, removed by a TTL index once expired.
  * - `member_audit`: who changed which member when, kept for one year.
  * - `member_login_clients`: pseudonymised client addresses of failed logins, kept LOGIN_LOCK_SECONDS.
+ * - `member_photos`: each member's current signature photo, a square JPEG served publicly by its random id.
  */
-import { MongoClient, type ObjectId } from 'mongodb'
+import { Binary, MongoClient, type ObjectId } from 'mongodb'
 import 'dotenv/config'
 import {
   CODE_MAX_ATTEMPTS,
@@ -61,6 +62,14 @@ interface ClientAttempt {
   at: Date
 }
 
+interface MemberPhoto {
+  /** newToken() value in the public URL (photoPath in emailSignature.ts). */
+  _id: string
+  email: string
+  image: Binary
+  createdAt: Date
+}
+
 interface AuditEntry {
   at: Date
   actor: string
@@ -88,6 +97,7 @@ async function connect(): Promise<MongoClient> {
     db.collection('member_audit').createIndex({ at: 1 }, { expireAfterSeconds: AUDIT_TTL_SECONDS }),
     db.collection('member_login_clients').createIndex({ clientHash: 1, at: -1 }),
     db.collection('member_login_clients').createIndex({ at: 1 }, { expireAfterSeconds: LOGIN_LOCK_SECONDS }),
+    db.collection('member_photos').createIndex({ email: 1 }),
   ])
   return client
 }
@@ -105,6 +115,7 @@ async function collections() {
     sessions: db.collection<Session>('member_sessions'),
     audit: db.collection<AuditEntry>('member_audit'),
     clients: db.collection<ClientAttempt>('member_login_clients'),
+    photos: db.collection<MemberPhoto>('member_photos'),
   }
 }
 
@@ -156,12 +167,41 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
   }
 }
 
-/** Removes a member together with their sessions and open codes, so access ends at once. */
+/** Removes a member together with their sessions, open codes and signature photo, so access ends at once. */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes } = await collections()
+  const { members, sessions, codes, photos } = await collections()
   const { deletedCount } = await members.deleteOne({ email })
-  await Promise.all([sessions.deleteMany({ email }), codes.deleteMany({ email })])
+  await Promise.all([sessions.deleteMany({ email }), codes.deleteMany({ email }), photos.deleteMany({ email })])
   return deletedCount === 1
+}
+
+/**
+ * Stores `jpeg` as the member's signature photo and returns its id. Every upload gets a new id and the previous photo
+ * is deleted, so a photo URL never changes its content and stops working once replaced.
+ */
+export async function savePhoto(email: string, jpeg: Buffer): Promise<string> {
+  const { photos } = await collections()
+  const id = newToken()
+  await photos.insertOne({ _id: id, email, image: new Binary(jpeg), createdAt: new Date() })
+  await photos.deleteMany({ email, _id: { $ne: id } })
+  return id
+}
+
+export async function findPhoto(id: string): Promise<Buffer | null> {
+  const { photos } = await collections()
+  const photo = await photos.findOne({ _id: id })
+  return photo && Buffer.from(photo.image.buffer)
+}
+
+export async function photoIdOf(email: string): Promise<string | null> {
+  const { photos } = await collections()
+  const photo = await photos.findOne({ email }, { projection: { _id: 1 }, sort: { createdAt: -1 } })
+  return photo?._id ?? null
+}
+
+export async function deletePhotos(email: string): Promise<void> {
+  const { photos } = await collections()
+  await photos.deleteMany({ email })
 }
 
 export async function setRole(email: string, role: MemberRole): Promise<boolean> {
