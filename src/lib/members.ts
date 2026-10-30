@@ -147,7 +147,6 @@ const memberSummary = (member: Member, photoId: string | undefined) => ({
   /** Only admins have a stored signature, so only they show a name. */
   name: member.signature?.name ?? '',
   role: member.role,
-  owner: isOwner(member.email),
   /** Signature photo shown in the admin list, or ''. */
   photo: photoId ? photoPath(photoId) : '',
   addedAt: member.addedAt.toISOString(),

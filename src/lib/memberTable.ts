@@ -8,7 +8,6 @@ export interface TableMember {
   email: string
   name: string
   role: 'member' | 'admin'
-  owner: boolean
   addedAt: string
   lastLoginAt: string
   hasPassword: boolean
