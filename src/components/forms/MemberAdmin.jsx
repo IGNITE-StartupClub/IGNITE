@@ -4,7 +4,8 @@
  * shows the member list the API returns after each action.
  * Props: copy (memberArea.admin.manager), initialMembers (memberSummary objects), currentEmail (the signed-in admin,
  * whose own row has no actions), locale ('de' | 'en'), now (render time in ms, so server and browser print the same
- * relative times). Owners show as such and offer no role change or removal.
+ * relative times). Owners look like any admin here: the API refuses changes to them (409 'owner') with a neutral
+ * message, so the list does not reveal who is protected.
  * Menus use the browser's popover API, which handles Escape, outside clicks and focus order.
  * Styles: ./forms.css plus Tailwind utilities.
  */
@@ -195,7 +196,7 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
     if (window.confirm(copy.confirmRemove.replace('{email}', address))) run({ action: 'remove', email: address })
   }
 
-  const roleLabel = (member) => (member.owner ? copy.owner : copy.roles[member.role])
+  const roleLabel = (member) => copy.roles[member.role]
   const lastLogin = (member) =>
     member.lastLoginAt ? relativeTime(member.lastLoginAt, now, locale) : member.hasPassword ? '–' : copy.never
 
@@ -371,7 +372,7 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                       {formatDateTime(member.addedAt, locale)}
                     </td>
                     <td className="px-4 py-3">
-                      {isSelf || (member.owner && member.hasPassword) ? (
+                      {isSelf ? (
                         <span className="text-fg-muted">–</span>
                       ) : (
                         <Menu
@@ -399,36 +400,32 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                                   {copy.invite}
                                 </button>
                               )}
-                              {!member.owner && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className={MENU_ITEM}
-                                    disabled={busy}
-                                    onClick={() => {
-                                      close()
-                                      run({
-                                        action: 'role',
-                                        email: member.email,
-                                        role: member.role === 'admin' ? 'member' : 'admin',
-                                      })
-                                    }}
-                                  >
-                                    {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`${MENU_ITEM} text-danger`}
-                                    disabled={busy}
-                                    onClick={() => {
-                                      close()
-                                      handleRemove(member.email)
-                                    }}
-                                  >
-                                    {copy.remove}
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                type="button"
+                                className={MENU_ITEM}
+                                disabled={busy}
+                                onClick={() => {
+                                  close()
+                                  run({
+                                    action: 'role',
+                                    email: member.email,
+                                    role: member.role === 'admin' ? 'member' : 'admin',
+                                  })
+                                }}
+                              >
+                                {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
+                              </button>
+                              <button
+                                type="button"
+                                className={`${MENU_ITEM} text-danger`}
+                                disabled={busy}
+                                onClick={() => {
+                                  close()
+                                  handleRemove(member.email)
+                                }}
+                              >
+                                {copy.remove}
+                              </button>
                             </>
                           )}
                         </Menu>

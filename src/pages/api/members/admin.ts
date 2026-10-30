@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       return reply(409, { code: 'self', message: 'Die eigene Rolle und das eigene Konto lassen sich nicht ändern.' })
     }
     if (['remove', 'role'].includes(action) && isOwner(email)) {
-      return reply(409, { code: 'owner', message: 'Hauptadmins lassen sich nicht ändern oder entfernen.' })
+      return reply(409, { code: 'owner', message: 'Diese Änderung ist nicht möglich.' })
     }
 
     const code = await perform(action as Action, email, role, admin.email, locale === 'en' ? 'en' : 'de', url.origin)

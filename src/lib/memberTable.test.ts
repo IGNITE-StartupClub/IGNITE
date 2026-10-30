@@ -6,7 +6,6 @@ const member = (overrides: Partial<TableMember>): TableMember => ({
   email: 'a@example.com',
   name: '',
   role: 'member',
-  owner: false,
   addedAt: '2026-01-01T00:00:00.000Z',
   lastLoginAt: '',
   hasPassword: true,
