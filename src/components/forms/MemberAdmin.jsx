@@ -10,8 +10,9 @@
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, Download, ListFilter, Plus, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Download, ListFilter, Plus, X } from 'lucide-react'
 import { filterMembers, formatDateTime, memberStatus, relativeTime, toCsv } from '../../lib/memberTable'
+import { BUTTON_BASE, fill, PRIMARY_BUTTON, SearchField, TOOL_BUTTON } from './memberUi'
 import './forms.css'
 
 const ERROR_CODES = [
@@ -27,10 +28,6 @@ const ERROR_CODES = [
 ]
 const PAGE_SIZE = 10
 
-// Without border and text colour, so each use sets its own and no two utilities compete.
-const BUTTON_BASE = 'inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors'
-const TOOL_BUTTON = `${BUTTON_BASE} border-border-strong text-fg hover:bg-bg-subtle`
-const PRIMARY_BUTTON = `${BUTTON_BASE} border-fg bg-fg text-bg hover:opacity-90`
 // border-0: the site's base styles give every button a border.
 const MENU_ITEM =
   'block w-full border-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm hover:bg-bg-subtle focus-visible:bg-bg-subtle'
@@ -39,8 +36,6 @@ const STATUS_BADGE = {
   invited: 'border-border-strong text-fg-muted',
   locked: 'border-danger text-danger bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)]',
 }
-
-const fill = (text, values) => text.replace(/\{(\w+)\}/g, (_, key) => values[key])
 
 function Avatar({ member }) {
   // Decorative: the name or address sits right next to it.
@@ -235,24 +230,14 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
 
       <div className="overflow-hidden rounded-card border border-border bg-bg">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <label className="relative min-w-0 flex-1 basis-64">
-            <span className="sr-only">{copy.search}</span>
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                setPage(1)
-              }}
-              placeholder={copy.search}
-              className="h-10 w-full rounded-lg border border-border-strong bg-bg-subtle pl-10 pr-3 text-sm text-fg placeholder:text-fg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-              autoComplete="off"
-            />
-          </label>
+          <SearchField
+            label={copy.search}
+            value={query}
+            onChange={(value) => {
+              setQuery(value)
+              setPage(1)
+            }}
+          />
           <div className="flex flex-wrap gap-2 sm:ml-auto">
             <Menu
               className={filtering ? `${BUTTON_BASE} border-accent text-accent hover:bg-bg-subtle` : TOOL_BUTTON}

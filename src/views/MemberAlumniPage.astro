@@ -1,0 +1,29 @@
+---
+/**
+ * The alumni network of the members area, rendered on demand by pages/mitglieder/alumni.astro and
+ * pages/en/members/alumni.astro. Every signed-in member sees it (src/middleware.ts). The profiles are rendered from the
+ * database and handed to the AlumniDirectory island, which talks to /api/members/alumni.
+ * Data source: memberArea.alumni via getCopy(), profiles via alumniSummaries().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import AlumniDirectory from '../components/forms/AlumniDirectory.jsx'
+import { getCopy } from '../data/copy'
+import { alumniSummaries } from '../lib/contactsStore'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { alumni } = getCopy(locale).memberArea
+const profiles = await alumniSummaries(Astro.locals.member!)
+---
+
+<DefaultLayout title={alumni.pageTitle} alternatePath={memberPagePath('alumni', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader title={alumni.title} lead={alumni.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{alumni.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
+    <AlumniDirectory client:load copy={alumni.directory} initialAlumni={profiles} />
+  </Section>
+</DefaultLayout>
