@@ -95,3 +95,9 @@ test('lets contact lines wrap after a separator, never before it', () => {
   assert.ok(html.includes('&nbsp;· </span>'))
   assert.ok(!html.includes('·&nbsp;'))
 })
+
+test('marks photo and text cells so a mail can stack them on phones', () => {
+  const html = signatureHtml(fields({ photo: photoPath(PHOTO_ID) }), text, links, '')
+  assert.match(html, /<td class="sig-photo" [^>]*><img /)
+  assert.match(html, /<td class="sig-text" [^>]*><table /)
+})
