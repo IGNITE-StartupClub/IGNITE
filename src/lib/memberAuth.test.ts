@@ -9,6 +9,7 @@ import {
   isAdminPath,
   isJsonRequest,
   isMemberRole,
+  isProtectedApiPath,
   isProtectedPath,
   memberAreaLocale,
   memberPagePath,
@@ -109,6 +110,15 @@ test('isProtectedPath covers the members area except the login page', () => {
   }
   for (const path of ['/mitglieder/login', '/mitglieder/login/', '/en/members/login', '/', '/mitgliederbereich', '/en/', '/materialien/']) {
     assert.equal(isProtectedPath(path), false, path)
+  }
+})
+
+test('isProtectedApiPath closes every member endpoint except the sign-in ones', () => {
+  for (const path of ['/api/members/admin', '/api/members/contacts', '/api/members/contacts/42', '/api/members/']) {
+    assert.equal(isProtectedApiPath(path), true, path)
+  }
+  for (const path of ['/api/members/login', '/api/members/code/', '/api/members/password', '/api/members/logout', '/api/contact', '/api/membersx']) {
+    assert.equal(isProtectedApiPath(path), false, path)
   }
 })
 

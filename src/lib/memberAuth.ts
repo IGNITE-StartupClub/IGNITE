@@ -13,6 +13,11 @@ export const CODE_TTL_SECONDS = 10 * 60
 export const CODE_MAX_ATTEMPTS = 5
 export const LOGIN_MAX_FAILURES = 5
 export const LOGIN_LOCK_SECONDS = 15 * 60
+/**
+ * Failed logins per client address within LOGIN_LOCK_SECONDS, across all accounts, against guessing common passwords
+ * for many members. Generous, because a university network puts many members behind one address.
+ */
+export const LOGIN_MAX_FAILURES_PER_CLIENT = 30
 export const PASSWORD_MIN_LENGTH = 10
 export const PASSWORD_MAX_LENGTH = 128
 
@@ -52,6 +57,10 @@ export const codeKey = (secret: string): Buffer =>
 // HMAC needs the server secret as well, and binding the address keeps a code from working for another member.
 export const hashCode = (code: string, email: string, key: Buffer): string =>
   createHmac('sha256', key).update(`${email}\n${code}`).digest('hex')
+
+/** Pseudonym of a client address for the login limit, so the database holds no plain IP addresses. */
+export const hashClientAddress = (address: string, key: Buffer): string =>
+  createHmac('sha256', key).update(`client\n${address}`).digest('hex')
 
 /** Constant-time comparison of two hex digests. */
 export const sameDigest = (a: string, b: string): boolean =>
@@ -140,6 +149,16 @@ function isPage(pathname: string, pages: MemberPage[]): boolean {
 
 /** True for every page of the members area except the login page. */
 export const isProtectedPath = (pathname: string): boolean => !!areaOf(pathname) && !isPage(pathname, PUBLIC_PAGES)
+
+// Endpoints under /api/members/ that work without a session. Every other one requires it (src/middleware.ts),
+// so a new endpoint, for example for internal contacts, is closed until it is listed here.
+const PUBLIC_API = ['login', 'code', 'password', 'logout']
+
+/** True for every endpoint under /api/members/ that needs a session. */
+export function isProtectedApiPath(pathname: string): boolean {
+  if (!pathname.startsWith('/api/members/')) return false
+  return !PUBLIC_API.includes(pathname.slice('/api/members/'.length).replace(/\/$/, ''))
+}
 
 /** Pages only admins may open. */
 export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin'])

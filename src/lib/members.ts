@@ -6,17 +6,20 @@
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
  * - `member_sessions`: hashed session tokens behind the login cookie, removed by a TTL index once expired.
  * - `member_audit`: who changed which member when, kept for one year.
+ * - `member_login_clients`: pseudonymised client addresses of failed logins, kept LOGIN_LOCK_SECONDS.
  */
-import { MongoClient } from 'mongodb'
+import { MongoClient, type ObjectId } from 'mongodb'
 import 'dotenv/config'
 import {
   CODE_MAX_ATTEMPTS,
   CODE_TTL_SECONDS,
   codeKey,
+  hashClientAddress,
   hashCode,
   hashToken,
   LOGIN_LOCK_SECONDS,
   LOGIN_MAX_FAILURES,
+  LOGIN_MAX_FAILURES_PER_CLIENT,
   type MemberRole,
   newCode,
   newToken,
@@ -50,6 +53,11 @@ interface Session {
   expiresAt: Date
 }
 
+interface ClientAttempt {
+  clientHash: string
+  at: Date
+}
+
 interface AuditEntry {
   at: Date
   actor: string
@@ -75,6 +83,8 @@ async function connect(): Promise<MongoClient> {
     db.collection('member_sessions').createIndex({ tokenHash: 1 }, { unique: true }),
     db.collection('member_sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     db.collection('member_audit').createIndex({ at: 1 }, { expireAfterSeconds: AUDIT_TTL_SECONDS }),
+    db.collection('member_login_clients').createIndex({ clientHash: 1, at: -1 }),
+    db.collection('member_login_clients').createIndex({ at: 1 }, { expireAfterSeconds: LOGIN_LOCK_SECONDS }),
   ])
   return client
 }
@@ -91,6 +101,7 @@ async function collections() {
     codes: db.collection<PasswordCode>('member_codes'),
     sessions: db.collection<Session>('member_sessions'),
     audit: db.collection<AuditEntry>('member_audit'),
+    clients: db.collection<ClientAttempt>('member_login_clients'),
   }
 }
 
@@ -261,6 +272,25 @@ async function lock(email: string): Promise<void> {
 export async function clearFailedLogins(email: string): Promise<void> {
   const { members } = await collections()
   await members.updateOne({ email }, { $unset: { failedLogins: '', lockedUntil: '' } })
+}
+
+/**
+ * Takes one login attempt for a client address before the password is checked. Returns the attempt's id, or null when
+ * the address already failed LOGIN_MAX_FAILURES_PER_CLIENT times within LOGIN_LOCK_SECONDS. Counting after the insert
+ * keeps parallel requests from slipping under the limit; a successful login gives its attempt back.
+ */
+export async function reserveClientAttempt(address: string): Promise<ObjectId | null> {
+  const { clients } = await collections()
+  const clientHash = hashClientAddress(address, secretKey())
+  const now = new Date()
+  const { insertedId } = await clients.insertOne({ clientHash, at: now })
+  const since = new Date(now.getTime() - LOGIN_LOCK_SECONDS * 1000)
+  return (await clients.countDocuments({ clientHash, at: { $gte: since } })) > LOGIN_MAX_FAILURES_PER_CLIENT ? null : insertedId
+}
+
+export async function releaseClientAttempt(id: ObjectId): Promise<void> {
+  const { clients } = await collections()
+  await clients.deleteOne({ _id: id })
 }
 
 /** Starts a session for `email` and returns the token for the cookie. */
