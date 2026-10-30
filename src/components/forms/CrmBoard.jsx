@@ -441,7 +441,8 @@ export default function CrmBoard({ copy, initialContacts, locale, today }) {
                 ],
                 [
                   'linkedin',
-                  selected.linkedin && (
+                  // The API only stores https LinkedIn URLs (parseContact); the check keeps any other scheme out of href.
+                  selected.linkedin.startsWith('https://') && (
                     <a
                       href={selected.linkedin}
                       target="_blank"

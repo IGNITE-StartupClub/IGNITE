@@ -83,8 +83,13 @@ const contactSummary = ({ _id, entries, createdAt, updatedAt, ...fields }: Conta
 })
 export type ContactSummary = ReturnType<typeof contactSummary>
 
+/** Who sees a profile's email: everyone while it takes requests, otherwise only admins and its creator. */
+const seesEmail = (person: Pick<AlumniDoc, 'open' | 'createdBy'>, actor: Actor) =>
+  person.open || mayDelete(person, actor)
+
 const alumniSummary = ({ _id, consentAt, createdAt, updatedAt, ...fields }: AlumniDoc, actor: Actor) => ({
   ...fields,
+  email: seesEmail(fields, actor) ? fields.email : '',
   id: _id,
   updatedAt: updatedAt.toISOString(),
   mayDelete: mayDelete({ createdBy: fields.createdBy }, actor),
@@ -190,11 +195,15 @@ export async function saveAlumni(id: string | null, fields: AlumniFields, actor:
     })
     return _id
   }
-  const { matchedCount } = await alumni.updateOne(
+  const stored = await alumni.findOne({ _id: id }, { projection: { open: 1, createdBy: 1 } })
+  if (!stored) return null
+  // Members who were not shown the email send it back empty; keep the stored one instead of erasing it.
+  const { email, ...rest } = fields
+  await alumni.updateOne(
     { _id: id },
-    { $set: { ...fields, updatedBy: actor.email, updatedAt: now } },
+    { $set: { ...rest, ...(seesEmail(stored, actor) ? { email } : {}), updatedBy: actor.email, updatedAt: now } },
   )
-  return matchedCount ? id : null
+  return id
 }
 
 /** 'deleted', 'unknown' or 'forbidden' (only admins and the creator delete). */

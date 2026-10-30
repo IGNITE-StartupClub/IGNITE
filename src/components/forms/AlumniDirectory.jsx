@@ -210,7 +210,8 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
                 </span>
               </p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-4">
-                {person.linkedin && (
+                {/* The API only stores https LinkedIn URLs (parseAlumni); the check keeps any other scheme out of href. */}
+                {person.linkedin.startsWith('https://') && (
                   <a href={person.linkedin} target="_blank" rel="noopener noreferrer" className={LINK}>
                     <ExternalLink aria-hidden="true" className="h-4 w-4" />
                     {copy.linkedin}
