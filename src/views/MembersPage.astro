@@ -9,15 +9,18 @@ import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
+import { memberSignaturePath } from '../lib/memberAuth'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea } = getCopy(locale)
 const { email } = Astro.locals.member!
+const signaturePath = memberSignaturePath(locale)
 ---
 
 <DefaultLayout title={memberArea.pageTitle} noindex>
   <PageHeader title={memberArea.home.title} lead={memberArea.home.lead} />
   <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
+    <p class="mb-8"><a href={signaturePath} class="form-secondary">{memberArea.home.signatureLink}</a></p>
     <form method="post" action="/api/members/logout" class="form">
       <p class="form-note">{memberArea.home.signedInAs} <strong>{email}</strong></p>
       <input type="hidden" name="locale" value={locale} />

@@ -39,6 +39,10 @@ export const memberHomePath = (locale: MemberLocale): string =>
 
 export const memberLoginPath = (locale: MemberLocale): string => memberHomePath(locale) + 'login'
 
+/** The signature page has its own slug per language (pages/mitglieder/signatur.astro, pages/en/members/signature.astro). */
+export const memberSignaturePath = (locale: MemberLocale): string =>
+  memberHomePath(locale) + (locale === 'de' ? 'signatur' : 'signature')
+
 /** Locale of the members area that `pathname` belongs to, or null outside of it. */
 export const memberAreaLocale = (pathname: string): MemberLocale | null => areaOf(pathname)?.locale ?? null
 
