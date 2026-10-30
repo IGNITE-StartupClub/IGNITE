@@ -9,7 +9,7 @@ import {
   hashPassword,
   hashToken,
   isAdminPath,
-  isInitialAdmin,
+  isListedAddress,
   isJsonRequest,
   isMemberRole,
   isProtectedApiPath,
@@ -177,9 +177,9 @@ test('decodePhoto accepts only JPEG data URLs up to PHOTO_MAX_BYTES', () => {
   assert.equal(decodePhoto(42), null)
 })
 
-test('isInitialAdmin matches the SHA-256 of the normalized address only', () => {
+test('isListedAddress matches the SHA-256 of the normalized address only', () => {
   const hashes = [sha256('other@leuphana.de'), sha256('max@leuphana.de')]
-  assert.equal(isInitialAdmin('max@leuphana.de', hashes), true)
-  assert.equal(isInitialAdmin('eva@leuphana.de', hashes), false)
-  assert.equal(isInitialAdmin('max@leuphana.de', []), false)
+  assert.equal(isListedAddress('max@leuphana.de', hashes), true)
+  assert.equal(isListedAddress('eva@leuphana.de', hashes), false)
+  assert.equal(isListedAddress('max@leuphana.de', []), false)
 })

@@ -2,7 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest, isMemberRole, normalizeEmail } from '../../../lib/memberAuth'
-import { addMember, findMember, listMembers, logAdminAction, memberSummary, removeMember, setRole } from '../../../lib/members'
+import { addMember, findMember, isOwner, listMembers, logAdminAction, memberSummary, removeMember, setRole } from '../../../lib/members'
 import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 
@@ -12,7 +12,8 @@ type Action = (typeof ACTIONS)[number]
 /**
  * Member management for admins (MemberAdmin island). Body: { action, email, role?, locale }.
  * Answers with { code, members } so the island can show the current list; `code` names the outcome.
- * Admins cannot remove themselves or change their own role, so at least one admin always remains.
+ * Admins cannot remove themselves or change their own role, so at least one admin always remains. Nobody can demote or
+ * remove an owner (isOwner).
  */
 export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -31,6 +32,9 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     }
     if (['remove', 'role'].includes(action) && email === admin.email) {
       return reply(409, { code: 'self', message: 'Die eigene Rolle und das eigene Konto lassen sich nicht ändern.' })
+    }
+    if (['remove', 'role'].includes(action) && isOwner(email)) {
+      return reply(409, { code: 'owner', message: 'Hauptadmins lassen sich nicht ändern oder entfernen.' })
     }
 
     const code = await perform(action as Action, email, role, admin.email, locale === 'en' ? 'en' : 'de', url.origin)

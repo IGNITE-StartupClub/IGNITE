@@ -18,7 +18,7 @@ import {
   hashClientAddress,
   hashCode,
   hashToken,
-  isInitialAdmin,
+  isListedAddress,
   LOGIN_LOCK_SECONDS,
   LOGIN_MAX_FAILURES,
   LOGIN_MAX_FAILURES_PER_CLIENT,
@@ -29,7 +29,7 @@ import {
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
-import { INITIAL_ADMIN_HASHES } from './initialAdmins'
+import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import type { SavedSignature } from './emailSignature'
 
 export interface Member {
@@ -137,9 +137,13 @@ export async function listMembers(): Promise<Member[]> {
 }
 
 /** What the admin page may see of a member: never the password hash. */
+/** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
+export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
+
 export const memberSummary = (member: Member) => ({
   email: member.email,
   role: member.role,
+  owner: isOwner(member.email),
   addedAt: member.addedAt.toISOString(),
   hasPassword: !!member.passwordHash,
   locked: isLocked(member),
@@ -162,7 +166,7 @@ export async function addMember(email: string, role: MemberRole): Promise<boolea
  * Two listed people asking at the same moment can both become admin, which the list allows anyway.
  */
 export async function ensureInitialAdmin(email: string): Promise<void> {
-  if (!isInitialAdmin(email, INITIAL_ADMIN_HASHES)) return
+  if (!isListedAddress(email, INITIAL_ADMIN_HASHES)) return
   const { members } = await collections()
   if (await members.findOne({ role: 'admin' }, { projection: { _id: 1 } })) return
   if (await addMember(email, 'admin')) {
