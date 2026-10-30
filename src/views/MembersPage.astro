@@ -2,32 +2,59 @@
 /**
  * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
  * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
- * Astro.locals.member. Data source: memberArea via getCopy().
+ * Astro.locals.member. Shows a card per tool of the area; member management only for admins. Account actions
+ * (password, sign out) live in the profile menu of the header pill.
+ * Data source: memberArea via getCopy().
  */
+import { Icon } from 'astro-icon/components'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
+import Card from '../components/ui/Card.astro'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 import { memberPagePath } from '../lib/memberAuth'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea } = getCopy(locale)
-const { email, role } = Astro.locals.member!
+const { home, nav } = memberArea
+const { role } = Astro.locals.member!
+
+const cards = [
+  { ...home.cards.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
+  { ...home.cards.guide, icon: 'ion:book-outline', url: nav.guideUrl },
+  { ...home.cards.mentoring, icon: 'ion:people-outline', url: nav.mentoringUrl, isExternal: true },
+  ...(role === 'admin'
+    ? [{ ...home.cards.admin, icon: 'ion:shield-checkmark-outline', url: memberPagePath('admin', locale) }]
+    : []),
+]
 ---
 
 <DefaultLayout title={memberArea.pageTitle} noindex>
-  <PageHeader title={memberArea.home.title} lead={memberArea.home.lead} />
-  <Section tone="subtle" width="text" spacing="sm" labelledby="page-title">
-    <ul class="mb-8 flex flex-wrap gap-3">
-      <li><a href={memberPagePath('signature', locale)} class="form-secondary">{memberArea.home.signatureLink}</a></li>
-      {role === 'admin' && <li><a href={memberPagePath('admin', locale)} class="form-secondary">{memberArea.home.adminLink}</a></li>}
-      <li><a href={`${memberPagePath('login', locale)}?reset`} class="form-secondary">{memberArea.home.passwordLink}</a></li>
+  <PageHeader title={home.title} lead={home.lead} />
+  <Section tone="subtle" spacing="sm" labelledby="member-tools">
+    <h2 id="member-tools" class="sr-only">{home.cardsHeading}</h2>
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        cards.map((card) => (
+          <Card as="li" class="h-full">
+            <Icon slot="icon" name={card.icon} aria-hidden="true" />
+            <h3 slot="title" class="text-xl">
+              {/* The link stretches over the whole card, so the card is one click target. */}
+              <a
+                href={card.url}
+                class="after:absolute after:inset-0 after:content-['']"
+                target={card.isExternal ? '_blank' : undefined}
+                rel={card.isExternal ? 'noopener noreferrer' : undefined}
+              >
+                {card.title}
+                {card.isExternal && <span class="sr-only"> ({nav.newTab})</span>}
+              </a>
+            </h3>
+            <p class="text-fg-muted">{card.text}</p>
+          </Card>
+        ))
+      }
     </ul>
-    <form method="post" action="/api/members/logout" class="form">
-      <p class="form-note">{memberArea.home.signedInAs} <strong>{email}</strong></p>
-      <input type="hidden" name="locale" value={locale} />
-      <button type="submit" class="form-secondary">{memberArea.home.logout}</button>
-    </form>
   </Section>
 </DefaultLayout>
