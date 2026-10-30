@@ -3,7 +3,7 @@
  * Member management, rendered on demand by pages/mitglieder/verwaltung.astro and pages/en/members/admin.astro.
  * src/middleware.ts lets only members with the admin role in; /api/members/admin checks the role again.
  * The list is rendered from the database and handed to the MemberAdmin island.
- * Data source: memberArea via getCopy(), members via listMembers().
+ * Data source: memberArea via getCopy(), members with their signature photos via memberSummaries().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
@@ -12,11 +12,11 @@ import MemberAdmin from '../components/forms/MemberAdmin.jsx'
 import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
-import { listMembers, memberSummary } from '../lib/members'
+import { memberSummaries } from '../lib/members'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { admin } = getCopy(locale).memberArea
-const members = (await listMembers()).map(memberSummary)
+const members = await memberSummaries()
 ---
 
 <DefaultLayout title={admin.pageTitle} alternatePath={memberPagePath('admin', locale === 'de' ? 'en' : 'de')} noindex>

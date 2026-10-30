@@ -2,7 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest, isMemberRole, normalizeEmail } from '../../../lib/memberAuth'
-import { addMember, findMember, isOwner, listMembers, logAdminAction, memberSummary, removeMember, setRole } from '../../../lib/members'
+import { addMember, findMember, isOwner, logAdminAction, memberSummaries, removeMember, setRole } from '../../../lib/members'
 import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     }
 
     const code = await perform(action as Action, email, role, admin.email, locale === 'en' ? 'en' : 'de', url.origin)
-    const members = (await listMembers()).map(memberSummary)
+    const members = await memberSummaries()
     return reply(code === 'unknown' || code === 'exists' ? 409 : 200, { code, members })
   } catch (err) {
     console.error('Member admin action failed:', err)

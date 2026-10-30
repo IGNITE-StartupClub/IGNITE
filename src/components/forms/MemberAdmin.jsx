@@ -3,10 +3,21 @@
  * shows the member list the API returns after each action.
  * Props: copy (memberArea.admin.manager), initialMembers (memberSummary objects), currentEmail (the signed-in admin,
  * whose own row has no actions), locale ('de' | 'en'). Owners show as such and offer no role change or removal.
+ * Each row shows the member's signature photo, or the first letter of the address without one.
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useState } from 'react'
 import './forms.css'
+
+function Avatar({ member }) {
+  // Decorative: the address sits right next to it.
+  if (member.photo) return <img src={member.photo} alt="" width="40" height="40" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+  return (
+    <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-bg font-medium uppercase text-fg-muted">
+      {member.email[0]}
+    </span>
+  )
+}
 
 const ERROR_CODES = ['exists', 'unknown', 'self', 'owner', 'invalid', 'forbidden', 'error', 'mailFailed', 'addedMailFailed']
 
@@ -100,40 +111,43 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
         </h2>
         <ul className="flex flex-col divide-y divide-border border-y border-border">
           {members.map((member) => (
-            <li key={member.email} className="flex flex-col gap-3 py-4">
-              <div className="min-w-0">
-                <p className="break-words font-medium">
-                  {member.email}
-                  {member.email === currentEmail && <span className="text-fg-muted"> ({copy.you})</span>}
-                </p>
-                <p className="text-sm text-fg-muted">
-                  {member.owner ? copy.owner : copy.roles[member.role]} · {copy.status[statusOf(member)]}
-                </p>
-              </div>
-              {member.email !== currentEmail && (
-                <div className="flex flex-wrap gap-2">
-                  {!member.hasPassword && (
-                    <button type="button" className="form-secondary" disabled={busy} onClick={() => run({ action: 'invite', email: member.email })}>
-                      {copy.invite}
-                    </button>
-                  )}
-                  {!member.owner && (
-                    <>
-                      <button
-                        type="button"
-                        className="form-secondary"
-                        disabled={busy}
-                        onClick={() => run({ action: 'role', email: member.email, role: member.role === 'admin' ? 'member' : 'admin' })}
-                      >
-                        {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
-                      </button>
-                      <button type="button" className="form-secondary" disabled={busy} onClick={() => handleRemove(member.email)}>
-                        {copy.remove}
-                      </button>
-                    </>
-                  )}
+            <li key={member.email} className="flex gap-4 py-4">
+              <Avatar member={member} />
+              <div className="flex min-w-0 flex-col gap-3">
+                <div className="min-w-0">
+                  <p className="break-words font-medium">
+                    {member.email}
+                    {member.email === currentEmail && <span className="text-fg-muted"> ({copy.you})</span>}
+                  </p>
+                  <p className="text-sm text-fg-muted">
+                    {member.owner ? copy.owner : copy.roles[member.role]} · {copy.status[statusOf(member)]}
+                  </p>
                 </div>
-              )}
+                {member.email !== currentEmail && (
+                  <div className="flex flex-wrap gap-2">
+                    {!member.hasPassword && (
+                      <button type="button" className="form-secondary" disabled={busy} onClick={() => run({ action: 'invite', email: member.email })}>
+                        {copy.invite}
+                      </button>
+                    )}
+                    {!member.owner && (
+                      <>
+                        <button
+                          type="button"
+                          className="form-secondary"
+                          disabled={busy}
+                          onClick={() => run({ action: 'role', email: member.email, role: member.role === 'admin' ? 'member' : 'admin' })}
+                        >
+                          {member.role === 'admin' ? copy.makeMember : copy.makeAdmin}
+                        </button>
+                        <button type="button" className="form-secondary" disabled={busy} onClick={() => handleRemove(member.email)}>
+                          {copy.remove}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ul>

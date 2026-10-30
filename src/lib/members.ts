@@ -30,7 +30,7 @@ import {
   SESSION_TTL_SECONDS,
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
-import type { SavedSignature } from './emailSignature'
+import { photoPath, type SavedSignature } from './emailSignature'
 
 export interface Member {
   email: string
@@ -131,7 +131,7 @@ export async function findMember(email: string): Promise<Member | null> {
   return member && withRole(member)
 }
 
-export async function listMembers(): Promise<Member[]> {
+async function listMembers(): Promise<Member[]> {
   const { members } = await collections()
   return (await members.find({}, { sort: { email: 1 } }).toArray()).map(withRole)
 }
@@ -140,15 +140,29 @@ export async function listMembers(): Promise<Member[]> {
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
 
-export const memberSummary = (member: Member) => ({
+const memberSummary = (member: Member, photoId: string | undefined) => ({
   email: member.email,
   role: member.role,
   owner: isOwner(member.email),
+  /** Signature photo shown in the admin list, or ''. */
+  photo: photoId ? photoPath(photoId) : '',
   addedAt: member.addedAt.toISOString(),
   hasPassword: !!member.passwordHash,
   locked: isLocked(member),
 })
 export type MemberSummary = ReturnType<typeof memberSummary>
+
+/** All members for the admin list, each with their signature photo, in two queries. */
+export async function memberSummaries(): Promise<MemberSummary[]> {
+  const { photos } = await collections()
+  const [members, photoList] = await Promise.all([
+    listMembers(),
+    photos.find({}, { projection: { _id: 1, email: 1 }, sort: { createdAt: 1 } }).toArray(),
+  ])
+  // Sorted oldest first, so the newest photo of an address wins, as in photoIdOf.
+  const photoIds = new Map(photoList.map(({ _id, email }) => [email, _id]))
+  return members.map((member) => memberSummary(member, photoIds.get(member.email)))
+}
 
 /** Adds a member; false when the address is already on the list. */
 export async function addMember(email: string, role: MemberRole): Promise<boolean> {
