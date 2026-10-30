@@ -1,7 +1,7 @@
 /**
  * Signature photo picker inside SignatureGenerator. Opens an image in the browser, lets the member move and zoom it
- * in a square frame, cuts the visible square to OUTPUT px as JPEG and stores it via /api/members/photo. Only the cut
- * square leaves the browser.
+ * in a square frame, cuts the visible circle to an OUTPUT px PNG with transparent corners and stores it via
+ * /api/members/photo. Only the cut photo leaves the browser.
  * Props: copy (memberArea.signature.generator.photo), optional (the "(optional)" label), photo (path of the stored
  * photo or ''), onChange(path).
  * Styles: ./forms.css plus Tailwind utilities.
@@ -115,11 +115,16 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = OUTPUT
     const context = canvas.getContext('2d')
-    // JPEG has no transparency; a transparent PNG would otherwise turn black.
+    // The circle is cut into the image with transparent corners: several Outlook versions drop the signature's
+    // border-radius when they send or reply, and the photo then showed as a square.
+    context.beginPath()
+    context.arc(OUTPUT / 2, OUTPUT / 2, OUTPUT / 2, 0, Math.PI * 2)
+    context.clip()
+    // Transparent parts of an uploaded PNG would otherwise show the mail's background inside the circle.
     context.fillStyle = '#ffffff'
     context.fillRect(0, 0, OUTPUT, OUTPUT)
     context.drawImage(image.el, -offset.x / scale, -offset.y / scale, FRAME / scale, FRAME / scale, 0, 0, OUTPUT, OUTPUT)
-    if (await send('POST', { image: canvas.toDataURL('image/jpeg', 0.88) })) {
+    if (await send('POST', { image: canvas.toDataURL('image/png') })) {
       setImage(null)
       setStatus({ message: copy.saved, isError: false })
     }
@@ -157,7 +162,7 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
               className="pointer-events-none absolute"
               style={{ left: offset.x, top: offset.y, width: size.w, height: size.h, maxWidth: 'none' }}
             />
-            {/* Dims the corners: the round crop most mail programs show; Outlook for Windows shows the full square. */}
+            {/* Dims the corners, which the saved photo cuts away. */}
             <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full" style={{ boxShadow: '0 0 0 999px rgb(0 0 0 / 0.4)' }} />
           </div>
           <div className="flex flex-col gap-1" style={{ maxWidth: FRAME }}>

@@ -23,11 +23,20 @@ import {
   PHOTO_MAX_BYTES,
   passwordKey,
   passwordProblem,
+  photoType,
   sameDigest,
   verifyPassword,
 } from './memberAuth.ts'
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
+// Files of `size` bytes with only the markers decodePhoto checks: PNG signature and IEND chunk, JPEG SOI and EOI.
+const png = (size: number) =>
+  Buffer.concat([
+    Buffer.from('89504e470d0a1a0a', 'hex'),
+    Buffer.alloc(size - 20),
+    Buffer.from('0000000049454e44ae426082', 'hex'),
+  ])
+const jpeg = (size: number) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(size - 5), Buffer.from([0xff, 0xd9])])
 
 test('normalizeEmail trims and lowercases valid addresses', () => {
   assert.equal(normalizeEmail('  Max.Muster@Leuphana.DE '), 'max.muster@leuphana.de')
@@ -167,14 +176,25 @@ test('isJsonRequest requires an application/json content type', () => {
   assert.equal(isJsonRequest(null), false)
 })
 
-test('decodePhoto accepts only JPEG data URLs up to PHOTO_MAX_BYTES', () => {
-  const jpeg = (size: number) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(size - 5), Buffer.from([0xff, 0xd9])])
-  const dataUrl = (bytes: Buffer, type = 'jpeg') => `data:image/${type};base64,${bytes.toString('base64')}`
-  assert.deepEqual(decodePhoto(dataUrl(jpeg(1000))), jpeg(1000))
-  assert.equal(decodePhoto(dataUrl(jpeg(PHOTO_MAX_BYTES + 1))), null)
-  assert.equal(decodePhoto(dataUrl(jpeg(1000), 'png')), null)
+test('decodePhoto accepts only PNG data URLs up to PHOTO_MAX_BYTES', () => {
+  const dataUrl = (bytes: Buffer, type = 'png') => `data:image/${type};base64,${bytes.toString('base64')}`
+  assert.deepEqual(decodePhoto(dataUrl(png(1000))), png(1000))
+  assert.equal(decodePhoto(dataUrl(png(PHOTO_MAX_BYTES + 1))), null)
+  assert.equal(decodePhoto(dataUrl(png(1000), 'jpeg')), null)
+  assert.equal(decodePhoto(dataUrl(jpeg(1000))), null)
+  assert.equal(decodePhoto(dataUrl(png(1000).subarray(0, 990))), null)
   assert.equal(decodePhoto(dataUrl(Buffer.from('<svg onload="alert(1)"></svg>'))), null)
   assert.equal(decodePhoto(42), null)
+})
+
+test('a raw 192 px RGBA image fits below PHOTO_MAX_BYTES, so every cropper PNG does', () => {
+  // One filter byte per row plus four bytes per pixel, before compression.
+  assert.ok(192 * (1 + 192 * 4) + 1000 < PHOTO_MAX_BYTES)
+})
+
+test('photoType tells stored PNGs from the JPEGs uploaded before', () => {
+  assert.equal(photoType(png(1000)), 'image/png')
+  assert.equal(photoType(jpeg(1000)), 'image/jpeg')
 })
 
 test('isListedAddress matches the SHA-256 of the normalized address only', () => {

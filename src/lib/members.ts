@@ -7,7 +7,8 @@
  * - `member_sessions`: hashed session tokens behind the login cookie, removed by a TTL index once expired.
  * - `member_audit`: who changed which member when, kept for one year.
  * - `member_login_clients`: pseudonymised client addresses of failed logins, kept LOGIN_LOCK_SECONDS.
- * - `member_photos`: each member's current signature photo, a square JPEG served publicly by its random id.
+ * - `member_photos`: each member's current signature photo, a round PNG (square JPEG if uploaded before) served
+ *   publicly by its random id.
  */
 import { Binary, MongoClient, type ObjectId } from 'mongodb'
 import 'dotenv/config'
@@ -206,13 +207,13 @@ export async function removeMember(email: string): Promise<boolean> {
 }
 
 /**
- * Stores `jpeg` as the member's signature photo and returns its id. Every upload gets a new id and the previous photo
+ * Stores `image` as the member's signature photo and returns its id. Every upload gets a new id and the previous photo
  * is deleted, so a photo URL never changes its content and stops working once replaced.
  */
-export async function savePhoto(email: string, jpeg: Buffer): Promise<string> {
+export async function savePhoto(email: string, image: Buffer): Promise<string> {
   const { photos } = await collections()
   const id = newToken()
-  await photos.insertOne({ _id: id, email, image: new Binary(jpeg), createdAt: new Date() })
+  await photos.insertOne({ _id: id, email, image: new Binary(image), createdAt: new Date() })
   await photos.deleteMany({ email, _id: { $ne: id } })
   return id
 }
