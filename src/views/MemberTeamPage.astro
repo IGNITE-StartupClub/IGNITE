@@ -1,0 +1,28 @@
+---
+/**
+ * The teams of IGNITE inside the members area, rendered on demand by pages/mitglieder/team.astro and
+ * pages/en/members/team.astro. Shows the same team descriptions as the join page (OpenTeamsGrid); team photos are
+ * meant to be added here later.
+ * Data source: memberArea.team and openTeams via getCopy().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import OpenTeamsGrid from '../components/mitmachen/OpenTeamsGrid.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea, openTeams } = getCopy(locale)
+const { team } = memberArea
+---
+
+<DefaultLayout title={team.pageTitle} alternatePath={memberPagePath('team', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader title={team.title} lead={team.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{team.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
+    <OpenTeamsGrid teams={openTeams} />
+  </Section>
+</DefaultLayout>

@@ -1,0 +1,16 @@
+---
+import { getCollection } from 'astro:content'
+import MemberGuidePage from '../../../../views/MemberGuidePage.astro'
+import { memberPagePath } from '../../../../lib/memberAuth'
+import { resolveGuide } from '../../../../lib/memberGuide'
+
+export const prerender = false
+
+const materials = (await getCollection('materials')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime(),
+)
+const route = resolveGuide(Astro.params.path, materials, memberPagePath('guide', 'en'))
+if (!route) return Astro.rewrite('/404')
+---
+
+<MemberGuidePage route={route} />
