@@ -6,12 +6,12 @@ import { decodePhoto, isJsonRequest } from '../../../lib/memberAuth'
 import { deletePhotos, savePhoto } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
 
-// A 192 px JPEG as base64 needs about a quarter of this; larger bodies are refused before parsing.
-const MAX_BODY_CHARS = 200_000
+// PHOTO_MAX_BYTES as base64 plus the JSON around it; larger bodies are refused before parsing.
+const MAX_BODY_CHARS = 220_000
 
 /**
- * Signature photo of the signed-in member (PhotoCropper island). POST { image: JPEG data URL } stores the photo,
- * already cut square in the browser, and answers { path }; DELETE removes it. The middleware requires a session.
+ * Signature photo of the signed-in member (PhotoCropper island). POST { image: PNG data URL } stores the photo,
+ * already cut round in the browser, and answers { path }; DELETE removes it. The middleware requires a session.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {

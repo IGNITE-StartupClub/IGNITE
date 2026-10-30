@@ -786,7 +786,7 @@ export const memberArea = {
         current: 'Your photo in the signature',
         frame: 'Image section. Drag or use the arrow keys to move it.',
         zoom: 'Zoom',
-        cropHint: 'Drag the image into place. The circle shows what most email programs display.',
+        cropHint: 'Drag the image into place. The circle shows the cut in your signature.',
         save: 'Apply',
         cancel: 'Cancel',
         saved: 'Photo saved.',

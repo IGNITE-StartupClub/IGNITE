@@ -786,7 +786,7 @@ export const memberArea = {
         current: 'Dein Foto in der Signatur',
         frame: 'Bildausschnitt. Zum Verschieben ziehen oder die Pfeiltasten nutzen.',
         zoom: 'Zoom',
-        cropHint: 'Zieh das Bild an die richtige Stelle. Der Kreis zeigt, was die meisten Mailprogramme anzeigen.',
+        cropHint: 'Zieh das Bild an die richtige Stelle. Der Kreis zeigt den Ausschnitt in deiner Signatur.',
         save: 'Übernehmen',
         cancel: 'Abbrechen',
         saved: 'Foto gespeichert.',

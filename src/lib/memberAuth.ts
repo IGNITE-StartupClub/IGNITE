@@ -44,18 +44,30 @@ export const hashToken = (token: string): string => createHash('sha256').update(
 export const isListedAddress = (email: string, hashes: readonly string[]): boolean =>
   hashes.includes(createHash('sha256').update(email).digest('hex'))
 
-/** Upper limit for a signature photo; the cropper's 192 px JPEGs stay far below it. */
-export const PHOTO_MAX_BYTES = 100_000
-const JPEG_DATA_URL = 'data:image/jpeg;base64,'
+/**
+ * Upper limit for a signature photo. The cropper sends 192 px PNGs (about 70 KB for a portrait); even without any
+ * compression one stays below 150 KB, so every photo it cuts fits.
+ */
+export const PHOTO_MAX_BYTES = 160_000
+const PNG_DATA_URL = 'data:image/png;base64,'
+const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex')
+// The closing IEND chunk: empty length, type and its fixed checksum.
+const PNG_END = Buffer.from('0000000049454e44ae426082', 'hex')
 
-/** The JPEG behind a data URL from the photo cropper, or null when it is no JPEG or larger than PHOTO_MAX_BYTES. */
+/** The PNG behind a data URL from the photo cropper, or null when it is no PNG or larger than PHOTO_MAX_BYTES. */
 export function decodePhoto(dataUrl: unknown): Buffer | null {
-  if (typeof dataUrl !== 'string' || !dataUrl.startsWith(JPEG_DATA_URL)) return null
-  const image = Buffer.from(dataUrl.slice(JPEG_DATA_URL.length), 'base64')
-  // Start and end markers of a JPEG file (SOI, EOI).
-  const isJpeg = image.length > 4 && image[0] === 0xff && image[1] === 0xd8 && image.at(-2) === 0xff && image.at(-1) === 0xd9
-  return isJpeg && image.length <= PHOTO_MAX_BYTES ? image : null
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith(PNG_DATA_URL)) return null
+  const image = Buffer.from(dataUrl.slice(PNG_DATA_URL.length), 'base64')
+  const isPng =
+    image.length > PNG_SIGNATURE.length + PNG_END.length &&
+    image.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE) &&
+    image.subarray(-PNG_END.length).equals(PNG_END)
+  return isPng && image.length <= PHOTO_MAX_BYTES ? image : null
 }
+
+/** Content type of a stored photo: PNG since the cropper cuts the circle, JPEG for photos uploaded before. */
+export const photoType = (image: Buffer): 'image/png' | 'image/jpeg' =>
+  image.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE) ? 'image/png' : 'image/jpeg'
 
 /** Random numeric code with leading zeros, e.g. "042917". */
 export const newCode = (): string => String(randomInt(10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0')

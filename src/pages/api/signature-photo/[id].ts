@@ -2,6 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isPhotoId } from '../../../lib/emailSignature'
+import { photoType } from '../../../lib/memberAuth'
 import { findPhoto } from '../../../lib/members'
 
 /**
@@ -17,7 +18,7 @@ export const GET: APIRoute = async ({ params }) => {
   }
   return new Response(new Uint8Array(image), {
     headers: {
-      'Content-Type': 'image/jpeg',
+      'Content-Type': photoType(image),
       'Cache-Control': 'public, max-age=31536000, immutable',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'",
