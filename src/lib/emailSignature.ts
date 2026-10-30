@@ -26,6 +26,12 @@ export interface SignatureFields {
   photo: string
 }
 
+/**
+ * localStorage key for the generator's draft. One per account, because members share browsers: a single key showed the
+ * previous account's inputs after switching accounts.
+ */
+export const signatureStorageKey = (account: string): string => `ignite-signature:${account}`
+
 /** The text fields an admin stores for the invitations they send (/api/members/signature); the photo is stored apart. */
 export type SavedSignature = Omit<SignatureFields, 'photo'>
 

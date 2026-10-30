@@ -8,6 +8,7 @@ import {
   parseSignature,
   photoPath,
   SIGNATURE_MAX_LENGTH,
+  signatureStorageKey,
   signatureHtml,
   type SignatureFields,
 } from './emailSignature.ts'
@@ -94,4 +95,9 @@ test('lets contact lines wrap after a separator, never before it', () => {
   const html = signatureHtml(fields({ phone: '+49 151 0000000' }), text, links, '')
   assert.ok(html.includes('&nbsp;· </span>'))
   assert.ok(!html.includes('·&nbsp;'))
+})
+
+test('keeps one signature draft per account', () => {
+  assert.notEqual(signatureStorageKey('a@example.org'), signatureStorageKey('b@example.org'))
+  assert.equal(signatureStorageKey('a@example.org'), signatureStorageKey('a@example.org'))
 })

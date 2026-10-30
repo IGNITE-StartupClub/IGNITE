@@ -5,16 +5,17 @@
  * defaultEmail (the signed-in member's address, prefilled), photo (path of the member's stored photo or ''),
  * saved (the admin's stored signature or null), savesSignature (true for admins: copying stores the signature, which
  * then closes the invitations they send).
- * Text inputs are remembered in localStorage per browser and win over `saved`; the photo lives on the server
+ * Text inputs are remembered in localStorage per browser and account (signatureStorageKey) and win over `saved`; the photo lives on the server
  * (PhotoCropper).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useState } from 'react'
-import { isComplete, LIVE_ORIGIN, signatureHtml } from '../../lib/emailSignature'
+import { isComplete, LIVE_ORIGIN, signatureHtml, signatureStorageKey } from '../../lib/emailSignature'
 import PhotoCropper from './PhotoCropper.jsx'
 import './forms.css'
 
-const STORAGE_KEY = 'ignite-signature'
+// Until 2026-10-30 every account shared this key; dropping it keeps an old draft from showing up under another account.
+const LEGACY_STORAGE_KEY = 'ignite-signature'
 const FIELDS = ['name', 'role', 'email', 'phone']
 
 async function writeClipboard(html, plain, asRichText) {
@@ -71,22 +72,25 @@ async function saveSignature({ name, role, email, phone }) {
 export default function SignatureGenerator({ copy, links, defaultEmail, photo, saved, savesSignature }) {
   const [fields, setFields] = useState({ name: '', role: '', email: defaultEmail, phone: '', ...saved, photo })
   const [status, setStatus] = useState(null) // { message, isError } | null
+  // defaultEmail is the signed-in account's address.
+  const storageKey = signatureStorageKey(defaultEmail)
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '{}')
       setFields((current) => ({ ...current, ...Object.fromEntries(FIELDS.filter((key) => saved[key]).map((key) => [key, saved[key]])) }))
     } catch {
       // Unreadable or blocked storage only means the fields start empty.
     }
-  }, [])
+  }, [storageKey])
 
   const update = (key) => (e) => {
     const next = { ...fields, [key]: e.target.value }
     setFields(next)
     setStatus(null)
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(FIELDS.map((name) => [name, next[name]]))))
+      localStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(FIELDS.map((name) => [name, next[name]]))))
     } catch {
       // Storage only remembers the inputs between visits; the generator works without it.
     }
