@@ -170,6 +170,7 @@ const PAGES = {
   signature: { de: 'signatur', en: 'signature' },
   admin: { de: 'verwaltung', en: 'admin' },
   crm: { de: 'crm', en: 'crm' },
+  tasks: { de: 'aufgaben', en: 'tasks' },
   alumni: { de: 'alumni', en: 'alumni' },
   team: { de: 'team', en: 'team' },
   guide: { de: 'guide', en: 'guide' },

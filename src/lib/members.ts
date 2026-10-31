@@ -1,6 +1,7 @@
 /**
  * MongoDB access for the members area. Collections:
- * - `members`: one document per member ({ email, role, addedAt, passwordHash?, lastLoginAt?, failedLogins?, lockedUntil?, signature? }).
+ * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, passwordHash?, lastLoginAt?,
+ *   failedLogins?, lockedUntil?, signature? }). Its `_id` is the member id the tasks module refers to.
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -32,6 +33,7 @@ import {
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { photoPath, type SavedSignature } from './emailSignature'
+import { nameFromEmail } from './tasks'
 
 export interface Member {
   email: string
@@ -45,6 +47,9 @@ export interface Member {
   lockedUntil?: Date
   /** Admins only: the signature under the invitations they send, stored when they copy it. */
   signature?: SavedSignature
+  /** Entered by the member on the tasks page, so others can assign them by name. */
+  firstName?: string
+  lastName?: string
 }
 
 interface PasswordCode {
@@ -147,11 +152,18 @@ async function listMembers(): Promise<Member[]> {
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
 
+/** The name the member entered, else the one in their signature, else ''. */
+export const enteredName = (member: Pick<Member, 'firstName' | 'lastName' | 'signature'>): string =>
+  member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : (member.signature?.name ?? '')
+
+/** How other members see someone: their entered name, else a name guessed from the address. */
+export const displayName = (member: Pick<Member, 'email' | 'firstName' | 'lastName' | 'signature'>): string =>
+  enteredName(member) || nameFromEmail(member.email)
+
 /** What the admin page may see of a member: never the password hash. */
 const memberSummary = (member: Member, photoId: string | undefined) => ({
   email: member.email,
-  /** Only admins have a stored signature, so only they show a name. */
-  name: member.signature?.name ?? '',
+  name: enteredName(member),
   role: member.role,
   /** Signature photo shown in the admin list, or ''. */
   photo: photoId ? photoPath(photoId) : '',
@@ -233,6 +245,11 @@ export async function photoIdOf(email: string): Promise<string | null> {
 export async function deletePhotos(email: string): Promise<void> {
   const { photos } = await collections()
   await photos.deleteMany({ email })
+}
+
+export async function saveName(email: string, firstName: string, lastName: string): Promise<void> {
+  const { members } = await collections()
+  await members.updateOne({ email }, { $set: { firstName, lastName } })
 }
 
 export async function saveSignature(email: string, signature: SavedSignature): Promise<void> {

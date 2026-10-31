@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/monthly-applicants",
       "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/task-digest?slot=summer",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/task-digest?slot=winter",
+      "schedule": "0 18 * * *"
     }
   ]
 }

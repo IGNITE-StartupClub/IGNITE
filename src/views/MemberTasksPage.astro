@@ -1,0 +1,55 @@
+---
+/**
+ * The tasks module of the members area ("Aufgaben & Events"), rendered on demand by pages/mitglieder/aufgaben.astro
+ * and pages/en/members/tasks.astro. Loads the events of the public calendar (taskEvents.ts), refreshes the event
+ * snapshots of planning projects and hands everything to the TaskWorkspace island, which talks to /api/members/tasks.
+ * Data source: memberArea.tasks via getCopy(), projects and members via workspaceState().
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import TaskWorkspace from '../components/forms/TaskWorkspace.jsx'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+import { berlinDay } from '../lib/tasks'
+import { loadTaskEvents } from '../lib/taskEvents'
+import { syncEvents, taskActor, workspaceState } from '../lib/tasksStore'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { tasks } = getCopy(locale).memberArea
+// The middleware let only signed-in members through; the member may have been removed in this very moment.
+const actor = await taskActor(Astro.locals.member!)
+if (!actor) return Astro.redirect(memberPagePath('login', locale))
+
+const { events, complete } = await loadTaskEvents(locale)
+await syncEvents(events, complete)
+const state = await workspaceState(actor)
+const calendar = events.map((event) => ({
+  ...event,
+  startAt: event.startAt.toISOString(),
+  endAt: event.endAt.toISOString(),
+  day: berlinDay(event.startAt.getTime()),
+}))
+const now = Date.now()
+---
+
+<DefaultLayout title={tasks.pageTitle} alternatePath={memberPagePath('tasks', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader compact title={tasks.title} lead={tasks.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{tasks.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
+    <TaskWorkspace
+      client:load
+      copy={tasks.workspace}
+      initialState={state}
+      events={calendar}
+      eventsComplete={complete}
+      me={actor.id}
+      named={actor.named}
+      admin={actor.role === 'admin'}
+      locale={locale}
+      today={berlinDay(now)}
+    />
+  </Section>
+</DefaultLayout>

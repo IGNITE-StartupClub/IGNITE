@@ -1,9 +1,10 @@
 /**
  * Building blocks shared by the members area islands (MemberAdmin, CrmBoard, AlumniDirectory): button and badge
- * classes, placeholder filling, the search field, toggle chips, initials avatars, form fields and the modal form dialog.
+ * classes, placeholder filling, the search field, toggle chips, initials avatars, form fields, the modal form dialog
+ * and the popover menu (browser popover API: Escape, outside clicks and focus order come for free).
  * Styles: ./forms.css plus Tailwind utilities.
  */
-import React from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { initials } from '../../lib/contacts'
 
@@ -13,6 +14,9 @@ export const BUTTON_BASE =
 export const TOOL_BUTTON = `${BUTTON_BASE} border-border-strong text-fg hover:bg-bg-subtle`
 export const PRIMARY_BUTTON = `${BUTTON_BASE} border-fg bg-fg text-bg hover:opacity-90`
 export const DANGER_BUTTON = `${BUTTON_BASE} border-danger text-danger hover:bg-bg-subtle`
+// border-0: the site's base styles give every button a border.
+export const MENU_ITEM =
+  'block w-full border-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm hover:bg-bg-subtle focus-visible:bg-bg-subtle'
 export const BADGE = 'inline-flex whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium'
 
 /** Replaces {key} placeholders in a copy string. */
@@ -116,5 +120,67 @@ export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubm
         {children}
       </form>
     </dialog>
+  )
+}
+
+/** A button that opens a popover below it, right-aligned; flips above when there is no room below. */
+export function Menu({ label, ariaLabel, className, children }) {
+  const id = useId()
+  const button = useRef(null)
+  const panel = useRef(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const popover = panel.current
+    const place = (event) => {
+      if (event.newState !== 'open') return
+      const anchor = button.current.getBoundingClientRect()
+      popover.style.right = `${document.documentElement.clientWidth - anchor.right}px`
+      popover.style.top = `${anchor.bottom + 4}px`
+    }
+    const toggled = (event) => {
+      setOpen(event.newState === 'open')
+      if (event.newState !== 'open') return
+      const anchor = button.current.getBoundingClientRect()
+      if (anchor.bottom + 4 + popover.offsetHeight > window.innerHeight)
+        popover.style.top = `${anchor.top - 4 - popover.offsetHeight}px`
+    }
+    popover.addEventListener('beforetoggle', place)
+    popover.addEventListener('toggle', toggled)
+    return () => {
+      popover.removeEventListener('beforetoggle', place)
+      popover.removeEventListener('toggle', toggled)
+    }
+  }, [])
+
+  // The popover is fixed to the viewport, so it would drift away from its button on scroll.
+  useEffect(() => {
+    if (!open) return
+    const close = () => panel.current.hidePopover()
+    window.addEventListener('scroll', close, { capture: true, passive: true })
+    return () => window.removeEventListener('scroll', close, { capture: true })
+  }, [open])
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        popoverTarget={id}
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        className={className}
+      >
+        {label}
+      </button>
+      <div
+        ref={panel}
+        id={id}
+        popover="auto"
+        className="fixed inset-auto m-0 min-w-40 rounded-lg border border-border bg-bg p-1 text-fg shadow-lg"
+      >
+        {children(() => panel.current.hidePopover())}
+      </div>
+    </>
   )
 }

@@ -46,6 +46,7 @@ const memberHome = memberHomePath(locale)
 const items: NavItem[] = member
   ? [
       { label: memberNav.home, url: memberHome },
+      { label: memberNav.tasks, url: memberPagePath('tasks', locale) },
       { label: memberNav.crm, url: memberPagePath('crm', locale) },
       { label: memberNav.alumni, url: memberPagePath('alumni', locale) },
       { label: memberNav.team, url: memberPagePath('team', locale) },
@@ -72,7 +73,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       {member && <span class="member-badge" aria-hidden="true">{memberNav.badge}</span>}
     </a>
 
-    <nav class="main-nav hidden lg:block" aria-label={member ? memberNav.label : navigation.mainNavLabel} data-main-nav>
+    <nav class="main-nav hidden lg:block" aria-label={member ? memberNav.label : navigation.mainNavLabel} data-main-nav data-member={member ? '' : undefined}>
       <span class="nav-indicator" aria-hidden="true" data-nav-indicator></span>
       <ul class="flex items-center gap-1">
         {items.map((item) => (
@@ -428,6 +429,12 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       color var(--duration-fast) ease,
       background-color var(--duration-fast) ease,
       transform 0.3s var(--ease-out);
+  }
+  /* Nine member links only fit next to logo and profile menu between lg and xl with tighter padding. */
+  @media (max-width: 1279px) {
+    .main-nav[data-member] .nav-link {
+      padding-inline: 0.5rem;
+    }
   }
   /* Quick press, soft release. */
   .nav-link:active {

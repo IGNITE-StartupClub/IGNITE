@@ -9,10 +9,10 @@
  * Menus use the browser's popover API, which handles Escape, outside clicks and focus order.
  * Styles: ./forms.css plus Tailwind utilities.
  */
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, ListFilter, Plus, X } from 'lucide-react'
 import { filterMembers, formatDateTime, memberStatus, relativeTime, toCsv } from '../../lib/memberTable'
-import { BUTTON_BASE, fill, PRIMARY_BUTTON, SearchField, TOOL_BUTTON } from './memberUi'
+import { BUTTON_BASE, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField, TOOL_BUTTON } from './memberUi'
 import './forms.css'
 
 const ERROR_CODES = [
@@ -28,9 +28,6 @@ const ERROR_CODES = [
 ]
 const PAGE_SIZE = 10
 
-// border-0: the site's base styles give every button a border.
-const MENU_ITEM =
-  'block w-full border-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm hover:bg-bg-subtle focus-visible:bg-bg-subtle'
 const STATUS_BADGE = {
   active: 'border-success text-success bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)]',
   invited: 'border-border-strong text-fg-muted',
@@ -50,68 +47,6 @@ function Avatar({ member }) {
     >
       {(member.name || member.email)[0]}
     </span>
-  )
-}
-
-/** A button that opens a popover below it, right-aligned; flips above when there is no room below. */
-function Menu({ label, ariaLabel, className, children }) {
-  const id = useId()
-  const button = useRef(null)
-  const panel = useRef(null)
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const popover = panel.current
-    const place = (event) => {
-      if (event.newState !== 'open') return
-      const anchor = button.current.getBoundingClientRect()
-      popover.style.right = `${document.documentElement.clientWidth - anchor.right}px`
-      popover.style.top = `${anchor.bottom + 4}px`
-    }
-    const toggled = (event) => {
-      setOpen(event.newState === 'open')
-      if (event.newState !== 'open') return
-      const anchor = button.current.getBoundingClientRect()
-      if (anchor.bottom + 4 + popover.offsetHeight > window.innerHeight)
-        popover.style.top = `${anchor.top - 4 - popover.offsetHeight}px`
-    }
-    popover.addEventListener('beforetoggle', place)
-    popover.addEventListener('toggle', toggled)
-    return () => {
-      popover.removeEventListener('beforetoggle', place)
-      popover.removeEventListener('toggle', toggled)
-    }
-  }, [])
-
-  // The popover is fixed to the viewport, so it would drift away from its button on scroll.
-  useEffect(() => {
-    if (!open) return
-    const close = () => panel.current.hidePopover()
-    window.addEventListener('scroll', close, { capture: true, passive: true })
-    return () => window.removeEventListener('scroll', close, { capture: true })
-  }, [open])
-
-  return (
-    <>
-      <button
-        ref={button}
-        type="button"
-        popoverTarget={id}
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        className={className}
-      >
-        {label}
-      </button>
-      <div
-        ref={panel}
-        id={id}
-        popover="auto"
-        className="fixed inset-auto m-0 min-w-40 rounded-lg border border-border bg-bg p-1 text-fg shadow-lg"
-      >
-        {children(() => panel.current.hidePopover())}
-      </div>
-    </>
   )
 }
 
