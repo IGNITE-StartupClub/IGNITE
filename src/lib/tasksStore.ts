@@ -8,8 +8,8 @@
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
  *   (taskDigest.ts) sends it. Removing the assignment, finishing or deleting the task removes the entry.
  * Members are referenced by the hex id of their `members` document. Every signed-in member reads and changes
- * projects and tasks; archiving is up to admins, the creator and the project's leads, deleting a project and
- * archiving templates up to admins.
+ * projects and tasks; archiving and changing the leads is up to admins, the creator and the project's leads, deleting a
+ * project and archiving templates up to admins.
  */
 import { randomUUID } from 'node:crypto'
 import { ObjectId } from 'mongodb'
@@ -379,11 +379,22 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
 
 type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full'
 
+/**
+ * Edits title, description, date and leads. Only those who may archive change the leads, because being a lead grants
+ * that right. Everyone else keeps the stored leads and gets 'forbidden' for adding one; a missing lead is ignored, since
+ * the client never sees leads whose member was removed and sends the list without them.
+ */
 export async function updateProject(actor: TaskActor, id: string, fields: Omit<ProjectFields, 'type'>): Promise<Outcome> {
   const { projects } = await collections()
+  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1 } })
+  if (!project) return 'unknown'
+  const { leads, ...rest } = fields
+  const owner = mayArchive(project, actor)
+  if (!owner && leads.some((lead) => !project.leads.includes(lead))) return 'forbidden'
   const { matchedCount } = await projects.updateOne(
-    { _id: id },
-    { $set: { ...fields, updatedAt: new Date() }, $push: pushActivity([activity(actor, 'edited')]) },
+    // Pinning the read leads keeps a concurrent lead change from slipping past the check above.
+    { _id: id, leads: project.leads },
+    { $set: { ...rest, ...(owner && { leads }), updatedAt: new Date() }, $push: pushActivity([activity(actor, 'edited')]) },
   )
   return matchedCount ? 'ok' : 'unknown'
 }

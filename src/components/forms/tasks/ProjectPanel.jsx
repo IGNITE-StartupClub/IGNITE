@@ -12,6 +12,7 @@ import { isOverdue, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TEXT_MAX
 import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import {
   Avatar,
+  AvatarStack,
   berlinTime,
   dateTime,
   ICON_BUTTON,
@@ -659,15 +660,22 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                 )}
                 <span className="inline-flex items-center gap-2">
                   <span className="text-fg-muted">{copy.panel.leads}</span>
-                  <MemberPicker
-                    members={members}
-                    membersById={membersById}
-                    selected={project.leads}
-                    onChange={updateLeads}
-                    copy={copy.people}
-                    me={me}
-                    label={copy.panel.leads}
-                  />
+                  {/* Leads may archive, so only those who already may archive choose them (checked on the server too). */}
+                  {project.mayArchive ? (
+                    <MemberPicker
+                      members={members}
+                      membersById={membersById}
+                      selected={project.leads}
+                      onChange={updateLeads}
+                      copy={copy.people}
+                      me={me}
+                      label={copy.panel.leads}
+                    />
+                  ) : project.leads.length ? (
+                    <AvatarStack ids={project.leads} membersById={membersById} copy={copy.people} max={4} />
+                  ) : (
+                    <span>{copy.people.nobody}</span>
+                  )}
                 </span>
                 {project.event?.url && (
                   <a href={project.event.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">
