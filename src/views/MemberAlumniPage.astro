@@ -20,10 +20,10 @@ const profiles = await alumniSummaries(Astro.locals.member!)
 ---
 
 <DefaultLayout title={alumni.pageTitle} alternatePath={memberPagePath('alumni', locale === 'de' ? 'en' : 'de')} noindex>
-  <PageHeader title={alumni.title} lead={alumni.lead}>
+  <PageHeader compact title={alumni.title} lead={alumni.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{alumni.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
     <AlumniDirectory client:load copy={alumni.directory} initialAlumni={profiles} />
   </Section>
 </DefaultLayout>

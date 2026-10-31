@@ -23,10 +23,10 @@ const { benefits, nav } = getCopy(locale).memberArea
   alternatePath={memberPagePath('benefits', locale === 'de' ? 'en' : 'de')}
   noindex
 >
-  <PageHeader title={benefits.title} lead={benefits.lead}>
+  <PageHeader compact title={benefits.title} lead={benefits.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{benefits.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
         benefits.items.map((item) => (

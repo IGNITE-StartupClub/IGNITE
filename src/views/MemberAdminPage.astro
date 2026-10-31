@@ -20,10 +20,10 @@ const members = await memberSummaries()
 ---
 
 <DefaultLayout title={admin.pageTitle} alternatePath={memberPagePath('admin', locale === 'de' ? 'en' : 'de')} noindex>
-  <PageHeader title={admin.title} lead={admin.lead}>
+  <PageHeader compact title={admin.title} lead={admin.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{admin.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
     <MemberAdmin
       client:load
       copy={admin.manager}

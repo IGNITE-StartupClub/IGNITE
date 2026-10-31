@@ -1,7 +1,8 @@
 ---
 /**
  * Subpage header: serif h1 with optional <em> emphasis word and an optional lead paragraph.
- * Props: title (HTML allowed, use one <em>), lead (plain text), id (h1 id), class.
+ * Props: title (HTML allowed, use one <em>), lead (plain text), id (h1 id), class, compact (smaller title and spacing,
+ * for the members area, where the tool below the header is what people came for).
  * Slots: default (extra content below the lead, e.g. a button).
  */
 import Section from './Section.astro'
@@ -11,13 +12,14 @@ interface Props {
   lead?: string
   id?: string
   class?: string
+  compact?: boolean
 }
 
-const { title, lead, id = 'page-title', class: className = '' } = Astro.props
+const { title, lead, id = 'page-title', class: className = '', compact = false } = Astro.props
 ---
 
-<Section spacing="md" labelledby={id} class={className}>
-  <h1 id={id} class="max-w-text text-display-md" set:html={title} />
-  {lead && <p class="mt-6 max-w-text text-lead text-fg-muted">{lead}</p>}
+<Section spacing={compact ? 'xs' : 'md'} labelledby={id} class={className}>
+  <h1 id={id} class:list={['max-w-text', compact ? 'text-display-sm' : 'text-display-md']} set:html={title} />
+  {lead && <p class:list={['max-w-text text-fg-muted', compact ? 'mt-2' : 'mt-6 text-lead']}>{lead}</p>}
   <slot />
 </Section>
