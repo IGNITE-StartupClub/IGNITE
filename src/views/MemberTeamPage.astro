@@ -19,10 +19,10 @@ const { team } = memberArea
 ---
 
 <DefaultLayout title={team.pageTitle} alternatePath={memberPagePath('team', locale === 'de' ? 'en' : 'de')} noindex>
-  <PageHeader title={team.title} lead={team.lead}>
+  <PageHeader compact title={team.title} lead={team.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{team.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
     <OpenTeamsGrid teams={openTeams} />
   </Section>
 </DefaultLayout>

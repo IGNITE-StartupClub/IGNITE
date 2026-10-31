@@ -30,10 +30,10 @@ const isAdmin = member.role === 'admin'
 ---
 
 <DefaultLayout title={signature.pageTitle} alternatePath={alternatePath} noindex>
-  <PageHeader title={signature.title} lead={signature.lead}>
+  <PageHeader compact title={signature.title} lead={signature.lead}>
     <p class="form-note"><a href={memberHomePath(locale)}>{signature.back}</a></p>
   </PageHeader>
-  <Section tone="subtle" spacing="sm" labelledby="page-title">
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
     <SignatureGenerator
       client:load
       copy={signature.generator}

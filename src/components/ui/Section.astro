@@ -1,12 +1,12 @@
 ---
 /**
  * Page section wrapper: surface tone, vertical rhythm and a centered container.
- * Props: tone ('default' | 'subtle' | 'inverted' | 'brand'), spacing ('sm' | 'md' | 'lg'),
+ * Props: tone ('default' | 'subtle' | 'inverted' | 'brand'), spacing ('xs' | 'sm' | 'md' | 'lg'),
  * width ('text' 42rem | 'article' 60rem | 'wide' 80rem), id, labelledby (id of the section heading), class.
  */
 interface Props {
   tone?: 'default' | 'subtle' | 'inverted' | 'brand'
-  spacing?: 'sm' | 'md' | 'lg'
+  spacing?: 'xs' | 'sm' | 'md' | 'lg'
   width?: 'text' | 'article' | 'wide'
   id?: string
   labelledby?: string
@@ -30,6 +30,7 @@ const toneClass = {
 }[tone]
 
 const spacingClass = {
+  xs: 'py-8 md:py-10',
   sm: 'py-section-sm',
   md: 'py-section-md',
   lg: 'py-section-lg',
