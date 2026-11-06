@@ -74,6 +74,13 @@ test('openTasks leaves out archived and finished projects', () => {
   assert.deepEqual(tasks, [])
 })
 
+test('openTasks marks tasks that are a project of their own, whose project title only repeats them', () => {
+  const [single] = openTasks([project('a', [task('x')], { type: 'task' })], ME, TODAY, [])
+  const [inProject] = openTasks([project('b', [task('y')], { type: 'internal' })], ME, TODAY, [])
+  assert.equal(single.single, true)
+  assert.equal(inProject.single, false)
+})
+
 test('openTasks carries what the dashboard shows and links to', () => {
   const [first] = openTasks([project('a', [task('x', { due: '2026-11-08' })], { event: { id: 'evt' } })], ME, TODAY, [])
   assert.deepEqual(first, {
@@ -85,6 +92,7 @@ test('openTasks carries what the dashboard shows and links to', () => {
     projectTitle: 'Project a',
     eventId: 'evt',
     private: false,
+    single: false,
   })
 })
 

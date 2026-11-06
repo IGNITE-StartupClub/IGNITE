@@ -163,7 +163,7 @@ export default function EventCalendar({ events, projectsByEvent, complete, today
                           {dayEvents.map((event) => (
                             <span
                               key={event.id}
-                              className={`truncate rounded px-1 py-0.5 text-[0.6875rem] leading-tight ${
+                              className={`truncate rounded px-1 py-0.5 text-2xs leading-tight ${
                                 projectsByEvent.has(event.id)
                                   ? 'bg-brand-bright text-white'
                                   : 'bg-[color-mix(in_srgb,var(--color-accent-text)_18%,transparent)] text-fg'

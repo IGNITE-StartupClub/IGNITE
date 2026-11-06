@@ -100,7 +100,7 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
       plausible.init()
     </script>
   </head>
-  <body>
+  <body class:list={[!bare && memberAreaLocale(Astro.url.pathname) && 'member-area']}>
     <a
       href="#main-content"
       class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-button focus:bg-primary focus:px-6 focus:py-3 focus:text-primary-fg"

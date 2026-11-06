@@ -27,7 +27,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={`text-[0.6875rem] font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
+        <p className={`text-2xs font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
           {copy.types[project.type]}
           {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {copy.teams[project.team]}</span>}
         </p>

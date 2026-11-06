@@ -6,7 +6,7 @@ import { parseName, parseTeam, taskGroup, type PrivateTaskState, type ProjectSta
 
 type Locale = 'de' | 'en'
 
-export type HomeProject = Pick<ProjectState, 'id' | 'title' | 'status' | 'archived'> & {
+export type HomeProject = Pick<ProjectState, 'id' | 'title' | 'type' | 'status' | 'archived'> & {
   event: { id: string } | null
   tasks: Pick<TaskState, 'id' | 'title' | 'due' | 'done' | 'assignees'>[]
 }
@@ -22,6 +22,8 @@ export interface HomeTask {
   eventId: string
   /** A private task has no project; projectId and projectTitle stay ''. */
   private: boolean
+  /** A single task is a project of its own, so the project title only repeats the task's. */
+  single: boolean
 }
 
 /** The member's open tasks, private ones included, soonest deadline first and tasks without one last. */
@@ -40,6 +42,7 @@ export function openTasks(projects: HomeProject[], me: string, today: string, pr
           projectTitle: project.title,
           eventId: project.event?.id ?? '',
           private: false,
+          single: project.type === 'task',
         })),
     )
   const own = privateTasks
@@ -53,6 +56,7 @@ export function openTasks(projects: HomeProject[], me: string, today: string, pr
       projectTitle: '',
       eventId: '',
       private: true,
+      single: false,
     }))
   return [...shared, ...own].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'))
 }

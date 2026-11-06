@@ -322,12 +322,13 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
   const list = await projects
     .find(
       { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
-      { projection: { title: 1, status: 1, 'event.id': 1, tasks: 1 }, sort: { updatedAt: -1 } },
+      { projection: { title: 1, type: 1, status: 1, 'event.id': 1, tasks: 1 }, sort: { updatedAt: -1 } },
     )
     .toArray()
-  return list.map(({ _id, title, status, event, tasks }) => ({
+  return list.map(({ _id, title, type, status, event, tasks }) => ({
     id: _id,
     title,
+    type,
     status,
     archived: false,
     event: event ?? null,
