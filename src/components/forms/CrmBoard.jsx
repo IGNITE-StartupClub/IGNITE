@@ -2,16 +2,19 @@
  * The CRM of the members area (React island): a contact list with search and filter chips (types as in CRM_FLAGS,
  * plus "due" for next steps that are due), a detail view per contact with its history, next step and contact data,
  * and a dialog to add or edit a contact. Posts { action, id?, contact?, entry?, entryId? } to /api/members/crm and
- * shows the contact list the API returns after each action.
+ * shows the contact list the API returns after each action; an edit sends only the fields it changed, so it leaves what
+ * others saved in the meantime alone. useLiveRefresh fetches the list when it changed while the page is in use.
  * The open contact is the URL hash (#<id>), and each opened contact is a history entry, so the browser's back button
  * returns to the list.
- * Props: copy (memberArea.crm.board), initialContacts (contactSummary objects), locale ('de' | 'en'), today
- * (YYYY-MM-DD in Berlin, so server and browser agree on what is due).
+ * Props: copy (memberArea.crm.board), initialContacts (contactSummary objects), initialRevision (see liveUpdates.ts),
+ * locale ('de' | 'en'), today (YYYY-MM-DD in Berlin, so server and browser agree on what is due).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Check, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react'
 import { CRM_FLAGS, ENTRY_TYPES, filterContacts, formatDay, isDue } from '../../lib/contacts'
+import { changedFields } from '../../lib/liveUpdates'
+import { fetchNews, useLiveRefresh } from './useLiveRefresh'
 import {
   BADGE,
   Chip,
@@ -70,7 +73,7 @@ function NextStep({ contact, copy, locale, today }) {
   )
 }
 
-export default function CrmBoard({ copy, initialContacts, locale, today }) {
+export default function CrmBoard({ copy, initialContacts, initialRevision, locale, today }) {
   const [contacts, setContacts] = useState(initialContacts)
   const [query, setQuery] = useState('')
   const [flags, setFlags] = useState([])
@@ -84,6 +87,9 @@ export default function CrmBoard({ copy, initialContacts, locale, today }) {
   const [result, setResult] = useState(null) // result code from the API
   const dialog = useRef(null)
   const root = useRef(null)
+  const opened = useRef(EMPTY_CONTACT) // what the dialog started from, so saving sends only what changed
+  const revision = useRef(initialRevision)
+  const sent = useRef(0)
 
   useEffect(() => {
     const read = () => setSelectedId(decodeURIComponent(window.location.hash.slice(1)) || null)
@@ -111,7 +117,13 @@ export default function CrmBoard({ copy, initialContacts, locale, today }) {
     },
   })
 
+  const receive = (data) => {
+    setContacts(data.contacts)
+    revision.current = data.revision
+  }
+
   const run = async (body) => {
+    sent.current += 1
     setBusy(true)
     setResult(null)
     try {
@@ -121,7 +133,7 @@ export default function CrmBoard({ copy, initialContacts, locale, today }) {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (data.contacts) setContacts(data.contacts)
+      if (data.contacts) receive(data)
       if (res.status >= 500) console.error(data.message)
       setResult(data.code in copy.results ? data.code : 'error')
       return res.ok ? data : null
@@ -134,17 +146,29 @@ export default function CrmBoard({ copy, initialContacts, locale, today }) {
     }
   }
 
+  useLiveRefresh(async () => {
+    if (busy) return
+    const request = ++sent.current
+    const data = await fetchNews('/api/members/crm', revision.current)
+    if (!data) return false
+    // An action answered in between with a newer list.
+    if (data.contacts && request === sent.current) receive(data)
+  })
+
   const openDialog = (contact) => {
     setResult(null)
     setEditingId(contact?.id ?? null)
-    setForm(contact ? Object.fromEntries(Object.keys(EMPTY_CONTACT).map((key) => [key, contact[key]])) : EMPTY_CONTACT)
+    opened.current = contact ? Object.fromEntries(Object.keys(EMPTY_CONTACT).map((key) => [key, contact[key]])) : EMPTY_CONTACT
+    setForm(opened.current)
     setDialogOpen(true)
     dialog.current.showModal()
   }
 
   const handleSave = async (e) => {
     e.preventDefault()
-    const data = await run({ action: 'save', id: editingId, contact: form })
+    const contact = editingId ? changedFields(opened.current, form) : form
+    if (!Object.keys(contact).length) return dialog.current.close()
+    const data = await run({ action: 'save', id: editingId, contact })
     if (!data) return
     dialog.current.close()
     if (!editingId) open(data.id)

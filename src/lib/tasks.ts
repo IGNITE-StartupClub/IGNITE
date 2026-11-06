@@ -212,32 +212,60 @@ export function parseTask(input: unknown): TaskFields | null {
   })
 }
 
-export type TaskPatch = Partial<TaskFields> & { done?: boolean }
+/** People joining or leaving a list. Two members changing the list at once then both keep their change. */
+export interface MemberChange {
+  add: string[]
+  remove: string[]
+}
 
-/** A change to some fields of a task; null when it changes nothing or any given field is invalid. */
-export function parseTaskPatch(input: unknown): TaskPatch | null {
+export type TaskPatch = Partial<Omit<TaskFields, 'assignees'>> & { done?: boolean; assignees?: MemberChange }
+export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'team'>> & { leads?: MemberChange }
+
+// One direction only: MongoDB cannot add to and pull from an array in one update, and a picker click changes one person.
+function memberChangeOf(value: unknown): Parsed<MemberChange> {
+  const fields = fieldsOf(value)
+  if (!fields) return INVALID
+  const add = members(fields.add)
+  const remove = members(fields.remove)
+  if (add === INVALID || remove === INVALID) return INVALID
+  return !add.length === !remove.length ? INVALID : { add, remove }
+}
+
+/** A change to some fields; null when it changes nothing or any given field is unknown or invalid. */
+function parsePatch<T>(input: unknown, parsers: Record<string, (value: unknown) => Parsed<unknown>>): T | null {
   const fields = fieldsOf(input)
   if (!fields) return null
-  const parsers: Record<keyof TaskPatch, (value: unknown) => Parsed<unknown>> = {
+  const patch: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(fields)) {
+    if (!Object.hasOwn(parsers, key) || value === undefined) return null
+    const parsed = parsers[key](value)
+    if (parsed === INVALID) return null
+    patch[key] = parsed
+  }
+  return Object.keys(patch).length ? (patch as T) : null
+}
+
+export const parseTaskPatch = (input: unknown): TaskPatch | null =>
+  parsePatch<TaskPatch>(input, {
     title: (value) => text(value, TITLE_MAX, true),
     description: (value) => text(value, TEXT_MAX),
     due: day,
     priority: (value) => choice(value, PRIORITIES, 'normal'),
     required: flag,
-    assignees: members,
+    assignees: memberChangeOf,
     team,
     status: (value) => choice(value, TASK_STATUSES, 'backlog'),
     done: flag,
-  }
-  const patch: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(fields)) {
-    if (!(key in parsers) || value === undefined) return null
-    const parsed = parsers[key as keyof TaskPatch](value)
-    if (parsed === INVALID) return null
-    patch[key] = parsed
-  }
-  return Object.keys(patch).length ? (patch as TaskPatch) : null
-}
+  })
+
+export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
+  parsePatch<ProjectPatch>(input, {
+    title: (value) => text(value, TITLE_MAX, true),
+    description: (value) => text(value, TEXT_MAX),
+    due: day,
+    team,
+    leads: memberChangeOf,
+  })
 
 export function parseLessons(input: unknown): Lessons | null {
   const fields = fieldsOf(input)
@@ -339,7 +367,12 @@ export function nextStanding(task: Standing, patch: TaskPatch): Standing {
 }
 
 /** A task with a change applied, for updates the UI shows before the server answers. */
-export const patchedTask = <T extends Standing>(task: T, patch: TaskPatch): T => ({ ...task, ...patch, ...nextStanding(task, patch) })
+export const patchedTask = <T extends Standing & { assignees?: string[] }>(task: T, patch: TaskPatch): T => ({
+  ...task,
+  ...patch,
+  ...nextStanding(task, patch),
+  ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
+})
 
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
@@ -508,4 +541,43 @@ export function templateFromTasks(
 /** Members newly on `next` and no longer on `previous`, for notifications and the activity log. */
 export function assigneeChanges(previous: string[], next: string[]) {
   return { added: next.filter((id) => !previous.includes(id)), removed: previous.filter((id) => !next.includes(id)) }
+}
+
+/** What a picker changed, as the server takes it. */
+export function memberChange(previous: string[], next: string[]): MemberChange {
+  const { added, removed } = assigneeChanges(previous, next)
+  return { add: added, remove: removed }
+}
+
+export const applyMemberChange = (list: string[], { add, remove }: MemberChange): string[] => [
+  ...list.filter((id) => !remove.includes(id)),
+  ...add.filter((id) => !list.includes(id)),
+]
+
+interface WorkspaceChanges<P, M> {
+  revision: string
+  /** Every project there is, so the island drops what was deleted. */
+  ids: string[]
+  /** Only the projects that changed. */
+  projects: P[]
+  members: M[]
+  /** Always all of them: a member has few, and they have no revision of their own. */
+  privateTasks: PrivateTaskState[]
+}
+
+/** The workspace after an answer from the server: changed projects replace their copies, deleted ones leave. */
+export function applyChanges<P extends { id: string; updatedAt: string }, M, S extends { revision: string; projects: P[]; members: M[] }>(
+  state: S,
+  changes: WorkspaceChanges<P, M>,
+): S {
+  const ids = new Set(changes.ids)
+  const changed = new Set(changes.projects.map((project) => project.id))
+  const kept = state.projects.filter((project) => ids.has(project.id) && !changed.has(project.id))
+  return {
+    ...state,
+    revision: changes.revision,
+    members: changes.members,
+    privateTasks: changes.privateTasks,
+    projects: [...kept, ...changes.projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+  }
 }

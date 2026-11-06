@@ -12,8 +12,9 @@
 import { randomUUID } from 'node:crypto'
 import type { MemberRole } from './memberAuth'
 import { database } from './members'
-import type { AlumniFields, ContactFields, EntryFields, EntryType } from './contacts'
+import { validIgniteTime, type AlumniFields, type ContactFields, type EntryFields, type EntryType } from './contacts'
 import { emailFingerprint, fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
+import { collectionRevision } from './liveUpdates'
 
 const CONTACT_TTL_SECONDS = 3 * 365 * 24 * 3600
 
@@ -59,6 +60,7 @@ async function collections() {
   indexes ??= Promise.all([
     db.collection('crm_contacts').createIndex({ updatedAt: 1 }, { expireAfterSeconds: CONTACT_TTL_SECONDS }),
     db.collection('crm_contacts').createIndex({ emailHash: 1 }),
+    db.collection('alumni').createIndex({ updatedAt: -1 }),
   ]).catch((err) => {
     indexes = null
     throw err
@@ -149,40 +151,59 @@ function alumniSummary(doc: AlumniDoc, actor: Actor) {
 }
 export type AlumniSummary = ReturnType<typeof alumniSummary>
 
-export async function contactSummaries(actor: Actor): Promise<ContactSummary[]> {
+export async function contactsRevision(): Promise<string> {
   const { contacts } = await collections()
-  const list = await contacts.find().toArray()
-  return list.map((contact) => contactSummary(contact, actor)).sort(byName)
+  return collectionRevision(contacts)
 }
 
-/**
- * Creates a contact (no `id`) or replaces its fields. Returns the id, 'unknown' for an unknown `id` or 'duplicate'
- * when another contact has the same email address.
- */
-export async function saveContact(id: string | null, fields: ContactFields, actor: Actor) {
+/** The list and the revision it stands for, read first so a change during the read still counts as new. */
+export async function contactState(actor: Actor): Promise<{ revision: string; contacts: ContactSummary[] }> {
+  const { contacts } = await collections()
+  const revision = await contactsRevision()
+  const list = await contacts.find().toArray()
+  return { revision, contacts: list.map((contact) => contactSummary(contact, actor)).sort(byName) }
+}
+
+const emailTaken = async (emailHash: string, id: string) => {
+  const { contacts } = await collections()
+  return !!(await contacts.findOne({ emailHash, _id: { $ne: id } }, { projection: { _id: 1 } }))
+}
+
+/** Returns the id, or 'duplicate' when another contact has the same email address. */
+export async function createContact(fields: ContactFields, actor: Actor) {
   const { contacts } = await collections()
   const emailHash = fields.email ? emailFingerprint(cryptoKeys(), fields.email) : null
-  if (emailHash && (await contacts.findOne({ emailHash, _id: { $ne: id ?? '' } }, { projection: { _id: 1 } }))) {
-    return 'duplicate'
-  }
+  if (emailHash && (await emailTaken(emailHash, ''))) return 'duplicate'
   const now = new Date()
-  const _id = id ?? randomUUID()
-  const sealed = { ...sealFields(fields, CONTACT_SEALED, 'crm_contacts', _id), emailHash }
-  if (!id) {
-    await contacts.insertOne({
-      _id,
-      ...sealed,
-      entries: [],
-      createdBy: actor.email,
-      createdAt: now,
-      updatedBy: actor.email,
-      updatedAt: now,
-    })
-    return { id: _id }
-  }
+  const _id = randomUUID()
+  await contacts.insertOne({
+    _id,
+    ...sealFields(fields, CONTACT_SEALED, 'crm_contacts', _id),
+    emailHash,
+    entries: [],
+    createdBy: actor.email,
+    createdAt: now,
+    updatedBy: actor.email,
+    updatedAt: now,
+  })
+  return { id: _id }
+}
+
+/** Changes the given fields only, so two members editing a contact keep each other's work. */
+export async function updateContact(id: string, patch: Partial<ContactFields>, actor: Actor) {
+  const { contacts } = await collections()
+  const emailHash = patch.email ? emailFingerprint(cryptoKeys(), patch.email) : null
+  if (emailHash && (await emailTaken(emailHash, id))) return 'duplicate'
   const { matchedCount } = await contacts.updateOne(
     { _id: id },
-    { $set: { ...sealed, updatedBy: actor.email, updatedAt: now } },
+    {
+      $set: {
+        ...sealFields(patch, CONTACT_SEALED, 'crm_contacts', id),
+        ...(patch.email !== undefined && { emailHash }),
+        updatedBy: actor.email,
+        updatedAt: new Date(),
+      },
+    },
   )
   return matchedCount ? { id } : 'unknown'
 }
@@ -197,19 +218,20 @@ export async function deleteContact(id: string, actor: Actor) {
   return 'deleted'
 }
 
-async function pushEntry(id: string, entry: Omit<Entry, 'id' | 'by' | 'at'>, actor: Actor, clearNextStep = false) {
+/** With `completing`, the sealed next step just read, the update only hits that step and clears it. */
+async function pushEntry(id: string, entry: Omit<Entry, 'id' | 'by' | 'at'>, actor: Actor, completing?: string) {
   const { contacts } = await collections()
   const now = new Date()
   const entryId = randomUUID()
   const text = seal(cryptoKeys(), entry.text, 'crm_contacts', id, entryField(entryId))
   const { matchedCount } = await contacts.updateOne(
-    { _id: id },
+    { _id: id, ...(completing !== undefined && { nextStep: completing }) },
     {
       $push: { entries: { ...entry, text, id: entryId, by: actor.email, at: now } },
       $set: {
         updatedBy: actor.email,
         updatedAt: now,
-        ...(clearNextStep ? { ...sealFields({ nextStep: '' }, CONTACT_SEALED, 'crm_contacts', id), nextDue: '' } : {}),
+        ...(completing !== undefined ? { ...sealFields({ nextStep: '' }, CONTACT_SEALED, 'crm_contacts', id), nextDue: '' } : {}),
       },
     },
   )
@@ -218,13 +240,17 @@ async function pushEntry(id: string, entry: Omit<Entry, 'id' | 'by' | 'at'>, act
 
 export const addEntry = (id: string, entry: EntryFields, actor: Actor) => pushEntry(id, entry, actor)
 
-/** Logs the next step as done on `day` and clears it. False when the contact is unknown or has no next step. */
+/**
+ * Logs the next step as done on `day` and clears it. False when the contact is unknown, has no next step or someone
+ * completed or changed that step in the meantime, so two clicks never log it twice. Every seal gets a new IV, which
+ * makes the stored value unique to this version of the step.
+ */
 export async function completeNextStep(id: string, day: string, actor: Actor): Promise<boolean> {
   const { contacts } = await collections()
   const contact = await contacts.findOne({ _id: id }, { projection: { nextStep: 1 } })
   const nextStep = contact && open(cryptoKeys(), contact.nextStep, 'crm_contacts', id, 'nextStep')
   if (!nextStep) return false
-  return pushEntry(id, { type: 'done', date: day, text: nextStep }, actor, true)
+  return pushEntry(id, { type: 'done', date: day, text: nextStep }, actor, contact.nextStep)
 }
 
 /** 'removed', 'unknown' or 'forbidden' (only admins and the author remove an entry). */
@@ -240,46 +266,56 @@ export async function removeEntry(id: string, entryId: string, actor: Actor) {
   return 'removed'
 }
 
-export async function alumniSummaries(actor: Actor): Promise<AlumniSummary[]> {
+export async function alumniRevision(): Promise<string> {
   const { alumni } = await collections()
-  const list = await alumni.find().toArray()
-  return list.map((person) => alumniSummary(person, actor)).sort(byName)
+  return collectionRevision(alumni)
 }
 
-/** Creates a profile (no `id`) or replaces its fields; null when `id` is unknown. parseAlumni checked the consent. */
-export async function saveAlumni(id: string | null, fields: AlumniFields, actor: Actor): Promise<string | null> {
+/** The list and the revision it stands for, read first so a change during the read still counts as new. */
+export async function alumniState(actor: Actor): Promise<{ revision: string; alumni: AlumniSummary[] }> {
+  const { alumni } = await collections()
+  const revision = await alumniRevision()
+  const list = await alumni.find().toArray()
+  return { revision, alumni: list.map((person) => alumniSummary(person, actor)).sort(byName) }
+}
+
+/** parseAlumni checked the consent. */
+export async function createAlumni(fields: AlumniFields, actor: Actor): Promise<void> {
   const { alumni } = await collections()
   const now = new Date()
-  if (!id) {
-    const _id = randomUUID()
-    await alumni.insertOne({
-      _id,
-      ...sealFields(fields, ALUMNI_SEALED, 'alumni', _id),
-      consentAt: now,
-      createdBy: actor.email,
-      createdAt: now,
-      updatedBy: actor.email,
-      updatedAt: now,
-    })
-    return _id
-  }
-  const stored = await alumni.findOne({ _id: id }, { projection: { open: 1, createdBy: 1 } })
-  if (!stored) return null
+  const _id = randomUUID()
+  await alumni.insertOne({
+    _id,
+    ...sealFields(fields, ALUMNI_SEALED, 'alumni', _id),
+    consentAt: now,
+    createdBy: actor.email,
+    createdAt: now,
+    updatedBy: actor.email,
+    updatedAt: now,
+  })
+}
+
+/** Changes the given fields only: 'saved', 'unknown', or 'invalid' when the IGNITE time would end before it starts. */
+export async function updateAlumni(id: string, patch: Partial<AlumniFields>, actor: Actor) {
+  const { alumni } = await collections()
+  const stored = await alumni.findOne({ _id: id }, { projection: { open: 1, createdBy: 1, igniteFrom: 1, igniteTo: 1 } })
+  if (!stored) return 'unknown'
+  if (!validIgniteTime({ ...stored, ...patch })) return 'invalid'
   // Only admins and the creator open a closed profile, since that shows its email to everyone. Others were sent the
-  // email of a closed profile empty, so their copy must not erase the stored one.
-  const { email, open: takesRequests, ...rest } = fields
-  const update = {
-    ...rest,
-    ...(mayDelete(stored, actor) ? { open: takesRequests } : {}),
-    ...(seesEmail(stored, actor) ? { email } : {}),
-  }
+  // email of a closed profile empty, so a change from them must not touch the stored one.
+  const { email, open: takesRequests, ...rest } = patch
+  const open = takesRequests !== undefined && mayDelete(stored, actor) ? { open: takesRequests } : {}
+  const address = email !== undefined && seesEmail(stored, actor) ? { email } : {}
+  const update = { ...rest, ...open, ...address }
+  const rightsMatter = 'open' in update || 'email' in update
   // The filter repeats what the rights were checked against, so a change in between makes the update miss.
   const { matchedCount } = await alumni.updateOne(
-    { _id: id, open: stored.open, createdBy: stored.createdBy },
-    { $set: { ...sealFields(update, ALUMNI_SEALED, 'alumni', id), updatedBy: actor.email, updatedAt: now } },
+    { _id: id, ...(rightsMatter && { open: stored.open, createdBy: stored.createdBy }) },
+    { $set: { ...sealFields(update, ALUMNI_SEALED, 'alumni', id), updatedBy: actor.email, updatedAt: new Date() } },
   )
-  return matchedCount ? id : null
+  return matchedCount ? 'saved' : 'unknown'
 }
+
 /** 'deleted', 'unknown' or 'forbidden' (only admins and the creator delete). */
 export async function deleteAlumni(id: string, actor: Actor) {
   const { alumni } = await collections()

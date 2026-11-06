@@ -135,23 +135,60 @@ function parse<T>(values: { [K in keyof T]: Parsed<T[K]> }): T | null {
   return Object.values(values).includes(INVALID) ? null : (values as T)
 }
 
-export function parseContact(input: unknown): ContactFields | null {
+const CONTACT_PARSERS: { [K in keyof ContactFields]: (value: unknown) => Parsed<ContactFields[K]> } = {
+  name: (value) => text(value, 100, true),
+  organization: (value) => text(value, 120),
+  role: (value) => text(value, 120),
+  flags: (value) => subset(value, CRM_FLAGS),
+  email,
+  phone,
+  linkedin,
+  owner: (value) => text(value, 100),
+  source: (value) => text(value, 500, true),
+  nextStep: (value) => text(value, 300),
+  nextDue: (value) => day(value),
+}
+
+const ALUMNI_PARSERS: { [K in keyof AlumniFields]: (value: unknown) => Parsed<AlumniFields[K]> } = {
+  name: (value) => text(value, 100, true),
+  now: (value) => text(value, 120),
+  igniteFrom: year,
+  igniteTo: year,
+  city: (value) => text(value, 80),
+  industry: (value) => choice(value, ALUMNI_INDUSTRIES),
+  status: (value) => choice(value, ALUMNI_STATUS),
+  help: (value) => subset(value, ALUMNI_HELP),
+  about: (value) => text(value, 600),
+  linkedin,
+  email,
+  open: (value) => (typeof value === 'boolean' ? value : INVALID),
+}
+
+function parseAll<T extends object>(raw: Record<string, unknown>, parsers: { [K in keyof T]: (value: unknown) => Parsed<T[K]> }): T | null {
+  const keys = Object.keys(parsers) as (keyof T)[]
+  return parse<T>(Object.fromEntries(keys.map((key) => [key, parsers[key](raw[key as string])])) as { [K in keyof T]: Parsed<T[K]> })
+}
+
+/** A change to some fields; null when it changes nothing or any given field is unknown or invalid. */
+function parsePatch<T extends object>(input: unknown, parsers: { [K in keyof T]: (value: unknown) => Parsed<T[K]> }): Partial<T> | null {
   const raw = fieldsOf(input)
   if (!raw) return null
-  return parse<ContactFields>({
-    name: text(raw.name, 100, true),
-    organization: text(raw.organization, 120),
-    role: text(raw.role, 120),
-    flags: subset(raw.flags, CRM_FLAGS),
-    email: email(raw.email),
-    phone: phone(raw.phone),
-    linkedin: linkedin(raw.linkedin),
-    owner: text(raw.owner, 100),
-    source: text(raw.source, 500, true),
-    nextStep: text(raw.nextStep, 300),
-    nextDue: day(raw.nextDue),
-  })
+  const patch: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (!Object.hasOwn(parsers, key) || value === undefined) return null
+    const parsed = parsers[key as keyof T](value)
+    if (parsed === INVALID) return null
+    patch[key] = parsed
+  }
+  return Object.keys(patch).length ? (patch as Partial<T>) : null
 }
+
+export function parseContact(input: unknown): ContactFields | null {
+  const raw = fieldsOf(input)
+  return raw && parseAll<ContactFields>(raw, CONTACT_PARSERS)
+}
+
+export const parseContactPatch = (input: unknown) => parsePatch<ContactFields>(input, CONTACT_PARSERS)
 
 export function parseEntry(input: unknown): EntryFields | null {
   const raw = fieldsOf(input)
@@ -167,24 +204,16 @@ export function parseEntry(input: unknown): EntryFields | null {
 export function parseAlumni(input: unknown): AlumniFields | null {
   const raw = fieldsOf(input)
   if (!raw || raw.consent !== true) return null
-  const alumni = parse<AlumniFields>({
-    name: text(raw.name, 100, true),
-    now: text(raw.now, 120),
-    igniteFrom: year(raw.igniteFrom),
-    igniteTo: year(raw.igniteTo),
-    city: text(raw.city, 80),
-    industry: choice(raw.industry, ALUMNI_INDUSTRIES),
-    status: choice(raw.status, ALUMNI_STATUS),
-    help: subset(raw.help, ALUMNI_HELP),
-    about: text(raw.about, 600),
-    linkedin: linkedin(raw.linkedin),
-    email: email(raw.email),
-    open: typeof raw.open === 'boolean' ? raw.open : INVALID,
-  })
-  if (alumni && alumni.igniteFrom !== null && alumni.igniteTo !== null && alumni.igniteTo < alumni.igniteFrom)
-    return null
-  return alumni
+  const alumni = parseAll<AlumniFields>(raw, ALUMNI_PARSERS)
+  return alumni && validIgniteTime(alumni) ? alumni : null
 }
+
+/** The store checks this again after a patch, since the other year may only be known there. */
+export const validIgniteTime = ({ igniteFrom, igniteTo }: Pick<AlumniFields, 'igniteFrom' | 'igniteTo'>): boolean =>
+  igniteFrom === null || igniteTo === null || igniteTo >= igniteFrom
+
+/** Changes to a listed profile. Its consent was recorded when it was added, so a patch does not carry one. */
+export const parseAlumniPatch = (input: unknown) => parsePatch<AlumniFields>(input, ALUMNI_PARSERS)
 
 const contains = (needle: string, ...values: string[]) => values.some((value) => value.toLowerCase().includes(needle))
 

@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
-import { ALL_TEAMS, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
+import { ALL_TEAMS, memberChange, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 import { MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
 
@@ -43,7 +43,7 @@ function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, o
           membersById={membersById}
           selected={task.assignees}
           team={task.team}
-          onChange={(assignees) => onPatch({ assignees })}
+          onChange={(assignees) => onPatch({ assignees: memberChange(task.assignees, assignees) })}
           copy={copy.people}
           me={me}
           label={copy.createDialog.assignees}

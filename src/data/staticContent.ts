@@ -682,6 +682,7 @@ export const memberArea = {
         completed: 'Abgeschlossen am {date}',
         archivedNote: 'Dieses Projekt ist archiviert.',
         noActivity: 'Noch keine Aktivität.',
+        loadingActivity: 'Verlauf wird geladen …',
       },
       lessons: {
         wellDone: 'Was lief besonders gut?',
@@ -770,6 +771,7 @@ export const memberArea = {
         duplicate: 'Für dieses Event gibt es schon ein Planungsprojekt.',
         full: 'Ein Projekt hat höchstens 300 Aufgaben.',
         privateFull: 'Du hast schon 300 private Aufgaben. Lösch erst welche.',
+        crowded: 'Hier können höchstens 30 Personen eingetragen sein.',
         session: 'Deine Sitzung ist abgelaufen. Bitte melde dich neu an.',
         error: 'Das hat nicht geklappt, die Änderung ist zurückgenommen. Bitte versuch es noch einmal.',
       },

@@ -2,13 +2,16 @@
  * The alumni network of the members area (React island): search, filter chips in three groups (help, industry,
  * status; one match per group, every group must match), a card per alumni profile and a dialog to add or edit a
  * profile, which requires the person's consent. Posts { action, id?, alumni? } to /api/members/alumni and shows the
- * list the API returns after each action.
- * Props: copy (memberArea.alumni.directory), initialAlumni (alumniSummary objects).
+ * list the API returns after each action; an edit sends only the fields it changed, so it leaves what others saved in
+ * the meantime alone. useLiveRefresh fetches the list when it changed while the page is in use.
+ * Props: copy (memberArea.alumni.directory), initialAlumni (alumniSummary objects), initialRevision (see liveUpdates.ts).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useRef, useState } from 'react'
 import { ExternalLink, Mail, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ALUMNI_HELP, ALUMNI_INDUSTRIES, ALUMNI_STATUS, filterAlumni } from '../../lib/contacts'
+import { changedFields } from '../../lib/liveUpdates'
+import { fetchNews, useLiveRefresh } from './useLiveRefresh'
 import { BADGE, Chip, Field, fill, FormDialog, Initials, PRIMARY_BUTTON, SearchField } from './memberUi'
 import './forms.css'
 
@@ -40,7 +43,7 @@ const LINK = 'inline-flex items-center gap-1.5 text-sm font-medium text-fg under
 const years = ({ igniteFrom, igniteTo }) =>
   igniteFrom && igniteTo && igniteFrom !== igniteTo ? `${igniteFrom}–${igniteTo}` : String(igniteFrom || igniteTo || '')
 
-export default function AlumniDirectory({ copy, initialAlumni }) {
+export default function AlumniDirectory({ copy, initialAlumni, initialRevision }) {
   const [alumni, setAlumni] = useState(initialAlumni)
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState(NO_FILTERS)
@@ -50,8 +53,17 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState(null) // result code from the API
   const dialog = useRef(null)
+  const opened = useRef(EMPTY_PROFILE) // what the dialog started from, so saving sends only what changed
+  const revision = useRef(initialRevision)
+  const sent = useRef(0)
+
+  const receive = (data) => {
+    setAlumni(data.alumni)
+    revision.current = data.revision
+  }
 
   const run = async (body) => {
+    sent.current += 1
     setBusy(true)
     setResult(null)
     try {
@@ -61,7 +73,7 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (data.alumni) setAlumni(data.alumni)
+      if (data.alumni) receive(data)
       if (res.status >= 500) console.error(data.message)
       setResult(data.code in copy.results ? data.code : 'error')
       return res.ok
@@ -74,29 +86,38 @@ export default function AlumniDirectory({ copy, initialAlumni }) {
     }
   }
 
+  useLiveRefresh(async () => {
+    if (busy) return
+    const request = ++sent.current
+    const data = await fetchNews('/api/members/alumni', revision.current)
+    if (!data) return false
+    // An action answered in between with a newer list.
+    if (data.alumni && request === sent.current) receive(data)
+  })
+
   const openDialog = (person) => {
     setResult(null)
     setEditingId(person?.id ?? null)
-    setForm(
-      person
-        ? {
-            ...Object.fromEntries(Object.keys(EMPTY_PROFILE).map((key) => [key, person[key] ?? ''])),
-            igniteFrom: person.igniteFrom ?? '',
-            igniteTo: person.igniteTo ?? '',
-            open: person.open,
-            mayToggleOpen: person.mayDelete,
-            // The profile exists, so the consent was recorded when it was added.
-            consent: true,
-          }
-        : EMPTY_PROFILE,
-    )
+    opened.current = person
+      ? {
+          ...Object.fromEntries(Object.keys(EMPTY_PROFILE).map((key) => [key, person[key] ?? ''])),
+          igniteFrom: person.igniteFrom ?? '',
+          igniteTo: person.igniteTo ?? '',
+          open: person.open,
+          mayToggleOpen: person.mayDelete,
+          // The profile exists, so the consent was recorded when it was added.
+          consent: true,
+        }
+      : EMPTY_PROFILE
+    setForm(opened.current)
     setDialogOpen(true)
     dialog.current.showModal()
   }
 
   const handleSave = async (e) => {
     e.preventDefault()
-    if (await run({ action: 'save', id: editingId, alumni: form })) dialog.current.close()
+    const profile = editingId ? changedFields(opened.current, form) : form
+    if (!Object.keys(profile).length || (await run({ action: 'save', id: editingId, alumni: profile }))) dialog.current.close()
   }
 
   const handleDelete = (person) => {

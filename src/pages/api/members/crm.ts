@@ -1,22 +1,37 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { berlinDay, parseContact, parseEntry } from '../../../lib/contacts'
+import { berlinDay, parseContact, parseContactPatch, parseEntry, type ContactFields } from '../../../lib/contacts'
 import {
   addEntry,
   completeNextStep,
-  contactSummaries,
+  contactsRevision,
+  contactState,
+  createContact,
   deleteContact,
   removeEntry,
-  saveContact,
+  updateContact,
 } from '../../../lib/contactsStore'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
 
+/** The island's regular check: the same revision comes back while nothing changed, otherwise the list. */
+export const GET: APIRoute = async ({ url, locals }) => {
+  try {
+    const revision = await contactsRevision()
+    if (url.searchParams.get('revision') === revision) return reply(200, { revision })
+    return reply(200, await contactState(locals.member!))
+  } catch (err) {
+    console.error('CRM read failed:', err)
+    return reply(500, { code: 'error', message: 'Fehler im CRM' })
+  }
+}
+
 /**
  * The CRM of the members area (CrmBoard island). Body: { action, id?, contact?, entry?, entryId? } with action
- * 'save' (create without id), 'delete', 'entry' (log a mail, meeting, event or note), 'removeEntry' or 'done' (log
- * the next step as done and clear it). Answers with { code, contacts, id? } so the island shows the current list.
+ * 'save' (a whole contact without id, otherwise only the changed fields), 'delete', 'entry' (log a mail, meeting, event
+ * or note), 'removeEntry' or 'done' (log the next step as done and clear it). Answers with { code, revision, contacts,
+ * id? } so the island shows the current list.
  * Every member may use it; deleting a contact or an entry is up to admins and whoever created it. A second contact
  * with an email address that is already in the CRM is refused with 409 'duplicate'.
  */
@@ -42,9 +57,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     let code: string
     let savedId: string | null = null
     if (action === 'save') {
-      const contact = parseContact(body.contact)
+      const contact = id ? parseContactPatch(body.contact) : parseContact(body.contact)
       if (!contact) return invalid()
-      const saved = await saveContact(id, contact, member)
+      const saved = id ? await updateContact(id, contact, member) : await createContact(contact as ContactFields, member)
       code = typeof saved === 'string' ? saved : 'saved'
       savedId = typeof saved === 'string' ? null : saved.id
     } else if (action === 'entry' && id) {
@@ -63,7 +78,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (code === 'unknown') status = 404
     if (code === 'forbidden') status = 403
     if (code === 'duplicate') status = 409
-    return reply(status, { code, id: savedId, contacts: await contactSummaries(member) })
+    return reply(status, { code, id: savedId, ...(await contactState(member)) })
   } catch (err) {
     console.error('CRM action failed:', err)
     return reply(500, { code: 'error', message: 'Fehler im CRM' })

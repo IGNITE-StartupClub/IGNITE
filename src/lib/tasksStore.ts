@@ -4,7 +4,9 @@
  *   activity log embedded, so one update changes a project atomically. Projects and tasks saved before teams existed
  *   have no `team` and read as ''. A unique index on
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
- *   syncEvents refreshes it and never touches tasks, people or status.
+ *   syncEvents refreshes it and never touches tasks, people or status. Every write sets `updatedAt`, because the islands
+ *   learn of changes through it (liveUpdates.ts). The activity log stays out of the workspace state: it is most of a
+ *   project's size and only one tab shows it, so that tab loads it through projectActivity.
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
  *   (taskDigest.ts) sends it. Removing the assignment, finishing or deleting the task removes the entry.
@@ -17,15 +19,20 @@ import { ObjectId } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import { database, displayName, type Member } from './members'
 import { photoPath } from './emailSignature'
+import { changedSince, collectionRevision } from './liveUpdates'
 import { privateTasks } from './privateTasksStore'
 import { standardTemplates } from '../data/taskTemplates'
 import type { TaskEvent } from './taskEvents'
 import {
+  applyMemberChange,
   assigneeChanges,
   berlinDay,
+  MAX_ASSIGNEES,
   MAX_TASKS,
   type Lessons,
+  type MemberChange,
   type ProjectFields,
+  type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
   type TaskFields,
@@ -151,6 +158,7 @@ async function collections() {
   ready ??= Promise.all([
     projects.createIndex({ 'event.id': 1 }, { unique: true, partialFilterExpression: { 'event.id': { $type: 'string' } } }),
     projects.createIndex({ 'tasks.id': 1 }),
+    projects.createIndex({ updatedAt: -1 }),
     notifications.createIndex({ taskId: 1 }),
     notifications.createIndex({ projectId: 1 }),
     ...standardTemplates.map(({ id, ...template }) =>
@@ -205,7 +213,7 @@ export type TaskMember = Awaited<ReturnType<typeof directory>>[number]
 const mayArchive = (project: Pick<ProjectDoc, 'createdBy' | 'leads'>, actor: TaskActor) =>
   actor.role === 'admin' || project.createdBy === actor.id || project.leads.includes(actor.id)
 
-function projectSummary(project: ProjectDoc, actor: TaskActor, known: Set<string>) {
+function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>) {
   const people = (ids: string[]) => ids.filter((id) => known.has(id))
   return {
     id: project._id,
@@ -242,7 +250,6 @@ function projectSummary(project: ProjectDoc, actor: TaskActor, known: Set<string
         updatedAt: task.updatedAt.toISOString(),
       })),
     lessons: project.lessons && { ...project.lessons, at: project.lessons.at.toISOString() },
-    activity: [...project.activity].reverse().map((entry) => ({ ...entry, at: entry.at.toISOString() })),
     createdBy: project.createdBy,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -266,17 +273,34 @@ function templateSummary(template: TemplateDoc) {
 }
 export type TemplateSummary = ReturnType<typeof templateSummary>
 
-/** Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks. */
+/**
+ * Stands for the project list. New templates, new members and a member's private tasks are not part of it; they arrive
+ * with the next load or project change.
+ */
+export async function workspaceRevision(): Promise<string> {
+  const { projects } = await collections()
+  return collectionRevision(projects)
+}
+
+const WITHOUT_ACTIVITY = { projection: { activity: 0 } }
+
+/**
+ * Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks.
+ * The revision is read first in here and in workspaceChanges, so a change landing during the read arrives twice rather
+ * than not at all.
+ */
 export async function workspaceState(actor: TaskActor) {
   const { projects, templates } = await collections()
+  const revision = await workspaceRevision()
   const [projectList, templateList, members, ownTasks] = await Promise.all([
-    projects.find({}, { sort: { updatedAt: -1 } }).toArray(),
+    projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
     templates.find({ archivedAt: null }, { sort: { name: 1 } }).toArray(),
     directory(),
     privateTasks(actor.id),
   ])
   const known = new Set(members.map((member) => member.id))
   return {
+    revision,
     projects: projectList.map((project) => projectSummary(project, actor, known)),
     templates: templateList.map(templateSummary),
     members,
@@ -284,6 +308,34 @@ export async function workspaceState(actor: TaskActor) {
   }
 }
 export type WorkspaceState = Awaited<ReturnType<typeof workspaceState>>
+
+/** What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows. */
+export async function workspaceChanges(actor: TaskActor, known: unknown) {
+  const { projects } = await collections()
+  const revision = await workspaceRevision()
+  const since = changedSince(known)
+  const [changed, ids, members, ownTasks] = await Promise.all([
+    projects.find(since ? { updatedAt: { $gte: since } } : {}, WITHOUT_ACTIVITY).toArray(),
+    projects.find({}, { projection: { _id: 1 } }).toArray(),
+    directory(),
+    privateTasks(actor.id),
+  ])
+  const people = new Set(members.map((member) => member.id))
+  return {
+    revision,
+    ids: ids.map(({ _id }) => _id),
+    projects: changed.map((project) => projectSummary(project, actor, people)),
+    members,
+    privateTasks: ownTasks,
+  }
+}
+
+/** The log of one project, newest first; null for an unknown project. */
+export async function projectActivity(id: string) {
+  const { projects } = await collections()
+  const project = await projects.findOne({ _id: id }, { projection: { activity: 1 } })
+  return project && [...project.activity].reverse().map((entry) => ({ ...entry, at: entry.at.toISOString() }))
+}
 
 const activity = (actor: TaskActor, action: ActivityAction, detail = '', member?: string): Activity => ({
   at: new Date(),
@@ -402,24 +454,32 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
   return { id: _id }
 }
 
-type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full'
+type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full' | 'crowded'
+
+/** The update for one step on a list of people; parsePatch lets only one direction through. */
+const memberUpdate = (path: string, { add, remove }: MemberChange) =>
+  add.length ? { $addToSet: { [path]: { $each: add } } } : { $pull: { [path]: { $in: remove } } }
 
 /**
- * Edits title, description, date, team and leads. Only those who may archive change the leads, because being a lead grants
- * that right. Everyone else keeps the stored leads and gets 'forbidden' for adding one; a missing lead is ignored, since
- * the client never sees leads whose member was removed and sends the list without them.
+ * Changes the given fields, leaving the others to whoever edits them at the same time. Only those who may archive change
+ * the leads, because being a lead grants that right.
  */
-export async function updateProject(actor: TaskActor, id: string, fields: Omit<ProjectFields, 'type'>): Promise<Outcome> {
+export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
   const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1 } })
   if (!project) return 'unknown'
-  const { leads, ...rest } = fields
-  const owner = mayArchive(project, actor)
-  if (!owner && leads.some((lead) => !project.leads.includes(lead))) return 'forbidden'
+  const { leads, ...fields } = patch
+  if (leads && !mayArchive(project, actor)) return 'forbidden'
+  if (leads && applyMemberChange(project.leads, leads).length > MAX_ASSIGNEES) return 'crowded'
+  // A lead's right comes from the list itself, so losing the role in between makes the update miss.
+  const leadOnly = leads && actor.role !== 'admin' && project.createdBy !== actor.id
   const { matchedCount } = await projects.updateOne(
-    // Pinning the read leads keeps a concurrent lead change from slipping past the check above.
-    { _id: id, leads: project.leads },
-    { $set: { ...rest, ...(owner && { leads }), updatedAt: new Date() }, $push: pushActivity([activity(actor, 'edited')]) },
+    { _id: id, ...(leadOnly && { leads: actor.id }) },
+    {
+      $set: { ...fields, updatedAt: new Date() },
+      $push: pushActivity([activity(actor, 'edited')]),
+      ...(leads && memberUpdate('leads', leads)),
+    },
   )
   return matchedCount ? 'ok' : 'unknown'
 }
@@ -483,17 +543,22 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { tasks: { $elemMatch: { id: taskId } } } })
   const task = project?.tasks[0]
   if (!task) return 'unknown'
+  const { assignees: people, ...fields } = patch
+  const assignees = people ? applyMemberChange(task.assignees, people) : task.assignees
+  if (assignees.length > MAX_ASSIGNEES) return 'crowded'
   const now = new Date()
   const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now }
   const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
-  for (const [key, value] of Object.entries({ ...patch, done, status })) set[`tasks.$[t].${key}`] = value
+  // Standing is only written when the patch moves the task: the values just read would undo a move made in between.
+  const moved = patch.done !== undefined || patch.status !== undefined
+  for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }) })) set[`tasks.$[t].${key}`] = value
   const entries: Activity[] = []
   if (done !== task.done) {
     set['tasks.$[t].doneBy'] = done ? actor.id : null
     set['tasks.$[t].doneAt'] = done ? now : null
     entries.push(activity(actor, done ? 'taskDone' : 'taskReopened', task.title))
   }
-  const { added, removed } = assigneeChanges(task.assignees, patch.assignees ?? task.assignees)
+  const { added, removed } = assigneeChanges(task.assignees, assignees)
   for (const member of added) entries.push(activity(actor, 'assigned', task.title, member))
   for (const member of removed) entries.push(activity(actor, 'unassigned', task.title, member))
   if (patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
@@ -504,7 +569,11 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
 
   await projects.updateOne(
     { _id: id },
-    { $set: set, ...(entries.length ? { $push: pushActivity(entries) } : {}) },
+    {
+      $set: set,
+      ...(entries.length ? { $push: pushActivity(entries) } : {}),
+      ...(people && memberUpdate('tasks.$[t].assignees', people)),
+    },
     { arrayFilters: [{ 't.id': taskId }] },
   )
   if (removed.length) await unnotify(taskId, removed)
@@ -538,7 +607,7 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
   const ids = [...listed, ...rest]
   await projects.updateOne(
     { _id: id },
-    { $set: Object.fromEntries(ids.map((_, index) => [`tasks.$[t${index}].position`, index])) },
+    { $set: { updatedAt: new Date(), ...Object.fromEntries(ids.map((_, index) => [`tasks.$[t${index}].position`, index])) } },
     { arrayFilters: ids.map((taskId, index) => ({ [`t${index}.id`]: taskId })) },
   )
   return 'ok'
@@ -573,7 +642,7 @@ export async function saveAsTemplate(actor: TaskActor, id: string, name: string)
     updatedAt: now,
     archivedAt: null,
   })
-  await projects.updateOne({ _id: id }, { $push: pushActivity([activity(actor, 'template', name)]) })
+  await projects.updateOne({ _id: id }, { $set: { updatedAt: now }, $push: pushActivity([activity(actor, 'template', name)]) })
   return 'ok'
 }
 
@@ -607,10 +676,10 @@ export async function syncEvents(events: TaskEvent[], complete: boolean): Promis
           event.endAt.getTime() === next.endAt.getTime() &&
           event.location === next.location &&
           event.url === next.url
-        return same ? null : projects.updateOne({ _id }, { $set: { event: next } })
+        return same ? null : projects.updateOne({ _id }, { $set: { event: next, updatedAt: new Date() } })
       }
       const shouldBeListed = complete && event.startAt.getTime() > now
-      return shouldBeListed && !event.missing ? projects.updateOne({ _id }, { $set: { 'event.missing': true } }) : null
+      return shouldBeListed && !event.missing ? projects.updateOne({ _id }, { $set: { 'event.missing': true, updatedAt: new Date() } }) : null
     }),
   )
 }
