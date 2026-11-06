@@ -146,8 +146,8 @@ export const homepage = {
   heroSubtitle: 'Wir bringen Gründungsinteressierte zusammen und machen aus Neugier erste Schritte – mit Workshops, Events und einer Community, die du mitgestalten kannst.',
   // Hero image: swap the motif here. `src` is a file name in src/assets/photos (optimized) or a public URL.
   heroImage: {
-    src: 'kickoff.jpg',
-    alt: 'Gruppenfoto vom Kick-off-Event von IGNITE im Utopia: rund 35 Studierende vor der Projektion des IGNITE-Logos.',
+    src: 'team.jpg',
+    alt: 'Gruppenfoto des IGNITE-Teams in schwarzen Pullovern vor einem Gebäude mit Glasfassade und einem Baum im Herbstlaub.',
   },
   heroObjectAlt: 'Vier junge Gründer:innen als Marmorskulpturen diskutieren vor einer Steintafel mit eingravierten Maschinen-Bauplänen',
   heroCTA_Text: 'Mitmachen',
