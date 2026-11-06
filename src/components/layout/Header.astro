@@ -43,6 +43,7 @@ const memberNav = memberArea.nav
 const member = memberAreaLocale(Astro.url.pathname) ? Astro.locals.member : undefined
 const photoId = member ? await photoIdOf(member.email) : null
 const memberHome = memberHomePath(locale)
+const badge = member && memberNav.badges[member.position]
 const items: NavItem[] = member
   ? [
       { label: memberNav.home, url: memberHome },
@@ -66,10 +67,10 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     <a
       href={member ? memberHome : navigation.homeUrl}
       class="logo-link"
-      aria-label={member ? `${navigation.logoText} ${memberNav.badge}` : navigation.logoText}
+      aria-label={badge ? `${navigation.logoText} ${badge}` : navigation.logoText}
     >
       <Logo color="currentColor" name={navigation.logoText} />
-      {member && <span class="member-badge" aria-hidden="true">{memberNav.badge}</span>}
+      {badge && <span class="member-badge" aria-hidden="true">{badge}</span>}
     </a>
 
     <nav class="main-nav hidden lg:block" aria-label={member ? memberNav.label : navigation.mainNavLabel} data-main-nav data-member={member ? '' : undefined}>
@@ -150,9 +151,11 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                   </a>
                 </li>
               )}
-              <li style="--i: 2">
-                <a class="panel-link" href={`${memberHome}?team`}>{memberNav.changeTeam}</a>
-              </li>
+              {member.position !== 'board' && (
+                <li style="--i: 2">
+                  <a class="panel-link" href={`${memberHome}?team`}>{memberNav.changeTeam}</a>
+                </li>
+              )}
               <li style="--i: 3">
                 <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>

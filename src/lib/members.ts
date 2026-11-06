@@ -1,6 +1,6 @@
 /**
  * MongoDB access for the members area. Collections:
- * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, team?, passwordHash?,
+ * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, team?, position?, passwordHash?,
  *   lastLoginAt?, failedLogins?, lockedUntil?, signature? }). Its `_id` is the member id the tasks module refers to.
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
@@ -24,6 +24,7 @@ import {
   LOGIN_LOCK_SECONDS,
   LOGIN_MAX_FAILURES,
   LOGIN_MAX_FAILURES_PER_CLIENT,
+  type MemberPosition,
   type MemberRole,
   newCode,
   newToken,
@@ -31,7 +32,7 @@ import {
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
-import { BOARD_HASHES, INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
+import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { photoPath, type SavedSignature } from './emailSignature'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
@@ -52,6 +53,8 @@ export interface Member {
   lastName?: string
   /** Chosen by the member on the start or tasks page, or set by an admin; decides which tasks they see first. */
   team?: TeamId
+  /** Set by an admin, 'member' without one. The board works across all teams and has no `team`. */
+  position?: MemberPosition
 }
 
 interface PasswordCode {
@@ -86,10 +89,11 @@ interface MemberPhoto {
 interface AuditEntry {
   at: Date
   actor: string
-  action: 'add' | 'remove' | 'role' | 'invite' | 'team'
+  action: 'add' | 'remove' | 'role' | 'invite' | 'team' | 'position'
   email: string
   role?: MemberRole
   team?: TeamChoice
+  position?: MemberPosition
 }
 
 const AUDIT_TTL_SECONDS = 365 * 24 * 3600
@@ -155,8 +159,6 @@ async function listMembers(): Promise<Member[]> {
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
 
-export const isBoard = (email: string): boolean => isListedAddress(email, BOARD_HASHES)
-
 /** The name the member entered, else the one in their signature, else ''. */
 export const enteredName = (member: Pick<Member, 'firstName' | 'lastName' | 'signature'>): string =>
   member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : (member.signature?.name ?? '')
@@ -171,6 +173,7 @@ const memberSummary = (member: Member, photoId: string | undefined) => ({
   name: enteredName(member),
   role: member.role,
   team: member.team ?? '',
+  position: member.position ?? 'member',
   /** Signature photo shown in the admin list, or ''. */
   photo: photoId ? photoPath(photoId) : '',
   addedAt: member.addedAt.toISOString(),
@@ -258,10 +261,16 @@ export async function saveName(email: string, firstName: string, lastName: strin
   await members.updateOne({ email }, { $set: { firstName, lastName } })
 }
 
-/** Sets the member's team; '' takes them out of their team. */
+/** Sets the member's team; '' takes them out of their team. The board has none, so its members stay untouched. */
 export async function saveTeam(email: string, team: TeamChoice): Promise<void> {
   const { members } = await collections()
-  await members.updateOne({ email }, team ? { $set: { team } } : { $unset: { team: '' } })
+  await members.updateOne({ email, position: { $ne: 'board' } }, team ? { $set: { team } } : { $unset: { team: '' } })
+}
+
+/** Sets the position; joining the board ends the team membership. */
+export async function savePosition(email: string, position: MemberPosition): Promise<void> {
+  const { members } = await collections()
+  await members.updateOne({ email }, position === 'board' ? { $set: { position }, $unset: { team: '' } } : { $set: { position } })
 }
 
 export async function saveSignature(email: string, signature: SavedSignature): Promise<void> {
@@ -435,13 +444,13 @@ export async function createSession(email: string): Promise<string> {
 
 /**
  * The member behind a session token, or null when the session is unknown, expired, or its member was removed.
- * The role is read fresh on every request, so a changed role applies at once.
+ * Role and position are read fresh on every request, so a change applies at once.
  */
-export async function findSession(token: string): Promise<{ email: string; role: MemberRole } | null> {
+export async function findSession(token: string): Promise<{ email: string; role: MemberRole; position: MemberPosition } | null> {
   const { sessions } = await collections()
   const session = await sessions.findOne({ tokenHash: hashToken(token), expiresAt: { $gt: new Date() } })
   const member = session && (await findMember(session.email))
-  return member ? { email: member.email, role: member.role } : null
+  return member ? { email: member.email, role: member.role, position: member.position ?? 'member' } : null
 }
 
 export async function deleteSession(token: string): Promise<void> {
