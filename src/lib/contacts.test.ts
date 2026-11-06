@@ -8,7 +8,9 @@ import {
   initials,
   isDue,
   parseAlumni,
+  parseAlumniPatch,
   parseContact,
+  parseContactPatch,
   parseEntry,
   type AlumniFields,
   type ContactFields,
@@ -150,4 +152,27 @@ test('day helpers use Berlin dates', () => {
   assert.equal(formatDay('2025-06-24', 'en'), '24 Jun 2025')
   assert.equal(initials('Anna Maria Beispiel'), 'AB')
   assert.equal(initials('anna'), 'a')
+})
+
+test('parseContactPatch keeps the given fields and still refuses what a whole contact would refuse', () => {
+  assert.deepEqual(parseContactPatch({ phone: '+49 40 123' }), { phone: '+49 40 123' })
+  assert.deepEqual(parseContactPatch({ email: 'Anna@Example.com' }), { email: 'anna@example.com' })
+  assert.deepEqual(parseContactPatch({ nextDue: '' }), { nextDue: '' })
+  assert.equal(parseContactPatch({ name: ' ' }), null)
+  assert.equal(parseContactPatch({ source: '' }), null)
+  assert.equal(parseContactPatch({ flags: ['vip'] }), null)
+  assert.equal(parseContactPatch({ createdBy: 'x' }), null)
+  assert.equal(parseContactPatch({}), null)
+  assert.equal(parseContactPatch('Anna'), null)
+})
+
+test('parseAlumniPatch needs no consent again but refuses it and unknown fields as a change', () => {
+  assert.deepEqual(parseAlumniPatch({ city: 'Hamburg' }), { city: 'Hamburg' })
+  assert.deepEqual(parseAlumniPatch({ open: false }), { open: false })
+  assert.deepEqual(parseAlumniPatch({ igniteTo: '2021' }), { igniteTo: 2021 })
+  assert.equal(parseAlumniPatch({ consent: false }), null)
+  assert.equal(parseAlumniPatch({ consentAt: 'now' }), null)
+  assert.equal(parseAlumniPatch({ name: '' }), null)
+  assert.equal(parseAlumniPatch({ open: 'yes' }), null)
+  assert.equal(parseAlumniPatch({}), null)
 })

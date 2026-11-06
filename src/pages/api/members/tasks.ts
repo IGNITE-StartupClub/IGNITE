@@ -11,6 +11,7 @@ import {
   parseLessons,
   parseName,
   parseProject,
+  parseProjectPatch,
   parseTask,
   parseTaskPatch,
   parseTeam,
@@ -23,6 +24,7 @@ import {
   archiveTemplate,
   createProject,
   deleteProject,
+  projectActivity,
   removeTask,
   reorderTasks,
   saveAsTemplate,
@@ -33,19 +35,50 @@ import {
   templateTasks,
   updateProject,
   updateTask,
+  workspaceChanges,
+  workspaceRevision,
   workspaceState,
   type TemplateSource,
 } from '../../../lib/tasksStore'
 
+// Templates are not part of the changes, so these two answer with the whole state.
+const TEMPLATE_ACTIONS = ['saveTemplate', 'archiveTemplate']
+
 /**
- * The tasks module of the members area (TaskWorkspace island). Body: { action, … } with action
- * 'create' (project, status?, eventId?, template?, task?), 'update' (id, project), 'status' (id, status),
+ * What the TaskWorkspace island asks for without changing anything. ?revision=… is its regular check: the same revision
+ * comes back while nothing changed, otherwise { changes }. This route runs most often of all, so its usual path reads
+ * neither the member nor a project. ?activity=<project id> answers with { activity }, the project's log.
+ */
+export const GET: APIRoute = async ({ url, locals }) => {
+  try {
+    const project = url.searchParams.get('activity')
+    if (project !== null) {
+      const activity = isRecordId(project) ? await projectActivity(project) : null
+      return activity ? reply(200, { activity }) : reply(404, { code: 'unknown' })
+    }
+    const known = url.searchParams.get('revision')
+    const revision = await workspaceRevision()
+    if (known === revision) return reply(200, { revision })
+    const actor = await taskActor(locals.member!)
+    if (!actor) return reply(401, { code: 'session', message: 'Nicht angemeldet.' })
+    return reply(200, { changes: await workspaceChanges(actor, known) })
+  } catch (err) {
+    console.error('Tasks read failed:', err)
+    return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
+  }
+}
+
+/**
+ * The tasks module of the members area (TaskWorkspace island). Body: { action, revision?, … } with action
+ * 'create' (project, status?, eventId?, template?, task?), 'update' (id, patch), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'reorder' (id, order), 'lessons' (id, lessons), 'saveTemplate' (id, name),
  * 'archiveTemplate' (templateId), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
- * 'updatePrivate' (taskId, patch) or 'removePrivate' (taskId). Answers with { code, id?, state } so the island shows the
- * current projects of everyone and the member's own private tasks. Rights: see tasksStore.ts and privateTasksStore.ts;
- * every check runs here on the server.
+ * 'updatePrivate' (taskId, patch) or 'removePrivate' (taskId). Answers with { code, id?, changes } for the island's
+ * `revision` and without either for a caller that sends none (the dashboard); a refused action comes with the whole
+ * { state }, which is the island's rollback. Both carry the member's own private tasks. Every byte of an answer counts
+ * as Fast Origin Transfer on Vercel. Rights: see tasksStore.ts and privateTasksStore.ts; every check runs here on the
+ * server.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -97,9 +130,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         break
       }
       case 'update': {
-        const fields = parseProject(body.project)
-        if (!id || !fields) return invalid()
-        code = await updateProject(actor, id, { title: fields.title, description: fields.description, due: fields.due, leads: fields.leads, team: fields.team })
+        const patch = parseProjectPatch(body.patch)
+        if (!id || !patch) return invalid()
+        code = await updateProject(actor, id, patch)
         break
       }
       case 'status':
@@ -183,8 +216,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       default:
         return invalid()
     }
-    const statusCode = { unknown: 404, forbidden: 403, full: 409, privateFull: 409 }[code] ?? 200
-    return reply(statusCode, { code, id: createdId, state: await workspaceState(actor) })
+    const statusCode = { unknown: 404, forbidden: 403, full: 409, privateFull: 409, crowded: 409 }[code] ?? 200
+    if (statusCode !== 200 || TEMPLATE_ACTIONS.includes(body.action as string)) {
+      return reply(statusCode, { code, id: createdId, state: await workspaceState(actor) })
+    }
+    return reply(200, {
+      code,
+      id: createdId,
+      ...(typeof body.revision === 'string' && { changes: await workspaceChanges(actor, body.revision) }),
+    })
   } catch (err) {
     console.error('Tasks action failed:', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })

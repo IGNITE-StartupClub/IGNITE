@@ -9,7 +9,8 @@
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
-import { isOverdue, patchedTask, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { applyMemberChange, isOverdue, memberChange, patchedTask, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { changedFields } from '../../../lib/liveUpdates'
 import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import {
   Avatar,
@@ -39,7 +40,8 @@ const SORTS = {
 const TEXTAREA = `${INPUT} h-auto min-h-20 py-2`
 
 function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
-  const [form, setForm] = useState({
+  // Kept from the moment the editor opened: only what the member changes since then is saved.
+  const [start] = useState(() => ({
     title: task.title,
     description: task.description,
     due: task.due,
@@ -47,7 +49,8 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
     required: task.required,
     team: task.team,
     status: task.status,
-  })
+  }))
+  const [form, setForm] = useState(start)
   const id = useId()
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   return (
@@ -55,7 +58,7 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
       className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-3"
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(form)
+        onSave(changedFields(start, form))
       }}
     >
       <div>
@@ -178,7 +181,7 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           membersById={membersById}
           selected={task.assignees}
           team={task.team || projectTeam}
-          onChange={(assignees) => onPatch({ assignees })}
+          onChange={(assignees) => onPatch({ assignees: memberChange(task.assignees, assignees) })}
           copy={copy.people}
           me={me}
           label={copy.createDialog.assignees}
@@ -246,7 +249,7 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           onCancel={() => setEditing(false)}
           onSave={(fields) => {
             setEditing(false)
-            onPatch(fields)
+            if (Object.keys(fields).length) onPatch(fields)
           }}
         />
       )}
@@ -409,14 +412,21 @@ function DetailsTab({ project, copy, locale, run, change }) {
   const fields = () => ({ title: project.title, description: project.description, due: project.due })
   const [form, setForm] = useState(fields)
   const [lessons, setLessons] = useState(null) // null while not editing
-  useEffect(() => setForm(fields()), [project.id, project.updatedAt])
+  const start = useRef(form)
+  // A change from elsewhere fills the fields nobody touched here; what the member is typing stays.
+  useEffect(() => {
+    const next = fields()
+    const previous = start.current
+    start.current = next
+    setForm((current) => ({ ...next, ...changedFields(previous, current) }))
+  }, [project.title, project.description, project.due])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
-  const changed = form.title !== project.title || form.description !== project.description || form.due !== project.due
+  const patch = changedFields(fields(), form)
+  const changed = Object.keys(patch).length > 0
 
   const save = (e) => {
     e.preventDefault()
-    const next = { ...form, type: project.type, leads: project.leads, team: project.team }
-    run({ action: 'update', id: project.id, project: next }, change((current) => ({ ...current, ...form })))
+    run({ action: 'update', id: project.id, patch }, change((current) => ({ ...current, ...patch })))
   }
   const saveLessons = async (e) => {
     e.preventDefault()
@@ -529,11 +539,32 @@ function DetailsTab({ project, copy, locale, run, change }) {
 }
 
 function ActivityTab({ project, copy, locale, membersById }) {
+  const [entries, setEntries] = useState(null) // null while the first answer is on its way
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let current = true
+    fetch(`/api/members/tasks?activity=${encodeURIComponent(project.id)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`Activity failed with ${res.status}`))))
+      .then((data) => {
+        if (!current) return
+        setEntries(data.activity)
+        setFailed(false)
+      })
+      .catch((err) => {
+        console.error(err)
+        if (current) setFailed(true)
+      })
+    return () => {
+      current = false
+    }
+  }, [project.id, project.updatedAt])
   const name = (memberId) => (memberId === 'system' ? copy.activity.system : (membersById.get(memberId)?.name ?? copy.activity.someone))
-  if (!project.activity.length) return <p className="text-sm text-fg-muted">{copy.panel.noActivity}</p>
+  if (failed) return <p className="text-sm text-fg-muted">{copy.results.error}</p>
+  if (!entries) return <p className="text-sm text-fg-muted">{copy.panel.loadingActivity}</p>
+  if (!entries.length) return <p className="text-sm text-fg-muted">{copy.panel.noActivity}</p>
   return (
     <ol className="flex flex-col gap-4">
-      {project.activity.map((entry, index) => {
+      {entries.map((entry, index) => {
         const actor = membersById.get(entry.actor)
         const detail = entry.action === 'status' ? (copy.statuses[entry.detail] ?? entry.detail) : entry.detail
         return (
@@ -580,11 +611,12 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   const done = project && progress(project.tasks)
   const day = project && projectDay(project)
 
-  const update = (changes) => {
-    const { title, description, type, due, leads, team } = project
+  const setTeam = (team) => run({ action: 'update', id: project.id, patch: { team } }, change((current) => ({ ...current, team })))
+  const setLeads = (next) => {
+    const leads = memberChange(project.leads, next)
     run(
-      { action: 'update', id: project.id, project: { title, description, type, due, leads, team, ...changes } },
-      change((current) => ({ ...current, ...changes })),
+      { action: 'update', id: project.id, patch: { leads } },
+      change((current) => ({ ...current, leads: applyMemberChange(current.leads, leads) })),
     )
   }
   const archive = () =>
@@ -703,7 +735,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     className={`${SELECT} h-8 text-xs`}
                     value={project.team}
                     disabled={project.archived}
-                    onChange={(e) => update({ team: e.target.value })}
+                    onChange={(e) => setTeam(e.target.value)}
                     teams={copy.teams}
                     empty={copy.teamTabs.none}
                   />
@@ -717,7 +749,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                       membersById={membersById}
                       selected={project.leads}
                       team={project.team}
-                      onChange={(leads) => update({ leads })}
+                      onChange={setLeads}
                       copy={copy.people}
                       me={me}
                       label={copy.panel.leads}
@@ -782,7 +814,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   change={change}
                 />
               )}
-              {tab === 'details' && <DetailsTab project={project} copy={copy} locale={locale} run={run} change={change} />}
+              {tab === 'details' && <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} change={change} />}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>
           </div>

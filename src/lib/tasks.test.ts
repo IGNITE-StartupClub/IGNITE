@@ -4,6 +4,8 @@ import { openTeams } from '../data/openTeams.ts'
 import {
   addDays,
   ALL_TEAMS,
+  applyChanges,
+  applyMemberChange,
   assigneeChanges,
   berlinDay,
   berlinHour,
@@ -11,13 +13,16 @@ import {
   filterProjects,
   isRecordId,
   nameFromEmail,
+  memberChange,
   nextStanding,
   openRequired,
   parseLessons,
   parseName,
   parseProject,
+  parseProjectPatch,
   parseTask,
   parseTaskPatch,
+  patchedTask,
   parseTeam,
   parseTemplateTasks,
   progress,
@@ -124,6 +129,7 @@ test('parseTaskPatch keeps only the given fields and refuses unknown or empty ch
   assert.equal(parseTaskPatch({}), null)
   assert.equal(parseTaskPatch({ title: '' }), null)
   assert.equal(parseTaskPatch({ createdBy: ME }), null)
+  assert.equal(parseTaskPatch({ toString: 'x' }), null)
 })
 
 test('parseLessons needs at least one answer', () => {
@@ -380,4 +386,67 @@ test('parseTeam accepts a known team or no team', () => {
   assert.equal(parseTeam(undefined), '')
   assert.equal(parseTeam('ignite-podcast'), null)
   assert.equal(parseTeam({ $ne: '' }), null)
+})
+
+test('parseTaskPatch takes people as one step in one direction, never as a whole list', () => {
+  assert.deepEqual(parseTaskPatch({ assignees: { add: [ME] } }), { assignees: { add: [ME], remove: [] } })
+  assert.deepEqual(parseTaskPatch({ assignees: { remove: [BEN] } }), { assignees: { add: [], remove: [BEN] } })
+  assert.equal(parseTaskPatch({ assignees: [ME] }), null)
+  assert.equal(parseTaskPatch({ assignees: {} }), null)
+  assert.equal(parseTaskPatch({ assignees: { add: [ME], remove: [BEN] } }), null)
+  assert.equal(parseTaskPatch({ assignees: { add: ['no-id'] } }), null)
+})
+
+test('parseProjectPatch keeps the given fields and refuses type, empty titles and unknown keys', () => {
+  assert.deepEqual(parseProjectPatch({ due: '2026-12-01' }), { due: '2026-12-01' })
+  assert.deepEqual(parseProjectPatch({ title: ' Neu ', team: MARKETING }), { title: 'Neu', team: MARKETING })
+  assert.deepEqual(parseProjectPatch({ leads: { add: [ME] } }), { leads: { add: [ME], remove: [] } })
+  assert.equal(parseProjectPatch({ title: ' ' }), null)
+  assert.equal(parseProjectPatch({ type: 'event' }), null)
+  assert.equal(parseProjectPatch({ leads: [ME] }), null)
+  assert.equal(parseProjectPatch({}), null)
+})
+
+test('memberChange says who a picker added or removed, and applyMemberChange replays it on a newer list', () => {
+  assert.deepEqual(memberChange([ME], [ME, BEN]), { add: [BEN], remove: [] })
+  assert.deepEqual(memberChange([ME, BEN], [BEN]), { add: [], remove: [ME] })
+  assert.deepEqual(applyMemberChange([ME], { add: [BEN], remove: [] }), [ME, BEN])
+  assert.deepEqual(applyMemberChange([ME, BEN], { add: [BEN], remove: [] }), [ME, BEN])
+  assert.deepEqual(applyMemberChange([ME, BEN], { add: [], remove: [ME] }), [BEN])
+})
+
+test('patchedTask applies people as a step and leaves the rest of the task alone', () => {
+  const task = { done: false, status: 'doing' as const, assignees: [ME], title: 'A' }
+  assert.deepEqual(patchedTask(task, { assignees: { add: [BEN], remove: [] } }), { ...task, assignees: [ME, BEN] })
+  assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
+})
+
+test('patchedTask adds no people to a private task', () => {
+  const task = { done: false, status: 'doing' as const, title: 'A' }
+  assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
+})
+
+test('applyChanges replaces what changed, keeps the rest and drops what is gone', () => {
+  const project = (id: string, updatedAt: string, title = id) => ({ id, updatedAt, title })
+  const state = {
+    revision: '3.1',
+    templates: ['kept'],
+    members: ['old'],
+    projects: [project('a', '2026-11-03T00:00:00.000Z'), project('b', '2026-11-02T00:00:00.000Z'), project('c', '2026-11-01T00:00:00.000Z')],
+    privateTasks: [],
+  }
+  const own = { id: 'p', title: 'Nur für mich', description: '', done: false, status: 'backlog' as const, doneAt: '', due: '', priority: 'normal' as const, team: '' as const }
+  const next = applyChanges(state, {
+    revision: '3.2',
+    ids: ['a', 'c', 'd'],
+    projects: [project('c', '2026-11-05T00:00:00.000Z', 'neu'), project('d', '2026-11-04T00:00:00.000Z')],
+    members: ['new'],
+    privateTasks: [own],
+  })
+  assert.deepEqual(next.projects.map(({ id }) => id), ['c', 'd', 'a'])
+  assert.equal(next.projects[0].title, 'neu')
+  assert.equal(next.revision, '3.2')
+  assert.deepEqual(next.members, ['new'])
+  assert.deepEqual(next.templates, ['kept'])
+  assert.deepEqual(next.privateTasks, [own])
 })

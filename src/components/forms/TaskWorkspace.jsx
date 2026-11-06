@@ -3,22 +3,24 @@
  * or a list, the member's choice is remembered in this browser), the project board and the events calendar. All but
  * the calendar show one team at a time. They start on the member's own team, which also lists what they are assigned to
  * elsewhere, and every other team is one click away. Members without a team choose it here; admins can set it on the
- * member management page. Posts { action, … } to /api/members/tasks; each answer carries the full state of everyone's
- * projects and the member's own private tasks, which replaces the local one. Private tasks sit between the others on
- * board and list, only for their member. Changes that the UI shows at once (moving, checking off, assigning) are applied
- * optimistically and rolled back when the server refuses them.
+ * member management page. Posts { action, revision, … } to /api/members/tasks and gets back what changed since its
+ * revision, with the member's own private tasks; useLiveRefresh asks for the same while the page is in use. Private
+ * tasks sit between the others on board and list, only for their member. `base` holds what the server said last.
+ * Changes the UI shows at once (moving, checking off, assigning) stay in `pending` until their answer and are laid over
+ * `base`, so they survive a refresh in between and vanish by themselves when the server refuses them.
  * The open project is the URL hash (#<id>), pushed as a history entry like the CRM. ?ansicht=aufgaben or events opens
  * that view and ?ansicht=meine (link of the digest mail) the tasks with "Nur meine"; otherwise view and team of this
  * browser session are restored.
- * Props: copy (memberArea.tasks.workspace plus teams, team id → name), initialState ({ projects, templates, members,
- * privateTasks }), events (calendar events with `day`), eventsComplete, me (member id), named (has entered a name), admin, board (the
+ * Props: copy (memberArea.tasks.workspace plus teams, team id → name), initialState ({ revision, projects, templates,
+ * members, privateTasks }), events (calendar events with `day`), eventsComplete, me (member id), named (has entered a name), admin, board (the
  * board works across teams, so it is not asked for one), locale, today (YYYY-MM-DD, Berlin).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { ALL_TEAMS, filterProjects, NAME_MAX, patchedTask, scopedPrivateTasks, scopedTasks, TEAM_IDS } from '../../lib/tasks'
+import { ALL_TEAMS, applyChanges, filterProjects, NAME_MAX, patchedTask, scopedPrivateTasks, scopedTasks, TEAM_IDS } from '../../lib/tasks'
 import { Chip, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField } from './memberUi'
+import { fetchNews, useLiveRefresh } from './useLiveRefresh'
 import CompleteDialog from './tasks/CompleteDialog'
 import CreateDialog from './tasks/CreateDialog'
 import EventCalendar from './tasks/EventCalendar'
@@ -100,8 +102,11 @@ function TeamPrompt({ copy, teams, onChoose, onLater }) {
 
 export default function TaskWorkspace({ copy, initialState, events, eventsComplete, me, named, admin, board, locale, today }) {
   const [state, setState] = useState(initialState)
-  const latest = useRef(state)
-  latest.current = state
+  const base = useRef(initialState)
+  const pending = useRef([])
+  const inFlight = useRef(0)
+  const sent = useRef(0)
+  const applied = useRef(0)
   const { projects, templates, members, privateTasks } = state
   const membersById = new Map(members.map((member) => [member.id, member]))
   const myTeam = membersById.get(me)?.team ?? ''
@@ -179,30 +184,57 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     setOpenId(null)
   }
 
+  const show = () => setState(pending.current.reduce((current, change) => change(current), base.current))
+
+  // An older answer must not undo a newer one. What it would have brought arrives with the next check at the latest.
+  const receive = (request, data) => {
+    if (request < applied.current) return
+    applied.current = request
+    if (data.state) base.current = data.state
+    else if (data.changes) base.current = applyChanges(base.current, data.changes)
+  }
+
   const run = async (body, optimistic, key = 'projects') => {
-    const before = latest.current
-    if (optimistic) setState((current) => ({ ...current, [key]: optimistic(current[key]) }))
+    const request = ++sent.current
+    inFlight.current += 1
+    const change = optimistic && ((current) => ({ ...current, [key]: optimistic(current[key]) }))
+    if (change) {
+      pending.current.push(change)
+      show()
+    }
     try {
       const res = await fetch('/api/members/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, revision: base.current.revision }),
       })
       const data = await res.json()
-      // A refused change comes back with the server's state, which is the rollback; without one, restore ours.
-      if (data.state) setState(data.state)
-      else if (optimistic) setState(before)
+      receive(request, data)
       if (res.ok) return data
       if (res.status >= 500) console.error(data.message)
       setNotice({ code: data.code in copy.results ? data.code : 'error', error: true, at: Date.now() })
       return null
     } catch (err) {
       console.error(err)
-      if (optimistic) setState(before)
       setNotice({ code: 'error', error: true, at: Date.now() })
       return null
+    } finally {
+      inFlight.current -= 1
+      pending.current = pending.current.filter((item) => item !== change)
+      show()
     }
   }
+
+  useLiveRefresh(async () => {
+    // A check sent after an action could overtake it and hide its answer as the older one.
+    if (inFlight.current) return
+    const request = ++sent.current
+    const data = await fetchNews('/api/members/tasks', base.current.revision)
+    if (!data) return false
+    if (!data.changes) return
+    receive(request, data)
+    show()
+  })
 
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
   const openProject = openId ? projects.find((project) => project.id === openId) : null

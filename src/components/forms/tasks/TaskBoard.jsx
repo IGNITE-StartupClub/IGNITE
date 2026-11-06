@@ -9,7 +9,7 @@
  */
 import React, { useState } from 'react'
 import { CalendarDays, GripVertical, Plus } from 'lucide-react'
-import { ALL_TEAMS, boardColumns, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
+import { ALL_TEAMS, boardColumns, memberChange, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
 import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, STATUS_TONE } from './taskUi'
 
@@ -126,7 +126,7 @@ function TaskCard({ task, tab, copy, locale, me, members, membersById, onPatch, 
               membersById={membersById}
               selected={task.assignees}
               team={task.team}
-              onChange={(assignees) => onPatch({ assignees })}
+              onChange={(assignees) => onPatch({ assignees: memberChange(task.assignees, assignees) })}
               copy={copy.people}
               me={me}
               label={copy.createDialog.assignees}
