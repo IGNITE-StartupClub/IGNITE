@@ -1,6 +1,7 @@
 ---
 /**
- * Person icon (44x44) linking to the members area; middleware.ts sends visitors without a session to the login page.
+ * Person icon (44x44) linking to the members area; middleware.ts sends visitors without a session to the login page,
+ * signed-in members get the loading screen of MemberPortal.astro on the way in.
  * Sits next to ThemeToggle and shares its look. Label comes from navigation.memberLinkLabel (getCopy(), src/data/copy.ts).
  */
 import { Icon } from 'astro-icon/components'
@@ -13,7 +14,13 @@ const { navigation } = getCopy(locale)
 const inMemberArea = memberAreaLocale(Astro.url.pathname) !== null
 ---
 
-<a class="member-link" href={memberHomePath(locale)} aria-label={navigation.memberLinkLabel} aria-current={inMemberArea ? 'page' : undefined}>
+<a
+  class="member-link"
+  href={memberHomePath(locale)}
+  aria-label={navigation.memberLinkLabel}
+  aria-current={inMemberArea ? 'page' : undefined}
+  data-member-entry={inMemberArea ? undefined : ''}
+>
   <Icon name="ion:person-outline" aria-hidden="true" />
 </a>
 
