@@ -1,4 +1,5 @@
 import { test } from 'node:test'
+import { openTeams } from '../data/openTeams.ts'
 import assert from 'node:assert/strict'
 import {
   addDays,
@@ -17,9 +18,11 @@ import {
   parseProject,
   parseTask,
   parseTaskPatch,
+  parseTeam,
   parseTemplateTasks,
   progress,
   sortMyTasks,
+  TEAM_IDS,
   taskGroup,
   tasksFromTemplate,
   templateFromTasks,
@@ -231,4 +234,16 @@ test('templateFromTasks turns deadlines into days relative to the event and drop
 test('assigneeChanges reports who was added and who removed', () => {
   assert.deepEqual(assigneeChanges([ME], [BEN]), { added: [BEN], removed: [ME] })
   assert.deepEqual(assigneeChanges([ME], [ME]), { added: [], removed: [] })
+})
+
+test('TEAM_IDS match the teams on the website', () => {
+  assert.deepEqual([...TEAM_IDS], openTeams.map((team) => team.id))
+})
+
+test('parseTeam accepts a known team or no team', () => {
+  assert.equal(parseTeam('ignite-marketing'), 'ignite-marketing')
+  assert.equal(parseTeam(''), '')
+  assert.equal(parseTeam(undefined), '')
+  assert.equal(parseTeam('ignite-podcast'), null)
+  assert.equal(parseTeam({ $ne: '' }), null)
 })

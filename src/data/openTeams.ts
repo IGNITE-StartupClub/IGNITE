@@ -12,6 +12,10 @@ export interface OpenTeam {
   description: string
 }
 
+/** Team id → name without the "IGNITE" prefix, for the members area, where the club goes without saying. */
+export const teamNames = (teams: readonly OpenTeam[]): Record<string, string> =>
+  Object.fromEntries(teams.map(({ id, team }) => [id, team.replace(/^IGNITE /, '')]))
+
 export const openTeams: readonly OpenTeam[] = [
   {
     id: 'ignite-relations',

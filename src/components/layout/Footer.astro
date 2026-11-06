@@ -1,16 +1,19 @@
 ---
 /**
- * Site footer: logo with claim and community signup on the left, link columns (Navigation, Rechtliches) on the right,
- * bottom bar with copyright and social icon links. Calm and compact, no oversized wordmark.
+ * Site footer: logo with claim and community signup on the left (not in the members area, whose users are in the
+ * community already), link columns (Navigation, Rechtliches) on the right, bottom bar with copyright and social icon
+ * links. Calm and compact, no oversized wordmark.
  * Data source: navigation, footer, globalConfig, communityForm via getCopy() (src/data/copy.ts).
  */
 import { Icon } from 'astro-icon/components'
 import Logo from '../Logo.astro'
 import CommunityForm from '../forms/CommunityForm'
 import { getCopy } from '../../data/copy'
+import { memberAreaLocale } from '../../lib/memberAuth'
 
 const { footer, globalConfig, navigation, communityForm } = getCopy(Astro.currentLocale)
 const year = new Date().getFullYear()
+const showCommunityForm = footer.showCommunityForm && !memberAreaLocale(Astro.url.pathname)
 const navLinks = [...navigation.menuItems]
   .sort((a, b) => a.order - b.order)
   .flatMap((item) => ('children' in item && item.children ? item.children : [item]))
@@ -26,7 +29,7 @@ const groups = [
       <div class="flex max-w-text flex-col gap-5">
         <a href={navigation.homeUrl} class="text-logo hover:text-logo" aria-label={navigation.logoText}><Logo color="currentColor" name={navigation.logoText} /></a>
         <p class="text-sm text-fg-muted">{footer.description}</p>
-        {footer.showCommunityForm && <CommunityForm client:visible copy={communityForm} />}
+        {showCommunityForm && <CommunityForm client:visible copy={communityForm} />}
       </div>
 
       {

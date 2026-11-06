@@ -50,7 +50,6 @@ const items: NavItem[] = member
       { label: memberNav.crm, url: memberPagePath('crm', locale) },
       { label: memberNav.alumni, url: memberPagePath('alumni', locale) },
       { label: memberNav.team, url: memberPagePath('team', locale) },
-      { label: memberNav.guide, url: memberPagePath('guide', locale) },
       { label: memberNav.branding, url: memberPagePath('branding', locale) },
       { label: memberNav.benefits, url: memberPagePath('benefits', locale) },
       { label: memberNav.signature, url: memberPagePath('signature', locale) },
@@ -152,12 +151,15 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                 </li>
               )}
               <li style="--i: 2">
-                <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
+                <a class="panel-link" href={`${memberHome}?team`}>{memberNav.changeTeam}</a>
               </li>
               <li style="--i: 3">
-                <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
+                <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>
               <li style="--i: 4">
+                <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
+              </li>
+              <li style="--i: 5">
                 <form method="post" action="/api/members/logout">
                   <input type="hidden" name="locale" value={locale} />
                   <button type="submit" class="panel-link logout">{memberNav.logout}</button>
@@ -430,7 +432,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       background-color var(--duration-fast) ease,
       transform 0.3s var(--ease-out);
   }
-  /* Nine member links only fit next to logo and profile menu between lg and xl with tighter padding. */
+  /* Keeps the member links next to logo and profile menu between lg and xl. */
   @media (max-width: 1279px) {
     .main-nav[data-member] .nav-link {
       padding-inline: 0.5rem;
