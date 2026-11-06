@@ -1,7 +1,7 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { hashPassword, isJsonRequest, memberHomePath, normalizeCode, normalizeEmail, passwordProblem } from '../../../lib/memberAuth'
+import { afterLoginPath, hashPassword, isJsonRequest, normalizeCode, normalizeEmail, passwordProblem } from '../../../lib/memberAuth'
 import { passwordPepper, redeemCode, setPassword } from '../../../lib/members'
 import { reply, startSession } from '../../../lib/memberSession'
 
@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return reply(415, { message: 'Erwartet JSON.' })
   }
   try {
-    const { email: rawEmail, code: rawCode, password, locale } = await request.json()
+    const { email: rawEmail, code: rawCode, password, locale, next } = await request.json()
     const email = normalizeEmail(rawEmail)
     const code = normalizeCode(rawCode)
     if (!email || !code) {
@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     await setPassword(email, await hashPassword(password, passwordPepper()))
     await startSession(cookies, email)
-    return reply(200, { redirect: memberHomePath(locale === 'en' ? 'en' : 'de') })
+    return reply(200, { redirect: afterLoginPath(next, locale === 'en' ? 'en' : 'de') })
   } catch (err) {
     console.error('Setting member password failed:', err)
     return reply(500, { message: 'Fehler beim Speichern des Passworts' })

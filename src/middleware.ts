@@ -5,16 +5,19 @@
  * Every other path passes through untouched, which keeps the prerendered pages free of cookie access at build time.
  */
 import { defineMiddleware } from 'astro:middleware'
+import { refusedRequestUrl } from './lib/connectionsStore'
 import {
   isAdminPath,
+  isConnectionPath,
+  isCrossSiteForm,
   isProtectedApiPath,
   isProtectedPath,
+  loginPath,
   memberAreaLocale,
   memberHomePath,
-  memberPagePath,
   SESSION_COOKIE,
 } from './lib/memberAuth'
-import { findSession } from './lib/members'
+import { findSession, mayConnect } from './lib/members'
 
 const SECURITY_HEADERS = {
   // Member pages and answers must never land in a shared cache.
@@ -27,7 +30,11 @@ const SECURITY_HEADERS = {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { pathname } = context.url
+  const { pathname, search, origin } = context.url
+  if (isCrossSiteForm(context.request, pathname, origin)) {
+    return new Response('Cross-site form submissions are forbidden', { status: 403 })
+  }
+
   const locale = memberAreaLocale(pathname)
   const isApi = pathname.startsWith('/api/members/')
   if (!locale && !isApi) {
@@ -44,11 +51,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
               status: 401,
               headers: { 'Content-Type': 'application/json' },
             })
-          : context.redirect(memberPagePath('login', locale!), 303),
+          : context.redirect(loginPath(pathname, search, locale!), 303),
       )
     }
     if (isAdminPath(pathname) && member.role !== 'admin') {
       return secure(context.redirect(memberHomePath(locale!), 303))
+    }
+    if (isConnectionPath(pathname) && !mayConnect(member.email)) {
+      return secure(context.redirect(refusedRequestUrl(context.url) ?? memberHomePath(locale!), 303))
     }
     context.locals.member = member
   }

@@ -1,0 +1,79 @@
+---
+/**
+ * Consent page of the OAuth flow and its authorization endpoint, rendered on demand by pages/mitglieder/verbinden.astro
+ * and pages/en/members/connect.astro. The middleware sends visitors without a session to the login page and back here.
+ * A page of its own without header and footer, because the member arrives from another app. Only a request that passes
+ * parseAuthRequest may redirect; any other shows an error here, so a crafted link cannot bounce anyone to a foreign site.
+ * Data source: memberArea.connections via getCopy(), the request in the URL.
+ */
+import { Icon } from 'astro-icon/components'
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import Logo from '../components/Logo.astro'
+import ConnectConsent from '../components/forms/ConnectConsent.jsx'
+import { getCopy } from '../data/copy'
+import { parseAuthRequest } from '../lib/connections'
+import { clientKey } from '../lib/connectionsStore'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea, navigation } = getCopy(locale)
+const { apps, consent } = memberArea.connections
+const { origin, search, searchParams } = Astro.url
+const { email } = Astro.locals.member!
+
+const authRequest = parseAuthRequest(searchParams, clientKey(), origin)
+const list = 'm-0 mt-2 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-muted'
+const listItem = 'flex items-start gap-2'
+---
+
+<DefaultLayout title={consent.pageTitle} alternatePath={null} noindex bare>
+  <div class="flex min-h-dvh flex-col items-center justify-center gap-6 px-gutter py-12">
+    <span class="w-28 text-fg"><Logo color="currentColor" name={navigation.logoText} /></span>
+    <section class="w-full max-w-md rounded-card border border-border bg-bg p-6 sm:p-8" aria-labelledby="page-title">
+      {
+        authRequest ? (
+          <>
+            <h1 id="page-title" class="m-0 text-2xl">
+              {consent.title.replace('{app}', apps[authRequest.app])}
+            </h1>
+            <p class="m-0 mt-2 text-sm text-fg-muted">{consent.account.replace('{email}', email)}</p>
+            <h2 class="m-0 mt-6 text-base">{consent.can}</h2>
+            <ul class={list}>
+              {consent.canItems.map((item) => (
+                <li class={listItem}>
+                  <Icon name="ion:checkmark" class="mt-0.5 shrink-0 text-fg" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <h2 class="m-0 mt-5 text-base">{consent.cannot}</h2>
+            <ul class={list}>
+              {consent.cannotItems.map((item) => (
+                <li class={listItem}>
+                  <Icon name="ion:close" class="mt-0.5 shrink-0 text-fg" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p class="m-0 mt-5 text-sm text-fg-muted">{consent.note}</p>
+            <ConnectConsent client:load copy={consent} query={search.slice(1)} />
+          </>
+        ) : (
+          <>
+            <h1 id="page-title" class="m-0 text-2xl">
+              {consent.invalidTitle}
+            </h1>
+            <p class="m-0 mt-2 text-fg-muted">{consent.invalidText}</p>
+            <p class="m-0 mt-5 text-sm">
+              <a href={memberHomePath(locale)}>{consent.back}</a>
+            </p>
+          </>
+        )
+      }
+    </section>
+    <a href={memberPagePath('connect', locale === 'de' ? 'en' : 'de') + search} class="text-sm text-fg-muted"
+      >{consent.language}</a
+    >
+  </div>
+</DefaultLayout>

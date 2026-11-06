@@ -2,19 +2,24 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import {
+  afterLoginPath,
   CODE_LENGTH,
   codeKey,
+  connectionKey,
   decodePhoto,
   hashCode,
   hashPassword,
   hashToken,
   isAdminPath,
+  isConnectionPath,
+  isCrossSiteForm,
   isListedAddress,
   isJsonRequest,
   isMemberPosition,
   isMemberRole,
   isProtectedApiPath,
   isProtectedPath,
+  loginPath,
   memberAreaLocale,
   memberPagePath,
   newCode,
@@ -211,4 +216,62 @@ test('isListedAddress matches the SHA-256 of the normalized address only', () =>
   assert.equal(isListedAddress('max@leuphana.de', hashes), true)
   assert.equal(isListedAddress('eva@leuphana.de', hashes), false)
   assert.equal(isListedAddress('max@leuphana.de', []), false)
+})
+
+test('knows the connection pages in both languages', () => {
+  for (const path of ['/mitglieder/verbinden', '/mitglieder/verbindungen/', '/en/members/connect', '/en/members/connections']) {
+    assert.equal(isConnectionPath(path), true, path)
+  }
+  assert.equal(isConnectionPath('/mitglieder/crm'), false)
+  assert.equal(isConnectionPath('/verbinden'), false)
+})
+
+test('the consent page keeps its query through the login, other pages do not', () => {
+  const query = '?client_id=abc&state=x%20y'
+  assert.equal(loginPath('/mitglieder/verbinden', query, 'de'), `/mitglieder/login?next=${encodeURIComponent(`/mitglieder/verbinden${query}`)}`)
+  assert.equal(loginPath('/en/members/connect', query, 'en'), `/en/members/login?next=${encodeURIComponent(`/en/members/connect${query}`)}`)
+  assert.equal(loginPath('/mitglieder/crm', '?a=1', 'de'), '/mitglieder/login')
+})
+
+test('a sign-in continues on the consent page and nowhere else', () => {
+  assert.equal(afterLoginPath('/mitglieder/verbinden?client_id=abc', 'de'), '/mitglieder/verbinden?client_id=abc')
+  assert.equal(afterLoginPath('/en/members/connect?state=1', 'en'), '/en/members/connect?state=1')
+  for (const next of [
+    undefined,
+    null,
+    42,
+    '',
+    '/mitglieder/crm',
+    '/subscribe',
+    'https://evil.example/mitglieder/verbinden',
+    '//evil.example/mitglieder/verbinden',
+    '/\\evil.example/mitglieder/verbinden',
+    '\\\\evil.example/mitglieder/verbinden',
+    'javascript:alert(1)',
+    'http://same-site.invalid.evil.example/mitglieder/verbinden',
+  ]) {
+    assert.equal(afterLoginPath(next, 'de'), '/mitglieder/', String(next))
+  }
+})
+
+test('refuses form posts from other sites like checkOrigin, except for the token endpoint', () => {
+  const site = 'https://www.ignite-startupclub.de'
+  const post = (headers: Record<string, string>, method = 'POST') => ({ method, headers: new Headers(headers) })
+  const form = 'application/x-www-form-urlencoded'
+  assert.equal(isCrossSiteForm(post({ 'content-type': form, origin: 'https://evil.example' }), '/api/members/logout', site), true)
+  assert.equal(isCrossSiteForm(post({ 'content-type': form }), '/api/members/logout', site), true)
+  assert.equal(isCrossSiteForm(post({ 'content-type': 'multipart/form-data; boundary=x' }), '/api/contact', site), true)
+  assert.equal(isCrossSiteForm(post({ 'content-type': 'text/plain' }), '/api/members/login', site), true)
+  assert.equal(isCrossSiteForm(post({}), '/api/members/login', site), true)
+  assert.equal(isCrossSiteForm(post({ 'content-type': form, origin: site }), '/api/members/logout', site), false)
+  assert.equal(isCrossSiteForm(post({ 'content-type': 'application/json' }), '/api/mcp', site), false)
+  assert.equal(isCrossSiteForm(post({ 'content-type': form }, 'GET'), '/api/members/logout', site), false)
+  assert.equal(isCrossSiteForm(post({ 'content-type': form }), '/api/oauth/token', site), false)
+  assert.equal(isCrossSiteForm(post({ 'content-type': form }), '/api/oauth/token/', site), true)
+})
+
+test('derives its own key for the client ids', () => {
+  const secret = 'a'.repeat(64)
+  assert.notDeepEqual(connectionKey(secret), codeKey(secret))
+  assert.deepEqual(connectionKey(secret), connectionKey(secret))
 })

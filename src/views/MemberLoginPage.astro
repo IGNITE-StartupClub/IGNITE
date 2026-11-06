@@ -65,6 +65,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store')
           copy={login.card}
           locale={locale}
           initialStep={Astro.url.searchParams.has('reset') ? 'request' : 'login'}
+          next={Astro.url.searchParams.get('next') ?? undefined}
         />
       </div>
     </div>

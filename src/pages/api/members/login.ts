@@ -1,7 +1,7 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { isJsonRequest, memberHomePath, normalizeEmail, verifyPassword } from '../../../lib/memberAuth'
+import { afterLoginPath, isJsonRequest, normalizeEmail, verifyPassword } from '../../../lib/memberAuth'
 import {
   passwordPepper,
   recordLogin,
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     return reply(415, { message: 'Erwartet JSON.' })
   }
   try {
-    const { email: rawEmail, password, locale } = await request.json()
+    const { email: rawEmail, password, locale, next } = await request.json()
     const email = normalizeEmail(rawEmail)
     // The length cap keeps oversized input away from scrypt; real passwords are far shorter.
     if (!email || typeof password !== 'string' || password.length > 1024) {
@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
 
     await Promise.all([recordLogin(email), releaseClientAttempt(clientAttempt)])
     await startSession(cookies, email)
-    return reply(200, { redirect: memberHomePath(locale === 'en' ? 'en' : 'de') })
+    return reply(200, { redirect: afterLoginPath(next, locale === 'en' ? 'en' : 'de') })
   } catch (err) {
     console.error('Member login failed:', err)
     return reply(500, { message: 'Fehler bei der Anmeldung' })
