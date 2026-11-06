@@ -505,6 +505,7 @@ export const memberArea = {
     },
     // {placeholders} are filled by the MemberDashboard island.
     dashboard: {
+      board: 'Board',
       changeTeam: 'Change team, currently {team}',
       figures: { open: 'Open', week: 'This week', overdue: 'Overdue' },
       next: {

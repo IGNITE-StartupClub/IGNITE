@@ -31,7 +31,7 @@ import {
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
-import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
+import { BOARD_HASHES, INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { photoPath, type SavedSignature } from './emailSignature'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
@@ -153,6 +153,8 @@ async function listMembers(): Promise<Member[]> {
 
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
+
+export const isBoard = (email: string): boolean => isListedAddress(email, BOARD_HASHES)
 
 /** The name the member entered, else the one in their signature, else ''. */
 export const enteredName = (member: Pick<Member, 'firstName' | 'lastName' | 'signature'>): string =>

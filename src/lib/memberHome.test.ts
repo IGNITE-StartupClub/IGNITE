@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { dayLabel, eventDate, eventTaskCount, homeFigures, nextEvent, openTasks, parseProfile, splitName } from './memberHome.ts'
+import { dayLabel, eventDate, eventTaskCount, homeFigures, mustChooseTeam, nextEvent, openTasks, parseProfile, splitName } from './memberHome.ts'
 import type { HomeProject } from './memberHome.ts'
 import type { TaskState } from './tasks.ts'
 
@@ -114,6 +114,13 @@ test('splitName takes the first word as first name and the rest as last name', (
   assert.deepEqual(splitName('Noah Samel'), { firstName: 'Noah', lastName: 'Samel' })
   assert.deepEqual(splitName('Anna Maria von Hagen'), { firstName: 'Anna', lastName: 'Maria von Hagen' })
   assert.deepEqual(splitName('Noah'), { firstName: 'Noah', lastName: '' })
+})
+
+test('mustChooseTeam asks members without a team, but never the board', () => {
+  assert.equal(mustChooseTeam(false, false), true)
+  assert.equal(mustChooseTeam(true, false), false)
+  assert.equal(mustChooseTeam(false, true), false)
+  assert.equal(mustChooseTeam(true, true), false)
 })
 
 test('parseProfile needs both names and a real team', () => {
