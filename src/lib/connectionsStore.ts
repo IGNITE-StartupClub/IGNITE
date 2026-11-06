@@ -8,7 +8,7 @@
  * setPassword (members.ts) delete a member's connections and feed. Rules live in connections.ts.
  */
 import { randomUUID } from 'node:crypto'
-import { database, findMember, mayConnect } from './members'
+import { database, findMember, mayConnect, setUpInBackground } from './members'
 import { connectionKey, hashToken, newToken, type MemberRole } from './memberAuth'
 import {
   ACCESS_TTL_SECONDS,
@@ -63,26 +63,27 @@ let signingKey: Buffer | null = null
 /** Signs the client ids (connections.ts). */
 export const clientKey = () => (signingKey ??= connectionKey(process.env.ENCRYPTION_SECRET!))
 
-let ready: Promise<unknown> | null = null
+let indexed = false
 
 async function collections() {
   const db = await database()
   const codes = db.collection<AuthCode>('member_connection_codes')
   const connections = db.collection<Connection>('member_connections')
   const feeds = db.collection<CalendarFeed>('member_calendar_feeds')
-  ready ??= Promise.all([
-    codes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
-    connections.createIndex({ accessHash: 1 }),
-    connections.createIndex({ refreshHash: 1 }),
-    connections.createIndex({ previousRefreshHash: 1 }),
-    connections.createIndex({ email: 1 }),
-    connections.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
-    feeds.createIndex({ tokenHash: 1 }, { unique: true }),
-  ]).catch((err) => {
-    ready = null
-    throw err
-  })
-  await ready
+  if (!indexed) {
+    indexed = true
+    setUpInBackground('connections', () =>
+      Promise.all([
+        codes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+        connections.createIndex({ accessHash: 1 }),
+        connections.createIndex({ refreshHash: 1 }),
+        connections.createIndex({ previousRefreshHash: 1 }),
+        connections.createIndex({ email: 1 }),
+        connections.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+        feeds.createIndex({ tokenHash: 1 }, { unique: true }),
+      ]),
+    )
+  }
   return { codes, connections, feeds }
 }
 

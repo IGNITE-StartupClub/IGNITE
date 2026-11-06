@@ -12,6 +12,10 @@ const itemsUrl = (period: EventPeriod) =>
 const requestHeaders = { 'User-Agent': 'IGNITE-Website (+https://ignite-startupclub.de)' }
 // Luma usually answers within a second; without a limit a hanging request lasts until Vercel ends the function.
 const REQUEST_TIMEOUT_MS = 5000
+// Every members page with events and /events read this, and Luma answers slower than everything else on those pages.
+const CACHE_MS = 5 * 60_000
+// A failure stays short: the pages say the calendar is incomplete and the calendar feed answers 503 meanwhile.
+const FAILURE_CACHE_MS = 30_000
 
 export type EventPeriod = 'future' | 'past'
 
@@ -81,12 +85,29 @@ export async function getEvents(locale: Locale, period: EventPeriod): Promise<Lu
     .sort((a, b) => (period === 'future' ? 1 : -1) * (a.startAt.getTime() - b.startAt.getTime()))
 }
 
-/** Like getEvents, but returns null when Luma is unreachable so a page can link to the calendar instead of failing. */
-export async function loadEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[] | null> {
+async function fetchEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[] | null> {
   try {
     return await getEvents(locale, period)
   } catch (error) {
     console.error(`Loading ${period} Luma events failed`, error)
     return null
   }
+}
+
+const cache = new Map<string, { until: number; events: Promise<LumaEvent[] | null> }>()
+
+/**
+ * Like getEvents, but returns null when Luma is unreachable so a page can link to the calendar instead of failing.
+ * Kept per instance for CACHE_MS, and requests arriving together share one call.
+ */
+export function loadEvents(locale: Locale, period: EventPeriod): Promise<LumaEvent[] | null> {
+  const key = `${locale}:${period}`
+  const cached = cache.get(key)
+  if (cached && Date.now() < cached.until) return cached.events
+  const entry = { until: Date.now() + CACHE_MS, events: fetchEvents(locale, period) }
+  cache.set(key, entry)
+  void entry.events.then((events) => {
+    if (!events) entry.until = Date.now() + FAILURE_CACHE_MS
+  })
+  return entry.events
 }

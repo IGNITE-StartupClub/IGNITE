@@ -7,7 +7,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
-import { database } from './members'
+import { database, setUpInBackground } from './members'
 import { MAX_TASKS, nextStanding, type PrivateTaskState, type TaskFields, type TaskPatch } from './tasks'
 
 const COLLECTION = 'private_tasks'
@@ -28,15 +28,14 @@ const cryptoKeys = () => (keys ??= fieldKeys(process.env.ENCRYPTION_SECRET))
 const sealed = (value: string, memberId: string, id: string, field: string) => seal(cryptoKeys(), value, COLLECTION, `${memberId}:${id}`, field)
 const opened = (value: string, memberId: string, id: string, field: string) => open(cryptoKeys(), value, COLLECTION, `${memberId}:${id}`, field)
 
-let indexed: Promise<unknown> | null = null
+let indexed = false
 
 async function collection() {
   const tasks = (await database()).collection<PrivateTaskDoc>(COLLECTION)
-  indexed ??= tasks.createIndex({ memberId: 1 }).catch((err) => {
-    indexed = null
-    throw err
-  })
-  await indexed
+  if (!indexed) {
+    indexed = true
+    setUpInBackground('private tasks', () => tasks.createIndex({ memberId: 1 }))
+  }
   return tasks
 }
 

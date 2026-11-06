@@ -23,7 +23,7 @@ import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
 import { memberAreaLocale, memberHomePath, memberPagePath } from '../../lib/memberAuth'
-import { mayConnect, photoIdOf } from '../../lib/members'
+import { mayConnect } from '../../lib/members'
 
 interface Props {
   switchHref: string
@@ -42,7 +42,7 @@ const { navigation, memberArea, footer } = getCopy(locale)
 const memberNav = memberArea.nav
 // Set by the middleware on every members area page that needs a session.
 const member = memberAreaLocale(Astro.url.pathname) ? Astro.locals.member : undefined
-const photoId = member ? await photoIdOf(member.email) : null
+const photoId = member?.photoId
 const memberHome = memberHomePath(locale)
 const badge = member && memberNav.badges[member.position]
 const items: NavItem[] = member
@@ -88,7 +88,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                 <ul class="nav-panel">
                   {item.children.map((child, i) => (
                     <li style={`--i: ${i}`}>
-                      <a class="panel-link" href={child.url} aria-current={isCurrent(child.url) ? 'page' : undefined}>
+                      <a class="panel-link" href={child.url} aria-current={isCurrent(child.url) ? 'page' : undefined} data-astro-prefetch>
                         {child.label}
                         <svg class="panel-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
                           <path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -103,6 +103,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                 class="nav-link"
                 href={item.url}
                 aria-current={isCurrent(item.url) ? 'page' : undefined}
+                data-astro-prefetch={member ? undefined : ''}
                 target={item.isExternal ? '_blank' : undefined}
                 rel={item.isExternal ? 'noopener noreferrer' : undefined}
               >

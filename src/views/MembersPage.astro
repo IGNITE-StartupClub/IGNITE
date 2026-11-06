@@ -6,7 +6,8 @@
  * the board has no team and never sees it.
  * Otherwise the dashboard (greeting, figures, next tasks, next event) and a tile per tool; member management only for
  * admins. Account actions (password, sign out) live in the profile menu of the header pill.
- * Data source: memberArea.home and openTeams via getCopy(), tasks via workspaceState(), events via loadTaskEvents().
+ * Data source: memberArea.home and openTeams via getCopy(), tasks via assignedProjects() and privateTasks(), events via
+ * loadTaskEvents().
  */
 import { Icon } from 'astro-icon/components'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -19,10 +20,11 @@ import { photoPath } from '../lib/emailSignature'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 import { dayLabel, eventDate, nextEvent, openTasks, showsTeamChoice, splitName } from '../lib/memberHome'
-import { displayName, findMember, photoIdOf } from '../lib/members'
+import { displayName } from '../lib/members'
 import { loadTaskEvents } from '../lib/taskEvents'
 import { berlinDay, type TeamId } from '../lib/tasks'
-import { taskActor, workspaceState } from '../lib/tasksStore'
+import { privateTasks } from '../lib/privateTasksStore'
+import { assignedProjects, sessionActor } from '../lib/tasksStore'
 
 const TEAM_ICONS: Record<TeamId, string> = {
   'ignite-relations': '/brand/ignite-team-relations.png',
@@ -36,10 +38,8 @@ const BOARD_ICON = '/brand/ignite-team-board.png'
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, openTeams } = getCopy(locale)
 const { home } = memberArea
-const session = Astro.locals.member!
-// The middleware let only signed-in members through; the member may have been removed in this very moment.
-const [member, actor] = await Promise.all([findMember(session.email), taskActor(session)])
-if (!member || !actor) return Astro.redirect(memberPagePath('login', locale))
+const member = Astro.locals.member!
+const actor = sessionActor(member)
 
 const homeUrl = memberHomePath(locale)
 const guessedName = splitName(displayName(member))
@@ -47,7 +47,6 @@ const greeting = member.firstName || guessedName.firstName
 const team = openTeams.find(({ id }) => id === member.team)
 const board = member.position === 'board'
 const choosing = showsTeamChoice(!!team, board, Astro.url.searchParams.has('team'))
-const photoId = choosing ? await photoIdOf(member.email) : null
 
 const names = teamNames(openTeams)
 const teamChoices = openTeams.map(({ id }) => ({
@@ -59,11 +58,11 @@ const teamChoices = openTeams.map(({ id }) => ({
 
 const now = Date.now()
 const today = berlinDay(now)
-const [{ events, complete }, { projects, privateTasks }] = choosing
-  ? [{ events: [], complete: true }, { projects: [], privateTasks: [] }]
-  : await Promise.all([loadTaskEvents(locale), workspaceState(actor)])
+const [{ events, complete }, projects, ownTasks] = choosing
+  ? [{ events: [], complete: true }, [], []]
+  : await Promise.all([loadTaskEvents(locale), assignedProjects(actor), privateTasks(actor.id)])
 
-const tasks = openTasks(projects, actor.id, today, privateTasks).map((task) => ({
+const tasks = openTasks(projects, actor.id, today, ownTasks).map((task) => ({
   ...task,
   dueLabel: task.due === today ? home.dashboard.next.today : task.due && dayLabel(task.due, locale),
 }))
@@ -85,7 +84,7 @@ const tools = [
   { label: home.tools.branding, icon: 'ion:color-palette-outline', url: memberPagePath('branding', locale) },
   { label: home.tools.benefits, icon: 'ion:gift-outline', url: memberPagePath('benefits', locale) },
   { label: home.tools.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
-  ...(session.role === 'admin'
+  ...(member.role === 'admin'
     ? [{ label: home.tools.admin, icon: 'ion:shield-checkmark-outline', url: memberPagePath('admin', locale) }]
     : []),
 ]
@@ -107,7 +106,7 @@ const tools = [
             firstName: member.firstName ?? guessedName.firstName,
             lastName: member.lastName ?? guessedName.lastName,
             team: team?.id ?? '',
-            photo: photoId ? photoPath(photoId) : '',
+            photo: member.photoId ? photoPath(member.photoId) : '',
           }}
           changing={!!team}
           homeUrl={homeUrl}

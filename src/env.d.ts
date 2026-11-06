@@ -4,6 +4,6 @@
 declare namespace App {
   interface Locals {
     /** Set by src/middleware.ts on pages of the members area. */
-    member?: { email: string; role: 'member' | 'admin'; position: 'member' | 'teamlead' | 'board' }
+    member?: import('./lib/members').SessionMember
   }
 }

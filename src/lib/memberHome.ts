@@ -2,11 +2,14 @@
  * What the start page of the members area shows (MembersPage.astro, MemberDashboard, TeamChoice): the member's open
  * tasks, the next event and the profile the team choice saves. Without database access, so node --test can load it.
  */
-import { parseName, parseTeam, taskGroup, type PrivateTaskState, type ProjectState, type TaskGroup, type TeamId } from './tasks.ts'
+import { parseName, parseTeam, taskGroup, type PrivateTaskState, type ProjectState, type TaskGroup, type TaskState, type TeamId } from './tasks.ts'
 
 type Locale = 'de' | 'en'
 
-export type HomeProject = ProjectState & { event: { id: string } | null }
+export type HomeProject = Pick<ProjectState, 'id' | 'title' | 'status' | 'archived'> & {
+  event: { id: string } | null
+  tasks: Pick<TaskState, 'id' | 'title' | 'due' | 'done' | 'assignees'>[]
+}
 
 export interface HomeTask {
   id: string

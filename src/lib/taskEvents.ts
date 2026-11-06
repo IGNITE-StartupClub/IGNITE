@@ -1,6 +1,6 @@
 /**
  * The events of the tasks module: the same sources as the public /events page, the Luma calendar (luma.ts) plus
- * the hand-listed events of externalEvents.ts, read live on every page load. Nothing is copied into the database
+ * the hand-listed events of externalEvents.ts, with Luma cached for a few minutes. Nothing is copied into the database
  * except the snapshot a planning project keeps of its event (tasksStore.syncEvents).
  */
 import { getCopy } from '../data/copy'
