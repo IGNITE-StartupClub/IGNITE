@@ -180,6 +180,9 @@ test('memberAreaLocale and memberPagePath map both languages', () => {
   assert.equal(memberPagePath('login', 'de'), '/mitglieder/login')
   assert.equal(memberPagePath('signature', 'en'), '/en/members/signature')
   assert.equal(memberPagePath('admin', 'de'), '/mitglieder/verwaltung')
+  assert.equal(memberPagePath('crm', 'de'), '/mitglieder/netzwerk')
+  assert.equal(memberPagePath('alumni', 'en'), '/en/members/network/alumni')
+  assert.equal(memberPagePath('team', 'de'), '/mitglieder/netzwerk/team')
 })
 
 test('isJsonRequest requires an application/json content type', () => {

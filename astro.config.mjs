@@ -17,6 +17,16 @@ export default defineConfig({
   // exceptions and would refuse the OAuth token endpoint, which gets form posts without an Origin from other servers.
   security: { checkOrigin: false },
 
+  // Old addresses from before the Netzwerk section. Browsers keep the hash, so links to a CRM contact still work.
+  redirects: {
+    '/mitglieder/crm': '/mitglieder/netzwerk',
+    '/mitglieder/alumni': '/mitglieder/netzwerk/alumni',
+    '/mitglieder/team': '/mitglieder/netzwerk/team',
+    '/en/members/crm': '/en/members/network',
+    '/en/members/alumni': '/en/members/network/alumni',
+    '/en/members/team': '/en/members/network/team',
+  },
+
   // German is served at the root, English under /en/. The pages in src/pages/en/ are written by hand; Astro only
   // provides the locale detection (Astro.currentLocale) and the routing rules.
   i18n: {
