@@ -138,7 +138,9 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
             me={member.id}
             tasksUrl={memberPagePath('tasks', locale)}
             homeUrl={memberHome}
-          />
+          >
+            <Logo slot="logo" markOnly color="currentColor" name={navigation.logoText} />
+          </MemberSearch>
         )
       }
       <div class="hidden items-center gap-1 lg:flex">
