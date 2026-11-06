@@ -15,3 +15,10 @@ export const INITIAL_ADMIN_HASHES = [
  * Same SHA-256 format as above. Removing an owner takes a change here or scripts/members.mjs.
  */
 export const OWNER_HASHES = ['1ff6b1864ea19ba3d74c537efd94f81d3d8ee54d16e2e0f8c64c0701f4ca0208']
+
+/**
+ * Who may connect AI assistants and subscribe to the calendar (/mitglieder/verbindungen), a pilot for now. Same SHA-256
+ * format as above. Before this opens to everyone the privacy policy needs a section: task texts reach the assistant's
+ * provider.
+ */
+export const CONNECTION_HASHES = ['1ff6b1864ea19ba3d74c537efd94f81d3d8ee54d16e2e0f8c64c0701f4ca0208']

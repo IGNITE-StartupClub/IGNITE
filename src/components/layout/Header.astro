@@ -23,7 +23,7 @@ import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
 import { memberAreaLocale, memberHomePath, memberPagePath } from '../../lib/memberAuth'
-import { photoIdOf } from '../../lib/members'
+import { mayConnect, photoIdOf } from '../../lib/members'
 
 interface Props {
   switchHref: string
@@ -160,10 +160,17 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
               <li style="--i: 3">
                 <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>
-              <li style="--i: 4">
+              {mayConnect(member.email) && (
+                <li style="--i: 4">
+                  <a class="panel-link" href={memberPagePath('connections', locale)} aria-current={isCurrent(memberPagePath('connections', locale)) ? 'page' : undefined}>
+                    {memberNav.connections}
+                  </a>
+                </li>
+              )}
+              <li style="--i: 5">
                 <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
               </li>
-              <li style="--i: 5">
+              <li style="--i: 6">
                 <form method="post" action="/api/members/logout">
                   <input type="hidden" name="locale" value={locale} />
                   <button type="submit" class="panel-link logout">{memberNav.logout}</button>

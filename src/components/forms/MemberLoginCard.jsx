@@ -7,7 +7,8 @@
  * - set: new password, posts { email, code, password } to /api/members/password. A wrong or expired code sends the
  *   member back to the code step; the server checks the code only here, so a wrong code costs one of its attempts.
  * - done: shown while the members home loads.
- * Props: copy (memberArea.login.card), locale ('de' | 'en'), initialStep ('login' | 'request', default 'login').
+ * Props: copy (memberArea.login.card), locale ('de' | 'en'), initialStep ('login' | 'request', default 'login'),
+ * next (where a sign-in continues, checked by the server with afterLoginPath).
  * Styles: ./forms.css, ./memberLoginCard.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
@@ -35,7 +36,7 @@ const ArrowIcon = () => (
   </svg>
 )
 
-export default function MemberLoginCard({ copy, locale, initialStep = 'login' }) {
+export default function MemberLoginCard({ copy, locale, initialStep = 'login', next }) {
   const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -89,7 +90,7 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login' })
   const signIn = (e) => {
     e.preventDefault()
     run(async () => {
-      const res = await postJson('/api/members/login', { email, password, locale })
+      const res = await postJson('/api/members/login', { email, password, locale, next })
       const data = await res.json()
       if (res.ok) return finish(data.redirect)
       if (res.status !== 401) console.error(data.message)
@@ -151,7 +152,7 @@ export default function MemberLoginCard({ copy, locale, initialStep = 'login' })
     if (length > PASSWORD_MAX_LENGTH) return fail(copy.set.tooLong)
     if (newPassword !== repeat) return fail(copy.set.mismatch)
     run(async () => {
-      const res = await postJson('/api/members/password', { email, code, password: newPassword, locale })
+      const res = await postJson('/api/members/password', { email, code, password: newPassword, locale, next })
       const data = await res.json()
       if (res.ok) return finish(data.redirect)
       if (data.code === 'code') {

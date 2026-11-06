@@ -13,6 +13,10 @@ export default defineConfig({
   output: 'server',
   site: 'https://ignite-startupclub.de',
 
+  // isCrossSiteForm (src/lib/memberAuth.ts, run by src/middleware.ts) does this check instead. Astro's own has no
+  // exceptions and would refuse the OAuth token endpoint, which gets form posts without an Origin from other servers.
+  security: { checkOrigin: false },
+
   // German is served at the root, English under /en/. The pages in src/pages/en/ are written by hand; Astro only
   // provides the locale detection (Astro.currentLocale) and the routing rules.
   i18n: {

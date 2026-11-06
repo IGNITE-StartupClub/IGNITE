@@ -92,6 +92,9 @@ export const codeKey = (secret: string): Buffer => deriveKey(secret, 'ignite-mem
 /** Pepper for hashPassword, derived from ENCRYPTION_SECRET like codeKey but for this purpose only. */
 export const passwordKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-password')
 
+/** Key that signs the OAuth client ids (connections.ts), derived like codeKey but for this purpose only. */
+export const connectionKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-connection')
+
 // A code has only a million values, so a plain hash would fall to brute force once the database leaks. The keyed
 // HMAC needs the server secret as well, and binding the address keeps a code from working for another member.
 export const hashCode = (code: string, email: string, key: Buffer): string =>
@@ -181,6 +184,8 @@ const PAGES = {
   guide: { de: 'guide', en: 'guide' },
   branding: { de: 'branding', en: 'branding' },
   benefits: { de: 'vorteile', en: 'benefits' },
+  connections: { de: 'verbindungen', en: 'connections' },
+  connect: { de: 'verbinden', en: 'connect' },
 } as const
 export type MemberPage = keyof typeof PAGES
 
@@ -219,6 +224,43 @@ export function isProtectedApiPath(pathname: string): boolean {
 
 /** Pages only admins may open. */
 export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin'])
+
+/** Pages only members on the connection list may open. */
+export const isConnectionPath = (pathname: string): boolean => isPage(pathname, ['connect', 'connections'])
+
+/** The login page; coming from the consent page of a connecting app it remembers the way back. */
+export function loginPath(pathname: string, search: string, locale: MemberLocale): string {
+  const login = memberPagePath('login', locale)
+  return isPage(pathname, ['connect']) ? `${login}?next=${encodeURIComponent(pathname + search)}` : login
+}
+
+/**
+ * Where a sign-in ends: the consent page it came from, else the members home. Nothing but that page, so a crafted link
+ * cannot turn the login into an open redirect.
+ */
+export function afterLoginPath(next: unknown, locale: MemberLocale): string {
+  const base = 'http://same-site.invalid'
+  if (typeof next === 'string' && URL.canParse(next, base)) {
+    const target = new URL(next, base)
+    if (target.origin === base && isPage(target.pathname, ['connect'])) return target.pathname + target.search
+  }
+  return memberHomePath(locale)
+}
+
+const FORM_TYPES = /application\/x-www-form-urlencoded|multipart\/form-data|text\/plain/i
+// Called server to server without an Origin. It needs no cookie and proves everything with the code and PKCE verifier
+// in its body, so a cross-site request gains nothing.
+const CROSS_SITE_FORM_PATHS = ['/api/oauth/token']
+
+/**
+ * Astro's checkOrigin, which astro.config.mjs turns off because it has no exceptions and would answer the OAuth token
+ * endpoint with 403 in production: a form post or a post without type must come from the site itself.
+ */
+export function isCrossSiteForm(request: Pick<Request, 'method' | 'headers'>, pathname: string, siteOrigin: string): boolean {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method) || CROSS_SITE_FORM_PATHS.includes(pathname)) return false
+  const contentType = request.headers.get('content-type')
+  return (contentType === null || FORM_TYPES.test(contentType)) && request.headers.get('origin') !== siteOrigin
+}
 
 /**
  * The JSON endpoints read the body regardless of its type, so they insist on application/json: a cross-site page can

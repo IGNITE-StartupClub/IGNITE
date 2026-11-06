@@ -32,7 +32,7 @@ import {
   sameDigest,
   SESSION_TTL_SECONDS,
 } from './memberAuth'
-import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
+import { CONNECTION_HASHES, INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { formerPhotoIds, photoPath, type SavedSignature } from './emailSignature'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
@@ -143,6 +143,9 @@ async function collections() {
     clients: db.collection<ClientAttempt>('member_login_clients'),
     photos: db.collection<MemberPhoto>('member_photos'),
     privateTasks: db.collection<{ memberId: string }>('private_tasks'),
+    // Their documents and all other access live in connectionsStore.ts.
+    connections: db.collection<{ email: string }>('member_connections'),
+    feeds: db.collection<{ _id: string }>('member_calendar_feeds'),
   }
 }
 
@@ -162,6 +165,9 @@ async function listMembers(): Promise<Member[]> {
 
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
+
+/** Whether the member may connect apps and subscribe to the calendar (connectionsStore.ts). */
+export const mayConnect = (email: string): boolean => isListedAddress(email, CONNECTION_HASHES)
 
 /** The name the member entered, else the one in their signature, else ''. */
 export const enteredName = (member: Pick<Member, 'firstName' | 'lastName' | 'signature'>): string =>
@@ -223,15 +229,17 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
   }
 }
 
-/** Removes a member together with their sessions, open codes and signature photo, so access ends at once. */
+/** Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once. */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos, privateTasks } = await collections()
+  const { members, sessions, codes, photos, privateTasks, connections, feeds } = await collections()
   const member = await members.findOneAndDelete({ email })
   await Promise.all([
     sessions.deleteMany({ email }),
     codes.deleteMany({ email }),
     photos.deleteMany({ email }),
     ...(member ? [privateTasks.deleteMany({ memberId: member._id.toHexString() })] : []),
+    connections.deleteMany({ email }),
+    feeds.deleteOne({ _id: email }),
   ])
   return !!member
 }
@@ -376,14 +384,17 @@ export async function redeemCode(email: string, code: string): Promise<boolean> 
   return !!(await findMember(email))
 }
 
-/** Stores a new password hash, lifts a lock and ends every session, so a stolen session dies with the old password. */
+/**
+ * Stores a new password hash, lifts a lock and ends every session, connection and calendar link, so whatever someone
+ * took or set up with the old password dies with it.
+ */
 export async function setPassword(email: string, passwordHash: string): Promise<void> {
-  const { members, sessions } = await collections()
+  const { members, sessions, connections, feeds } = await collections()
   await members.updateOne(
     { email },
     { $set: { passwordHash, passwordSetAt: new Date() }, $unset: { failedLogins: '', lockedUntil: '' } },
   )
-  await sessions.deleteMany({ email })
+  await Promise.all([sessions.deleteMany({ email }), connections.deleteMany({ email }), feeds.deleteOne({ _id: email })])
 }
 
 export const isLocked = (member: Member): boolean => !!member.lockedUntil && member.lockedUntil > new Date()

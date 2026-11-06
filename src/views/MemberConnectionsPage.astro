@@ -1,0 +1,44 @@
+---
+/**
+ * Connected apps and calendar subscription of a member, rendered on demand by pages/mitglieder/verbindungen.astro and
+ * pages/en/members/connections.astro. A pilot for the addresses in CONNECTION_HASHES (initialAdmins.ts): the middleware
+ * sends everyone else to the members home, and they find no link to this page. The ConnectionsPanel island does the work.
+ * Data source: memberArea.connections via getCopy(), connectionsStore.ts.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import ConnectionsPanel from '../components/forms/ConnectionsPanel.jsx'
+import { getCopy } from '../data/copy'
+import { mcpResource } from '../lib/connections'
+import { calendarFeedSince, connectionList } from '../lib/connectionsStore'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { connections } = getCopy(locale).memberArea
+const { email } = Astro.locals.member!
+
+const [apps, calendarSince] = await Promise.all([connectionList(email), calendarFeedSince(email)])
+---
+
+<DefaultLayout
+  title={connections.pageTitle}
+  alternatePath={memberPagePath('connections', locale === 'de' ? 'en' : 'de')}
+  noindex
+>
+  <PageHeader compact title={connections.title} lead={connections.lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{connections.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
+    <ConnectionsPanel
+      client:load
+      copy={connections.panel}
+      appNames={connections.apps}
+      locale={locale}
+      mcpUrl={mcpResource(Astro.url.origin)}
+      initialConnections={apps}
+      initialCalendarSince={calendarSince}
+    />
+  </Section>
+</DefaultLayout>
