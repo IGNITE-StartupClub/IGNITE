@@ -2,58 +2,152 @@
 /**
  * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
  * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
- * Astro.locals.member. Shows a card per tool of the area; member management only for admins. Account actions
- * (password, sign out) live in the profile menu of the header pill.
- * Data source: memberArea via getCopy().
+ * Astro.locals.member. Without a team, or with ?team from the profile menu and the team chip, it shows the team choice.
+ * Otherwise the dashboard (greeting, figures, next tasks, next event) and a tile per tool; member management only for
+ * admins. Account actions (password, sign out) live in the profile menu of the header pill.
+ * Data source: memberArea.home and openTeams via getCopy(), tasks via workspaceState(), events via loadTaskEvents().
  */
 import { Icon } from 'astro-icon/components'
 import DefaultLayout from '../layouts/DefaultLayout.astro'
-import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
-import Card from '../components/ui/Card.astro'
+import MemberDashboard from '../components/forms/MemberDashboard.jsx'
+import TeamChoice from '../components/forms/TeamChoice.jsx'
 import { getCopy } from '../data/copy'
+import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
-import { memberPagePath } from '../lib/memberAuth'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+import { dayLabel, eventDate, nextEvent, openTasks, splitName } from '../lib/memberHome'
+import { displayName, findMember } from '../lib/members'
+import { loadTaskEvents } from '../lib/taskEvents'
+import { berlinDay, type TeamId } from '../lib/tasks'
+import { taskActor, workspaceState } from '../lib/tasksStore'
+
+const TEAM_ICONS: Record<TeamId, string> = {
+  'ignite-relations': '/brand/ignite-team-relations.png',
+  'ignite-marketing': '/brand/ignite-team-marketing.png',
+  'ignite-hr': '/brand/ignite-team-community.png',
+  'ignite-finance-legal': '/brand/ignite-team-finance.png',
+  'ignite-infrastructure': '/brand/ignite-team-organisation.png',
+}
 
 const locale = resolveLocale(Astro.currentLocale)
-const { memberArea } = getCopy(locale)
+const { memberArea, openTeams } = getCopy(locale)
 const { home } = memberArea
-const { role } = Astro.locals.member!
+const session = Astro.locals.member!
+// The middleware let only signed-in members through; the member may have been removed in this very moment.
+const [member, actor] = await Promise.all([findMember(session.email), taskActor(session)])
+if (!member || !actor) return Astro.redirect(memberPagePath('login', locale))
 
-const cards = [
-  { ...home.cards.tasks, icon: 'ion:checkbox-outline', url: memberPagePath('tasks', locale) },
-  { ...home.cards.crm, icon: 'ion:briefcase-outline', url: memberPagePath('crm', locale) },
-  { ...home.cards.alumni, icon: 'ion:school-outline', url: memberPagePath('alumni', locale) },
-  { ...home.cards.team, icon: 'ion:people-circle-outline', url: memberPagePath('team', locale) },
-  { ...home.cards.guide, icon: 'ion:book-outline', url: memberPagePath('guide', locale) },
-  { ...home.cards.branding, icon: 'ion:color-palette-outline', url: memberPagePath('branding', locale) },
-  { ...home.cards.benefits, icon: 'ion:gift-outline', url: memberPagePath('benefits', locale) },
-  { ...home.cards.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
-  ...(role === 'admin'
-    ? [{ ...home.cards.admin, icon: 'ion:shield-checkmark-outline', url: memberPagePath('admin', locale) }]
+const homeUrl = memberHomePath(locale)
+const guessedName = splitName(displayName(member))
+const greeting = member.firstName || guessedName.firstName
+const team = openTeams.find(({ id }) => id === member.team)
+const choosing = !team || Astro.url.searchParams.has('team')
+
+const names = teamNames(openTeams)
+const teamChoices = openTeams.map(({ id }) => ({
+  id,
+  name: names[id],
+  text: home.teamChoice.teams[id as TeamId],
+  icon: TEAM_ICONS[id as TeamId],
+}))
+
+const now = Date.now()
+const today = berlinDay(now)
+const [{ events, complete }, { projects }] = choosing
+  ? [{ events: [], complete: true }, { projects: [] }]
+  : await Promise.all([loadTaskEvents(locale), workspaceState(actor)])
+
+const tasks = openTasks(projects, actor.id, today).map((task) => ({
+  ...task,
+  dueLabel: task.due === today ? home.dashboard.next.today : task.due && dayLabel(task.due, locale),
+}))
+const upcoming = nextEvent(events, now)
+const upcomingDate = upcoming && eventDate(upcoming.startAt, locale)
+const event = upcoming &&
+  upcomingDate && {
+    id: upcoming.id,
+    title: upcoming.title,
+    month: upcomingDate.month,
+    day: upcomingDate.day,
+    when: `${upcomingDate.weekdayDay} · ${home.dashboard.event.time.replace('{time}', upcomingDate.time)}`,
+  }
+
+const tasksUrl = memberPagePath('tasks', locale)
+const tools = [
+  { label: home.tools.crm, icon: 'ion:briefcase-outline', url: memberPagePath('crm', locale) },
+  { label: home.tools.alumni, icon: 'ion:school-outline', url: memberPagePath('alumni', locale) },
+  { label: home.tools.team, icon: 'ion:people-circle-outline', url: memberPagePath('team', locale) },
+  { label: home.tools.guide, icon: 'ion:book-outline', url: memberPagePath('guide', locale) },
+  { label: home.tools.branding, icon: 'ion:color-palette-outline', url: memberPagePath('branding', locale) },
+  { label: home.tools.benefits, icon: 'ion:gift-outline', url: memberPagePath('benefits', locale) },
+  { label: home.tools.signature, icon: 'ion:mail-outline', url: memberPagePath('signature', locale) },
+  ...(session.role === 'admin'
+    ? [{ label: home.tools.admin, icon: 'ion:shield-checkmark-outline', url: memberPagePath('admin', locale) }]
     : []),
 ]
 ---
 
 <DefaultLayout title={memberArea.pageTitle} noindex>
-  <PageHeader compact compact title={home.title} lead={home.lead} />
-  <Section tone="subtle" spacing="xs" labelledby="member-tools">
-    <h2 id="member-tools" class="sr-only">{home.cardsHeading}</h2>
-    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {
-        cards.map((card) => (
-          <Card as="li" class="h-full">
-            <Icon slot="icon" name={card.icon} aria-hidden="true" />
-            <h3 slot="title" class="text-xl hyphens-auto">
-              {/* The link stretches over the whole card, so the card is one click target. */}
-              <a href={card.url} class="after:absolute after:inset-0 after:content-['']">
-                {card.title}
-              </a>
-            </h3>
-            <p class="text-fg-muted">{card.text}</p>
-          </Card>
-        ))
-      }
-    </ul>
+  <Section spacing="xs" labelledby="page-title">
+    {
+      choosing ? (
+        <TeamChoice
+          client:load
+          copy={home.teamChoice}
+          welcome={home.welcome}
+          name={greeting}
+          teams={teamChoices}
+          current={{
+            firstName: member.firstName ?? guessedName.firstName,
+            lastName: member.lastName ?? guessedName.lastName,
+            team: team?.id ?? '',
+          }}
+          changing={!!team}
+          homeUrl={homeUrl}
+        />
+      ) : (
+        <>
+          <MemberDashboard
+            client:load
+            copy={home.dashboard}
+            welcome={home.welcome}
+            name={greeting}
+            team={{ name: team.team, icon: TEAM_ICONS[team.id as TeamId] }}
+            tasks={tasks}
+            today={today}
+            event={event}
+            eventsComplete={complete}
+            links={{
+              team: `${homeUrl}?team`,
+              mine: `${tasksUrl}?ansicht=meine`,
+              tasks: `${tasksUrl}?ansicht=aufgaben`,
+              events: `${tasksUrl}?ansicht=events`,
+              project: tasksUrl,
+            }}
+          />
+          <nav aria-labelledby="member-tools" class="flex flex-col gap-3.5 pt-10 text-sm">
+            <h2 id="member-tools" class="text-[20px] font-semibold tracking-tight">{home.toolsHeading}</h2>
+            <ul class="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))]">
+              {
+                tools.map((tool) => (
+                  <li>
+                    <a
+                      href={tool.url}
+                      class="flex min-h-[68px] items-center gap-3 rounded-card border border-border bg-card px-4 py-3 font-semibold text-fg no-underline transition-[transform,border-color] duration-300 hover:-translate-y-0.5 hover:border-border-strong motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                    >
+                      <span class="surface-brand inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                        <Icon name={tool.icon} class="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      {tool.label}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </>
+      )
+    }
   </Section>
 </DefaultLayout>
