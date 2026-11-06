@@ -469,6 +469,7 @@ export const memberArea = {
     signature: 'Mail-Signatur',
     tasks: 'Aufgaben',
     network: 'Netzwerk',
+    guide: 'Guide',
     branding: 'Branding',
     benefits: 'Vorteile',
     newTab: 'öffnet in neuem Tab',
@@ -531,15 +532,6 @@ export const memberArea = {
         unavailable: 'Der Eventkalender ist gerade nicht erreichbar.',
         time: '{time} Uhr',
       },
-    },
-    toolsHeading: 'Im Mitgliederbereich',
-    tools: {
-      network: 'Netzwerk',
-      guide: 'Guide',
-      branding: 'Branding',
-      benefits: 'Vorteile',
-      signature: 'Mail-Signatur',
-      admin: 'Mitgliederverwaltung',
     },
   },
   // The tasks module (MemberTasksPage.astro + TaskWorkspace island). {placeholders} are filled by the island.
