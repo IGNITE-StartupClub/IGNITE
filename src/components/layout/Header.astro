@@ -19,6 +19,7 @@ import Button from '../ui/Button.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 import LanguageToggle from '../ui/LanguageToggle.astro'
 import MemberLink from '../ui/MemberLink.astro'
+import ExitDoor from '../ui/ExitDoor.astro'
 import MobileNav from './MobileNav.astro'
 import MemberSearch from '../forms/MemberSearch.jsx'
 import { getCopy } from '../../data/copy'
@@ -200,6 +201,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
           <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
         )
       }
+      {member && <ExitDoor href={navigation.homeUrl} label={memberNav.website} />}
       <button
         type="button"
         class="menu-trigger lg:hidden"

@@ -1,0 +1,136 @@
+---
+/**
+ * Door icon (44x44) in the corner of the members area header that leads back to the public website.
+ * The door is closed at rest. On hover or keyboard focus it swings open and a rocket flies out of it. Touch screens
+ * have no hover, so a tap plays the same animation first and navigates 450 ms later.
+ * Props: href (website home of the current language), label (aria-label and tooltip, memberArea.nav.website).
+ * Colours come from the theme tokens, so the icon works in light and dark mode. With prefers-reduced-motion the door
+ * opens without the rocket.
+ */
+interface Props {
+  href: string
+  label: string
+}
+
+const { href, label } = Astro.props
+---
+
+<a class="exit-door" href={href} aria-label={label} title={label} data-exit-door>
+  <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path class="doorway" d="M6 24.5V5.5A1.5 1.5 0 0 1 7.5 4H18.5A1.5 1.5 0 0 1 20 5.5V24.5" />
+    <g class="rocket">
+      <path class="flame" d="M-4.5 0H-9" stroke="var(--color-accent-text)" />
+      <path d="M5.5 0C3-2.8-1.5-2.8-4-1.8V1.8C-1.5 2.8 3 2.8 5.5 0Z" fill="currentColor" stroke="none" />
+    </g>
+    <g class="leaf">
+      <rect x="6" y="4" width="14" height="20.5" rx="1.5" vector-effect="non-scaling-stroke" />
+      <circle cx="16.5" cy="14.5" r="1" fill="currentColor" stroke="none" />
+    </g>
+    <path d="M2.5 24.5h23" />
+  </svg>
+</a>
+
+<style>
+  .exit-door {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    color: var(--color-fg);
+    border-radius: 999px;
+    transition:
+      background-color var(--duration-fast) ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .exit-door:hover,
+  .exit-door:focus-visible,
+  .exit-door[data-play] {
+    color: var(--color-fg);
+    background-color: var(--color-bg-subtle);
+  }
+  .exit-door:active {
+    transform: scale(0.96);
+  }
+  .exit-door svg {
+    overflow: visible;
+  }
+  /* Below sm the pill has no room left for a third icon button; the profile menu still links to the website. */
+  @media (max-width: 639px) {
+    .exit-door {
+      display: none;
+    }
+  }
+  .doorway {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .leaf {
+    transform-origin: 6px 14.5px;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .rocket {
+    opacity: 0;
+    transform: translate(13px, 14.5px);
+  }
+  .exit-door:hover .leaf,
+  .exit-door:focus-visible .leaf,
+  .exit-door[data-play] .leaf {
+    transform: scaleX(0.2);
+  }
+  .exit-door:hover .doorway,
+  .exit-door:focus-visible .doorway,
+  .exit-door[data-play] .doorway {
+    opacity: 1;
+  }
+  .exit-door:hover .rocket,
+  .exit-door:focus-visible .rocket,
+  .exit-door[data-play] .rocket {
+    animation: rocket-out 0.9s cubic-bezier(0.5, 0, 0.9, 0.6) 0.2s forwards;
+  }
+  @keyframes rocket-out {
+    0% {
+      opacity: 0;
+      transform: translate(13px, 14.5px) rotate(0deg) scale(0.8);
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(40px, 2px) rotate(-24deg) scale(1.1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .exit-door .rocket {
+      animation: none !important;
+      opacity: 0;
+    }
+    .leaf,
+    .doorway {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { navigate } from 'astro:transitions/client'
+
+  // Without hover, the tap shows the launch and then follows the link. Modified clicks keep their normal behaviour.
+  const LAUNCH_MS = 450
+  const bindExitDoor = () => {
+    const door = document.querySelector<HTMLAnchorElement>('[data-exit-door]')
+    if (!door) return
+    door.addEventListener('click', (e) => {
+      const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
+      const noHover = window.matchMedia('(hover: none)').matches
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (!plain || !noHover || reduced || door.hasAttribute('data-play')) return
+      e.preventDefault()
+      door.setAttribute('data-play', '')
+      setTimeout(() => navigate(door.href), LAUNCH_MS)
+    })
+  }
+  // The header is swapped on every client-side navigation, so the listener is bound again after each load.
+  document.addEventListener('astro:page-load', bindExitDoor)
+</script>
