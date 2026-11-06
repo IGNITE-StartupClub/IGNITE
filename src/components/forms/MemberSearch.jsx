@@ -1,11 +1,11 @@
 /**
- * The search field of the member header: a button in the pill that opens a modal laid over the pill. Typing searches
+ * The search field of the member header: an icon in the pill that opens a modal bar over the whole pill. Typing searches
  * everything the member may see, `@` only people and `+` captures a task (rules in src/lib/memberSearch.ts). The index
  * loads when the field opens and stays for a minute, so typing costs no requests. Cmd/Ctrl+K opens it on every page.
  * Lives in a persisted island: the header swaps on every navigation, this component does not.
- * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl.
+ * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl, logo (slot: the mark shown in the bar).
  */
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { navigate } from 'astro:transitions/client'
 import {
   BookOpen,
@@ -19,10 +19,10 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { dayLabel } from '../../lib/memberHome'
 import {
   captureTask,
   completeToken,
+  dueLabel,
   openToken,
   personHandle,
   searchGroups,
@@ -148,7 +148,7 @@ function Chip({ label, value, set }) {
   )
 }
 
-export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
+export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo }) {
   const dialog = useRef(null)
   const input = useRef(null)
   const created = useRef(false)
@@ -220,8 +220,10 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
   const members = items
     .filter(({ kind }) => kind === 'member')
     .map(({ id, title, team }) => ({ id, name: title, team }))
+  const self = items.find(({ kind, id }) => kind === 'member' && id === me)
   const isTask = mode === 'task'
-  const capture = isTask ? captureTask(text, { members, teams, me, today: berlinDay(Date.now()) }) : null
+  const today = berlinDay(Date.now())
+  const capture = isTask ? captureTask(text, { members, teams, me, today }) : null
   const token = capture ? tokenToComplete(text, capture.problems, members, teams) : null
   const completions = suggestions(token, members, teams)
   const typing = isTask ? openToken(text) : null
@@ -308,11 +310,10 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
         type="button"
         onClick={open}
         aria-label={copy.label}
-        className="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-button border border-border px-2.5 text-sm text-fg-muted transition-colors hover:border-border-strong hover:text-fg xl:px-3.5"
+        title={`${copy.open} ${shortcut}`.trim()}
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-button border-0 bg-transparent p-0 text-fg transition-colors hover:bg-bg-subtle"
       >
-        <Search aria-hidden="true" className="h-[18px] w-[18px]" />
-        <span className="hidden xl:inline">{copy.open}</span>
-        {shortcut && <kbd className="hidden font-sans text-xs xl:inline">{shortcut}</kbd>}
+        <Search aria-hidden="true" className="h-[22px] w-[22px]" />
       </button>
 
       <dialog
@@ -323,11 +324,17 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
         onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
         className="m-0 mx-auto mt-3 w-[min(var(--container-wide),calc(100vw-1.5rem))] max-w-none overflow-visible border-0 bg-transparent p-0 text-fg backdrop:bg-black/60"
       >
-        <div className="flex min-h-[60px] items-center gap-2 rounded-[30px] border border-border-strong bg-card py-1 pl-5 pr-2">
-          <Search aria-hidden="true" className="h-5 w-5 shrink-0 text-fg-muted" />
+        <div className="flex min-h-[4.25rem] items-center gap-3 rounded-full border border-border-strong bg-card py-1 pl-5 pr-2 lg:pl-6">
+          <span
+            aria-hidden="true"
+            className="shrink-0 [&_svg]:!h-auto [&_svg]:!w-9"
+            style={{ color: 'var(--color-logo)' }}
+          >
+            {logo}
+          </span>
           {mode !== 'empty' && (
             <span
-              className={`shrink-0 rounded-button px-2.5 py-0.5 text-caption font-semibold ${
+              className={`hidden shrink-0 rounded-button px-2.5 py-0.5 text-caption font-semibold sm:block ${
                 isTask ? 'bg-primary text-primary-fg' : mode === 'people' ? 'surface-brand' : 'bg-bg-subtle text-fg'
               }`}
             >
@@ -354,10 +361,16 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
             type="button"
             onClick={() => dialog.current.close()}
             aria-label={copy.close}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-0 p-0 text-fg-muted hover:text-fg"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 text-sm text-fg-muted hover:text-fg sm:px-3.5"
           >
-            <X aria-hidden="true" className="h-5 w-5" />
+            <X aria-hidden="true" className="h-5 w-5 sm:hidden" />
+            <span className="hidden sm:inline">{copy.close}</span>
           </button>
+          {self && (
+            <span className="hidden sm:block">
+              <ItemIcon item={self} />
+            </span>
+          )}
         </div>
 
         <div className="mx-auto mt-2 max-w-[760px] overflow-hidden rounded-[20px] border border-border-strong bg-card text-sm shadow-card">
@@ -393,7 +406,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
               <div className="flex flex-wrap gap-2">
                 <Chip
                   label={copy.task.due}
-                  value={capture.due ? dayLabel(capture.due, locale) : copy.task.dueNone}
+                  value={capture.due ? dueLabel(capture.due, today, locale) : copy.task.dueNone}
                   set={!!capture.due}
                 />
                 <Chip
@@ -414,7 +427,14 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
                 </p>
               )}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-caption text-fg-muted">{copy.task.hint}</span>
+                <span className="text-caption text-fg-muted">
+                  {copy.task.hint.map(({ token, text: rest }) => (
+                    <Fragment key={token}>
+                      <span className="font-medium text-fg">{token}</span>
+                      {rest}
+                    </Fragment>
+                  ))}
+                </span>
                 <button
                   type="button"
                   onClick={create}

@@ -10,12 +10,15 @@ export const PROJECT_TYPES = ['event', 'internal', 'task'] as const
 export type ProjectType = (typeof PROJECT_TYPES)[number]
 
 /** The board columns, in order. The status is set by hand and never follows the progress. */
-export const PROJECT_STATUSES = ['planned', 'active', 'review', 'done'] as const
+export const PROJECT_STATUSES = ['planned', 'active', 'done'] as const
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 
 /** The columns of the task board, in order. */
-export const TASK_STATUSES = ['backlog', 'doing', 'review', 'done'] as const
+export const TASK_STATUSES = ['backlog', 'doing', 'done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
+
+/** A fourth column of both boards until 2026-11. Records may still hold it; taskStatus and projectStatus read it as "doing". */
+export type StoredStatus<T> = T | 'review'
 
 export const PRIORITIES = ['low', 'normal', 'high'] as const
 export type Priority = (typeof PRIORITIES)[number]
@@ -40,8 +43,12 @@ export interface ProjectFields {
   title: string
   description: string
   type: ProjectType
-  /** Deadline of an internal project or a single task, the date of an event project without a public event. */
+  /** Deadline of an internal project or a single task, the date of an own event (an event project without a public event). */
   due: string
+  /** Start of an own event as "18:30", '' when open. */
+  time: string
+  /** Place of an own event. */
+  place: string
   leads: string[]
   team: TeamChoice
 }
@@ -86,6 +93,8 @@ export interface TaskState {
   required: boolean
   assignees: string[]
   team: TeamChoice
+  /** Set by the server: whether this member may delete the task (mayRemoveTask). */
+  mayRemove?: boolean
 }
 
 /** A task only its member sees (privateTasksStore.ts): no project, no other people, no subtasks. */
@@ -112,6 +121,12 @@ export interface ProjectState {
   archived: boolean
   /** Start day of the linked public event, '' without one. */
   eventDay: string
+  /** The public event a planning project belongs to; `missing` once it left the calendar. */
+  event?: { id: string; missing: boolean; location: string | null } | null
+  time?: string
+  place?: string
+  /** Public events members declared to be another event than this own one. */
+  distinctFrom?: string[]
   tasks: TaskState[]
 }
 
@@ -135,6 +150,11 @@ export const isDay = (value: unknown): value is string => {
 function day(value: unknown): Parsed<string> {
   if (value === undefined || value === null || value === '') return ''
   return isDay(value) ? value : INVALID
+}
+
+function clock(value: unknown): Parsed<string> {
+  if (value === undefined || value === null || value === '') return ''
+  return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : INVALID
 }
 
 function choice<T extends string>(value: unknown, allowed: readonly T[], fallback: T): Parsed<T> {
@@ -192,6 +212,8 @@ export function parseProject(input: unknown): ProjectFields | null {
     description: text(fields.description, TEXT_MAX),
     type: choice(fields.type, PROJECT_TYPES, 'internal'),
     due: day(fields.due),
+    time: clock(fields.time),
+    place: text(fields.place, TITLE_MAX),
     leads: members(fields.leads),
     team: team(fields.team),
   })
@@ -219,7 +241,7 @@ export interface MemberChange {
 }
 
 export type TaskPatch = Partial<Omit<TaskFields, 'assignees'>> & { done?: boolean; assignees?: MemberChange }
-export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'team'>> & { leads?: MemberChange }
+export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'time' | 'place' | 'team'>> & { leads?: MemberChange }
 
 // One direction only: MongoDB cannot add to and pull from an array in one update, and a picker click changes one person.
 function memberChangeOf(value: unknown): Parsed<MemberChange> {
@@ -263,6 +285,8 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     title: (value) => text(value, TITLE_MAX, true),
     description: (value) => text(value, TEXT_MAX),
     due: day,
+    time: clock,
+    place: (value) => text(value, TITLE_MAX),
     team,
     leads: memberChangeOf,
   })
@@ -319,6 +343,10 @@ export const berlinDay = (now: number): string =>
 export const berlinHour = (now: number): number =>
   Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date(now)))
 
+/** The time of day in Berlin as "18:30". */
+export const berlinClock = (now: number): string =>
+  new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(now))
+
 export function addDays(dayValue: string, days: number): string {
   const date = new Date(`${dayValue}T00:00:00Z`)
   date.setUTCDate(date.getUTCDate() + days)
@@ -352,7 +380,19 @@ export const openRequired = (tasks: Pick<TaskState, 'done' | 'required'>[]): num
   tasks.filter((task) => task.required && !task.done).length
 
 /** Tasks stored before the board have no status; their done flag tells where they stand. */
-export const taskStatus = (task: { done: boolean; status?: TaskStatus }): TaskStatus => task.status ?? (task.done ? 'done' : 'backlog')
+export function taskStatus(task: { done: boolean; status?: StoredStatus<TaskStatus> }): TaskStatus {
+  if (task.status === 'review') return 'doing'
+  return task.status ?? (task.done ? 'done' : 'backlog')
+}
+
+export const projectStatus = (status: StoredStatus<ProjectStatus>): ProjectStatus => (status === 'review' ? 'active' : status)
+
+/** Tasks are shared work, so only who created one or runs its project deletes it. Everybody else may still finish it. */
+export const mayRemoveTask = (
+  task: { createdBy: string },
+  project: { createdBy: string; leads: string[] },
+  actor: { id: string; role: string },
+): boolean => actor.role === 'admin' || task.createdBy === actor.id || project.createdBy === actor.id || project.leads.includes(actor.id)
 
 type Standing = Pick<TaskState, 'done' | 'status'>
 
@@ -470,7 +510,6 @@ export function boardColumns<T extends TaskState & { doneAt: string }>(tasks: T[
   return {
     backlog: sortTasks(inColumn('backlog')),
     doing: sortTasks(inColumn('doing')),
-    review: sortTasks(inColumn('review')),
     done: inColumn('done').sort((a, b) => b.doneAt.localeCompare(a.doneAt)),
   }
 }
@@ -501,6 +540,136 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: S
 
 /** Day a project is about: the event start, else its own date. */
 export const projectDay = (project: Pick<ProjectState, 'eventDay' | 'due'>): string => project.eventDay || project.due
+
+/** One entry of the calendar: a public event (Luma, hand-listed) or an own event, which is a project without a public event. */
+export interface CalendarEvent {
+  /** The public event's id, or the project's for own events. */
+  id: string
+  title: string
+  day: string
+  endDay: string
+  /** "18:30" in Berlin, '' when open. */
+  time: string
+  location: string | null
+  url: string
+  coverUrl: string | null
+  source: 'luma' | 'external' | 'own'
+}
+
+/** Lower case without accents or punctuation, so "Founder-Talk!" and "founder talk" compare equal. */
+const comparable = (title: string): string =>
+  title
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+
+export const sameTitle = (a: string, b: string): boolean => comparable(a) === comparable(b)
+
+const SHORTEST_PART = 4
+
+/** The same words, or one title inside the other: "Founder Talk" and "Founder Talk mit Lena". */
+export function similarTitles(a: string, b: string): boolean {
+  if (sameTitle(a, b)) return true
+  const [first, second] = [comparable(a), comparable(b)]
+  const [short, long] = first.length < second.length ? [first, second] : [second, first]
+  return short.length >= SHORTEST_PART && ` ${long} `.includes(` ${short} `)
+}
+
+// A weekly series repeats its title, so the same title a week apart is another event.
+const TWIN_DAYS = 3
+
+interface OwnEvent extends Pick<ProjectState, 'id' | 'title' | 'eventDay' | 'due'> {
+  distinctFrom?: string[]
+}
+
+/**
+ * The public event that may be this own event, which someone entered before it reached Luma. Same day with a similar
+ * title is `sure`; the same day alone or a similar title close by is only worth asking about.
+ */
+export function eventTwin<E extends CalendarEvent>(project: OwnEvent, events: E[]): { event: E; sure: boolean } | null {
+  const day = projectDay(project)
+  const ranked = events
+    .filter((event) => !project.distinctFrom?.includes(event.id))
+    .map((event) => {
+      const distance = Math.abs(daysBetween(day, event.day))
+      const similar = similarTitles(project.title, event.title)
+      return { event, distance, similar }
+    })
+    .filter(({ distance, similar }) => distance === 0 || (similar && distance <= TWIN_DAYS))
+    .sort((a, b) => Number(b.similar) - Number(a.similar) || a.distance - b.distance)
+  const best = ranked[0]
+  return best ? { event: best.event, sure: best.similar && best.distance === 0 } : null
+}
+
+/**
+ * Everything the calendar shows, soonest first, and for each own event the public event it may be (`twins`, by project
+ * id). A `sure` twin stays out of the list until a member decides, so the event never shows twice; other twins stay in,
+ * because hiding a real event would be worse than asking. Nothing here changes data: only linkEvent merges the two.
+ */
+export function calendarEntries<E extends CalendarEvent>(events: E[], projects: (ProjectState & OwnEvent)[]) {
+  const planned = new Set(projects.flatMap((project) => (project.event ? [project.event.id] : [])))
+  const open = events.filter((event) => !planned.has(event.id))
+  const twins = new Map<string, E>()
+  const hidden = new Set<string>()
+  const own: CalendarEvent[] = []
+  for (const project of projects) {
+    const day = projectDay(project)
+    if (project.type !== 'event' || project.archived || !day) continue
+    // A planning project joins the list only when its event left the calendar, otherwise the event itself is there.
+    if (project.event && !project.event.missing) continue
+    own.push({
+      id: project.id,
+      title: project.title,
+      day,
+      endDay: day,
+      time: project.time ?? '',
+      location: project.place || project.event?.location || null,
+      url: '',
+      coverUrl: null,
+      source: 'own',
+    })
+    const twin = project.event ? null : eventTwin(project, open)
+    if (!twin) continue
+    twins.set(project.id, twin.event)
+    if (twin.sure) hidden.add(twin.event.id)
+  }
+  const entries: CalendarEvent[] = [...events.filter((event) => !hidden.has(event.id)), ...own]
+  return { entries: entries.sort((a, b) => a.day.localeCompare(b.day) || a.time.localeCompare(b.time)), twins }
+}
+
+/** The filters of the task board: the member's own tasks, a team, or every team. */
+export const MINE = 'mine'
+
+export const filterScope = (filter: string, myTeam: string, query: string): Scope => ({
+  team: filter === MINE ? ALL_TEAMS : filter,
+  myTeam,
+  onlyMine: filter === MINE,
+  query,
+})
+
+export const TASK_VIEWS = ['overview', 'tasks', 'projects', 'events'] as const
+export type TaskView = (typeof TASK_VIEWS)[number]
+
+const VIEW_SLUGS: Record<Exclude<TaskView, 'overview'>, string> = { tasks: 'board', projects: 'projekte', events: 'events' }
+
+/**
+ * The URL hash of a view and an open project, "#board/<id>". A hash and not a query, because Astro's router takes a
+ * changed query for another page and reloads it when the member goes back, which would throw the island away.
+ */
+export function taskHash(view: TaskView, projectId: string | null): string {
+  const parts = [view === 'overview' ? '' : VIEW_SLUGS[view], projectId ? encodeURIComponent(projectId) : ''].filter(Boolean)
+  return parts.length ? `#${parts.join('/')}` : ''
+}
+
+/** View and open project of a hash. "#<id>" alone is the older link to a project and opens it on the overview. */
+export function taskRoute(hash: string): { view: TaskView; projectId: string | null } {
+  const [first = '', second = ''] = hash.replace(/^#/, '').split('/')
+  const view = (Object.keys(VIEW_SLUGS) as (keyof typeof VIEW_SLUGS)[]).find((key) => VIEW_SLUGS[key] === first)
+  if (view) return { view, projectId: second ? decodeURIComponent(second) : null }
+  return { view: 'overview', projectId: first ? decodeURIComponent(first) : null }
+}
 
 /**
  * The tasks of a template or an earlier project as new tasks: all open, nobody assigned, in the team of the new project,

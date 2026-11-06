@@ -1,16 +1,15 @@
 /**
- * The events view of the tasks module: a month or week grid of the public events (Luma and externalEvents, loaded by
- * the page, never copied) and cards for the upcoming events or the selected day. Each card either starts the planning
- * project of its event or opens it.
- * Props: events ({ id, title, startAt, endAt, location, url, day }), projectsByEvent (Map event id → project summary),
- * complete (false when the calendar could not be loaded), today, copy (workspace copy), locale, membersById,
- * onStart(event), onOpen(projectId).
+ * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
+ * page, never copied) and the own events, and cards for the upcoming events or the selected day. Each card either starts
+ * the planning project of its event or opens it.
+ * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
+ * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId).
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { addDays, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
-import { AvatarStack, berlinTime, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
+import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
 const UPCOMING_MAX = 4
 
@@ -38,7 +37,8 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   return (
     <article className="rounded-lg border border-border bg-bg-subtle p-4">
       <p className="text-xs font-semibold uppercase tracking-wider text-accent">
-        {eventDayLabel(event.day, locale)} · {berlinTime(event.startAt, locale)}
+        {eventDayLabel(event.day, locale)}
+        {event.time && ` · ${event.time}`}
       </p>
       <h3 className="mt-1 text-base font-semibold leading-snug">{event.title}</h3>
       {event.location && (
@@ -72,7 +72,7 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   )
 }
 
-export default function EventCalendar({ events, projectsByEvent, complete, today, copy, locale, membersById, onStart, onOpen }) {
+export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen }) {
   const text = copy.calendar
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
@@ -155,7 +155,7 @@ export default function EventCalendar({ events, projectsByEvent, complete, today
                           {dayEvents.map((event) => (
                             <span
                               key={event.id}
-                              className={`h-1.5 w-1.5 rounded-full ${projectsByEvent.has(event.id) ? 'bg-brand-bright' : 'bg-accent'}`}
+                              className={`h-1.5 w-1.5 rounded-full ${planOf(event) ? 'bg-brand-bright' : 'bg-accent'}`}
                             />
                           ))}
                         </span>
@@ -164,7 +164,7 @@ export default function EventCalendar({ events, projectsByEvent, complete, today
                             <span
                               key={event.id}
                               className={`truncate rounded px-1 py-0.5 text-2xs leading-tight ${
-                                projectsByEvent.has(event.id)
+                                planOf(event)
                                   ? 'bg-brand-bright text-white'
                                   : 'bg-[color-mix(in_srgb,var(--color-accent-text)_18%,transparent)] text-fg'
                               }`}
@@ -208,7 +208,7 @@ export default function EventCalendar({ events, projectsByEvent, complete, today
               <EventCard
                 key={event.id}
                 event={event}
-                project={projectsByEvent.get(event.id)}
+                project={planOf(event)}
                 copy={copy}
                 locale={locale}
                 membersById={membersById}

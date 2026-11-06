@@ -1,18 +1,73 @@
 ---
 /**
  * The team tab of the Netzwerk section, rendered on demand by pages/mitglieder/netzwerk/team.astro and
- * pages/en/members/network/team.astro. Shows the same team descriptions as the join page (OpenTeamsGrid); team photos
- * are meant to be added here later.
- * Data source: openTeams via getCopy().
+ * pages/en/members/network/team.astro: the board and each team with its task and its people. Only names, photos and
+ * positions reach the page, never addresses.
+ * Data source: openTeams and memberArea.team via getCopy(), people via memberSummaries().
  */
 import MemberNetworkLayout from '../layouts/MemberNetworkLayout.astro'
-import OpenTeamsGrid from '../components/mitmachen/OpenTeamsGrid.astro'
 import { getCopy } from '../data/copy'
+import { teamNames } from '../data/openTeams'
+import { initials } from '../lib/contacts'
 import { resolveLocale } from '../lib/i18n'
+import { BOARD_GROUP, rosterGroups } from '../lib/memberRoster'
+import { displayName, memberDirectory } from '../lib/members'
 
-const { openTeams } = getCopy(resolveLocale(Astro.currentLocale))
+const ICONS: Record<string, string> = {
+  [BOARD_GROUP]: 'board',
+  'ignite-relations': 'relations',
+  'ignite-marketing': 'marketing',
+  'ignite-hr': 'community',
+  'ignite-finance-legal': 'finance',
+  'ignite-infrastructure': 'organisation',
+}
+
+const { openTeams, memberArea } = getCopy(resolveLocale(Astro.currentLocale))
+const copy = memberArea.team
+const names = teamNames(openTeams)
+const people = (await memberDirectory()).map((member) => ({ ...member, name: displayName(member) }))
+const groups = rosterGroups(people, openTeams.map(({ id }) => id))
+const cards = [
+  { id: BOARD_GROUP, name: copy.board.name, text: copy.board.text },
+  ...openTeams.map(({ id, description }) => ({ id, name: names[id], text: description })),
+]
 ---
 
 <MemberNetworkLayout tab="team">
-  <OpenTeamsGrid teams={openTeams} />
+  <div class="grid gap-4 lg:grid-cols-2">
+    {
+      cards.map(({ id, name, text }) => (
+        <section aria-labelledby={`team-${id}`} class="rounded-card border border-border bg-card p-5">
+          <div class="flex items-start gap-3">
+            <img src={`/brand/ignite-team-${ICONS[id]}.png`} alt="" class="h-12 w-12 shrink-0 rounded-full" />
+            <div class="min-w-0">
+              <h2 id={`team-${id}`} class="text-[20px] font-semibold leading-tight">{name}</h2>
+              <p class="mt-1 text-sm text-fg-muted">{text}</p>
+            </div>
+          </div>
+          {groups[id].length ? (
+            <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+              {groups[id].map((person) => (
+                <li class="flex min-w-0 items-center gap-2.5">
+                  {person.photo ? (
+                    <img src={person.photo} alt="" loading="lazy" class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span aria-hidden="true" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-bg-subtle text-sm font-semibold uppercase">
+                      {initials(person.name)}
+                    </span>
+                  )}
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-medium">{person.name}</span>
+                    <span class="block text-caption text-fg-muted">{copy.positions[person.position]}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="mt-4 text-sm text-fg-muted">{copy.empty}</p>
+          )}
+        </section>
+      ))
+    }
+  </div>
 </MemberNetworkLayout>

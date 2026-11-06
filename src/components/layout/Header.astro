@@ -53,9 +53,7 @@ const items: NavItem[] = member
       { label: memberNav.home, url: memberHome },
       { label: memberNav.tasks, url: memberPagePath('tasks', locale) },
       { label: memberNav.network, url: memberPagePath('crm', locale) },
-      { label: memberNav.guide, url: memberPagePath('guide', locale) },
-      { label: memberNav.branding, url: memberPagePath('branding', locale) },
-      { label: memberNav.benefits, url: memberPagePath('benefits', locale) },
+      { label: memberNav.storage, url: memberPagePath('storage', locale) },
       { label: memberNav.signature, url: memberPagePath('signature', locale) },
     ]
   : [...navigation.menuItems].sort((a, b) => a.order - b.order)
@@ -138,7 +136,9 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
             me={member.id}
             tasksUrl={memberPagePath('tasks', locale)}
             homeUrl={memberHome}
-          />
+          >
+            <Logo slot="logo" markOnly color="currentColor" name={navigation.logoText} />
+          </MemberSearch>
         )
       }
       <div class="hidden items-center gap-1 lg:flex">
@@ -464,6 +464,12 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       color var(--duration-fast) ease,
       background-color var(--duration-fast) ease,
       transform 0.3s var(--ease-out);
+  }
+  /* Links, search, profile menu and door only fit next to the badge from 1100 px. */
+  @media (min-width: 1024px) and (max-width: 1099px) {
+    .member-badge {
+      display: none;
+    }
   }
   /* Keeps the member links next to logo, search and profile menu up to where the full size fits. */
   @media (max-width: 1399px) {

@@ -9,7 +9,20 @@
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
-import { applyMemberChange, isOverdue, memberChange, patchedTask, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import {
+  applyMemberChange,
+  isOverdue,
+  memberChange,
+  patchedTask,
+  PRIORITIES,
+  PROJECT_STATUSES,
+  progress,
+  projectDay,
+  projectStatus,
+  TASK_STATUSES,
+  TEXT_MAX,
+  TITLE_MAX,
+} from '../../../lib/tasks'
 import { changedFields } from '../../../lib/liveUpdates'
 import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import {
@@ -227,16 +240,18 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
                   </button>
                 </>
               )}
-              <button
-                type="button"
-                className={`${MENU_ITEM} text-danger`}
-                onClick={() => {
-                  close()
-                  onRemove()
-                }}
-              >
-                {copy.panel.deleteTask}
-              </button>
+              {task.mayRemove && (
+                <button
+                  type="button"
+                  className={`${MENU_ITEM} text-danger`}
+                  onClick={() => {
+                    close()
+                    onRemove()
+                  }}
+                >
+                  {copy.panel.deleteTask}
+                </button>
+              )}
             </>
           )}
         </Menu>
@@ -409,7 +424,8 @@ export function LessonsFields({ value, onChange, copy, idPrefix }) {
 
 function DetailsTab({ project, copy, locale, run, change }) {
   const id = useId()
-  const fields = () => ({ title: project.title, description: project.description, due: project.due })
+  const ownEvent = project.type === 'event' && !project.event
+  const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
   const [form, setForm] = useState(fields)
   const [lessons, setLessons] = useState(null) // null while not editing
   const start = useRef(form)
@@ -419,7 +435,7 @@ function DetailsTab({ project, copy, locale, run, change }) {
     const previous = start.current
     start.current = next
     setForm((current) => ({ ...next, ...changedFields(previous, current) }))
-  }, [project.title, project.description, project.due])
+  }, [project.title, project.description, project.due, project.time, project.place])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const patch = changedFields(fields(), form)
   const changed = Object.keys(patch).length > 0
@@ -453,7 +469,23 @@ function DetailsTab({ project, copy, locale, run, change }) {
             <label htmlFor={`${id}-due`} className={LABEL}>
               {project.type === 'event' ? copy.panel.eventDate : copy.panel.due}
             </label>
-            <input id={`${id}-due`} type="date" className={INPUT} value={form.due} onChange={set('due')} />
+            <input id={`${id}-due`} type="date" className={INPUT} required={ownEvent} value={form.due} onChange={set('due')} />
+          </div>
+        )}
+        {ownEvent && (
+          <div className="flex flex-wrap gap-3">
+            <div className="w-36">
+              <label htmlFor={`${id}-time`} className={LABEL}>
+                {copy.panel.time}
+              </label>
+              <input id={`${id}-time`} type="time" className={INPUT} value={form.time} onChange={set('time')} />
+            </div>
+            <div className="min-w-48 flex-1">
+              <label htmlFor={`${id}-place`} className={LABEL}>
+                {copy.panel.place}
+              </label>
+              <input id={`${id}-place`} className={INPUT} maxLength={TITLE_MAX} value={form.place} onChange={set('place')} />
+            </div>
           </div>
         )}
         {changed && (
@@ -480,6 +512,15 @@ function DetailsTab({ project, copy, locale, run, change }) {
               {copy.panel.publicEvent}
               <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
             </a>
+          )}
+          {/* Only own events have a date to go back to. */}
+          {project.due && (
+            <div className="mt-3 border-0 border-t border-solid border-border pt-3">
+              <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => run({ action: 'unlinkEvent', id: project.id })}>
+                {copy.panel.unlink}
+              </button>
+              <p className="mt-1.5 text-caption text-fg-muted">{copy.panel.unlinkHint}</p>
+            </div>
           )}
         </div>
       )}
@@ -566,7 +607,7 @@ function ActivityTab({ project, copy, locale, membersById }) {
     <ol className="flex flex-col gap-4">
       {entries.map((entry, index) => {
         const actor = membersById.get(entry.actor)
-        const detail = entry.action === 'status' ? (copy.statuses[entry.detail] ?? entry.detail) : entry.detail
+        const detail = entry.action === 'status' ? (copy.statuses[projectStatus(entry.detail)] ?? entry.detail) : entry.detail
         return (
           <li key={`${entry.at}-${index}`} className="flex gap-3 text-sm">
             {actor ? (
@@ -726,7 +767,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   <span className="inline-flex items-center gap-1.5 text-fg-muted">
                     <CalendarDays aria-hidden="true" className="h-4 w-4" />
                     {longDay(day, locale)}
-                    {project.event && ` · ${berlinTime(project.event.startAt, locale)}`}
+                    {project.event ? ` · ${berlinTime(project.event.startAt, locale)}` : project.time && ` · ${project.time}`}
                   </span>
                 )}
                 <label className="inline-flex items-center gap-2">

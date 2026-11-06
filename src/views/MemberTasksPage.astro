@@ -2,10 +2,9 @@
 /**
  * The tasks module of the members area, rendered on demand by pages/mitglieder/aufgaben.astro and
  * pages/en/members/tasks.astro. Loads the events of the public calendar (taskEvents.ts), refreshes the event snapshots
- * of planning projects and hands everything to the TaskWorkspace island, which talks to /api/members/tasks. The tool
- * starts right below the header: the highlighted nav item already says where you are, so the title is for screen
- * readers only.
- * Data source: memberArea.tasks and openTeams via getCopy(), projects and members via workspaceState().
+ * of planning projects and hands everything to the TaskWorkspace island, which talks to /api/members/tasks and renders
+ * the page's heading itself, because it changes with the view.
+ * Data source: memberArea.tasks, memberArea.search and openTeams via getCopy(), projects and members via workspaceState().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
@@ -14,7 +13,7 @@ import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberPagePath } from '../lib/memberAuth'
-import { berlinDay } from '../lib/tasks'
+import { berlinClock, berlinDay } from '../lib/tasks'
 import { loadTaskEvents } from '../lib/taskEvents'
 import { sessionActor, syncEvents, workspaceState } from '../lib/tasksStore'
 
@@ -31,21 +30,20 @@ const [{ events, complete }, state] = await Promise.all([
   }),
   workspaceState(actor),
 ])
-const calendar = events.map((event) => ({
+const calendar = events.map(({ startAt, endAt, ...event }) => ({
   ...event,
-  startAt: event.startAt.toISOString(),
-  endAt: event.endAt.toISOString(),
-  day: berlinDay(event.startAt.getTime()),
+  day: berlinDay(startAt.getTime()),
+  endDay: berlinDay(endAt.getTime()),
+  time: berlinClock(startAt.getTime()),
 }))
 const now = Date.now()
 ---
 
 <DefaultLayout title={tasks.pageTitle} alternatePath={memberPagePath('tasks', locale === 'de' ? 'en' : 'de')} noindex>
   <Section spacing="xs" labelledby="page-title">
-    <h1 id="page-title" class="sr-only">{tasks.pageTitle}</h1>
     <TaskWorkspace
       client:load
-      copy={{ ...tasks.workspace, teams: teamNames(openTeams) }}
+      copy={{ ...tasks.workspace, teams: teamNames(openTeams), problems: memberArea.search.task.problems }}
       initialState={state}
       events={calendar}
       eventsComplete={complete}

@@ -4,8 +4,7 @@
  * the whole answer is there, so a click would otherwise show nothing. If the answer takes longer than SHOW_AFTER_MS, the
  * rough layout of the target page covers the old one below the header, and the swap replaces it with the body. The old
  * page stays untouched underneath, so its islands and scroll position survive a cancelled navigation.
- * One template per layout; `data-paths` lists the pages it stands for, in both languages, and a page with subpages
- * also stands for those through `data-subpages`. The active nav item moves at once on every click.
+ * One template per layout; `data-paths` lists the pages it stands for, in both languages. The active nav item moves at once on every click.
  * Rendered by DefaultLayout on every members area page with a header.
  * Copy: memberArea.loading via getCopy() (src/data/copy.ts).
  */
@@ -22,16 +21,15 @@ const layouts = [
   { layout: 'home', paths: `${memberHomePath('de')} ${memberHomePath('en')}` },
   { layout: 'tasks', paths: paths('tasks') },
   { layout: 'table', paths: paths('crm', 'admin', 'connections') },
-  { layout: 'cards', paths: paths('alumni', 'team', 'branding', 'benefits') },
-  { layout: 'cards', paths: paths('guide'), subpages: true },
+  { layout: 'cards', paths: paths('alumni', 'team', 'partners', 'storage') },
   { layout: 'form', paths: paths('signature') },
 ]
 const CARD = 'rounded-card border border-border bg-card'
 ---
 
 {
-  layouts.map(({ layout, paths, subpages }) => (
-    <template data-member-skeleton data-paths={paths} data-subpages={subpages ? '' : undefined}>
+  layouts.map(({ layout, paths }) => (
+    <template data-member-skeleton data-paths={paths}>
       <div class="member-loading" data-member-loading role="status" aria-label={memberArea.loading}>
         {layout === 'home' && (
           <Section spacing="xs">
@@ -69,22 +67,22 @@ const CARD = 'rounded-card border border-border bg-card'
           <Section spacing="xs">
             <div class="flex flex-col gap-6">
               <div class="flex items-center justify-between gap-4">
-                <div class="flex gap-4">
-                  {[1, 2, 3, 4].map(() => <span class="sk h-6 w-20" />)}
+                <span class="sk h-10 w-44" />
+                <span class="sk hidden h-10 w-48 sm:block" />
+              </div>
+              <div class={`${CARD} flex flex-col gap-4 p-6`}>
+                <span class="sk h-7 w-56" />
+                <span class="sk h-64 w-full" />
+              </div>
+              <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                  <span class="sk h-7 w-44" />
+                  {[1, 2, 3, 4].map(() => <span class="sk h-12 w-full" />)}
                 </div>
-                <span class="sk hidden h-10 w-40 sm:block" />
-              </div>
-              <div class={`${CARD} flex flex-col gap-6 p-6`}>
-                <span class="sk h-8 w-56" />
-                <span class="sk h-14 w-full" />
-              </div>
-              <div class="grid gap-6 md:grid-cols-2">
-                {[1, 2].map(() => (
-                  <div class={`${CARD} flex flex-col gap-5 p-6`}>
-                    <span class="sk h-7 w-28" />
-                    {[1, 2, 3].map(() => <span class="sk h-12 w-full" />)}
-                  </div>
-                ))}
+                <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                  <span class="sk h-7 w-28" />
+                  {[1, 2].map(() => <span class="sk h-16 w-full" />)}
+                </div>
               </div>
             </div>
           </Section>
@@ -154,10 +152,7 @@ const CARD = 'rounded-card border border-border bg-card'
   function templateFor(pathname: string) {
     const target = withoutSlash(pathname)
     return [...document.querySelectorAll<HTMLTemplateElement>('template[data-member-skeleton]')].find(({ dataset }) =>
-      dataset.paths!.split(' ').some((path) => {
-        const page = withoutSlash(path)
-        return target === page || (dataset.subpages !== undefined && target.startsWith(`${page}/`))
-      }),
+      dataset.paths!.split(' ').some((path) => withoutSlash(path) === target),
     )
   }
 

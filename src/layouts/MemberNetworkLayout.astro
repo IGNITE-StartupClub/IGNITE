@@ -1,6 +1,6 @@
 ---
 /**
- * Frame of the Netzwerk section in the members area: one heading and a tab bar over CRM, alumni and teams. Each tab is
+ * Frame of the Netzwerk section in the members area: one heading and a tab bar over CRM, alumni, teams and partners. Each tab is
  * a page of its own, so it loads only its own data and the CRM keeps the URL hash for the open contact.
  * Props: tab (the active tab, which also selects the page title and lead).
  * Slots: default (the content of the tab).
@@ -13,7 +13,7 @@ import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 
-const TABS = ['crm', 'alumni', 'team'] as const
+const TABS = ['crm', 'alumni', 'team', 'partners'] as const
 
 interface Props {
   tab: (typeof TABS)[number]

@@ -7,11 +7,16 @@ import {
   applyChanges,
   applyMemberChange,
   assigneeChanges,
+  berlinClock,
   berlinDay,
   berlinHour,
   boardColumns,
+  calendarEntries,
+  eventTwin,
   filterProjects,
+  filterScope,
   isRecordId,
+  mayRemoveTask,
   nameFromEmail,
   memberChange,
   nextStanding,
@@ -27,11 +32,16 @@ import {
   parseTemplateTasks,
   progress,
   projectAssignees,
+  projectStatus,
   scopedPrivateTasks,
   scopedTasks,
+  sameTitle,
+  similarTitles,
   sortTasks,
   TEAM_IDS,
   taskGroup,
+  taskHash,
+  taskRoute,
   taskStatus,
   taskTeam,
   tasksFromTemplate,
@@ -93,10 +103,23 @@ test('parseProject requires a title and accepts only known types, teams, real da
     description: '',
     type: 'internal',
     due: '',
+    time: '',
+    place: '',
     leads: [ME],
     team: MARKETING,
   })
-  for (const bad of [{ title: ' ' }, { title: 'x', type: 'meeting' }, { title: 'x', due: '2026-02-30' }, { title: 'x', leads: ['ben@x.de'] }, { title: 'x', team: 'podcast' }]) {
+  assert.equal(parseProject({ title: 'x', time: '18:30' })?.time, '18:30')
+  assert.equal(parseProject({ title: 'x', place: ' Hörsaal 1 ' })?.place, 'Hörsaal 1')
+  for (const bad of [
+    { title: ' ' },
+    { title: 'x', type: 'meeting' },
+    { title: 'x', due: '2026-02-30' },
+    { title: 'x', leads: ['ben@x.de'] },
+    { title: 'x', team: 'podcast' },
+    { title: 'x', time: '24:00' },
+    { title: 'x', time: '8:30' },
+    { title: 'x', place: 'p'.repeat(500) },
+  ]) {
     assert.equal(parseProject(bad), null, JSON.stringify(bad))
   }
 })
@@ -116,7 +139,8 @@ test('parseTask defaults priority and required, rejects unknown priorities', () 
   assert.equal(parseTask({ title: 'x', team: 'podcast' }), null)
   assert.equal(parseTask({ title: 'x', required: 'yes' }), null)
   assert.equal(parseTask({ title: 'x', status: 'blocked' }), null)
-  assert.equal(parseTask({ title: 'x', status: 'review' })?.status, 'review')
+  assert.equal(parseTask({ title: 'x', status: 'doing' })?.status, 'doing')
+  assert.equal(parseTask({ title: 'x', status: 'review' }), null)
 })
 
 test('parseTaskPatch keeps only the given fields and refuses unknown or empty changes', () => {
@@ -316,13 +340,14 @@ test('openRequired counts open required tasks only', () => {
 test('taskStatus reads tasks stored before the board from their done flag', () => {
   assert.equal(taskStatus({ done: true }), 'done')
   assert.equal(taskStatus({ done: false }), 'backlog')
-  assert.equal(taskStatus({ done: false, status: 'review' }), 'review')
+  assert.equal(taskStatus({ done: false, status: 'doing' }), 'doing')
+  assert.equal(taskStatus({ done: false, status: 'review' }), 'doing')
 })
 
 test('nextStanding keeps status and done in step', () => {
   const open = { done: false, status: 'doing' } as const
   const finished = { done: true, status: 'done' } as const
-  assert.deepEqual(nextStanding(open, { status: 'review' }), { done: false, status: 'review' })
+  assert.deepEqual(nextStanding(open, { status: 'doing' }), { done: false, status: 'doing' })
   assert.deepEqual(nextStanding(open, { status: 'done' }), finished)
   assert.deepEqual(nextStanding(finished, { status: 'doing' }), open)
   assert.deepEqual(nextStanding(open, { done: true }), finished)
@@ -341,7 +366,6 @@ test('boardColumns sorts open columns by deadline and shows the last finished ta
   assert.deepEqual(columns.doing.map((item) => item.id), ['soon', 'late'])
   assert.deepEqual(columns.done.map((item) => item.id), ['newer', 'older'])
   assert.deepEqual(columns.backlog, [])
-  assert.deepEqual(columns.review, [])
 })
 
 test('tasksFromTemplate starts every task open and unassigned, with deadlines only from relative rules', () => {
@@ -449,4 +473,147 @@ test('applyChanges replaces what changed, keeps the rest and drops what is gone'
   assert.deepEqual(next.members, ['new'])
   assert.deepEqual(next.templates, ['kept'])
   assert.deepEqual(next.privateTasks, [own])
+})
+
+test('berlinClock follows summer and winter time', () => {
+  assert.equal(berlinClock(Date.parse('2026-07-01T16:30:00Z')), '18:30')
+  assert.equal(berlinClock(Date.parse('2026-12-01T16:30:00Z')), '17:30')
+  assert.equal(berlinClock(Date.parse('2026-12-01T23:05:00Z')), '00:05')
+})
+
+test('the review column of earlier records reads as in progress', () => {
+  assert.equal(projectStatus('review'), 'active')
+  assert.equal(projectStatus('planned'), 'planned')
+  assert.equal(projectStatus('done'), 'done')
+})
+
+test('mayRemoveTask allows admins, the task creator, the project creator and leads, nobody else', () => {
+  const owned = { createdBy: BEN }
+  const run = { createdBy: 'c'.repeat(24), leads: ['d'.repeat(24)] }
+  assert.equal(mayRemoveTask(owned, run, { id: ME, role: 'admin' }), true)
+  assert.equal(mayRemoveTask(owned, run, { id: BEN, role: 'member' }), true)
+  assert.equal(mayRemoveTask(owned, run, { id: 'c'.repeat(24), role: 'member' }), true)
+  assert.equal(mayRemoveTask(owned, run, { id: 'd'.repeat(24), role: 'member' }), true)
+  assert.equal(mayRemoveTask(owned, run, { id: ME, role: 'member' }), false)
+})
+
+test('similarTitles ignores case, accents and punctuation and accepts one title inside the other', () => {
+  assert.equal(similarTitles('Founder-Talk!', 'founder talk'), true)
+  assert.equal(similarTitles('Gründerabend', 'GRUNDERABEND'), true)
+  assert.equal(similarTitles('Founder Talk', 'Founder Talk mit Lena'), true)
+  assert.equal(similarTitles('Pitch Night', 'Open Weekly'), false)
+  // Whole words only, and short words say nothing.
+  assert.equal(similarTitles('Talk', 'Talkshow im Audimax'), false)
+  assert.equal(similarTitles('Ein', 'Ein Abend mit Lena'), false)
+})
+
+test('sameTitle only accepts the same words', () => {
+  assert.equal(sameTitle('Founder-Talk!', 'founder talk'), true)
+  assert.equal(sameTitle('Founder Talk', 'Founder Talk mit Lena'), false)
+})
+
+const calendarEvent = (overrides = {}) => ({
+  id: 'evt-1',
+  title: 'Founder Talk',
+  day: '2026-11-20',
+  endDay: '2026-11-20',
+  time: '18:00',
+  location: 'Hörsaal 1',
+  url: 'https://lu.ma/x',
+  coverUrl: null,
+  source: 'luma' as const,
+  ...overrides,
+})
+
+const ownEvent = (overrides: Partial<ProjectState> = {}) =>
+  project({ id: 'own-1', title: 'Founder Talk', type: 'event', due: '2026-11-20', event: null, ...overrides })
+
+test('eventTwin is sure on the same day with a similar title and only asks otherwise', () => {
+  const same = calendarEvent()
+  assert.deepEqual(eventTwin(ownEvent(), [same]), { event: same, sure: true })
+  const otherTitle = calendarEvent({ title: 'Pitch Night' })
+  assert.deepEqual(eventTwin(ownEvent(), [otherTitle]), { event: otherTitle, sure: false })
+  const close = calendarEvent({ day: '2026-11-22' })
+  assert.deepEqual(eventTwin(ownEvent(), [close]), { event: close, sure: false })
+})
+
+test('eventTwin leaves a weekly series alone and respects "these are different events"', () => {
+  assert.equal(eventTwin(ownEvent(), [calendarEvent({ day: '2026-11-27' })]), null)
+  assert.equal(eventTwin(ownEvent({ distinctFrom: ['evt-1'] }), [calendarEvent()]), null)
+})
+
+test('eventTwin prefers the similar title over the nearer day', () => {
+  const twin = calendarEvent({ id: 'evt-2', day: '2026-11-21' })
+  const other = calendarEvent({ id: 'evt-3', title: 'Pitch Night' })
+  assert.equal(eventTwin(ownEvent(), [other, twin])?.event.id, 'evt-2')
+})
+
+test('calendarEntries shows own events and never the same event twice', () => {
+  const { entries, twins } = calendarEntries([calendarEvent()], [ownEvent({ time: '19:00', place: 'Café' })])
+  assert.deepEqual(
+    entries.map(({ id, source, time, location }) => ({ id, source, time, location })),
+    [{ id: 'own-1', source: 'own', time: '19:00', location: 'Café' }],
+  )
+  assert.equal(twins.get('own-1')?.id, 'evt-1')
+})
+
+test('calendarEntries keeps an uncertain twin visible and asks', () => {
+  const { entries, twins } = calendarEntries([calendarEvent({ title: 'Pitch Night' })], [ownEvent()])
+  assert.deepEqual(entries.map(({ id }) => id).sort(), ['evt-1', 'own-1'])
+  assert.equal(twins.get('own-1')?.id, 'evt-1')
+})
+
+test('calendarEntries shows both once members said they differ', () => {
+  const { entries, twins } = calendarEntries([calendarEvent()], [ownEvent({ distinctFrom: ['evt-1'] })])
+  assert.equal(entries.length, 2)
+  assert.equal(twins.size, 0)
+})
+
+test('calendarEntries shows a merged event once, as the public event', () => {
+  const merged = ownEvent({ event: { id: 'evt-1', missing: false, location: 'Hörsaal 1' }, eventDay: '2026-11-20' })
+  const { entries, twins } = calendarEntries([calendarEvent()], [merged])
+  assert.deepEqual(entries.map(({ id, source }) => ({ id, source })), [{ id: 'evt-1', source: 'luma' }])
+  assert.equal(twins.size, 0)
+})
+
+test('calendarEntries never offers a public event that already has its planning project', () => {
+  const planning = project({ id: 'plan', type: 'event', event: { id: 'evt-1', missing: false, location: null }, eventDay: '2026-11-20' })
+  const { entries, twins } = calendarEntries([calendarEvent()], [planning, ownEvent()])
+  assert.deepEqual(entries.map(({ id }) => id).sort(), ['evt-1', 'own-1'])
+  assert.equal(twins.size, 0)
+})
+
+test('calendarEntries keeps a planned event that left the calendar, and leaves out archived and undated ones', () => {
+  const cancelled = project({ id: 'gone', title: 'Abgesagt', type: 'event', event: { id: 'evt-9', missing: true, location: 'Mensa' }, eventDay: '2026-12-01' })
+  const { entries } = calendarEntries([], [cancelled, ownEvent({ id: 'old', archived: true }), ownEvent({ id: 'open', due: '' }), project({ id: 'plain', due: '2026-11-20' })])
+  assert.deepEqual(entries.map(({ id, location, day }) => ({ id, location, day })), [{ id: 'gone', location: 'Mensa', day: '2026-12-01' }])
+})
+
+test('calendarEntries sorts by day and time', () => {
+  const { entries } = calendarEntries(
+    [calendarEvent({ id: 'late', title: 'Spät', time: '20:00' }), calendarEvent({ id: 'next', title: 'Morgen', day: '2026-11-21', endDay: '2026-11-21', time: '09:00' })],
+    [ownEvent({ title: 'Früh', time: '08:00', distinctFrom: ['late', 'next'] })],
+  )
+  assert.deepEqual(entries.map(({ id }) => id), ['own-1', 'late', 'next'])
+})
+
+test('filterScope reads the board filter', () => {
+  assert.deepEqual(filterScope('mine', MARKETING, 'flyer'), { team: ALL_TEAMS, myTeam: MARKETING, onlyMine: true, query: 'flyer' })
+  assert.deepEqual(filterScope(MARKETING, '', ''), { team: MARKETING, myTeam: '', onlyMine: false, query: '' })
+  assert.deepEqual(filterScope(ALL_TEAMS, MARKETING, ''), { team: ALL_TEAMS, myTeam: MARKETING, onlyMine: false, query: '' })
+})
+
+test('taskHash and taskRoute are each other\'s inverse', () => {
+  for (const view of ['overview', 'tasks', 'projects', 'events'] as const) {
+    for (const id of [null, 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6']) {
+      assert.deepEqual(taskRoute(taskHash(view, id)), { view, projectId: id })
+    }
+  }
+  assert.equal(taskHash('overview', null), '')
+  assert.equal(taskHash('tasks', 'x'), '#board/x')
+})
+
+test('taskRoute still opens the links of mails and of the older tabs', () => {
+  assert.deepEqual(taskRoute('#f81d4fae-7dec-11d0-a765-00a0c91e6bf6'), { view: 'overview', projectId: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6' })
+  assert.deepEqual(taskRoute(''), { view: 'overview', projectId: null })
 })

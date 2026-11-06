@@ -73,7 +73,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           </Menu>
         </div>
       </div>
-      <h3 className="mt-1 text-sm font-semibold leading-snug">
+      <h3 className="mt-1 text-[17px] font-semibold leading-snug">
         {/* The ::after layer makes the whole card the click target; menu and avatars sit above it. */}
         <button
           type="button"
@@ -84,7 +84,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
         </button>
       </h3>
       {day && (
-        <p className={`mt-1 flex items-center gap-1 text-xs ${late ? 'font-medium text-danger' : 'text-fg-muted'}`}>
+        <p className={`mt-1 flex items-center gap-1 text-[14px] ${late ? 'font-medium text-danger' : 'text-fg-muted'}`}>
           <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
           {eventDayLabel(day, locale)}
         </p>
@@ -93,12 +93,12 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
         {done.total ? (
           <>
             <ProgressBar percent={done.percent} tone={STATUS_TONE[project.status]} label={copy.board.progress} />
-            <span className="shrink-0 text-xs tabular-nums text-fg-muted">
+            <span className="shrink-0 text-[14px] tabular-nums text-fg-muted">
               {done.done}/{done.total}
             </span>
           </>
         ) : (
-          <span className="text-xs text-fg-subtle">{copy.board.noTasks}</span>
+          <span className="text-[14px] text-fg-subtle">{copy.board.noTasks}</span>
         )}
       </div>
       <LeadLine project={project} membersById={membersById} copy={copy} className="mt-3" />
@@ -151,7 +151,7 @@ export default function ProjectBoard({ projects, archived, showTeam, copy, local
     return (
       <>
         <p className="mb-3 text-sm text-fg-muted">{copy.board.archivedHint}</p>
-        <ul role="list" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul role="list" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <li key={project.id}>{card(project, false)}</li>
           ))}
@@ -162,8 +162,8 @@ export default function ProjectBoard({ projects, archived, showTeam, copy, local
 
   return (
     <>
-      {/* Phones scroll through the columns one by one; from lg on all four sit side by side. */}
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible lg:pb-0">
+      {/* Phones scroll through the columns one by one; from lg on all three sit side by side. */}
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
         {PROJECT_STATUSES.map((status) => {
           const column = projects.filter((project) => project.status === status)
           const target = dragging && dragging.status !== status

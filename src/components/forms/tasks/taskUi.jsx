@@ -1,21 +1,20 @@
 /**
  * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
- * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, status
- * and type styles and date formatting. Members are { id, name, photo, team }.
+ * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, the filter
+ * menu, the menu of a task, status and type styles and date formatting. Members are { id, name, photo, team }.
  */
-import React, { useId, useRef, useState } from 'react'
-import { Check, Lock, Search, UserPlus } from 'lucide-react'
+import React, { useEffect, useId, useRef, useState } from 'react'
+import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { TEAM_IDS } from '../../../lib/tasks'
-import { fill } from '../memberUi'
+import { TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
+import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
 
-/** Dot and progress colour per board column of projects and tasks; the review amber has no site token. */
+/** Dot and progress colour per board column of projects and tasks. */
 export const STATUS_TONE = {
   planned: 'bg-fg-subtle',
   backlog: 'bg-fg-subtle',
   active: 'bg-brand-bright',
   doing: 'bg-brand-bright',
-  review: 'bg-[#f2b35a]',
   done: 'bg-success',
 }
 export const TYPE_TEXT = { event: 'text-accent', internal: 'text-fg-muted', task: 'text-[#f2b35a]' }
@@ -289,6 +288,103 @@ export function Segmented({ label, options, value, onChange }) {
           {text}
         </button>
       ))}
+    </div>
+  )
+}
+
+/** One button that names the current choice and opens the others. `options` are { value, label }. */
+export function FilterMenu({ label, value, options, onChange }) {
+  const current = options.find((option) => option.value === value) ?? options[0]
+  return (
+    <Menu
+      label={
+        <>
+          <ListFilter aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span className="truncate">{current.label}</span>
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-fg-muted" />
+        </>
+      }
+      ariaLabel={`${label}: ${current.label}`}
+      className={`${TOOL_BUTTON} max-w-full`}
+    >
+      {(close) =>
+        options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={option.value === current.value}
+            className={`${MENU_ITEM} flex items-center justify-between gap-6`}
+            onClick={() => {
+              close()
+              onChange(option.value)
+            }}
+          >
+            {option.label}
+            {option.value === current.value && <Check aria-hidden="true" className="h-4 w-4" />}
+          </button>
+        ))
+      }
+    </Menu>
+  )
+}
+
+const MENU_MARGIN = 8
+
+/**
+ * The menu of a task on board and list, at the pointer after a right click or below the card's own button. One for the
+ * whole page, because a popover per card would put hundreds of them into the document. Deleting needs no question, the
+ * toast offers to undo it. `menu` is { task, x, y } or null. The popover is manual: on a Mac the right click opens it
+ * while the button is still down, and the browser's own dismissal would close it again on release.
+ */
+export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove }) {
+  const panel = useRef(null)
+  useEffect(() => {
+    if (!menu) return
+    const popover = panel.current
+    popover.showPopover()
+    const { width, height } = popover.getBoundingClientRect()
+    popover.style.left = `${Math.max(MENU_MARGIN, Math.min(menu.x, document.documentElement.clientWidth - width - MENU_MARGIN))}px`
+    popover.style.top = `${Math.max(MENU_MARGIN, Math.min(menu.y, window.innerHeight - height - MENU_MARGIN))}px`
+    popover.querySelector('button').focus()
+    const outside = (event) => !popover.contains(event.target) && onClose()
+    const escape = (event) => event.key === 'Escape' && onClose()
+    window.addEventListener('pointerdown', outside, { capture: true })
+    window.addEventListener('keydown', escape)
+    window.addEventListener('scroll', onClose, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('pointerdown', outside, { capture: true })
+      window.removeEventListener('keydown', escape)
+      window.removeEventListener('scroll', onClose, { capture: true })
+      popover.hidePopover()
+    }
+  }, [menu])
+
+  const task = menu?.task
+  const item = (action) => () => {
+    onClose()
+    action()
+  }
+  return (
+    <div ref={panel} popover="manual" className="fixed inset-auto m-0 min-w-44 rounded-lg border border-border bg-bg p-1 text-fg shadow-lg">
+      {task && (
+        <>
+          <button type="button" className={MENU_ITEM} onClick={item(() => onOpen(task))}>
+            {copy.board.open}
+          </button>
+          <p className="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-fg-muted">{copy.board.moveTo}</p>
+          {TASK_STATUSES.filter((status) => status !== task.status).map((status) => (
+            <button key={status} type="button" className={`${MENU_ITEM} flex items-center gap-2`} onClick={item(() => onPatch(task, { status }))}>
+              <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_TONE[status]}`} />
+              {copy.taskStatuses[status]}
+            </button>
+          ))}
+          {(task.private || task.mayRemove) && (
+            <button type="button" className={`${MENU_ITEM} mt-1 text-danger`} onClick={item(() => onRemove(task))}>
+              {copy.taskBoard.delete}
+            </button>
+          )}
+        </>
+      )}
     </div>
   )
 }

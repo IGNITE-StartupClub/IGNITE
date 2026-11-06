@@ -1,7 +1,8 @@
 ---
-import MemberBenefitsPage from '../../views/MemberBenefitsPage.astro'
+import { memberPagePath } from '../../lib/memberAuth'
 
 export const prerender = false
----
 
-<MemberBenefitsPage />
+// Old address of a page that moved; bookmarks and links in chats keep working.
+return Astro.redirect(memberPagePath('partners', 'de'), 301)
+---

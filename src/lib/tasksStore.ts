@@ -9,10 +9,14 @@
  *   project's size and only one tab shows it, so that tab loads it through projectActivity.
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
- *   (taskDigest.ts) sends it. Removing the assignment, finishing or deleting the task removes the entry.
+ *   (taskDigest.ts) sends it. Removing the assignment or finishing the task removes the entry. Deleting the task leaves
+ *   it, so an undo needs no bookkeeping: the digest drops entries whose task is gone.
+ * An own event is an event project without a public event (`event: null`) whose `due` is its date. It stands in the
+ * calendar next to the public events (calendarEntries in tasks.ts). When the same event later reaches Luma nothing
+ * changes by itself: a member merges them (linkEvent) or keeps them apart (keepEventApart).
  * Members are referenced by the hex id of their `members` document. Every signed-in member reads and changes
  * projects and tasks; archiving and changing the leads is up to admins, the creator and the project's leads, deleting a
- * project and archiving templates up to admins.
+ * task up to them and the task's creator (mayRemoveTask), deleting a project and archiving templates up to admins.
  */
 import { randomUUID } from 'node:crypto'
 import { ObjectId } from 'mongodb'
@@ -22,6 +26,7 @@ import { database, displayName, setUpInBackground, type Member, type SessionMemb
 import { photoPath } from './emailSignature'
 import { changedSince, collectionRevision, listRevision } from './liveUpdates'
 import { privateTasks } from './privateTasksStore'
+import { putInTrash, takeFromTrash } from './taskTrash'
 import { standardTemplates } from '../data/taskTemplates'
 import type { TaskEvent } from './taskEvents'
 import {
@@ -36,12 +41,16 @@ import {
   type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
+  type StoredStatus,
   type TaskFields,
   type TaskPatch,
   type TaskStatus,
   type TeamChoice,
   type TemplateTask,
+  mayRemoveTask,
   nextStanding,
+  projectStatus,
+  sameTitle,
   taskStatus,
   tasksFromTemplate,
   templateFromTasks,
@@ -52,7 +61,7 @@ const ACTIVITY_MAX = 300
 interface TaskDoc extends Omit<TaskFields, 'team' | 'status'> {
   id: string
   team?: TeamChoice
-  status?: TaskStatus
+  status?: StoredStatus<TaskStatus>
   done: boolean
   doneBy: string | null
   doneAt: Date | null
@@ -84,6 +93,9 @@ export type ActivityAction =
   | 'taskDone'
   | 'taskReopened'
   | 'taskRemoved'
+  | 'taskRestored'
+  | 'eventLinked'
+  | 'eventUnlinked'
   | 'assigned'
   | 'unassigned'
   | 'due'
@@ -104,9 +116,14 @@ interface ProjectDoc {
   title: string
   description: string
   type: ProjectType
-  status: ProjectStatus
+  status: StoredStatus<ProjectStatus>
   event: EventSnapshot | null
   due: string
+  /** Start and place of an own event; projects saved before them have neither. */
+  time?: string
+  place?: string
+  /** Public events members declared to be another event than this own one. */
+  distinctFrom?: string[]
   leads: string[]
   team?: TeamChoice
   tasks: TaskDoc[]
@@ -230,7 +247,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
     title: project.title,
     description: project.description,
     type: project.type,
-    status: project.status,
+    status: projectStatus(project.status),
     event: project.event && {
       ...project.event,
       startAt: project.event.startAt.toISOString(),
@@ -238,6 +255,9 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
     },
     eventDay: project.event ? berlinDay(project.event.startAt.getTime()) : '',
     due: project.due,
+    time: project.time ?? '',
+    place: project.place ?? '',
+    distinctFrom: project.distinctFrom ?? [],
     leads: people(project.leads),
     team: project.team ?? '',
     tasks: [...project.tasks]
@@ -255,6 +275,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         required: task.required,
         assignees: people(task.assignees),
         team: task.team ?? '',
+        mayRemove: mayRemoveTask(task, project, actor),
         createdBy: task.createdBy,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),
@@ -329,7 +350,7 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
     id: _id,
     title,
     type,
-    status,
+    status: projectStatus(status),
     archived: false,
     event: event ?? null,
     tasks: [...tasks].sort((a, b) => a.position - b.position),
@@ -452,9 +473,19 @@ interface NewProject {
   task: TaskFields | null
 }
 
-/** Creates a project; returns its id, or 'duplicate' when the event already has a planning project. */
+/**
+ * Creates a project; returns its id, or 'duplicate' when the event already has a planning project or an own event of
+ * that name stands on that day. The second check reads first, so two members saving the same second both get through.
+ * That costs a double entry, never data, and one of them can archive it.
+ */
 export async function createProject(actor: TaskActor, input: NewProject): Promise<{ id: string } | 'duplicate'> {
   const { projects } = await collections()
+  if (input.fields.type === 'event' && !input.event) {
+    const sameDay = await projects
+      .find({ type: 'event', event: null, due: input.fields.due, archivedAt: null }, { projection: { title: 1 } })
+      .toArray()
+    if (sameDay.some(({ title }) => sameTitle(title, input.fields.title))) return 'duplicate'
+  }
   const now = new Date()
   const _id = randomUUID()
   const anchor = input.event ? berlinDay(input.event.startAt.getTime()) : input.fields.due
@@ -484,7 +515,7 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
   return { id: _id }
 }
 
-type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full' | 'crowded'
+type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full' | 'crowded' | 'invalid'
 
 /** The update for one step on a list of people; parsePatch lets only one direction through. */
 const memberUpdate = (path: string, { add, remove }: MemberChange) =>
@@ -496,9 +527,11 @@ const memberUpdate = (path: string, { add, remove }: MemberChange) =>
  */
 export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1 } })
+  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1, type: 1, event: 1 } })
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
+  // Its date is all that places an own event in the calendar.
+  if (fields.due === '' && project.type === 'event' && !project.event) return 'invalid'
   if (leads && !mayArchive(project, actor)) return 'forbidden'
   if (leads && applyMemberChange(project.leads, leads).length > MAX_ASSIGNEES) return 'crowded'
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.
@@ -556,13 +589,15 @@ export async function addTask(actor: TaskActor, id: string, fields: TaskFields):
   if (project.tasks.length >= MAX_TASKS) return 'full'
   const now = new Date()
   const task = newTask(fields, Math.max(-1, ...project.tasks.map((item) => item.position)) + 1, actor, now)
-  await projects.updateOne(
+  // A card goes with its last task, so it can be gone since the read above.
+  const { matchedCount } = await projects.updateOne(
     { _id: id },
     {
       $push: { tasks: task, ...pushActivity([activity(actor, 'taskAdded', task.title)]) },
       $set: { updatedAt: now },
     },
   )
+  if (!matchedCount) return 'unknown'
   await notify(id, task.id, task.assignees, actor)
   return 'ok'
 }
@@ -597,8 +632,9 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
     (patch.team !== undefined && patch.team !== (task.team ?? ''))
   if (edited) entries.push(activity(actor, 'taskEdited', patch.title ?? task.title))
 
-  await projects.updateOne(
-    { _id: id },
+  // Someone may have deleted the task since the read above; then the change has nothing to land on.
+  const { matchedCount } = await projects.updateOne(
+    { _id: id, 'tasks.id': taskId },
     {
       $set: set,
       ...(entries.length ? { $push: pushActivity(entries) } : {}),
@@ -606,6 +642,7 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
     },
     { arrayFilters: [{ 't.id': taskId }] },
   )
+  if (!matchedCount) return 'unknown'
   if (removed.length) await unnotify(taskId, removed)
   // A finished task needs no "you were assigned" mail any more.
   if (done) await unnotify(taskId)
@@ -613,17 +650,100 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   return 'ok'
 }
 
+interface DeletedTask {
+  projectId: string
+  task: TaskDoc
+  /** The card a single task was alone on: it goes with its task, because an empty card would show nothing. */
+  card: ProjectDoc | null
+}
+
+/**
+ * Deletes a task, which its deleter can undo for a while (restoreTask). The delete itself is the claim: of two requests
+ * at once only one gets the stored document back, the other hears 'unknown', so only the winner fills the trash, and
+ * with the task as it stood at that moment. An edit that landed just before stays part of the undo.
+ */
 export async function removeTask(actor: TaskActor, id: string, taskId: string): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { tasks: { $elemMatch: { id: taskId } } } })
-  const task = project?.tasks[0]
-  if (!task) return 'unknown'
-  await projects.updateOne(
-    { _id: id },
-    { $pull: { tasks: { id: taskId } }, $set: { updatedAt: new Date() }, $push: pushActivity([activity(actor, 'taskRemoved', task.title)]) },
-  )
-  await unnotify(taskId)
+  const project = await projects.findOne({ _id: id, 'tasks.id': taskId })
+  const task = project?.tasks.find((item) => item.id === taskId)
+  if (!project || !task) return 'unknown'
+  if (!mayRemoveTask(task, project, actor)) return 'forbidden'
+  const card = await projects.findOneAndDelete({ _id: id, type: 'task', 'tasks.id': taskId, 'tasks.1': { $exists: false } })
+  const before =
+    card ??
+    (await projects.findOneAndUpdate(
+      { _id: id, 'tasks.id': taskId },
+      { $pull: { tasks: { id: taskId } }, $set: { updatedAt: new Date() }, $push: pushActivity([activity(actor, 'taskRemoved', task.title)]) },
+      { returnDocument: 'before' },
+    ))
+  const deleted = before?.tasks.find((item) => item.id === taskId)
+  if (!deleted) return 'unknown'
+  await putInTrash<DeletedTask>(actor.id, taskId, { projectId: id, task: deleted, card })
   return 'ok'
+}
+
+/** Undoes removeTask: back into its project with its old place and people, or back with its card. */
+export async function restoreTask(actor: TaskActor, taskId: string): Promise<Outcome> {
+  const { projects } = await collections()
+  const deleted = await takeFromTrash<DeletedTask>(actor.id, taskId)
+  if (!deleted) return 'unknown'
+  const now = new Date()
+  const { matchedCount } = await projects.updateOne(
+    { _id: deleted.projectId },
+    { $push: { tasks: deleted.task, ...pushActivity([activity(actor, 'taskRestored', deleted.task.title)]) }, $set: { updatedAt: now } },
+  )
+  if (matchedCount) return 'ok'
+  if (!deleted.card) return 'unknown'
+  await projects.insertOne({ ...deleted.card, updatedAt: now })
+  return 'ok'
+}
+
+/**
+ * Merges an own event with the public event it turned out to be. Only the snapshot is added, so tasks, people and status
+ * stay; date, time and place stay stored too, which is what makes unlinkEvent possible. The unique index on `event.id`
+ * decides when two members merge at once, and repeating the same merge counts as done.
+ */
+export async function linkEvent(actor: TaskActor, id: string, event: TaskEvent): Promise<Outcome | 'duplicate'> {
+  const { projects } = await collections()
+  try {
+    const { matchedCount } = await projects.updateOne(
+      { _id: id, type: 'event', event: null },
+      { $set: { event: eventSnapshot(event), updatedAt: new Date() }, $push: pushActivity([activity(actor, 'eventLinked', event.title)]) },
+    )
+    if (matchedCount) return 'ok'
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return 'duplicate'
+    throw err
+  }
+  const project = await projects.findOne({ _id: id }, { projection: { 'event.id': 1 } })
+  if (!project) return 'unknown'
+  return project.event?.id === event.id ? 'ok' : 'duplicate'
+}
+
+/** Remembers that an own event and a public event only look alike, so the question does not come back. */
+export async function keepEventApart(id: string, eventId: string): Promise<Outcome> {
+  const { projects } = await collections()
+  const { matchedCount } = await projects.updateOne(
+    { _id: id, type: 'event', event: null },
+    { $addToSet: { distinctFrom: eventId }, $set: { updatedAt: new Date() } },
+  )
+  return matchedCount ? 'ok' : 'unknown'
+}
+
+/**
+ * Undoes linkEvent. Only an event with its own date can stand alone again, so planning projects started from a public
+ * event stay linked.
+ */
+export async function unlinkEvent(actor: TaskActor, id: string): Promise<Outcome> {
+  const { projects } = await collections()
+  const project = await projects.findOne({ _id: id, type: 'event', due: { $ne: '' } }, { projection: { 'event.id': 1 } })
+  const eventId = project?.event?.id
+  if (!eventId) return 'unknown'
+  const { matchedCount } = await projects.updateOne(
+    { _id: id, 'event.id': eventId },
+    { $set: { event: null, updatedAt: new Date() }, $addToSet: { distinctFrom: eventId }, $push: pushActivity([activity(actor, 'eventUnlinked')]) },
+  )
+  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** Puts the tasks in the given order; ids missing from `order` keep their place behind the listed ones. */
