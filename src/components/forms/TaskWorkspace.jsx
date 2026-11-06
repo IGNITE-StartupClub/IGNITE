@@ -1,43 +1,62 @@
 /**
- * The tasks module of the members area (React island) with four views: the overview it starts on, the tasks (as a board
- * or a list, the member's choice is remembered in this browser), the project board and the events calendar. All but
- * the calendar show one team at a time. They start on the member's own team, which also lists what they are assigned to
- * elsewhere, and every other team is one click away. Members without a team choose it here; admins can set it on the
- * member management page. Posts { action, revision, … } to /api/members/tasks and gets back what changed since its
- * revision, with the member's own private tasks; useLiveRefresh asks for the same while the page is in use. Private
- * tasks sit between the others on board and list, only for their member. `base` holds what the server said last.
- * Changes the UI shows at once (moving, checking off, assigning) stay in `pending` until their answer and are laid over
- * `base`, so they survive a refresh in between and vanish by themselves when the server refuses them.
- * The open project is the URL hash (#<id>), pushed as a history entry like the CRM. ?ansicht=aufgaben or events opens
- * that view and ?ansicht=meine (link of the digest mail) the tasks with "Nur meine"; otherwise view and team of this
- * browser session are restored.
- * Props: copy (memberArea.tasks.workspace plus teams, team id → name), initialState ({ revision, projects, templates,
- * members, privateTasks }), events (calendar events with `day`), eventsComplete, me (member id), named (has entered a name), admin, board (the
- * board works across teams, so it is not asked for one), locale, today (YYYY-MM-DD, Berlin).
+ * The tasks module of the members area (React island). It opens on an overview with the next 14 days and one card each
+ * for the member's tasks, the events and the projects; every card leads on to its page: the kanban board (or the same
+ * tasks as a list, remembered in this browser), the projects and the events. The board always starts on the member's
+ * own tasks and its filter leads on to their team and every other team, projects start on all teams, events show
+ * everything. Members without a team choose it here; admins can set it on the member management page.
+ * Posts { action, revision, … } to /api/members/tasks and gets back what changed since its revision, with the member's
+ * own private tasks; useLiveRefresh asks for the same while the page is in use. Private tasks sit between the others on
+ * board and list, only for their member. `base` holds what the server said last. Changes the UI shows at once (moving,
+ * checking off, assigning, deleting) stay in `pending` until their answer and are laid over `base`, so they survive a
+ * refresh in between and vanish by themselves when the server refuses them. Deleting a task offers to undo it in the
+ * toast.
+ * Page and open project live in the URL hash (taskHash), pushed as history entries like the CRM. ?ansicht=… from older
+ * links, the digest mail and the search turns into that hash on load.
+ * Props: copy (memberArea.tasks.workspace plus teams, team id → name, and problems of the quick add), initialState
+ * ({ revision, projects, templates, members, privateTasks }), events (public events with `day`, `endDay`, `time`),
+ * eventsComplete, me (member id), named (has entered a name), admin, board (the board works across teams, so it is not
+ * asked for one), locale, today (YYYY-MM-DD, Berlin).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { ALL_TEAMS, applyChanges, filterProjects, NAME_MAX, patchedTask, scopedPrivateTasks, scopedTasks, TEAM_IDS } from '../../lib/tasks'
+import { captureTask } from '../../lib/memberSearch'
+import {
+  ALL_TEAMS,
+  applyChanges,
+  calendarEntries,
+  filterProjects,
+  filterScope,
+  MINE,
+  NAME_MAX,
+  patchedTask,
+  projectDay,
+  scopedPrivateTasks,
+  scopedTasks,
+  taskHash,
+  taskRoute,
+  TEAM_IDS,
+} from '../../lib/tasks'
 import { Chip, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField } from './memberUi'
 import { fetchNews, useLiveRefresh } from './useLiveRefresh'
 import CompleteDialog from './tasks/CompleteDialog'
 import CreateDialog from './tasks/CreateDialog'
 import EventCalendar from './tasks/EventCalendar'
+import EventCards from './tasks/EventCards'
 import PrivateTaskDialog from './tasks/PrivateTaskDialog'
 import ProjectBoard from './tasks/ProjectBoard'
 import ProjectPanel from './tasks/ProjectPanel'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
-import { INPUT, LABEL, Segmented, SELECT, SURFACE } from './tasks/taskUi'
+import { FilterMenu, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
 
-const SESSION_KEY = 'ignite-tasks-view'
 const LAYOUT_KEY = 'ignite-tasks-layout'
-const VIEWS = ['overview', 'tasks', 'projects', 'events']
-const LINKED_VIEWS = { aufgaben: 'tasks', meine: 'tasks', events: 'events' }
+const LINKED_VIEWS = { aufgaben: 'tasks', meine: 'tasks', projekte: 'projects', events: 'events' }
+const UNDO_OF = { removeTask: 'restoreTask', removePrivate: 'restorePrivate' }
 const NOTICE_MS = 6000
+const UNDO_MS = 10000
 const QUIET_LINK = 'border-0 bg-transparent p-0 text-sm text-fg-muted underline underline-offset-2 hover:text-fg'
 
 function NamePrompt({ copy, current, run, onSaved }) {
@@ -100,6 +119,25 @@ function TeamPrompt({ copy, teams, onChoose, onLater }) {
   )
 }
 
+function PageHead({ title, back, onBack, children }) {
+  return (
+    <header className="flex flex-col gap-1.5">
+      {back && (
+        <button type="button" className="w-fit border-0 bg-transparent p-0 text-sm text-fg-muted hover:text-fg" onClick={onBack}>
+          <span aria-hidden="true">← </span>
+          {back}
+        </button>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <h1 id="page-title" className="text-display-sm hyphens-none">
+          {title}
+        </h1>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
+      </div>
+    </header>
+  )
+}
+
 export default function TaskWorkspace({ copy, initialState, events, eventsComplete, me, named, admin, board, locale, today }) {
   const [state, setState] = useState(initialState)
   const base = useRef(initialState)
@@ -111,55 +149,41 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const membersById = new Map(members.map((member) => [member.id, member]))
   const myTeam = membersById.get(me)?.team ?? ''
 
-  const [view, setView] = useState('overview')
+  const [route, setRoute] = useState({ view: 'overview', projectId: null })
   const [layout, setLayout] = useState('board')
-  const [tab, setTab] = useState(myTeam || ALL_TEAMS)
-  const [onlyMine, setOnlyMine] = useState(false)
+  const [eventLayout, setEventLayout] = useState('cards')
+  const [taskFilter, setTaskFilter] = useState(MINE)
+  const [projectFilter, setProjectFilter] = useState(ALL_TEAMS)
   const [archived, setArchived] = useState(false)
   const [query, setQuery] = useState('')
-  const [openId, setOpenId] = useState(null)
   const [openPrivateId, setOpenPrivateId] = useState(null)
   const [createRequest, setCreateRequest] = useState(null)
   const [completing, setCompleting] = useState(null)
+  const [taskMenu, setTaskMenu] = useState(null)
   const [notice, setNotice] = useState(null)
   const [hasName, setHasName] = useState(named)
   const [teamLater, setTeamLater] = useState(false)
   const toast = useRef(null)
+  const { view, projectId } = route
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(sessionStorage.getItem(SESSION_KEY))
-      if (VIEWS.includes(stored?.view)) setView(stored.view)
-      if (stored?.tab === ALL_TEAMS || TEAM_IDS.includes(stored?.tab)) setTab(stored.tab)
       if (localStorage.getItem(LAYOUT_KEY) === 'list') setLayout('list')
     } catch {
-      // Without storage, or with the value of an older version, the page starts on the member's team.
+      // Without storage the page shows the board, which is the default anyway.
     }
     const url = new URL(window.location.href)
-    const linked = url.searchParams.get('ansicht')
-    if (linked in LINKED_VIEWS) {
-      setView(LINKED_VIEWS[linked])
-      if (linked === 'meine') {
-        setTab(myTeam || ALL_TEAMS)
-        setOnlyMine(true)
-      }
+    const linked = LINKED_VIEWS[url.searchParams.get('ansicht')]
+    if (linked) {
       url.searchParams.delete('ansicht')
+      url.hash = taskHash(linked, null)
       window.history.replaceState(null, '', url)
     }
-    const read = () => setOpenId(decodeURIComponent(window.location.hash.slice(1)) || null)
+    const read = () => setRoute(taskRoute(window.location.hash))
     read()
     window.addEventListener('popstate', read)
     return () => window.removeEventListener('popstate', read)
   }, [])
-
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ view, tab }))
-      localStorage.setItem(LAYOUT_KEY, layout)
-    } catch {
-      // Not remembering the view is harmless.
-    }
-  }, [view, tab, layout])
 
   // The toast is a manual popover, so it shows above open dialogs (top layer) as well.
   useEffect(() => {
@@ -170,18 +194,21 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     const timer = setTimeout(() => {
       element.hidePopover()
       setNotice(null)
-    }, NOTICE_MS)
+    }, notice.undo ? UNDO_MS : NOTICE_MS)
     return () => clearTimeout(timer)
   }, [notice])
 
   // Astro's router takes over hash links without a hashchange event, so the island pushes the entry itself.
-  const open = (id) => {
-    window.history.pushState(null, '', `#${encodeURIComponent(id)}`)
-    setOpenId(id)
+  const go = (nextView, nextProject) => {
+    window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${taskHash(nextView, nextProject)}`)
+    setRoute({ view: nextView, projectId: nextProject })
   }
-  const closePanel = () => {
-    if (window.location.hash) window.history.pushState(null, '', window.location.pathname + window.location.search)
-    setOpenId(null)
+  const open = (id) => go(view, id)
+  const closePanel = () => projectId && go(view, null)
+  // The overview's links sit at the end of a long page on phones.
+  const goTo = (next) => {
+    go(next, null)
+    window.scrollTo({ top: 0 })
   }
 
   const show = () => setState(pending.current.reduce((current, change) => change(current), base.current))
@@ -210,7 +237,11 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       })
       const data = await res.json()
       receive(request, data)
-      if (res.ok) return data
+      if (res.ok) {
+        const undo = UNDO_OF[body.action]
+        if (undo) setNotice({ code: 'removed', undo: { action: undo, taskId: body.taskId }, at: Date.now() })
+        return data
+      }
       if (res.status >= 500) console.error(data.message)
       setNotice({ code: data.code in copy.results ? data.code : 'error', error: true, at: Date.now() })
       return null
@@ -236,8 +267,17 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     show()
   })
 
+  const undo = async () => {
+    const step = notice.undo
+    toast.current.hidePopover()
+    setNotice(null)
+    if (await run(step)) setNotice({ code: 'restored', at: Date.now() })
+  }
+
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
-  const openProject = openId ? projects.find((project) => project.id === openId) : null
+  const openProject = projectId ? projects.find((project) => project.id === projectId) : null
+  const { entries, twins } = calendarEntries(events, projects)
+  const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
 
   const move = (id, status) => {
     const project = projects.find((item) => item.id === id)
@@ -247,34 +287,47 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   }
   const created = (id) => {
     setNotice({ code: 'created', at: Date.now() })
-    // A private task has no project to open.
-    if (id) open(id)
+    open(id)
   }
-  const chooseTeam = async (team) => {
-    if (await run({ action: 'team', team })) setTab(team)
+  const merge = async (project, event) => {
+    if (await run({ action: 'linkEvent', id: project.id, eventId: event.id })) setNotice({ code: 'merged', at: Date.now() })
   }
-  // The overview's links sit at the end of a long page on phones.
-  const goTo = (next) => {
-    setView(next)
-    window.scrollTo({ top: 0 })
+  const keepApart = (project, event) =>
+    run({ action: 'keepEventApart', id: project.id, eventId: event.id }, (list) =>
+      list.map((item) => (item.id === project.id ? { ...item, distinctFrom: [...item.distinctFrom, event.id] } : item)),
+    )
+  const chooseLayout = (next) => {
+    setLayout(next)
+    try {
+      localStorage.setItem(LAYOUT_KEY, next)
+    } catch {
+      // Not remembering the layout is harmless.
+    }
   }
 
-  const scope = { team: tab, myTeam, onlyMine, query }
+  const taskScope = filterScope(taskFilter, myTeam, query)
   const withPrivate = (scoped) => [...scopedTasks(projects, scoped, me, today), ...scopedPrivateTasks(privateTasks, scoped, me, today)]
-  const tasks = withPrivate(scope)
-  // Tasks without a team belong to nobody, so the hint has no place in a view of the member's own tasks.
-  const unsorted = onlyMine
-    ? 0
-    : scopedTasks(projects, { ...scope, team: ALL_TEAMS, query: '' }, me, today).filter((task) => !task.team && !task.done).length
-  const shown = filterProjects(projects, { ...scope, archived }, me)
-  // New work lands in the open tab, or on "Alle Teams" in the member's own team.
-  const newTeam = tab === ALL_TEAMS ? myTeam : tab
-  const tabs = [...(myTeam ? [myTeam] : []), ...TEAM_IDS.filter((team) => team !== myTeam), ALL_TEAMS]
+  const tasks = withPrivate(taskScope)
+  const filter = view === 'tasks' ? taskFilter : projectFilter
+  const teamFiltered = (view === 'tasks' || view === 'projects') && TEAM_IDS.includes(filter)
+  // Tasks without a team belong to nobody, so the hint only has a place in a view of one team.
+  const unsorted = teamFiltered
+    ? scopedTasks(projects, { ...taskScope, team: ALL_TEAMS, onlyMine: false, query: '' }, me, today).filter((task) => !task.team && !task.done).length
+    : 0
+  const shown = filterProjects(projects, { ...filterScope(projectFilter, myTeam, query), archived }, me)
+  // New work lands in the team on screen, otherwise in the member's own team.
+  const newTeam = teamFiltered ? filter : myTeam
   const askTeam = hasName && !myTeam && !teamLater && !board
-  const offerTeam = tab !== myTeam && !board
-  const filtered = view === 'tasks' || view === 'projects'
-  // The overview has no search or "Nur meine", so what is set in the other views must not narrow it.
-  const overviewScope = { team: tab, myTeam, onlyMine: false, query: '' }
+  const offerTeam = filter !== myTeam && !board
+  const openProjects = filterProjects(projects, { ...filterScope(ALL_TEAMS, myTeam, ''), archived: false }, me)
+    .filter((project) => project.status !== 'done')
+    .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
+
+  const myTeamOption = myTeam ? [{ value: myTeam, label: fill(copy.filter.myTeam, { team: copy.teams[myTeam] }) }] : []
+  const otherTeams = TEAM_IDS.filter((team) => team !== myTeam).map((team) => ({ value: team, label: copy.teams[team] }))
+  const allTeams = { value: ALL_TEAMS, label: copy.teamTabs.all }
+  const taskFilters = [{ value: MINE, label: copy.filter.mine }, ...myTeamOption, ...otherTeams, allTeams]
+  const projectFilters = [allTeams, { value: MINE, label: copy.filter.myProjects }, ...myTeamOption, ...otherTeams]
 
   const addTask = (title, status, isPrivate) =>
     run(
@@ -283,9 +336,23 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         : {
             action: 'create',
             project: { title, description: '', type: 'task', due: '', leads: [], team: newTeam },
-            task: { description: '', due: '', priority: 'normal', required: false, assignees: onlyMine ? [me] : [], status },
+            task: { description: '', due: '', priority: 'normal', required: false, assignees: taskFilter === MINE ? [me] : [], status },
           },
     )
+  const capture = (text) => captureTask(text, { members, teams: TEAM_IDS.map((id) => ({ id, name: copy.teams[id] })), me, today })
+  const quickAdd = async ({ title, due, assignees, team }, isPrivate) => {
+    const data = await run(
+      isPrivate
+        ? { action: 'addPrivate', task: { title, due, team } }
+        : {
+            action: 'create',
+            project: { title, description: '', type: 'task', due, leads: [me], team },
+            task: { description: '', due, priority: 'normal', required: false, assignees: assignees.map(({ id }) => id) },
+          },
+    )
+    if (data) setNotice({ code: 'created', at: Date.now() })
+    return data
+  }
   const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields) : item))
   const patchTask = (task, fields) =>
     task.private
@@ -293,126 +360,119 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       : run({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: fields }, (list) =>
           list.map((project) => (project.id === task.projectId ? { ...project, tasks: patched(project.tasks, task, fields) } : project)),
         )
+  const removeTask = (task) =>
+    task.private
+      ? run({ action: 'removePrivate', taskId: task.id }, (list) => list.filter((item) => item.id !== task.id), 'privateTasks')
+      : run({ action: 'removeTask', id: task.projectId, taskId: task.id }, (list) =>
+          list
+            .map((project) => (project.id === task.projectId ? { ...project, tasks: project.tasks.filter((item) => item.id !== task.id) } : project))
+            .filter((project) => project.type !== 'task' || project.tasks.length),
+        )
   const openTask = (task) => (task.private ? setOpenPrivateId(task.id) : open(task.projectId))
-  const taskProps = { tasks, tab, onlyMine, searching: !!query.trim(), copy, locale, me, members, membersById, onPatch: patchTask, onOpen: openTask }
+  const startPlanning = (event) => setCreateRequest({ kind: 'event', event, team: newTeam })
+  const taskProps = {
+    tasks,
+    filter: taskFilter,
+    searching: !!query.trim(),
+    copy,
+    locale,
+    me,
+    members,
+    membersById,
+    onPatch: patchTask,
+    onOpen: openTask,
+    onMenu: (task, x, y) => setTaskMenu({ task, x, y }),
+  }
+
+  const createMenu = (
+    <Menu
+      label={
+        <>
+          <Plus aria-hidden="true" className="h-4 w-4" />
+          {copy.create}
+        </>
+      }
+      className={`${PRIMARY_BUTTON} shrink-0`}
+    >
+      {(close) =>
+        ['internal', 'event'].map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            className={`${MENU_ITEM} whitespace-normal`}
+            onClick={() => {
+              close()
+              setCreateRequest({ kind, team: newTeam })
+            }}
+          >
+            <span className="block font-medium">{copy.createKinds[kind].label}</span>
+            <span className="block text-xs text-fg-muted">{copy.createKinds[kind].text}</span>
+          </button>
+        ))
+      }
+    </Menu>
+  )
+  const search = (
+    <div className="w-56 max-w-full">
+      <SearchField label={copy.search} value={query} onChange={setQuery} />
+    </div>
+  )
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border">
-        <div role="group" aria-label={copy.views.label} className="flex gap-3 sm:gap-5">
-          {VIEWS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={view === key}
-              onClick={() => setView(key)}
-              className={`-mb-px rounded-none border-0 border-b-2 border-solid bg-transparent px-0 py-3 text-sm font-medium sm:text-base ${
-                view === key ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg'
-              }`}
-            >
-              {copy.views[key]}
-            </button>
-          ))}
-        </div>
-        <div className="flex min-w-0 flex-1 basis-64 items-center justify-end gap-2 pb-2 sm:pb-0">
-          {filtered && (
-            <div className="flex min-w-0 max-w-72 flex-1">
-              <SearchField label={copy.search} value={query} onChange={setQuery} />
-            </div>
-          )}
-          {view === 'overview' && !askTeam && (
-            <label className="flex min-w-0 items-center gap-2 text-sm text-fg-muted">
-              {copy.teamTabs.label}
-              <select className={`${SELECT} min-w-0 font-medium`} value={tab} onChange={(e) => setTab(e.target.value)}>
-                {tabs.map((team) => (
-                  <option key={team} value={team}>
-                    {team === ALL_TEAMS ? copy.teamTabs.all : copy.teams[team]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <Menu
-            label={
-              <>
-                <Plus aria-hidden="true" className="h-4 w-4" />
-                {copy.create}
-              </>
-            }
-            className={`${PRIMARY_BUTTON} shrink-0`}
-          >
-            {(close) =>
-              ['task', 'internal', 'event'].map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className={`${MENU_ITEM} whitespace-normal`}
-                  onClick={() => {
-                    close()
-                    setCreateRequest({ kind, team: newTeam })
-                  }}
-                >
-                  <span className="block font-medium">{copy.createKinds[kind].label}</span>
-                  <span className="block text-xs text-fg-muted">{copy.createKinds[kind].text}</span>
-                </button>
-              ))
-            }
-          </Menu>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHead title={copy.views[view]} back={view === 'overview' ? null : copy.back} onBack={() => goTo('overview')}>
+        {view === 'overview' && createMenu}
+        {view === 'tasks' && (
+          <>
+            {search}
+            <FilterMenu label={copy.filter.label} value={taskFilter} options={taskFilters} onChange={setTaskFilter} />
+            <Segmented label={copy.layouts.label} options={{ board: copy.layouts.board, list: copy.layouts.list }} value={layout} onChange={chooseLayout} />
+          </>
+        )}
+        {view === 'projects' && (
+          <>
+            {search}
+            <FilterMenu label={copy.filter.label} value={projectFilter} options={projectFilters} onChange={setProjectFilter} />
+            <Chip pressed={archived} onClick={() => setArchived(!archived)}>
+              {copy.archive}
+            </Chip>
+            {createMenu}
+          </>
+        )}
+        {view === 'events' && (
+          <>
+            <Segmented
+              label={copy.calendar.display}
+              options={{ cards: copy.calendar.cards, calendar: copy.calendar.calendar }}
+              value={eventLayout}
+              onChange={setEventLayout}
+            />
+            {createMenu}
+          </>
+        )}
+      </PageHead>
 
       {!hasName && <NamePrompt copy={copy.name} current={membersById.get(me)?.name ?? ''} run={run} onSaved={() => setHasName(true)} />}
-      {askTeam && <TeamPrompt copy={copy.teamPrompt} teams={copy.teams} onChoose={chooseTeam} onLater={() => setTeamLater(true)} />}
-
-      {filtered && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {/* The prompt lists the same teams, two rows of them would only compete. */}
-          {!askTeam && (
-            // Phones scroll through the teams; a chip must not shrink or break inside the scrolling row.
-            <div
-              role="group"
-              aria-label={copy.teamTabs.label}
-              className="flex min-w-0 max-w-full gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&>*]:shrink-0"
-            >
-              {tabs.map((team) => (
-                <Chip key={team} pressed={tab === team} onClick={() => setTab(team)}>
-                  {team === myTeam && <span className="sr-only">{copy.teamTabs.yours}: </span>}
-                  {team === ALL_TEAMS ? copy.teamTabs.all : copy.teams[team]}
-                </Chip>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2 sm:ml-auto">
-            <Chip pressed={onlyMine} onClick={() => setOnlyMine(!onlyMine)}>
-              {copy.onlyMine}
-            </Chip>
-            {view === 'projects' && (
-              <Chip pressed={archived} onClick={() => setArchived(!archived)}>
-                {copy.archive}
-              </Chip>
-            )}
-            {view === 'tasks' && <Segmented label={copy.layouts.label} options={{ board: copy.layouts.board, list: copy.layouts.list }} value={layout} onChange={setLayout} />}
-          </div>
-        </div>
-      )}
+      {askTeam && <TeamPrompt copy={copy.teamPrompt} teams={copy.teams} onChoose={(team) => run({ action: 'team', team })} onLater={() => setTeamLater(true)} />}
 
       {view === 'overview' && (
         <TaskOverview
-          events={events}
+          entries={entries}
           complete={eventsComplete}
-          projectsByEvent={projectsByEvent}
-          projects={filterProjects(projects, { ...overviewScope, archived: false }, me).filter((project) => project.status !== 'done')}
-          tasks={withPrivate(overviewScope)}
-          mine={withPrivate({ ...overviewScope, team: ALL_TEAMS, onlyMine: true })}
+          planOf={planOf}
+          projects={openProjects}
+          mine={withPrivate(filterScope(MINE, myTeam, ''))}
           today={today}
           copy={copy}
           locale={locale}
           membersById={membersById}
           onView={goTo}
-          onStart={(event) => setCreateRequest({ kind: 'event', event, team: newTeam })}
+          onStart={startPlanning}
           onOpen={open}
           onOpenTask={openTask}
           onPatch={patchTask}
+          onCapture={capture}
+          onQuickAdd={quickAdd}
         />
       )}
 
@@ -426,7 +486,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           <ProjectBoard
             projects={shown}
             archived={archived}
-            showTeam={tab === ALL_TEAMS}
+            showTeam={!teamFiltered}
             copy={copy}
             locale={locale}
             today={today}
@@ -438,32 +498,48 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           <p className="py-6 text-center text-sm text-fg-muted">{projects.length ? copy.board.noResults : copy.board.empty}</p>
         ))}
 
-      {view === 'events' && (
-        <EventCalendar
-          events={events}
-          projectsByEvent={projectsByEvent}
+      {view === 'events' && eventLayout === 'cards' && (
+        <EventCards
+          entries={entries}
+          twins={twins}
+          planOf={planOf}
           complete={eventsComplete}
           today={today}
           copy={copy}
           locale={locale}
           membersById={membersById}
-          onStart={(event) => setCreateRequest({ kind: 'event', event, team: newTeam })}
+          onStart={startPlanning}
+          onOpen={open}
+          onMerge={merge}
+          onApart={keepApart}
+        />
+      )}
+      {view === 'events' && eventLayout === 'calendar' && (
+        <EventCalendar
+          events={entries}
+          planOf={planOf}
+          complete={eventsComplete}
+          today={today}
+          copy={copy}
+          locale={locale}
+          membersById={membersById}
+          onStart={startPlanning}
           onOpen={open}
         />
       )}
 
-      {filtered && tab !== ALL_TEAMS && (unsorted > 0 || offerTeam) && (
+      {teamFiltered && (unsorted > 0 || offerTeam) && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
           {unsorted > 0 && (
             <p>
               {fill(copy.list.unsorted, { count: unsorted })}{' '}
-              <button type="button" className={QUIET_LINK} onClick={() => setTab(ALL_TEAMS)}>
+              <button type="button" className={QUIET_LINK} onClick={() => (view === 'tasks' ? setTaskFilter : setProjectFilter)(ALL_TEAMS)}>
                 {copy.list.showUnsorted}
               </button>
             </p>
           )}
           {offerTeam && (
-            <button type="button" className={QUIET_LINK} onClick={() => chooseTeam(tab)}>
+            <button type="button" className={QUIET_LINK} onClick={() => run({ action: 'team', team: filter })}>
               {copy.teamTabs.setMine}
             </button>
           )}
@@ -491,9 +567,16 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         membersById={membersById}
         templates={templates}
         projects={projects}
+        entries={entries}
+        planOf={planOf}
         admin={admin}
         run={run}
         onCreated={created}
+        onUseEntry={(entry) => {
+          const project = planOf(entry)
+          if (project) open(project.id)
+          else startPlanning(entry)
+        }}
       />
       <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
       <PrivateTaskDialog
@@ -501,6 +584,14 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         copy={copy}
         run={run}
         onClose={() => setOpenPrivateId(null)}
+      />
+      <TaskContextMenu
+        menu={taskMenu}
+        copy={copy}
+        onClose={() => setTaskMenu(null)}
+        onOpen={openTask}
+        onPatch={patchTask}
+        onRemove={removeTask}
       />
 
       <div
@@ -511,7 +602,16 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           notice?.error ? 'border-danger text-danger' : 'border-border text-fg'
         }`}
       >
-        {notice && copy.results[notice.code]}
+        {notice && (
+          <span className="flex items-center gap-4">
+            {copy.results[notice.code]}
+            {notice.undo && (
+              <button type="button" className="border-0 bg-transparent p-0 text-sm font-medium text-accent underline underline-offset-2" onClick={undo}>
+                {copy.undo}
+              </button>
+            )}
+          </span>
+        )}
       </div>
     </div>
   )

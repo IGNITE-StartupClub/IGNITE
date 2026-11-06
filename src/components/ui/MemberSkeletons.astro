@@ -67,22 +67,22 @@ const CARD = 'rounded-card border border-border bg-card'
           <Section spacing="xs">
             <div class="flex flex-col gap-6">
               <div class="flex items-center justify-between gap-4">
-                <div class="flex gap-4">
-                  {[1, 2, 3, 4].map(() => <span class="sk h-6 w-20" />)}
+                <span class="sk h-10 w-44" />
+                <span class="sk hidden h-10 w-48 sm:block" />
+              </div>
+              <div class={`${CARD} flex flex-col gap-4 p-6`}>
+                <span class="sk h-7 w-56" />
+                <span class="sk h-64 w-full" />
+              </div>
+              <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                  <span class="sk h-7 w-44" />
+                  {[1, 2, 3, 4].map(() => <span class="sk h-12 w-full" />)}
                 </div>
-                <span class="sk hidden h-10 w-40 sm:block" />
-              </div>
-              <div class={`${CARD} flex flex-col gap-6 p-6`}>
-                <span class="sk h-8 w-56" />
-                <span class="sk h-14 w-full" />
-              </div>
-              <div class="grid gap-6 md:grid-cols-2">
-                {[1, 2].map(() => (
-                  <div class={`${CARD} flex flex-col gap-5 p-6`}>
-                    <span class="sk h-7 w-28" />
-                    {[1, 2, 3].map(() => <span class="sk h-12 w-full" />)}
-                  </div>
-                ))}
+                <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                  <span class="sk h-7 w-28" />
+                  {[1, 2].map(() => <span class="sk h-16 w-full" />)}
+                </div>
               </div>
             </div>
           </Section>

@@ -1,24 +1,30 @@
 /**
- * The tasks of the selected tab as one calm list, the alternative to the board: in groups by deadline, with done tasks
- * folded away. Tasks are checked off and assigned in place; the title opens them. The field on top creates a single
- * task right away, for the team or only for the member.
- * Props: tasks (scopedTasks and scopedPrivateTasks), tab (team id or ALL_TEAMS), newTeam (team of new tasks, '' for
- * none), onlyMine, searching, copy (workspace copy), locale, me, members, membersById, onAdd(title, isPrivate),
- * onPatch(task, fields), onOpen(task).
+ * The tasks of the selected filter as one calm list, the alternative to the board: in groups by deadline, with done
+ * tasks folded away. Tasks are checked off and assigned in place; the title opens them, and a right click or the dots at
+ * the end of a row open the same menu as on the board. The field on top creates a single task right away, for the team
+ * or only for the member.
+ * Props: tasks (scopedTasks and scopedPrivateTasks), filter (MINE, a team id or ALL_TEAMS), newTeam (team of new tasks,
+ * '' for none), searching, copy (workspace copy), locale, me, members, membersById, onAdd(title, isPrivate),
+ * onPatch(task, fields), onOpen(task), onMenu(task, x, y).
  */
 import React, { useState } from 'react'
-import { ChevronDown, Plus } from 'lucide-react'
-import { ALL_TEAMS, memberChange, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
+import { ChevronDown, MoreVertical, Plus } from 'lucide-react'
+import { ALL_TEAMS, memberChange, MINE, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
-import { MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
+import { ICON_BUTTON, MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
 
-function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, onOpen }) {
-  const foreign = tab === ALL_TEAMS || task.team !== tab
-  const context = [task.projectType !== 'task' && task.projectTitle, foreign && (copy.teams[task.team] ?? copy.teamTabs.none)]
-    .filter(Boolean)
-    .join(' · ')
+function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch, onOpen, onMenu }) {
+  const team = task.team ? task.team !== filter && copy.teams[task.team] : filter === ALL_TEAMS && copy.teamTabs.none
+  const context = [task.projectType !== 'task' && task.projectTitle, team].filter(Boolean).join(' · ')
   return (
-    <li className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-bg-subtle">
+    <li
+      onContextMenu={(e) => {
+        if (e.target.closest('[popover]')) return
+        e.preventDefault()
+        onMenu(task, e.clientX, e.clientY)
+      }}
+      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-bg-subtle"
+    >
       <TaskCheck checked={task.done} onChange={(done) => onPatch({ done })} label={fill(copy.panel.markDone, { title: task.title })} />
       <div className="min-w-0 flex-1">
         <button
@@ -49,11 +55,22 @@ function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, o
           label={copy.createDialog.assignees}
         />
       )}
+      <button
+        type="button"
+        aria-label={fill(copy.board.cardMenu, { title: task.title })}
+        className={ICON_BUTTON}
+        onClick={(e) => {
+          const { right, bottom } = e.currentTarget.getBoundingClientRect()
+          onMenu(task, right, bottom + 4)
+        }}
+      >
+        <MoreVertical aria-hidden="true" className="h-4 w-4" />
+      </button>
     </li>
   )
 }
 
-export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, copy, locale, me, members, membersById, onAdd, onPatch, onOpen }) {
+export default function TaskList({ tasks, filter, newTeam, searching, copy, locale, me, members, membersById, onAdd, onPatch, onOpen, onMenu }) {
   const text = copy.list
   const [draft, setDraft] = useState('')
   const [isPrivate, setPrivate] = useState(false)
@@ -72,7 +89,7 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
     <TaskRow
       key={task.id}
       task={task}
-      tab={tab}
+      filter={filter}
       copy={copy}
       locale={locale}
       me={me}
@@ -80,6 +97,7 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
       membersById={membersById}
       onPatch={(fields) => onPatch(task, fields)}
       onOpen={onOpen}
+      onMenu={onMenu}
     />
   )
 
@@ -103,7 +121,7 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
         <PrivateToggle pressed={isPrivate} onChange={setPrivate} label={copy.private.toggle} />
       </form>
 
-      {!open.length && <p className="py-6 text-center text-sm text-fg-muted">{searching ? text.noResults : onlyMine ? text.emptyMine : text.empty}</p>}
+      {!open.length && <p className="py-6 text-center text-sm text-fg-muted">{searching ? text.noResults : filter === MINE ? text.emptyMine : text.empty}</p>}
 
       {TASK_GROUPS.filter((group) => group !== 'done').map((group) => {
         const list = open.filter((task) => task.group === group)

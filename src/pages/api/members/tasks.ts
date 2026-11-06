@@ -4,7 +4,7 @@ import type { APIRoute } from 'astro'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { saveName, saveTeam } from '../../../lib/members'
 import { reply } from '../../../lib/memberSession'
-import { addPrivateTask, removePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
+import { addPrivateTask, removePrivateTask, restorePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
   isRecordId,
@@ -24,15 +24,19 @@ import {
   archiveTemplate,
   createProject,
   deleteProject,
+  keepEventApart,
+  linkEvent,
   projectActivity,
   removeTask,
   reorderTasks,
+  restoreTask,
   saveAsTemplate,
   saveLessons,
   sessionActor,
   setArchived,
   setStatus,
   templateTasks,
+  unlinkEvent,
   updateProject,
   updateTask,
   workspaceChanges,
@@ -70,9 +74,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
  * The tasks module of the members area (TaskWorkspace island). Body: { action, revision?, … } with action
  * 'create' (project, status?, eventId?, template?, task?), 'update' (id, patch), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
- * 'removeTask' (id, taskId), 'reorder' (id, order), 'lessons' (id, lessons), 'saveTemplate' (id, name),
- * 'archiveTemplate' (templateId), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
- * 'updatePrivate' (taskId, patch) or 'removePrivate' (taskId). Answers with { code, id?, changes } for the island's
+ * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order), 'lessons' (id, lessons),
+ * 'saveTemplate' (id, name), 'archiveTemplate' (templateId), 'linkEvent' (id, eventId), 'keepEventApart' (id, eventId),
+ * 'unlinkEvent' (id), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
+ * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes } for the island's
  * `revision` and without either for a caller that sends none (the dashboard); a refused action comes with the whole
  * { state }, which is the island's rollback. Both carry the member's own private tasks. Every byte of an answer counts
  * as Fast Origin Transfer on Vercel. Rights: see tasksStore.ts and privateTasksStore.ts; every check runs here on the
@@ -100,15 +105,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       case 'create': {
         const fields = parseProject(body.project)
         if (!fields) return invalid()
+        if (fields.type === 'event' && body.eventId === undefined && !fields.due) return invalid()
         const template = parseTemplateSource(body.template)
         if (template === undefined) return invalid()
         const task = fields.type === 'task' ? parseTask({ ...(body.task as object), title: fields.title }) : null
         if (fields.type === 'task' && !task) return invalid()
         let event = null
         if (body.eventId !== undefined) {
-          if (fields.type !== 'event' || typeof body.eventId !== 'string') return invalid()
-          const { events } = await loadTaskEvents('de')
-          event = events.find((item) => item.id === body.eventId) ?? null
+          if (fields.type !== 'event') return invalid()
+          event = await publicEvent(body.eventId)
           if (!event) return reply(404, { code: 'unknown', state: await workspaceState(actor) })
         }
         const templateList = template && (await templateTasks(template))
@@ -159,6 +164,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!id || !taskId) return invalid()
         code = await removeTask(actor, id, taskId)
         break
+      case 'restoreTask':
+        if (!taskId) return invalid()
+        code = await restoreTask(actor, taskId)
+        break
+      case 'linkEvent':
+      case 'keepEventApart': {
+        if (!id) return invalid()
+        const event = await publicEvent(body.eventId)
+        if (!event) return reply(404, { code: 'unknown', state: await workspaceState(actor) })
+        code = body.action === 'linkEvent' ? await linkEvent(actor, id, event) : await keepEventApart(id, event.id)
+        break
+      }
+      case 'unlinkEvent':
+        if (!id) return invalid()
+        code = await unlinkEvent(actor, id)
+        break
       case 'reorder':
         if (!id || !Array.isArray(body.order) || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
@@ -195,6 +216,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!taskId) return invalid()
         code = await removePrivateTask(actor.id, taskId)
         break
+      case 'restorePrivate':
+        if (!taskId) return invalid()
+        code = await restorePrivateTask(actor.id, taskId)
+        break
       case 'name': {
         const name = parseName(body)
         if (!name) return invalid()
@@ -212,7 +237,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       default:
         return invalid()
     }
-    const statusCode = { unknown: 404, forbidden: 403, full: 409, privateFull: 409, crowded: 409 }[code] ?? 200
+    const statusCode = { invalid: 400, unknown: 404, forbidden: 403, full: 409, privateFull: 409, crowded: 409, duplicate: 409 }[code] ?? 200
     if (statusCode !== 200 || TEMPLATE_ACTIONS.includes(body.action as string)) {
       return reply(statusCode, { code, id: createdId, state: await workspaceState(actor) })
     }
@@ -225,6 +250,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.error('Tasks action failed:', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
   }
+}
+
+const publicEvent = async (id: unknown) => {
+  const { events } = await loadTaskEvents('de')
+  return events.find((event) => event.id === id) ?? null
 }
 
 /** null without a template, undefined when the given one is malformed. */
