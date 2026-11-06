@@ -1,12 +1,14 @@
 /**
  * Team choice of the members start page: shown until a member has a team and again from the profile menu (`changing`).
- * Saves name and team through /api/members/profile, then loads the start page, which shows the dashboard.
- * Props: copy (memberArea.home.teamChoice), welcome, name (greeting), teams ([{ id, name, text, icon }]),
- * current ({ firstName, lastName, team }), changing, homeUrl.
+ * Saves name and team through /api/members/profile, then loads the start page, which shows the dashboard. The photo is
+ * the one of the mail signature and saves on its own in PhotoCropper, so cancelling this form does not undo it.
+ * Props: copy (memberArea.home.teamChoice), photoCopy (PhotoCropper's copy), optional (the "(optional)" label), welcome,
+ * name (greeting), teams ([{ id, name, text, icon }]), current ({ firstName, lastName, team, photo }), changing, homeUrl.
  */
 import React, { useState } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { NAME_MAX } from '../../lib/tasks'
+import PhotoCropper from './PhotoCropper.jsx'
 
 const FIELD = 'flex min-w-0 max-w-[280px] flex-[1_1_200px] flex-col gap-1.5'
 const INPUT =
@@ -35,10 +37,11 @@ function TeamCard({ team, selected, onPick }) {
   )
 }
 
-export default function TeamChoice({ copy, welcome, name, teams, current, changing, homeUrl }) {
+export default function TeamChoice({ copy, photoCopy, optional, welcome, name, teams, current, changing, homeUrl }) {
   const [team, setTeam] = useState(current.team)
   const [firstName, setFirstName] = useState(current.firstName)
   const [lastName, setLastName] = useState(current.lastName)
+  const [photo, setPhoto] = useState(current.photo)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -79,7 +82,11 @@ export default function TeamChoice({ copy, welcome, name, teams, current, changi
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-end gap-4 border-t border-border pt-6">
+      <div className="border-t border-border pt-6">
+        <PhotoCropper copy={photoCopy} optional={optional} photo={photo} onChange={setPhoto} />
+      </div>
+
+      <div className="-mt-4 flex flex-wrap items-end gap-4">
         <label className={FIELD}>
           <span className="text-[13px] font-medium text-fg-muted">{copy.firstName}</span>
           <input

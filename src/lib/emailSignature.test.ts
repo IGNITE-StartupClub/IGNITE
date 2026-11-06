@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   BADGE_PATH,
+  formerPhotoIds,
   isComplete,
   isPhotoId,
   LIVE_ORIGIN,
@@ -68,6 +69,13 @@ test('shows only uploaded photos, from the given origin', () => {
   for (const other of ['https://example.org/me.jpg', `${photo}"onerror="alert(1)`, photoPath('short'), 'javascript:alert(1)']) {
     assert.equal((signatureHtml(fields({ photo: other }), text, links, '').match(/<img /g) ?? []).length, 1, other)
   }
+})
+
+test('formerPhotoIds keeps every id of a member across several replacements', () => {
+  assert.deepEqual(formerPhotoIds([]), [])
+  const afterFirst = formerPhotoIds([{ _id: 'first' }])
+  assert.deepEqual(afterFirst, ['first'])
+  assert.deepEqual(formerPhotoIds([{ _id: 'second', formerIds: afterFirst }]), ['second', 'first'])
 })
 
 test('isPhotoId accepts only 43 base64url characters', () => {

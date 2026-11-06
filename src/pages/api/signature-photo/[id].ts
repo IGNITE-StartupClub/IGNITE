@@ -7,8 +7,9 @@ import { findPhoto } from '../../../lib/members'
 
 /**
  * Signature photos of members, public on purpose: recipients' mail clients load them without a session. Each upload
- * gets a new random id (savePhoto), so a URL never changes its content and may be cached for a year; a replaced or
- * deleted photo answers 404.
+ * gets a new random id (savePhoto), and the ids it replaces answer with the new image, because pasted signatures and
+ * sent mails keep their URLs. The image comes directly, not as a redirect, since mail clients need not follow one. A URL
+ * can therefore change its content, so it is cached for a day only; a removed photo answers 404.
  */
 export const GET: APIRoute = async ({ params }) => {
   const id = params.id ?? ''
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ params }) => {
   return new Response(new Uint8Array(image), {
     headers: {
       'Content-Type': photoType(image),
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'public, max-age=86400',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'",
     },
