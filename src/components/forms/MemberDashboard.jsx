@@ -50,10 +50,20 @@ function TaskRow({ task, done, today, copy, projectUrl, onToggle }) {
         </span>
       </label>
       <div className="min-w-0 flex-1">
-        <p className={`font-medium ${done ? 'text-fg-muted line-through' : 'text-fg'}`}>{task.title}</p>
-        <a href={projectUrl} className="text-caption text-accent no-underline hover:underline">
-          {task.private ? copy.private : task.projectTitle}
-        </a>
+        <p className={`font-medium ${done ? 'text-fg-muted line-through' : 'text-fg'}`}>
+          {task.single ? (
+            <a href={projectUrl} className="text-inherit no-underline hover:underline">
+              {task.title}
+            </a>
+          ) : (
+            task.title
+          )}
+        </p>
+        {!task.single && (
+          <a href={projectUrl} className="text-caption text-accent no-underline hover:underline">
+            {task.private ? copy.private : task.projectTitle}
+          </a>
+        )}
       </div>
       <span
         className={`shrink-0 text-caption ${late ? 'font-semibold text-danger' : dueToday ? 'font-semibold text-accent' : 'text-fg-muted'}`}
