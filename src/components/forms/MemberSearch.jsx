@@ -5,7 +5,7 @@
  * Lives in a persisted island: the header swaps on every navigation, this component does not.
  * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl.
  */
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { navigate } from 'astro:transitions/client'
 import {
   BookOpen,
@@ -19,10 +19,10 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { dayLabel } from '../../lib/memberHome'
 import {
   captureTask,
   completeToken,
+  dueLabel,
   openToken,
   personHandle,
   searchGroups,
@@ -221,7 +221,8 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
     .filter(({ kind }) => kind === 'member')
     .map(({ id, title, team }) => ({ id, name: title, team }))
   const isTask = mode === 'task'
-  const capture = isTask ? captureTask(text, { members, teams, me, today: berlinDay(Date.now()) }) : null
+  const today = berlinDay(Date.now())
+  const capture = isTask ? captureTask(text, { members, teams, me, today }) : null
   const token = capture ? tokenToComplete(text, capture.problems, members, teams) : null
   const completions = suggestions(token, members, teams)
   const typing = isTask ? openToken(text) : null
@@ -393,7 +394,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
               <div className="flex flex-wrap gap-2">
                 <Chip
                   label={copy.task.due}
-                  value={capture.due ? dayLabel(capture.due, locale) : copy.task.dueNone}
+                  value={capture.due ? dueLabel(capture.due, today, locale) : copy.task.dueNone}
                   set={!!capture.due}
                 />
                 <Chip
@@ -414,7 +415,14 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
                 </p>
               )}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-caption text-fg-muted">{copy.task.hint}</span>
+                <span className="text-caption text-fg-muted">
+                  {copy.task.hint.map(({ token, text: rest }) => (
+                    <Fragment key={token}>
+                      <span className="font-medium text-fg">{token}</span>
+                      {rest}
+                    </Fragment>
+                  ))}
+                </span>
                 <button
                   type="button"
                   onClick={create}

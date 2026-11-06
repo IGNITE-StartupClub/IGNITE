@@ -5,6 +5,7 @@ import {
   captureTask,
   completeToken,
   dueFrom,
+  dueLabel,
   openToken,
   searchGroups,
   searchMode,
@@ -64,6 +65,58 @@ test('dueFrom reads dates and rolls a past one into next year', () => {
   assert.equal(dueFrom('3.1.2028', TODAY), '2028-01-03')
   assert.equal(dueFrom('31.2.', TODAY), '')
   assert.equal(dueFrom('Freibier', TODAY), '')
+})
+
+test('dueFrom reads day and month without a closing dot', () => {
+  assert.equal(dueFrom('17.11', TODAY), '2026-11-17')
+  assert.equal(dueFrom('3.1', TODAY), '2027-01-03')
+  assert.equal(dueFrom('31.2', TODAY), '')
+})
+
+test('dueFrom reads a year with two or four digits', () => {
+  assert.equal(dueFrom('17.11.26', TODAY), '2026-11-17')
+  assert.equal(dueFrom('17.11.2027', TODAY), '2027-11-17')
+  assert.equal(dueFrom('17.11.202', TODAY), '')
+})
+
+test('dueFrom reads month names in German and English', () => {
+  assert.equal(dueFrom('17. November', TODAY), '2026-11-17')
+  assert.equal(dueFrom('17 Nov.', TODAY), '2026-11-17')
+  assert.equal(dueFrom('3. März 2028', TODAY), '2028-03-03')
+  assert.equal(dueFrom('3 march', TODAY), '2027-03-03')
+  assert.equal(dueFrom('17. Flyer', TODAY), '')
+})
+
+test('captureTask takes a date behind bis out of the title', () => {
+  for (const [text, due] of [
+    ['+ Aufgabenbereich beenden bis 17.11', '2026-11-17'],
+    ['+ Aufgabenbereich beenden bis 17.11.', '2026-11-17'],
+    ['+ Aufgabenbereich beenden bis 17.11.27', '2027-11-17'],
+    ['+ Aufgabenbereich beenden bis 17. November', '2026-11-17'],
+    ['+ Aufgabenbereich beenden bis 17. Nov 2027', '2027-11-17'],
+  ]) {
+    const task = capture(text)
+    assert.equal(task.title, 'Aufgabenbereich beenden', text)
+    assert.equal(task.due, due, text)
+  }
+})
+
+test('captureTask reads text after a named date as title', () => {
+  const task = capture('+ bis 17. Mai 20 Flyer drucken @Tim')
+  assert.equal(task.title, '20 Flyer drucken')
+  assert.equal(task.due, '2027-05-17')
+})
+
+test('captureTask leaves a time in the title', () => {
+  const task = capture('+ Anrufen bis 10.05 Uhr')
+  assert.equal(task.title, 'Anrufen bis 10.05 Uhr')
+  assert.equal(task.due, '')
+})
+
+test('dueLabel names the year only when it is not this one', () => {
+  assert.equal(dueLabel('2026-11-17', TODAY, 'de'), 'Di, 17. Nov.')
+  assert.equal(dueLabel('2027-11-17', TODAY, 'de'), 'Mi, 17. Nov. 2027')
+  assert.equal(dueLabel('2027-11-17', TODAY, 'en'), 'Wed, 17 Nov 2027')
 })
 
 test('captureTask splits title, deadline, person and team', () => {

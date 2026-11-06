@@ -496,7 +496,7 @@ export const memberArea = {
     groups: { task: 'Aufgaben', project: 'Projekte', event: 'Events', guide: 'Guide', member: 'Mitglieder', alumni: 'Alumni', contact: 'CRM' },
     hints: {
       lead: 'Tippen sucht in Aufgaben, Events, Guide und im Netzwerk.',
-      task: { title: 'Neue Aufgabe anlegen', example: '+ Plakate aufhängen bis Fr @Paul' },
+      task: { title: 'Neue Aufgabe anlegen', example: '+ Plakate aufhängen bis 17.11. @Paul' },
       people: { title: 'Menschen finden', example: '@ Mitglieder, Alumni und Kontakte' },
     },
     empty: 'Nichts gefunden.',
@@ -511,7 +511,11 @@ export const memberArea = {
       me: 'mich',
       team: 'Team',
       teamNone: 'keins',
-      hint: '@Name weist zu, #Team ordnet ein, „bis Mi“ setzt die Frist.',
+      hint: [
+        { token: '@Name', text: ' weist zu, ' },
+        { token: '#Team', text: ' ordnet ein, ' },
+        { token: 'bis Datum', text: ' setzt die Frist.' },
+      ],
       create: 'Anlegen',
       creating: 'Wird angelegt...',
       created: 'Angelegt: {title}',
