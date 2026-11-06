@@ -16,6 +16,9 @@ const PHOTO_PREFIX = '/api/signature-photo/'
 /** Photo ids are newToken() values: 32 random bytes as base64url, so nobody can guess another member's photo. */
 export const isPhotoId = (id: string): boolean => /^[A-Za-z0-9_-]{43}$/.test(id)
 export const photoPath = (id: string): string => `${PHOTO_PREFIX}${id}`
+/** The ids a new photo takes over from the member's earlier photos, because pasted signatures keep those URLs. */
+export const formerPhotoIds = (earlier: { _id: string; formerIds?: string[] }[]): string[] =>
+  earlier.flatMap(({ _id, formerIds = [] }) => [_id, ...formerIds])
 
 export interface SignatureFields {
   name: string

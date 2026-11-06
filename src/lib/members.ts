@@ -9,7 +9,7 @@
  * - `member_audit`: who changed which member when, kept for one year.
  * - `member_login_clients`: pseudonymised client addresses of failed logins, kept LOGIN_LOCK_SECONDS.
  * - `member_photos`: each member's current signature photo, a round PNG (square JPEG if uploaded before) served
- *   publicly by its random id.
+ *   publicly by its random id and by the ids of the photos it replaced.
  */
 import { Binary, MongoClient, type ObjectId } from 'mongodb'
 import 'dotenv/config'
@@ -33,7 +33,7 @@ import {
   SESSION_TTL_SECONDS,
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
-import { photoPath, type SavedSignature } from './emailSignature'
+import { formerPhotoIds, photoPath, type SavedSignature } from './emailSignature'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
 export interface Member {
@@ -84,6 +84,8 @@ interface MemberPhoto {
   email: string
   image: Binary
   createdAt: Date
+  /** Ids of the photos this one replaced, missing on photos saved before they were kept. */
+  formerIds?: string[]
 }
 
 interface AuditEntry {
@@ -116,6 +118,7 @@ async function connect(): Promise<MongoClient> {
     db.collection('member_login_clients').createIndex({ clientHash: 1, at: -1 }),
     db.collection('member_login_clients').createIndex({ at: 1 }, { expireAfterSeconds: LOGIN_LOCK_SECONDS }),
     db.collection('member_photos').createIndex({ email: 1 }),
+    db.collection('member_photos').createIndex({ formerIds: 1 }),
   ])
   return client
 }
@@ -240,14 +243,15 @@ export async function removeMember(email: string): Promise<boolean> {
 export async function savePhoto(email: string, image: Buffer): Promise<string> {
   const { photos } = await collections()
   const id = newToken()
-  await photos.insertOne({ _id: id, email, image: new Binary(image), createdAt: new Date() })
+  const earlier = await photos.find({ email }, { projection: { formerIds: 1 } }).toArray()
+  await photos.insertOne({ _id: id, email, image: new Binary(image), createdAt: new Date(), formerIds: formerPhotoIds(earlier) })
   await photos.deleteMany({ email, _id: { $ne: id } })
   return id
 }
 
 export async function findPhoto(id: string): Promise<Buffer | null> {
   const { photos } = await collections()
-  const photo = await photos.findOne({ _id: id })
+  const photo = await photos.findOne({ $or: [{ _id: id }, { formerIds: id }] })
   return photo && Buffer.from(photo.image.buffer)
 }
 
