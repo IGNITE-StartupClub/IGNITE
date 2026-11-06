@@ -145,8 +145,8 @@ export const homepage = {
   heroSubtitle: 'We bring people interested in founding together and turn curiosity into first steps, with workshops, events and a community you can help shape.',
   // Hero image: swap the motif here. `src` is a file name in src/assets/photos (optimized) or a public URL.
   heroImage: {
-    src: 'kickoff.jpg',
-    alt: 'Group photo from the IGNITE kick-off event at Utopia: around 35 students in front of the projected IGNITE logo.',
+    src: 'team.jpg',
+    alt: 'Group photo of the IGNITE team in black sweaters in front of a glass-fronted building and a tree in autumn colours.',
   },
   heroObjectAlt: 'Four young founders as marble sculptures discuss in front of a stone tablet engraved with machine blueprints',
   heroCTA_Text: 'Join us',
