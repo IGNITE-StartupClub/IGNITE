@@ -3,7 +3,8 @@
  * Ticking a task posts to /api/members/tasks; the row stays struck through until the next load and the figures follow.
  * Props: copy (memberArea.home.dashboard), welcome, name (greeting), team ({ name, icon }), tasks (the member's open
  * tasks from openTasks(), each with a dueLabel), today, event ({ id, title, month, day, when } or null), eventsComplete,
- * links ({ team, mine, tasks, events, project }; project is the task page, a project id goes behind its #).
+ * links ({ team, mine, tasks, events, project }; team is '' for the board, which has nothing to change, and project is
+ * the task page, a project id goes behind its #).
  */
 import React, { useState } from 'react'
 import { ArrowRight, Check, ChevronDown } from 'lucide-react'
@@ -12,6 +13,7 @@ import { fill } from './memberUi'
 
 const NEXT_TASKS = 4
 const PANEL_TILE = 'bg-bg-subtle transition-colors hover:bg-[hsl(261_62%_34%)]'
+const TEAM_CHIP = 'inline-flex min-h-11 items-center gap-2 rounded-button py-1 pl-1 pr-3.5 font-medium text-fg'
 const ROW = 'transition-colors hover:bg-bg-subtle'
 
 function Figure({ value, label, url, alert }) {
@@ -143,15 +145,18 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
           <h1 id="page-title" className="text-[clamp(2.25rem,1.6rem+2.4vw,3.25rem)] leading-[1.1] hyphens-none">
             {welcome}, <em>{name}</em>
           </h1>
-          <a
-            href={links.team}
-            aria-label={fill(copy.changeTeam, { team: team.name })}
-            className={`${PANEL_TILE} inline-flex min-h-11 items-center gap-2 rounded-button py-1 pl-1 pr-3.5 font-medium text-fg no-underline`}
-          >
-            <img src={team.icon} alt="" width="34" height="34" className="block rounded-full" />
-            {team.name}
-            <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 text-fg-muted" strokeWidth={3} />
-          </a>
+          {links.team ? (
+            <a href={links.team} aria-label={fill(copy.changeTeam, { team: team.name })} className={`${PANEL_TILE} ${TEAM_CHIP} no-underline`}>
+              <img src={team.icon} alt="" width="34" height="34" className="block rounded-full" />
+              {team.name}
+              <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 text-fg-muted" strokeWidth={3} />
+            </a>
+          ) : (
+            <p className={`${TEAM_CHIP} bg-bg-subtle`}>
+              <img src={team.icon} alt="" width="34" height="34" className="block rounded-full" />
+              {team.name}
+            </p>
+          )}
         </div>
         <ul className="relative grid min-w-0 flex-[0_1_520px] grid-cols-3 gap-[clamp(8px,1vw,12px)]">
           <Figure value={figures.open} label={copy.figures.open} url={links.mine} />

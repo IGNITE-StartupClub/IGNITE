@@ -25,6 +25,11 @@ export const MEMBER_ROLES = ['member', 'admin'] as const
 export type MemberRole = (typeof MEMBER_ROLES)[number]
 export const isMemberRole = (value: unknown): value is MemberRole => MEMBER_ROLES.includes(value as MemberRole)
 
+/** A member's place in the club, set by admins. Unlike the role it grants no rights. */
+export const MEMBER_POSITIONS = ['member', 'teamlead', 'board'] as const
+export type MemberPosition = (typeof MEMBER_POSITIONS)[number]
+export const isMemberPosition = (value: unknown): value is MemberPosition => MEMBER_POSITIONS.includes(value as MemberPosition)
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Lowercased, trimmed address, or null when it is not a plausible email address. */

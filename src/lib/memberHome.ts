@@ -94,8 +94,8 @@ export function splitName(name: string): { firstName: string; lastName: string }
   return { firstName, lastName: rest.join(' ') }
 }
 
-/** Everyone picks a team on the start page, except the board, which works across all teams. */
-export const mustChooseTeam = (hasTeam: boolean, board: boolean): boolean => !hasTeam && !board
+/** Everyone picks a team on the start page and changes it with ?team, except the board, which works across all teams. */
+export const showsTeamChoice = (hasTeam: boolean, board: boolean, asked: boolean): boolean => !board && (!hasTeam || asked)
 
 /** What the team choice saves. Unlike parseTeam, no team is not an answer here. */
 export function parseProfile(input: unknown): { firstName: string; lastName: string; team: TeamId } | null {

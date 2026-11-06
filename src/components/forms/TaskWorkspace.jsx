@@ -239,6 +239,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const newTeam = tab === ALL_TEAMS ? myTeam : tab
   const tabs = [...(myTeam ? [myTeam] : []), ...TEAM_IDS.filter((team) => team !== myTeam), ALL_TEAMS]
   const askTeam = hasName && !myTeam && !teamLater && !board
+  const offerTeam = tab !== myTeam && !board
   const filtered = view === 'tasks' || view === 'projects'
   // The overview has no search or "Nur meine", so what is set in the other views must not narrow it.
   const overviewScope = { team: tab, myTeam, onlyMine: false, query: '' }
@@ -419,7 +420,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         />
       )}
 
-      {filtered && tab !== ALL_TEAMS && (unsorted > 0 || tab !== myTeam) && (
+      {filtered && tab !== ALL_TEAMS && (unsorted > 0 || offerTeam) && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
           {unsorted > 0 && (
             <p>
@@ -429,7 +430,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
               </button>
             </p>
           )}
-          {tab !== myTeam && (
+          {offerTeam && (
             <button type="button" className={QUIET_LINK} onClick={() => chooseTeam(tab)}>
               {copy.teamTabs.setMine}
             </button>

@@ -1,17 +1,17 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { isJsonRequest, isMemberRole, normalizeEmail } from '../../../lib/memberAuth'
-import { addMember, findMember, isOwner, logAdminAction, memberSummaries, removeMember, saveTeam, setRole } from '../../../lib/members'
+import { isJsonRequest, isMemberPosition, isMemberRole, type MemberPosition, normalizeEmail } from '../../../lib/memberAuth'
+import { addMember, findMember, isOwner, logAdminAction, memberSummaries, removeMember, savePosition, saveTeam, setRole } from '../../../lib/members'
 import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 import { parseTeam, type TeamChoice } from '../../../lib/tasks'
 
-const ACTIONS = ['add', 'remove', 'role', 'invite', 'team'] as const
+const ACTIONS = ['add', 'remove', 'role', 'invite', 'team', 'position'] as const
 type Action = (typeof ACTIONS)[number]
 
 /**
- * Member management for admins (MemberAdmin island). Body: { action, email, role?, team?, locale }.
+ * Member management for admins (MemberAdmin island). Body: { action, email, role?, team?, position?, locale }.
  * Answers with { code, members } so the island can show the current list; `code` names the outcome.
  * Admins cannot remove themselves or change their own role, so at least one admin always remains. Nobody can demote or
  * remove an owner (isOwner).
@@ -26,10 +26,16 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       return reply(403, { code: 'forbidden', message: 'Nur für Admins.' })
     }
 
-    const { action, email: rawEmail, role, team: rawTeam, locale } = await request.json()
+    const { action, email: rawEmail, role, team: rawTeam, position, locale } = await request.json()
     const email = normalizeEmail(rawEmail)
     const team = parseTeam(rawTeam)
-    if (!ACTIONS.includes(action) || !email || (['add', 'role'].includes(action) && !isMemberRole(role)) || team === null) {
+    if (
+      !ACTIONS.includes(action) ||
+      !email ||
+      (['add', 'role'].includes(action) && !isMemberRole(role)) ||
+      (action === 'position' && !isMemberPosition(position)) ||
+      team === null
+    ) {
       return reply(400, { code: 'invalid', message: 'Ungültige Anfrage.' })
     }
     if (['remove', 'role'].includes(action) && email === admin.email) {
@@ -39,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       return reply(409, { code: 'owner', message: 'Diese Änderung ist nicht möglich.' })
     }
 
-    const code = await perform(action as Action, email, role, team, admin.email, locale === 'en' ? 'en' : 'de', url.origin)
+    const code = await perform(action as Action, email, role, team, position, admin.email, locale === 'en' ? 'en' : 'de', url.origin)
     const members = await memberSummaries()
     return reply(code === 'unknown' || code === 'exists' ? 409 : 200, { code, members })
   } catch (err) {
@@ -48,7 +54,16 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   }
 }
 
-async function perform(action: Action, email: string, role: unknown, team: TeamChoice, actor: string, locale: 'de' | 'en', origin: string) {
+async function perform(
+  action: Action,
+  email: string,
+  role: unknown,
+  team: TeamChoice,
+  position: unknown,
+  actor: string,
+  locale: 'de' | 'en',
+  origin: string,
+) {
   if (action === 'add') {
     if (!(await addMember(email, role as 'member' | 'admin'))) return 'exists'
     await logAdminAction({ actor, action, email, role: role as 'member' | 'admin' })
@@ -63,6 +78,11 @@ async function perform(action: Action, email: string, role: unknown, team: TeamC
     await saveTeam(email, team)
     await logAdminAction({ actor, action, email, team })
     return 'teamChanged'
+  }
+  if (action === 'position') {
+    await savePosition(email, position as MemberPosition)
+    await logAdminAction({ actor, action, email, position: position as MemberPosition })
+    return 'positionChanged'
   }
   if (action === 'role') {
     await setRole(email, role as 'member' | 'admin')
