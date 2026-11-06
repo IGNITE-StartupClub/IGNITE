@@ -45,6 +45,9 @@ module.exports = {
         accent: 'var(--font-accent)',
       },
       fontSize: {
+        '2xs': ['var(--text-2xs)', { lineHeight: '1.4' }],
+        xs: ['var(--text-xs)', { lineHeight: '1.3333' }],
+        caption: ['var(--text-caption)', { lineHeight: '1.4' }],
         sm: ['var(--text-sm)', { lineHeight: '1.5' }],
         base: ['var(--text-base)', { lineHeight: 'var(--leading-body)' }],
         lead: ['var(--text-lead)', { lineHeight: '1.4' }],

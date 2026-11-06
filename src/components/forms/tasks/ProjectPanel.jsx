@@ -646,7 +646,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
           <div className="flex h-full flex-col">
             <header className="border-b border-border p-4 sm:p-5">
               <div className="flex items-center gap-2">
-                <span className={`text-[0.6875rem] font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
+                <span className={`text-2xs font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
                   {copy.types[project.type]}
                 </span>
                 <span className="ml-auto flex items-center gap-2">

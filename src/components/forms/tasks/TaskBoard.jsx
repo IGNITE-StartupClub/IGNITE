@@ -63,7 +63,7 @@ function TaskCard({ task, tab, copy, locale, me, members, membersById, onPatch, 
         <h3 className="min-w-0 text-sm font-medium leading-snug">
           <button
             type="button"
-            className={`max-w-full border-0 bg-transparent p-0 text-left ${finished ? 'text-fg-muted line-through' : 'text-fg'}`}
+            className={`max-w-full border-0 bg-transparent p-0 text-left hyphens-auto ${finished ? 'text-fg-muted line-through' : 'text-fg'}`}
             onClick={() => onOpen(task)}
           >
             {task.title}
@@ -97,7 +97,7 @@ function TaskCard({ task, tab, copy, locale, me, members, membersById, onPatch, 
           </Menu>
         </div>
       </div>
-      {task.description && <p className="mt-1.5 line-clamp-2 text-[0.8125rem] text-fg-muted">{task.description}</p>}
+      {task.description && <p className="mt-1.5 line-clamp-2 text-caption text-fg-muted">{task.description}</p>}
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {task.private ? (
           <PrivateBadge label={copy.private.badge} />

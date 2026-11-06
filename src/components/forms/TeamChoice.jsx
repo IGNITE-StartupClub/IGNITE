@@ -88,7 +88,7 @@ export default function TeamChoice({ copy, photoCopy, optional, welcome, name, t
 
       <div className="-mt-4 flex flex-wrap items-end gap-4">
         <label className={FIELD}>
-          <span className="text-[13px] font-medium text-fg-muted">{copy.firstName}</span>
+          <span className="text-caption font-medium text-fg-muted">{copy.firstName}</span>
           <input
             className={INPUT}
             required
@@ -99,7 +99,7 @@ export default function TeamChoice({ copy, photoCopy, optional, welcome, name, t
           />
         </label>
         <label className={FIELD}>
-          <span className="text-[13px] font-medium text-fg-muted">{copy.lastName}</span>
+          <span className="text-caption font-medium text-fg-muted">{copy.lastName}</span>
           <input
             className={INPUT}
             required
@@ -109,7 +109,7 @@ export default function TeamChoice({ copy, photoCopy, optional, welcome, name, t
             onChange={(e) => setLastName(e.target.value)}
           />
         </label>
-        <p className="flex-[1_1_220px] self-center pt-[22px] text-[13px] text-fg-muted">{changing ? '' : copy.hint}</p>
+        <p className="flex-[1_1_220px] self-center pt-[22px] text-caption text-fg-muted">{changing ? '' : copy.hint}</p>
         {changing && (
           <a href={homeUrl} className={`${BUTTON} border border-border-strong text-fg hover:bg-bg-subtle`}>
             {copy.cancel}

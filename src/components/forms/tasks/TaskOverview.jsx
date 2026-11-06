@@ -43,7 +43,7 @@ function DayBand({ days, byDay, activeDay, today, projectsByEvent, locale, onPic
               >
                 <span className="text-xs text-fg-muted">{dayPart(day, locale, { weekday: 'short' }).replace('.', '')}</span>
                 <span
-                  className={`grid h-7 w-7 place-items-center rounded-full text-[0.9375rem] ${
+                  className={`grid h-7 w-7 place-items-center rounded-full text-sm ${
                     day === today ? 'bg-brand-bright font-semibold text-white' : 'font-medium'
                   }`}
                 >
@@ -52,7 +52,7 @@ function DayBand({ days, byDay, activeDay, today, projectsByEvent, locale, onPic
                 {dayEvents.map((event) => (
                   <span
                     key={event.id}
-                    className={`mt-0.5 block max-w-full truncate rounded-md px-1.5 py-px text-[0.6875rem] ${
+                    className={`mt-0.5 block max-w-full truncate rounded-md px-1.5 py-px text-2xs ${
                       projectsByEvent.has(event.id) ? 'surface-brand' : 'bg-[color-mix(in_srgb,var(--color-fg)_14%,transparent)] text-fg'
                     }`}
                   >
@@ -81,7 +81,7 @@ function EventSummary({ event, project, copy, locale, membersById, onStart, onOp
         </div>
         <div className="min-w-0">
           <h3 className="text-lg font-semibold leading-tight">{event.title}</h3>
-          <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+          <p className="mt-0.5 text-caption text-fg-muted">
             {dayPart(event.day, locale, { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
             {fill(text.time, { time: berlinTime(event.startAt, locale) })}
           </p>
@@ -209,7 +209,7 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
                 onClick={() => onView('tasks')}
               >
                 <span className="text-2xl font-semibold leading-tight tabular-nums">{columns[status].length}</span>
-                <span className="truncate text-[0.8125rem] text-fg-muted">{copy.taskStatuses[status]}</span>
+                <span className="truncate text-caption text-fg-muted">{copy.taskStatuses[status]}</span>
               </button>
             ))}
           </div>

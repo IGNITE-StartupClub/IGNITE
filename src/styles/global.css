@@ -18,6 +18,9 @@
   --font-accent: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
 
   /* Fluid type scale (ratio ~1.333) */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-caption: 0.8125rem;
   --text-sm: 0.9375rem;
   --text-base: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem);
   --text-lead: clamp(1.25rem, 1.12rem + 0.6vw, 1.5rem);
@@ -139,6 +142,24 @@
   --color-focus-inverted: #b19eef;
 
   color-scheme: light;
+}
+
+/* Members area: tools that people read on wide screens, so small text runs 2 px above the public scale. */
+.member-area {
+  --text-2xs: 0.8125rem;
+  --text-xs: 0.875rem;
+  --text-caption: 0.9375rem;
+  --text-sm: 1.0625rem;
+  --container-wide: 90rem;
+  --header-height: 6rem;
+  --pill-grow: 0.5rem;
+  --nav-control: 3rem;
+}
+
+@media (max-width: 1279px) {
+  .member-area {
+    --nav-control: 2.75rem;
+  }
 }
 
 /* Swaps surface tokens to the opposite of the active theme. */
