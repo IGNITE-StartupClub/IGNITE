@@ -4,7 +4,8 @@
  * members area link and the primary "Mitmachen" pill (kept outermost). Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
  * Inside the members area (signed in; the login page has no header) the pill switches: "IGNITE Member" logo linking to
  * the members home, the member navigation (memberArea.nav) and a profile menu with photo instead of the members link
- * and "Mitmachen". The menu also carries the legal links, because the members area has no footer.
+ * and "Mitmachen". The menu also carries the legal links, because the members area has no footer. The search field
+ * (MemberSearch) sits right of the links.
  * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
@@ -19,6 +20,7 @@ import ThemeToggle from '../ui/ThemeToggle.astro'
 import LanguageToggle from '../ui/LanguageToggle.astro'
 import MemberLink from '../ui/MemberLink.astro'
 import MobileNav from './MobileNav.astro'
+import MemberSearch from '../forms/MemberSearch.jsx'
 import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
@@ -125,6 +127,19 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     </nav>
 
     <div class="flex items-center gap-1 sm:gap-2">
+      {
+        member && (
+          <MemberSearch
+            client:load
+            transition:persist="member-search"
+            copy={memberArea.search}
+            locale={locale}
+            me={member.id}
+            tasksUrl={memberPagePath('tasks', locale)}
+            homeUrl={memberHome}
+          />
+        )
+      }
       <div class="hidden items-center gap-1 lg:flex">
         <LanguageToggle href={switchHref} />
         <ThemeToggle />
@@ -448,6 +463,9 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
   }
   /* Keeps the member links next to logo and profile menu between lg and xl. */
   @media (max-width: 1279px) {
+    .main-nav[data-member] ul {
+      gap: 0;
+    }
     .main-nav[data-member] .nav-link {
       padding-inline: 0.5rem;
     }
