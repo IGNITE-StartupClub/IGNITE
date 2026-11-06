@@ -17,6 +17,7 @@ import { ObjectId } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import { database, displayName, type Member } from './members'
 import { photoPath } from './emailSignature'
+import { privateTasks } from './privateTasksStore'
 import { standardTemplates } from '../data/taskTemplates'
 import type { TaskEvent } from './taskEvents'
 import {
@@ -265,19 +266,21 @@ function templateSummary(template: TemplateDoc) {
 }
 export type TemplateSummary = ReturnType<typeof templateSummary>
 
-/** Everything the TaskWorkspace island shows: projects, active templates and the member directory. */
+/** Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks. */
 export async function workspaceState(actor: TaskActor) {
   const { projects, templates } = await collections()
-  const [projectList, templateList, members] = await Promise.all([
+  const [projectList, templateList, members, ownTasks] = await Promise.all([
     projects.find({}, { sort: { updatedAt: -1 } }).toArray(),
     templates.find({ archivedAt: null }, { sort: { name: 1 } }).toArray(),
     directory(),
+    privateTasks(actor.id),
   ])
   const known = new Set(members.map((member) => member.id))
   return {
     projects: projectList.map((project) => projectSummary(project, actor, known)),
     templates: templateList.map(templateSummary),
     members,
+    privateTasks: ownTasks,
   }
 }
 export type WorkspaceState = Awaited<ReturnType<typeof workspaceState>>

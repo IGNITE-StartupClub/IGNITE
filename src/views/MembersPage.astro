@@ -57,11 +57,11 @@ const teamChoices = openTeams.map(({ id }) => ({
 
 const now = Date.now()
 const today = berlinDay(now)
-const [{ events, complete }, { projects }] = choosing
-  ? [{ events: [], complete: true }, { projects: [] }]
+const [{ events, complete }, { projects, privateTasks }] = choosing
+  ? [{ events: [], complete: true }, { projects: [], privateTasks: [] }]
   : await Promise.all([loadTaskEvents(locale), workspaceState(actor)])
 
-const tasks = openTasks(projects, actor.id, today).map((task) => ({
+const tasks = openTasks(projects, actor.id, today, privateTasks).map((task) => ({
   ...task,
   dueLabel: task.due === today ? home.dashboard.next.today : task.due && dayLabel(task.due, locale),
 }))

@@ -2,7 +2,7 @@
  * What the start page of the members area shows (MembersPage.astro, MemberDashboard, TeamChoice): the member's open
  * tasks, the next event and the profile the team choice saves. Without database access, so node --test can load it.
  */
-import { parseName, parseTeam, taskGroup, type ProjectState, type TaskGroup, type TeamId } from './tasks.ts'
+import { parseName, parseTeam, taskGroup, type PrivateTaskState, type ProjectState, type TaskGroup, type TeamId } from './tasks.ts'
 
 type Locale = 'de' | 'en'
 
@@ -17,11 +17,13 @@ export interface HomeTask {
   projectTitle: string
   /** The public event of the task's project, '' without one. */
   eventId: string
+  /** A private task has no project; projectId and projectTitle stay ''. */
+  private: boolean
 }
 
-/** The member's open tasks, soonest deadline first and tasks without one last. */
-export function openTasks(projects: HomeProject[], me: string, today: string): HomeTask[] {
-  return projects
+/** The member's open tasks, private ones included, soonest deadline first and tasks without one last. */
+export function openTasks(projects: HomeProject[], me: string, today: string, privateTasks: PrivateTaskState[]): HomeTask[] {
+  const shared = projects
     .filter((project) => !project.archived && project.status !== 'done')
     .flatMap((project) =>
       project.tasks
@@ -34,9 +36,22 @@ export function openTasks(projects: HomeProject[], me: string, today: string): H
           projectId: project.id,
           projectTitle: project.title,
           eventId: project.event?.id ?? '',
+          private: false,
         })),
     )
-    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'))
+  const own = privateTasks
+    .filter((task) => !task.done)
+    .map(({ id, title, due }) => ({
+      id,
+      title,
+      due,
+      group: taskGroup({ done: false, due }, today),
+      projectId: '',
+      projectTitle: '',
+      eventId: '',
+      private: true,
+    }))
+  return [...shared, ...own].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'))
 }
 
 export const homeFigures = (tasks: Pick<HomeTask, 'group'>[]) => ({

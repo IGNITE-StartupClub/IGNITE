@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { dayLabel, eventDate, eventTaskCount, homeFigures, nextEvent, openTasks, parseProfile, showsTeamChoice, splitName } from './memberHome.ts'
 import type { HomeProject } from './memberHome.ts'
-import type { TaskState } from './tasks.ts'
+import type { PrivateTaskState, TaskState } from './tasks.ts'
 
 const ME = 'me'
 const TODAY = '2026-11-06'
@@ -16,6 +16,19 @@ const task = (id: string, fields: Partial<TaskState> = {}): TaskState => ({
   priority: 'normal',
   required: false,
   assignees: [ME],
+  team: '',
+  ...fields,
+})
+
+const privateTask = (id: string, fields: Partial<PrivateTaskState> = {}): PrivateTaskState => ({
+  id,
+  title: id,
+  description: '',
+  done: false,
+  status: 'backlog',
+  doneAt: '',
+  due: '',
+  priority: 'normal',
   team: '',
   ...fields,
 })
@@ -48,6 +61,7 @@ test('openTasks lists only open tasks of the member, soonest deadline first and 
     ],
     ME,
     TODAY,
+    [],
   )
   assert.deepEqual(
     tasks.map(({ id }) => id),
@@ -56,12 +70,12 @@ test('openTasks lists only open tasks of the member, soonest deadline first and 
 })
 
 test('openTasks leaves out archived and finished projects', () => {
-  const tasks = openTasks([project('a', [task('x')], { archived: true }), project('b', [task('y')], { status: 'done' })], ME, TODAY)
+  const tasks = openTasks([project('a', [task('x')], { archived: true }), project('b', [task('y')], { status: 'done' })], ME, TODAY, [])
   assert.deepEqual(tasks, [])
 })
 
 test('openTasks carries what the dashboard shows and links to', () => {
-  const [first] = openTasks([project('a', [task('x', { due: '2026-11-08' })], { event: { id: 'evt' } })], ME, TODAY)
+  const [first] = openTasks([project('a', [task('x', { due: '2026-11-08' })], { event: { id: 'evt' } })], ME, TODAY, [])
   assert.deepEqual(first, {
     id: 'x',
     title: 'x',
@@ -70,7 +84,16 @@ test('openTasks carries what the dashboard shows and links to', () => {
     projectId: 'a',
     projectTitle: 'Project a',
     eventId: 'evt',
+    private: false,
   })
+})
+
+test('openTasks lists open private tasks by their deadline, without a project', () => {
+  const done: PrivateTaskState = { ...privateTask('done'), done: true, status: 'done' }
+  const tasks = openTasks([project('a', [task('x', { due: '2026-11-08' })])], ME, TODAY, [privateTask('p', { due: '2026-11-07' }), done])
+  assert.deepEqual(tasks.map(({ id, private: isPrivate }) => [id, isPrivate]), [['p', true], ['x', false]])
+  assert.equal(tasks[0].projectId, '')
+  assert.equal(tasks[0].eventId, '')
 })
 
 test('homeFigures counts open, this week and overdue', () => {
@@ -78,6 +101,7 @@ test('homeFigures counts open, this week and overdue', () => {
     [project('a', [task('o', { due: '2026-11-02' }), task('w', { due: TODAY }), task('l', { due: '2026-12-24' }), task('n')])],
     ME,
     TODAY,
+    [],
   )
   assert.deepEqual(homeFigures(tasks), { open: 4, week: 1, overdue: 1 })
 })
@@ -87,6 +111,7 @@ test('eventTaskCount counts only tasks of that event', () => {
     [project('a', [task('x'), task('y')], { event: { id: 'evt' } }), project('b', [task('z')])],
     ME,
     TODAY,
+    [],
   )
   assert.equal(eventTaskCount(tasks, 'evt'), 2)
   assert.equal(eventTaskCount(tasks, 'other'), 0)

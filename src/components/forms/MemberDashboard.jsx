@@ -52,7 +52,7 @@ function TaskRow({ task, done, today, copy, projectUrl, onToggle }) {
       <div className="min-w-0 flex-1">
         <p className={`font-medium ${done ? 'text-fg-muted line-through' : 'text-fg'}`}>{task.title}</p>
         <a href={projectUrl} className="text-[13px] text-accent no-underline hover:underline">
-          {task.projectTitle}
+          {task.private ? copy.private : task.projectTitle}
         </a>
       </div>
       <span
@@ -117,7 +117,11 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
       const res = await fetch('/api/members/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: { done } }),
+        body: JSON.stringify(
+          task.private
+            ? { action: 'updatePrivate', taskId: task.id, patch: { done } }
+            : { action: 'updateTask', id: task.projectId, taskId: task.id, patch: { done } },
+        ),
       })
       if (!res.ok) throw new Error(`Task not updated: ${res.status}`)
     } catch (err) {
@@ -175,7 +179,7 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
                   done={doneIds.has(task.id)}
                   today={today}
                   copy={copy.next}
-                  projectUrl={`${links.project}#${task.projectId}`}
+                  projectUrl={task.private ? links.tasks : `${links.project}#${task.projectId}`}
                   onToggle={toggle}
                 />
               ))}

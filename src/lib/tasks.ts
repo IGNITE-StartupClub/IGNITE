@@ -88,6 +88,19 @@ export interface TaskState {
   team: TeamChoice
 }
 
+/** A task only its member sees (privateTasksStore.ts): no project, no other people, no subtasks. */
+export interface PrivateTaskState {
+  id: string
+  title: string
+  description: string
+  done: boolean
+  status: TaskStatus
+  doneAt: string
+  due: string
+  priority: Priority
+  team: TeamChoice
+}
+
 export interface ProjectState {
   id: string
   title: string
@@ -299,6 +312,10 @@ export function progress(tasks: Pick<TaskState, 'done'>[]): { done: number; tota
   return { done, total: tasks.length, percent: tasks.length ? Math.round((done / tasks.length) * 100) : null }
 }
 
+/** The people on a project's tasks without its leads, who are named on a line of their own. */
+export const projectAssignees = (project: { leads: string[]; tasks: Pick<TaskState, 'assignees'>[] }): string[] =>
+  [...new Set(project.tasks.flatMap((task) => task.assignees))].filter((id) => !project.leads.includes(id))
+
 export const isOverdue = (task: Pick<TaskState, 'done' | 'due'>, today: string): boolean =>
   !task.done && !!task.due && task.due < today
 
@@ -353,6 +370,8 @@ export interface ListTask extends TaskState {
   projectTitle: string
   projectType: ProjectType
   group: TaskGroup
+  /** Only set on the member's private tasks; see scopedPrivateTasks. */
+  private?: boolean
 }
 
 const contains = (text: string, query: string) => text.toLowerCase().includes(query)
@@ -381,6 +400,29 @@ export function scopedTasks(projects: ProjectState[], scope: Scope, me: string, 
           return inTab && (!scope.onlyMine || assigned) && (!query || contains(task.title, query) || contains(task.projectTitle, query))
         }),
     )
+}
+
+/**
+ * The member's private tasks in the shape of the task list, so board and list show them between the others. They count
+ * as assigned to the member, which puts them on the member's own tab and under "Nur meine".
+ */
+export function scopedPrivateTasks(tasks: PrivateTaskState[], scope: Scope, me: string, today: string): (ListTask & PrivateTaskState)[] {
+  const query = scope.query.trim().toLowerCase()
+  return tasks
+    .filter((task) => {
+      const inTab = scope.team === ALL_TEAMS || task.team === scope.team || scope.team === scope.myTeam
+      return inTab && (!query || contains(task.title, query))
+    })
+    .map((task) => ({
+      ...task,
+      private: true,
+      required: false,
+      assignees: [me],
+      projectId: '',
+      projectTitle: '',
+      projectType: 'task',
+      group: taskGroup(task, today),
+    }))
 }
 
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 }

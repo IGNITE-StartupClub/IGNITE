@@ -1,10 +1,10 @@
 /**
- * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the member
- * picker popover, the team select, the progress bar, status and type styles and date formatting. Members are
- * { id, name, photo, team }.
+ * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
+ * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, status
+ * and type styles and date formatting. Members are { id, name, photo, team }.
  */
 import React, { useId, useRef, useState } from 'react'
-import { Check, Search, UserPlus } from 'lucide-react'
+import { Check, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
 import { TEAM_IDS } from '../../../lib/tasks'
 import { fill } from '../memberUi'
@@ -61,9 +61,6 @@ export const dateTime = (iso, locale) =>
     minute: '2-digit',
   }).format(new Date(iso))
 
-/** Everyone on a project: leads first, then the assignees of its tasks, each once. */
-export const projectPeople = (project) => [...new Set([...project.leads, ...project.tasks.flatMap((task) => task.assignees)])]
-
 const SIZES = { sm:'h-6 w-6 text-[0.625rem]', md: 'h-8 w-8 text-xs' }
 
 /** A round photo or initials. Labelled with the name unless `decorative`, because stacks show no names. */
@@ -84,6 +81,17 @@ export function Avatar({ member, size = 'sm', decorative = false, className = ''
       className={`${base} flex items-center justify-center bg-[color-mix(in_srgb,var(--color-brand-bright)_35%,var(--color-bg-subtle))] font-semibold uppercase text-fg`}
     >
       {initials(member.name)}
+    </span>
+  )
+}
+
+/** The leads of a project by name, set apart from the avatars of its assignees. Nothing without leads. */
+export function LeadLine({ project, membersById, copy, className = '' }) {
+  const names = project.leads.map((id) => membersById.get(id)?.name).filter(Boolean)
+  if (!names.length) return null
+  return (
+    <span className={`block truncate text-xs text-fg-muted ${className}`}>
+      {copy.panel.leads}: {names.join(', ')}
     </span>
   )
 }
@@ -204,6 +212,34 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
         </ul>
       </div>
     </>
+  )
+}
+
+/** Marks a task only its member sees. */
+export function PrivateBadge({ label }) {
+  return (
+    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--color-brand-bright)_16%,transparent)] px-2 py-px text-xs text-fg">
+      <Lock aria-hidden="true" className="h-3 w-3" />
+      {label}
+    </span>
+  )
+}
+
+/** Switches a new task to private. The press keeps the focus in the title field, so forms closing on its blur stay open. */
+export function PrivateToggle({ pressed, onChange, label }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => onChange(!pressed)}
+      className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-0 text-sm ${
+        pressed ? 'border-fg bg-fg text-bg' : 'border-border-strong bg-transparent text-fg hover:bg-bg-subtle'
+      }`}
+    >
+      <Lock aria-hidden="true" className="h-3.5 w-3.5" />
+      {label}
+    </button>
   )
 }
 

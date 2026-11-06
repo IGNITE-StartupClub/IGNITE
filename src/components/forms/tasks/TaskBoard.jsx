@@ -1,31 +1,33 @@
 /**
  * The tasks of the selected tab as a kanban board with one column per status. Cards move by drag and drop or, for
  * keyboards and touch screens, through the menu behind their grip; both end in onPatch(task, { status }), which saves at
- * once. The plus of a column adds a single task right there, a click on a card opens its project. The done column only
- * ever grows, so it starts with the last few tasks.
- * Props: tasks (scopedTasks), tab (team id or ALL_TEAMS), onlyMine, searching, copy (workspace copy), locale, me, members,
- * membersById, onAdd(title, status), onPatch(task, fields), onOpen(projectId).
+ * once. The plus of a column adds a single task right there, for the team or only for the member, a click on a card
+ * opens it. Private cards are dashed and have no people. The done column only ever grows, so it starts with the last few
+ * tasks.
+ * Props: tasks (scopedTasks and scopedPrivateTasks), tab (team id or ALL_TEAMS), onlyMine, searching, copy (workspace
+ * copy), locale, me, members, membersById, onAdd(title, status, isPrivate), onPatch(task, fields), onOpen(task).
  */
 import React, { useState } from 'react'
 import { CalendarDays, GripVertical, Plus } from 'lucide-react'
 import { ALL_TEAMS, boardColumns, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
-import { ICON_BUTTON, INPUT, MemberPicker, shortDay, STATUS_TONE } from './taskUi'
+import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, STATUS_TONE } from './taskUi'
 
 const DONE_SHOWN = 8
 const TAG = 'max-w-full truncate rounded-full bg-bg-subtle px-2 py-px text-xs'
 
-function AddCard({ label, onAdd, onClose }) {
+function AddCard({ label, privateLabel, onAdd, onClose }) {
   const [title, setTitle] = useState('')
+  const [isPrivate, setPrivate] = useState(false)
   const add = async (e) => {
     e.preventDefault()
     const text = title.trim()
     if (!text) return
     setTitle('')
-    if (!(await onAdd(text))) setTitle(text)
+    if (!(await onAdd(text, isPrivate))) setTitle(text)
   }
   return (
-    <form onSubmit={add} className="mb-3">
+    <form onSubmit={add} onKeyDown={(e) => e.key === 'Escape' && onClose()} className="mb-3 flex flex-col gap-2">
       <label>
         <span className="sr-only">{label}</span>
         <input
@@ -35,10 +37,10 @@ function AddCard({ label, onAdd, onClose }) {
           maxLength={TITLE_MAX}
           placeholder={label}
           onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && onClose()}
-          onBlur={() => !title.trim() && onClose()}
+          onBlur={(e) => !title.trim() && !e.currentTarget.form.contains(e.relatedTarget) && onClose()}
         />
       </label>
+      <PrivateToggle pressed={isPrivate} onChange={setPrivate} label={privateLabel} />
     </form>
   )
 }
@@ -52,15 +54,17 @@ function TaskCard({ task, tab, copy, locale, me, members, membersById, onPatch, 
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       // Firefox starts no drag on a button, so the card opens from here and not from a stretched title button.
-      onClick={(e) => !e.target.closest('button, [popover]') && onOpen(task.projectId)}
-      className="cursor-grab rounded-lg border border-border bg-card p-3.5 shadow-sm transition-colors hover:border-border-strong active:cursor-grabbing"
+      onClick={(e) => !e.target.closest('button, [popover]') && onOpen(task)}
+      className={`cursor-grab rounded-lg border bg-card p-3.5 shadow-sm transition-colors hover:border-border-strong active:cursor-grabbing ${
+        task.private ? 'border-dashed border-border-strong' : 'border-border'
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="min-w-0 text-sm font-medium leading-snug">
           <button
             type="button"
             className={`max-w-full border-0 bg-transparent p-0 text-left ${finished ? 'text-fg-muted line-through' : 'text-fg'}`}
-            onClick={() => onOpen(task.projectId)}
+            onClick={() => onOpen(task)}
           >
             {task.title}
           </button>
@@ -95,31 +99,41 @@ function TaskCard({ task, tab, copy, locale, me, members, membersById, onPatch, 
       </div>
       {task.description && <p className="mt-1.5 line-clamp-2 text-[0.8125rem] text-fg-muted">{task.description}</p>}
       <div className="mt-2.5 flex flex-wrap gap-1.5">
-        <span className={`${TAG} text-fg-muted`}>{task.projectType === 'task' ? copy.createKinds.task.label : task.projectTitle}</span>
-        {foreign && <span className={`${TAG} text-fg-muted`}>{copy.teams[task.team] ?? copy.teamTabs.none}</span>}
+        {task.private ? (
+          <PrivateBadge label={copy.private.badge} />
+        ) : (
+          <>
+            <span className={`${TAG} text-fg-muted`}>{task.projectType === 'task' ? copy.createKinds.task.label : task.projectTitle}</span>
+            {foreign && <span className={`${TAG} text-fg-muted`}>{copy.teams[task.team] ?? copy.teamTabs.none}</span>}
+          </>
+        )}
         {task.priority === 'high' && !finished && <span className={`${TAG} text-danger`}>{copy.priorities.high}</span>}
       </div>
-      <div className="mt-3 flex min-h-8 items-center justify-between gap-2 border-0 border-t border-solid border-border pt-2.5">
-        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${task.group === 'overdue' ? 'text-danger' : 'text-fg-muted'}`}>
-          {task.due && (
-            <>
-              <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
-              {shortDay(task.due, locale)}
-            </>
+      {(task.due || !task.private) && (
+        <div className="mt-3 flex min-h-8 items-center justify-between gap-2 border-0 border-t border-solid border-border pt-2.5">
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${task.group === 'overdue' ? 'text-danger' : 'text-fg-muted'}`}>
+            {task.due && (
+              <>
+                <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
+                {shortDay(task.due, locale)}
+              </>
+            )}
+          </span>
+          {!task.private && (
+            <MemberPicker
+              compact
+              members={members}
+              membersById={membersById}
+              selected={task.assignees}
+              team={task.team}
+              onChange={(assignees) => onPatch({ assignees })}
+              copy={copy.people}
+              me={me}
+              label={copy.createDialog.assignees}
+            />
           )}
-        </span>
-        <MemberPicker
-          compact
-          members={members}
-          membersById={membersById}
-          selected={task.assignees}
-          team={task.team}
-          onChange={(assignees) => onPatch({ assignees })}
-          copy={copy.people}
-          me={me}
-          label={copy.createDialog.assignees}
-        />
-      </div>
+        </div>
+      )}
     </article>
   )
 }
@@ -179,7 +193,14 @@ export default function TaskBoard({ tasks, tab, onlyMine, searching, copy, local
                   </button>
                 )}
               </div>
-              {adding === status && <AddCard label={addLabel} onAdd={(title) => onAdd(title, status)} onClose={() => setAdding(null)} />}
+              {adding === status && (
+                <AddCard
+                  label={addLabel}
+                  privateLabel={copy.private.toggle}
+                  onAdd={(title, isPrivate) => onAdd(title, status, isPrivate)}
+                  onClose={() => setAdding(null)}
+                />
+              )}
               <ul role="list" className="flex flex-1 flex-col gap-3">
                 {cards.map((task) => (
                   <li key={task.id} className={dragging?.id === task.id ? 'opacity-50' : ''}>

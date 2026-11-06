@@ -1,8 +1,9 @@
 /**
  * The dialog that creates a project: an internal project, an event project (own or for a calendar event) or a single
- * task. Projects start empty, from a standard template or from an earlier project; the preview lists the tasks to
- * take over, each with a checkbox, its relative deadline and, for earlier projects, whether it was done back then.
- * Only titles, descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server).
+ * task, which can also be private. Projects start empty, from a standard template or from an earlier project; the
+ * preview lists the tasks to take over, each with a checkbox, its relative deadline and, for earlier projects, whether
+ * it was done back then. Only titles, descriptions, priorities and relative deadlines carry over (tasksFromTemplate on
+ * the server).
  * Props: request ({ kind, team, event? } or null = closed; team is preselected), copy (workspace copy), locale, me,
  * members, membersById, templates, projects, admin, run, onCreated(id).
  */
@@ -11,7 +12,7 @@ import { addDays, PRIORITIES, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
-const EMPTY = { title: '', description: '', due: '', priority: 'normal', team: '', leads: [], assignees: [] }
+const EMPTY = { title: '', description: '', due: '', priority: 'normal', team: '', leads: [], assignees: [], private: false }
 
 function relative(offset, text) {
   if (offset === null) return text.noOffset
@@ -62,13 +63,13 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
   const submit = async (e) => {
     e.preventDefault()
     const { kind, event } = request
-    const body = {
-      action: 'create',
-      project: { title: form.title, description: form.description, type: kind, due: event ? '' : form.due, leads: form.leads, team: form.team },
-    }
+    const { title, description, due, priority, team } = form
+    const body = form.private
+      ? { action: 'addPrivate', task: { title, description, due, priority, team } }
+      : { action: 'create', project: { title, description, type: kind, due: event ? '' : due, leads: form.leads, team } }
     if (event) body.eventId = event.id
-    if (kind === 'task') {
-      body.task = { description: form.description, due: form.due, priority: form.priority, required: false, assignees: form.assignees }
+    if (kind === 'task' && !form.private) {
+      body.task = { description, due, priority, required: false, assignees: form.assignees }
     } else if (source) {
       body.template = { kind: start === 'template' ? 'template' : 'project', id: source.id, include }
     }
@@ -104,6 +105,20 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
               </label>
               <input id={`${id}-title`} className="input" required maxLength={TITLE_MAX} value={form.title} onChange={set('title')} />
             </div>
+          )}
+          {kind === 'task' && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]"
+                checked={form.private}
+                onChange={(e) => setForm({ ...form, private: e.target.checked })}
+              />
+              <span>
+                {copy.private.toggle}
+                <span className="block text-xs text-fg-muted">{copy.private.hint}</span>
+              </span>
+            </label>
           )}
           <div className="field">
             <label htmlFor={`${id}-description`} className="field-label">
@@ -151,36 +166,38 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-6">
-            <div className="field">
-              <span className="field-label">{text.leads}</span>
-              <MemberPicker
-                members={members}
-                membersById={membersById}
-                selected={form.leads}
-                team={form.team}
-                onChange={(leads) => setForm({ ...form, leads })}
-                copy={copy.people}
-                me={me}
-                label={text.leads}
-              />
-            </div>
-            {kind === 'task' && (
+          {!form.private && (
+            <div className="flex flex-wrap gap-6">
               <div className="field">
-                <span className="field-label">{text.assignees}</span>
+                <span className="field-label">{text.leads}</span>
                 <MemberPicker
                   members={members}
                   membersById={membersById}
-                  selected={form.assignees}
+                  selected={form.leads}
                   team={form.team}
-                  onChange={(assignees) => setForm({ ...form, assignees })}
+                  onChange={(leads) => setForm({ ...form, leads })}
                   copy={copy.people}
                   me={me}
-                  label={text.assignees}
+                  label={text.leads}
                 />
               </div>
-            )}
-          </div>
+              {kind === 'task' && (
+                <div className="field">
+                  <span className="field-label">{text.assignees}</span>
+                  <MemberPicker
+                    members={members}
+                    membersById={membersById}
+                    selected={form.assignees}
+                    team={form.team}
+                    onChange={(assignees) => setForm({ ...form, assignees })}
+                    copy={copy.people}
+                    me={me}
+                    label={text.assignees}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {kind !== 'task' && (
             <fieldset className="fieldset">

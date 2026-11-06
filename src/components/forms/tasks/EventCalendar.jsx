@@ -8,9 +8,9 @@
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { addDays, progress } from '../../../lib/tasks'
+import { addDays, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
-import { AvatarStack, berlinTime, eventDayLabel, ICON_BUTTON, longDay, ProgressBar, projectPeople, Segmented, SURFACE } from './taskUi'
+import { AvatarStack, berlinTime, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
 const UPCOMING_MAX = 4
 
@@ -55,9 +55,10 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
               {done.total ? fill(copy.panel.progress, done) : copy.board.noTasks}
             </span>
           </div>
+          <LeadLine project={project} membersById={membersById} copy={copy} className="mt-3" />
           <div className="mt-3 flex items-center justify-between gap-2">
-            <AvatarStack ids={projectPeople(project)} membersById={membersById} copy={copy.people} />
-            <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => onOpen(project.id)}>
+            <AvatarStack ids={projectAssignees(project)} membersById={membersById} copy={copy.people} />
+            <button type="button" className={`${TOOL_BUTTON} ml-auto h-9`} onClick={() => onOpen(project.id)}>
               {copy.calendar.openProject}
             </button>
           </div>

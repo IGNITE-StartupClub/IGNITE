@@ -7,13 +7,14 @@
  */
 import React, { useState } from 'react'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
-import { isOverdue, PROJECT_STATUSES, progress, projectDay } from '../../../lib/tasks'
+import { isOverdue, PROJECT_STATUSES, progress, projectAssignees, projectDay } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
-import { AvatarStack, eventDayLabel, ICON_BUTTON, ProgressBar, projectPeople, STATUS_TONE, TYPE_TEXT } from './taskUi'
+import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, STATUS_TONE, TYPE_TEXT } from './taskUi'
 
 function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOpen, onMove, draggable, onDragStart, onDragEnd }) {
   const done = progress(project.tasks)
   const overdue = project.tasks.filter((task) => isOverdue(task, today)).length
+  const assignees = projectAssignees(project)
   const day = projectDay(project)
   const late = !project.eventDay && project.due && project.due < today && project.status !== 'done'
   return (
@@ -100,7 +101,8 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           <span className="text-xs text-fg-subtle">{copy.board.noTasks}</span>
         )}
       </div>
-      {(overdue > 0 || projectPeople(project).length > 0) && (
+      <LeadLine project={project} membersById={membersById} copy={copy} className="mt-3" />
+      {(overdue > 0 || assignees.length > 0) && (
         <div className="mt-3 flex items-center justify-between gap-2">
           {overdue > 0 ? (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-danger">
@@ -111,7 +113,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
             <span />
           )}
           <span className="relative z-10">
-            <AvatarStack ids={projectPeople(project)} membersById={membersById} copy={copy.people} />
+            <AvatarStack ids={assignees} membersById={membersById} copy={copy.people} />
           </span>
         </div>
       )}
