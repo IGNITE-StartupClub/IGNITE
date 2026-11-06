@@ -16,6 +16,12 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 export const PRIORITIES = ['low', 'normal', 'high'] as const
 export type Priority = (typeof PRIORITIES)[number]
 
+/** The ids of data/openTeams.ts, which also holds the names; tasks.test.ts keeps the two in step. */
+export const TEAM_IDS = ['ignite-relations', 'ignite-marketing', 'ignite-hr', 'ignite-finance-legal', 'ignite-infrastructure'] as const
+export type TeamId = (typeof TEAM_IDS)[number]
+/** '' is no team: a member who has not chosen one, a project nobody sorted in, a task that follows its project. */
+export type TeamChoice = TeamId | ''
+
 export const TITLE_MAX = 200
 export const TEXT_MAX = 4000
 export const NAME_MAX = 60
@@ -127,6 +133,17 @@ function members(value: unknown): Parsed<string[]> {
   if (value === undefined) return []
   if (!Array.isArray(value) || value.length > MAX_ASSIGNEES || !value.every(isMemberId)) return INVALID
   return [...new Set(value)]
+}
+
+function team(value: unknown): Parsed<TeamChoice> {
+  if (value === undefined || value === null || value === '') return ''
+  return TEAM_IDS.includes(value as TeamId) ? (value as TeamId) : INVALID
+}
+
+/** A team id or '' for no team; null when it is neither. */
+export function parseTeam(value: unknown): TeamChoice | null {
+  const parsed = team(value)
+  return parsed === INVALID ? null : parsed
 }
 
 function offset(value: unknown): Parsed<number | null> {

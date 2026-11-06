@@ -1,7 +1,7 @@
 /**
  * MongoDB access for the members area. Collections:
- * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, passwordHash?, lastLoginAt?,
- *   failedLogins?, lockedUntil?, signature? }). Its `_id` is the member id the tasks module refers to.
+ * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, team?, passwordHash?,
+ *   lastLoginAt?, failedLogins?, lockedUntil?, signature? }). Its `_id` is the member id the tasks module refers to.
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -33,7 +33,7 @@ import {
 } from './memberAuth'
 import { INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { photoPath, type SavedSignature } from './emailSignature'
-import { nameFromEmail } from './tasks'
+import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
 export interface Member {
   email: string
@@ -50,6 +50,8 @@ export interface Member {
   /** Entered by the member on the tasks page, so others can assign them by name. */
   firstName?: string
   lastName?: string
+  /** Chosen by the member on the start page. */
+  team?: TeamId
 }
 
 interface PasswordCode {
@@ -250,6 +252,12 @@ export async function deletePhotos(email: string): Promise<void> {
 export async function saveName(email: string, firstName: string, lastName: string): Promise<void> {
   const { members } = await collections()
   await members.updateOne({ email }, { $set: { firstName, lastName } })
+}
+
+/** Sets the member's team; '' takes them out of their team. */
+export async function saveTeam(email: string, team: TeamChoice): Promise<void> {
+  const { members } = await collections()
+  await members.updateOne({ email }, team ? { $set: { team } } : { $unset: { team: '' } })
 }
 
 export async function saveSignature(email: string, signature: SavedSignature): Promise<void> {
