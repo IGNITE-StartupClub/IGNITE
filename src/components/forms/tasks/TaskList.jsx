@@ -1,15 +1,16 @@
 /**
  * The tasks of the selected tab as one calm list, the alternative to the board: in groups by deadline, with done tasks
- * folded away. Tasks are checked off and assigned in place; the title opens their project. The field on top creates a
- * single task right away.
- * Props: tasks (scopedTasks), tab (team id or ALL_TEAMS), newTeam (team of new tasks, '' for none), onlyMine, searching,
- * copy (workspace copy), locale, me, members, membersById, onAdd(title), onPatch(task, fields), onOpen(projectId).
+ * folded away. Tasks are checked off and assigned in place; the title opens them. The field on top creates a single
+ * task right away, for the team or only for the member.
+ * Props: tasks (scopedTasks and scopedPrivateTasks), tab (team id or ALL_TEAMS), newTeam (team of new tasks, '' for
+ * none), onlyMine, searching, copy (workspace copy), locale, me, members, membersById, onAdd(title, isPrivate),
+ * onPatch(task, fields), onOpen(task).
  */
 import React, { useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
 import { ALL_TEAMS, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
-import { MemberPicker, shortDay, TaskCheck } from './taskUi'
+import { MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
 
 function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, onOpen }) {
   const foreign = tab === ALL_TEAMS || task.team !== tab
@@ -23,11 +24,11 @@ function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, o
         <button
           type="button"
           className={`block max-w-full border-0 bg-transparent p-0 text-left text-sm font-medium ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
-          onClick={() => onOpen(task.projectId)}
+          onClick={() => onOpen(task)}
         >
           {task.title}
         </button>
-        {context && <p className="mt-0.5 text-xs text-fg-muted">{context}</p>}
+        {task.private ? <PrivateBadge label={copy.private.badge} /> : context && <p className="mt-0.5 text-xs text-fg-muted">{context}</p>}
       </div>
       {task.priority === 'high' && !task.done && <span className="shrink-0 text-xs font-medium text-danger">{copy.priorities.high}</span>}
       {task.due && (
@@ -35,17 +36,19 @@ function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, o
           {shortDay(task.due, locale)}
         </span>
       )}
-      <MemberPicker
-        compact
-        members={members}
-        membersById={membersById}
-        selected={task.assignees}
-        team={task.team}
-        onChange={(assignees) => onPatch({ assignees })}
-        copy={copy.people}
-        me={me}
-        label={copy.createDialog.assignees}
-      />
+      {!task.private && (
+        <MemberPicker
+          compact
+          members={members}
+          membersById={membersById}
+          selected={task.assignees}
+          team={task.team}
+          onChange={(assignees) => onPatch({ assignees })}
+          copy={copy.people}
+          me={me}
+          label={copy.createDialog.assignees}
+        />
+      )}
     </li>
   )
 }
@@ -53,6 +56,7 @@ function TaskRow({ task, tab, copy, locale, me, members, membersById, onPatch, o
 export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, copy, locale, me, members, membersById, onAdd, onPatch, onOpen }) {
   const text = copy.list
   const [draft, setDraft] = useState('')
+  const [isPrivate, setPrivate] = useState(false)
   const sorted = sortTasks(tasks)
   const open = sorted.filter((task) => !task.done)
   const done = sorted.filter((task) => task.done)
@@ -62,7 +66,7 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
     const title = draft.trim()
     if (!title) return
     setDraft('')
-    if (!(await onAdd(title))) setDraft(title)
+    if (!(await onAdd(title, isPrivate))) setDraft(title)
   }
   const row = (task) => (
     <TaskRow
@@ -83,10 +87,10 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
     <div className="flex flex-col gap-7">
       <form
         onSubmit={add}
-        className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle px-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus"
+        className="flex flex-wrap items-center gap-x-3 rounded-lg border border-border bg-bg-subtle px-3 pb-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus sm:flex-nowrap sm:pb-0"
       >
         <Plus aria-hidden="true" className="h-4 w-4 shrink-0 text-fg-muted" />
-        <label className="min-w-0 flex-1">
+        <label className="min-w-0 flex-1 basis-4/5 sm:basis-auto">
           <span className="sr-only">{text.addLabel}</span>
           <input
             className="h-11 w-full border-0 bg-transparent text-sm text-fg outline-none placeholder:text-fg-muted"
@@ -96,6 +100,7 @@ export default function TaskList({ tasks, tab, newTeam, onlyMine, searching, cop
             onChange={(e) => setDraft(e.target.value)}
           />
         </label>
+        <PrivateToggle pressed={isPrivate} onChange={setPrivate} label={copy.private.toggle} />
       </form>
 
       {!open.length && <p className="py-6 text-center text-sm text-fg-muted">{searching ? text.noResults : onlyMine ? text.emptyMine : text.empty}</p>}

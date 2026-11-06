@@ -4,6 +4,7 @@ import type { APIRoute } from 'astro'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { saveName, saveTeam } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { addPrivateTask, removePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
   isRecordId,
@@ -41,9 +42,10 @@ import {
  * 'create' (project, status?, eventId?, template?, task?), 'update' (id, project), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'reorder' (id, order), 'lessons' (id, lessons), 'saveTemplate' (id, name),
- * 'archiveTemplate' (templateId), 'name' (firstName, lastName) or 'team' (team, the member's own). Answers with
- * { code, id?, state } so the island
- * shows the current projects of everyone. Rights: see tasksStore.ts; every check runs here on the server.
+ * 'archiveTemplate' (templateId), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
+ * 'updatePrivate' (taskId, patch) or 'removePrivate' (taskId). Answers with { code, id?, state } so the island shows the
+ * current projects of everyone and the member's own private tasks. Rights: see tasksStore.ts and privateTasksStore.ts;
+ * every check runs here on the server.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -148,6 +150,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (!isRecordId(body.templateId)) return invalid()
         code = await archiveTemplate(actor, body.templateId)
         break
+      case 'addPrivate': {
+        const task = parseTask(body.task)
+        if (!task) return invalid()
+        code = await addPrivateTask(actor.id, task)
+        break
+      }
+      case 'updatePrivate': {
+        const patch = parseTaskPatch(body.patch)
+        if (!taskId || !patch || patch.assignees || patch.required !== undefined) return invalid()
+        code = await updatePrivateTask(actor.id, taskId, patch)
+        break
+      }
+      case 'removePrivate':
+        if (!taskId) return invalid()
+        code = await removePrivateTask(actor.id, taskId)
+        break
       case 'name': {
         const name = parseName(body)
         if (!name) return invalid()
@@ -165,7 +183,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       default:
         return invalid()
     }
-    const statusCode = { unknown: 404, forbidden: 403, full: 409 }[code] ?? 200
+    const statusCode = { unknown: 404, forbidden: 403, full: 409, privateFull: 409 }[code] ?? 200
     return reply(statusCode, { code, id: createdId, state: await workspaceState(actor) })
   } catch (err) {
     console.error('Tasks action failed:', err)

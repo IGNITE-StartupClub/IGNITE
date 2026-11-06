@@ -4,23 +4,25 @@
  * the calendar show one team at a time. They start on the member's own team, which also lists what they are assigned to
  * elsewhere, and every other team is one click away. Members without a team choose it here; admins can set it on the
  * member management page. Posts { action, … } to /api/members/tasks; each answer carries the full state of everyone's
- * projects, which replaces the local one. Changes that the UI shows at once (moving, checking off, assigning) are
- * applied optimistically and rolled back when the server refuses them.
+ * projects and the member's own private tasks, which replaces the local one. Private tasks sit between the others on
+ * board and list, only for their member. Changes that the UI shows at once (moving, checking off, assigning) are applied
+ * optimistically and rolled back when the server refuses them.
  * The open project is the URL hash (#<id>), pushed as a history entry like the CRM. ?ansicht=aufgaben or events opens
  * that view and ?ansicht=meine (link of the digest mail) the tasks with "Nur meine"; otherwise view and team of this
  * browser session are restored.
- * Props: copy (memberArea.tasks.workspace plus teams, team id → name), initialState ({ projects, templates, members }),
- * events (calendar events with `day`), eventsComplete, me (member id), named (has entered a name), admin, board (the
+ * Props: copy (memberArea.tasks.workspace plus teams, team id → name), initialState ({ projects, templates, members,
+ * privateTasks }), events (calendar events with `day`), eventsComplete, me (member id), named (has entered a name), admin, board (the
  * board works across teams, so it is not asked for one), locale, today (YYYY-MM-DD, Berlin).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { ALL_TEAMS, filterProjects, NAME_MAX, patchedTask, scopedTasks, TEAM_IDS } from '../../lib/tasks'
+import { ALL_TEAMS, filterProjects, NAME_MAX, patchedTask, scopedPrivateTasks, scopedTasks, TEAM_IDS } from '../../lib/tasks'
 import { Chip, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField } from './memberUi'
 import CompleteDialog from './tasks/CompleteDialog'
 import CreateDialog from './tasks/CreateDialog'
 import EventCalendar from './tasks/EventCalendar'
+import PrivateTaskDialog from './tasks/PrivateTaskDialog'
 import ProjectBoard from './tasks/ProjectBoard'
 import ProjectPanel from './tasks/ProjectPanel'
 import TaskBoard from './tasks/TaskBoard'
@@ -100,7 +102,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [state, setState] = useState(initialState)
   const latest = useRef(state)
   latest.current = state
-  const { projects, templates, members } = state
+  const { projects, templates, members, privateTasks } = state
   const membersById = new Map(members.map((member) => [member.id, member]))
   const myTeam = membersById.get(me)?.team ?? ''
 
@@ -111,6 +113,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [archived, setArchived] = useState(false)
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState(null)
+  const [openPrivateId, setOpenPrivateId] = useState(null)
   const [createRequest, setCreateRequest] = useState(null)
   const [completing, setCompleting] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -176,9 +179,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     setOpenId(null)
   }
 
-  const run = async (body, optimistic) => {
+  const run = async (body, optimistic, key = 'projects') => {
     const before = latest.current
-    if (optimistic) setState((current) => ({ ...current, projects: optimistic(current.projects) }))
+    if (optimistic) setState((current) => ({ ...current, [key]: optimistic(current[key]) }))
     try {
       const res = await fetch('/api/members/tasks', {
         method: 'POST',
@@ -212,7 +215,8 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   }
   const created = (id) => {
     setNotice({ code: 'created', at: Date.now() })
-    open(id)
+    // A private task has no project to open.
+    if (id) open(id)
   }
   const chooseTeam = async (team) => {
     if (await run({ action: 'team', team })) setTab(team)
@@ -224,7 +228,8 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   }
 
   const scope = { team: tab, myTeam, onlyMine, query }
-  const tasks = scopedTasks(projects, scope, me, today)
+  const withPrivate = (scoped) => [...scopedTasks(projects, scoped, me, today), ...scopedPrivateTasks(privateTasks, scoped, me, today)]
+  const tasks = withPrivate(scope)
   // Tasks without a team belong to nobody, so the hint has no place in a view of the member's own tasks.
   const unsorted = onlyMine
     ? 0
@@ -238,21 +243,25 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   // The overview has no search or "Nur meine", so what is set in the other views must not narrow it.
   const overviewScope = { team: tab, myTeam, onlyMine: false, query: '' }
 
-  const addTask = (title, status) =>
-    run({
-      action: 'create',
-      project: { title, description: '', type: 'task', due: '', leads: [], team: newTeam },
-      task: { description: '', due: '', priority: 'normal', required: false, assignees: onlyMine ? [me] : [], status },
-    })
-  const patchTask = (task, fields) =>
-    run({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: fields }, (list) =>
-      list.map((project) =>
-        project.id === task.projectId
-          ? { ...project, tasks: project.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields) : item)) }
-          : project,
-      ),
+  const addTask = (title, status, isPrivate) =>
+    run(
+      isPrivate
+        ? { action: 'addPrivate', task: { title, status, team: newTeam } }
+        : {
+            action: 'create',
+            project: { title, description: '', type: 'task', due: '', leads: [], team: newTeam },
+            task: { description: '', due: '', priority: 'normal', required: false, assignees: onlyMine ? [me] : [], status },
+          },
     )
-  const taskProps = { tasks, tab, onlyMine, searching: !!query.trim(), copy, locale, me, members, membersById, onPatch: patchTask, onOpen: open }
+  const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields) : item))
+  const patchTask = (task, fields) =>
+    task.private
+      ? run({ action: 'updatePrivate', taskId: task.id, patch: fields }, (list) => patched(list, task, fields), 'privateTasks')
+      : run({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: fields }, (list) =>
+          list.map((project) => (project.id === task.projectId ? { ...project, tasks: patched(project.tasks, task, fields) } : project)),
+        )
+  const openTask = (task) => (task.private ? setOpenPrivateId(task.id) : open(task.projectId))
+  const taskProps = { tasks, tab, onlyMine, searching: !!query.trim(), copy, locale, me, members, membersById, onPatch: patchTask, onOpen: openTask }
 
   return (
     <div className="flex flex-col gap-5">
@@ -360,20 +369,23 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           complete={eventsComplete}
           projectsByEvent={projectsByEvent}
           projects={filterProjects(projects, { ...overviewScope, archived: false }, me).filter((project) => project.status !== 'done')}
-          tasks={scopedTasks(projects, overviewScope, me, today)}
-          mine={scopedTasks(projects, { ...overviewScope, team: ALL_TEAMS, onlyMine: true }, me, today)}
+          tasks={withPrivate(overviewScope)}
+          mine={withPrivate({ ...overviewScope, team: ALL_TEAMS, onlyMine: true })}
           today={today}
           copy={copy}
           locale={locale}
           onView={goTo}
           onStart={(event) => setCreateRequest({ kind: 'event', event, team: newTeam })}
           onOpen={open}
+          onOpenTask={openTask}
           onPatch={patchTask}
         />
       )}
 
       {view === 'tasks' && layout === 'board' && <TaskBoard {...taskProps} onAdd={addTask} />}
-      {view === 'tasks' && layout === 'list' && <TaskList {...taskProps} newTeam={newTeam} onAdd={(title) => addTask(title, 'backlog')} />}
+      {view === 'tasks' && layout === 'list' && (
+        <TaskList {...taskProps} newTeam={newTeam} onAdd={(title, isPrivate) => addTask(title, 'backlog', isPrivate)} />
+      )}
 
       {view === 'projects' &&
         (shown.length ? (
@@ -450,6 +462,12 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         onCreated={created}
       />
       <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
+      <PrivateTaskDialog
+        task={privateTasks.find((task) => task.id === openPrivateId) ?? null}
+        copy={copy}
+        run={run}
+        onClose={() => setOpenPrivateId(null)}
+      />
 
       <div
         ref={toast}

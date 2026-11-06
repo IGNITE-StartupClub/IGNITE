@@ -4,10 +4,11 @@
  * tasks. A day with an event picks it for the events card, which otherwise shows the next event. Every card leads on to
  * its full view.
  * Props: events (calendar events with `day`), complete, projectsByEvent, projects (filterProjects), tasks (scopedTasks of
- * the team), mine (scopedTasks of the member), today, copy (workspace copy), locale, onView(view), onStart(event),
- * onOpen(projectId), onPatch(task, fields).
+ * the team), mine (scopedTasks of the member), both with scopedPrivateTasks, today, copy (workspace copy), locale,
+ * onView(view), onStart(event), onOpen(projectId), onOpenTask(task), onPatch(task, fields).
  */
 import React, { useId, useState } from 'react'
+import { Lock } from 'lucide-react'
 import { addDays, berlinDay, boardColumns, progress, sortTasks } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
 import { berlinTime, dayPart, ProgressBar, shortDay, TaskCheck } from './taskUi'
@@ -110,7 +111,7 @@ function OverviewCard({ title, link, onLink, children }) {
   )
 }
 
-export default function TaskOverview({ events, complete, projectsByEvent, projects, tasks, mine, today, copy, locale, onView, onStart, onOpen, onPatch }) {
+export default function TaskOverview({ events, complete, projectsByEvent, projects, tasks, mine, today, copy, locale, onView, onStart, onOpen, onOpenTask, onPatch }) {
   const text = copy.overview
   const [pickedDay, setPickedDay] = useState(null)
   // A task checked off here stays until the page changes, so a slip can be undone and the list does not jump.
@@ -223,10 +224,11 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
                 <button
                   type="button"
                   className={`min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-left text-sm font-medium ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
-                  onClick={() => onOpen(task.projectId)}
+                  onClick={() => onOpenTask(task)}
                 >
                   {task.title}
                 </button>
+                {task.private && <Lock role="img" aria-label={copy.private.badge} className="h-3.5 w-3.5 shrink-0 text-fg-muted" />}
                 {task.due && (
                   <span className={`shrink-0 text-xs tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
                     {shortDay(task.due, locale)}

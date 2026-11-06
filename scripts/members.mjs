@@ -9,7 +9,7 @@
  *   node scripts/members.mjs remove max@leuphana.de [...]
  *
  * `add` sends no invitation: the member requests a code on the login page ("Neu im Team?" → "Code anfordern").
- * `remove` also ends the open sessions and codes of that address.
+ * `remove` also ends the open sessions and codes of that address and deletes the member's private tasks.
  */
 
 import { MongoClient } from 'mongodb'
@@ -79,10 +79,11 @@ try {
 
   if (command === 'remove') {
     for (const email of emails) {
-      const { deletedCount } = await members.deleteOne({ email })
+      const member = await members.findOneAndDelete({ email })
       const sessions = await db.collection('member_sessions').deleteMany({ email })
       await db.collection('member_codes').deleteMany({ email })
-      console.log(deletedCount ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)
+      if (member) await db.collection('private_tasks').deleteMany({ memberId: member._id.toHexString() })
+      console.log(member ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)
     }
   }
 } finally {

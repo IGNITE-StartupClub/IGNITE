@@ -21,6 +21,7 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
+  scopedPrivateTasks,
   scopedTasks,
   sortTasks,
   TEAM_IDS,
@@ -30,6 +31,7 @@ import {
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
+  type PrivateTaskState,
   type ProjectState,
   type Scope,
   type TaskState,
@@ -39,6 +41,19 @@ const ME = 'a'.repeat(24)
 const BEN = 'b'.repeat(24)
 const MARKETING = 'ignite-marketing'
 const RELATIONS = 'ignite-relations'
+
+const privateTask = (overrides: Partial<PrivateTaskState> = {}): PrivateTaskState => ({
+  id: 'p',
+  title: 'Privat',
+  description: '',
+  done: false,
+  status: 'backlog',
+  doneAt: '',
+  due: '',
+  priority: 'normal',
+  team: '',
+  ...overrides,
+})
 
 const task = (overrides: Partial<TaskState> = {}): TaskState => ({
   id: 't',
@@ -211,6 +226,25 @@ test('scopedTasks narrows to own tasks and the search, and hands out team and gr
   assert.deepEqual(list({ onlyMine: true }).map((item) => [item.id, item.team, item.group, item.projectTitle]), [['a', MARKETING, 'overdue', 'Sommerfest']])
   assert.deepEqual(list({ query: 'flyer' }).map((item) => item.id), ['b'])
   assert.deepEqual(list({ query: 'sommer' }).map((item) => item.id), ['a', 'b'])
+})
+
+test('scopedPrivateTasks shows a private task on its team, on the own tab and on all teams', () => {
+  const tasks = [privateTask({ id: 'm', team: MARKETING }), privateTask({ id: 'r', team: RELATIONS }), privateTask({ id: 'n', team: '' })]
+  const ids = (overrides: Partial<Scope>) => scopedPrivateTasks(tasks, scope(overrides), ME, '2026-10-28').map((item) => item.id)
+  assert.deepEqual(ids({ team: ALL_TEAMS }), ['m', 'r', 'n'])
+  assert.deepEqual(ids({ team: MARKETING, myTeam: MARKETING }), ['m', 'r', 'n'], 'the own tab lists all private tasks of the member')
+  assert.deepEqual(ids({ team: RELATIONS, myTeam: MARKETING }), ['r'])
+})
+
+test('scopedPrivateTasks follows the search and hands out the shape of the task list', () => {
+  const tasks = [privateTask({ id: 'a', title: 'Pitch üben', due: '2026-10-20' }), privateTask({ id: 'b', title: 'Kurswahl' })]
+  const list = (overrides: Partial<Scope>) => scopedPrivateTasks(tasks, scope(overrides), ME, '2026-10-28')
+  assert.deepEqual(list({ query: 'PITCH' }).map((item) => item.id), ['a'])
+  const [first] = list({})
+  assert.equal(first.private, true)
+  assert.deepEqual(first.assignees, [ME], 'it counts as assigned, so "Nur meine" keeps it')
+  assert.equal(first.group, 'overdue')
+  assert.equal(first.projectId, '')
 })
 
 test('scopedTasks leaves out archived and finished projects', () => {

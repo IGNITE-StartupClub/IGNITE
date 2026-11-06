@@ -135,6 +135,7 @@ async function collections() {
     audit: db.collection<AuditEntry>('member_audit'),
     clients: db.collection<ClientAttempt>('member_login_clients'),
     photos: db.collection<MemberPhoto>('member_photos'),
+    privateTasks: db.collection<{ memberId: string }>('private_tasks'),
   }
 }
 
@@ -218,10 +219,15 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
 
 /** Removes a member together with their sessions, open codes and signature photo, so access ends at once. */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos } = await collections()
-  const { deletedCount } = await members.deleteOne({ email })
-  await Promise.all([sessions.deleteMany({ email }), codes.deleteMany({ email }), photos.deleteMany({ email })])
-  return deletedCount === 1
+  const { members, sessions, codes, photos, privateTasks } = await collections()
+  const member = await members.findOneAndDelete({ email })
+  await Promise.all([
+    sessions.deleteMany({ email }),
+    codes.deleteMany({ email }),
+    photos.deleteMany({ email }),
+    ...(member ? [privateTasks.deleteMany({ memberId: member._id.toHexString() })] : []),
+  ])
+  return !!member
 }
 
 /**
