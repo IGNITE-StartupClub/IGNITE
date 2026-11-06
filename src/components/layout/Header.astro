@@ -465,6 +465,12 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       background-color var(--duration-fast) ease,
       transform 0.3s var(--ease-out);
   }
+  /* Links, search, profile menu and door only fit next to the badge from 1100 px. */
+  @media (min-width: 1024px) and (max-width: 1099px) {
+    .member-badge {
+      display: none;
+    }
+  }
   /* Keeps the member links next to logo, search and profile menu up to where the full size fits. */
   @media (max-width: 1399px) {
     .main-nav[data-member] ul {
