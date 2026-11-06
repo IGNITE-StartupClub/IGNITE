@@ -201,6 +201,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
           <Button href={navigation.ctaUrl} size="sm">{navigation.ctaLabel}</Button>
         )
       }
+      {member && <ExitDoor href={navigation.homeUrl} label={memberNav.website} />}
       <button
         type="button"
         class="menu-trigger lg:hidden"
@@ -208,7 +209,6 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
         aria-controls="mobile-nav"
         aria-label={navigation.menuOpenLabel}
         data-label-open={navigation.menuOpenLabel}
-      {member && <ExitDoor href={navigation.homeUrl} label={memberNav.website} />}
         data-label-close={navigation.menuCloseLabel}
       >
         <span class="menu-bars" aria-hidden="true"></span>
