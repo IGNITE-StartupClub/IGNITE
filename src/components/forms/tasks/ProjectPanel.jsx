@@ -1,14 +1,15 @@
 /**
  * The detail view of one project: a modal panel on the right from md on, full screen on phones. The header carries
- * type, status, date, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
- * assign, edit, order), the project details with lessons learned, and the activity log the server writes.
+ * type, status, date, team, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
+ * assign, edit, order), the project details with lessons learned, and the activity log the server writes. A task
+ * follows the team of its project unless its editor gives it another one.
  * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure.
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
  * onClose(), onStatus(project, status) (the board's move, which asks before "done").
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
-import { isOverdue, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { isOverdue, patchedTask, PRIORITIES, PROJECT_STATUSES, progress, projectDay, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import {
   Avatar,
@@ -25,6 +26,7 @@ import {
   shortDay,
   STATUS_TONE,
   TaskCheck,
+  TeamSelect,
   TYPE_TEXT,
 } from './taskUi'
 
@@ -36,13 +38,15 @@ const SORTS = {
 }
 const TEXTAREA = `${INPUT} h-auto min-h-20 py-2`
 
-function TaskEditor({ task, copy, onSave, onCancel }) {
+function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
   const [form, setForm] = useState({
     title: task.title,
     description: task.description,
     due: task.due,
     priority: task.priority,
     required: task.required,
+    team: task.team,
+    status: task.status,
   })
   const id = useId()
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
@@ -86,6 +90,33 @@ function TaskEditor({ task, copy, onSave, onCancel }) {
           </select>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor={`${id}-status`} className={LABEL}>
+            {copy.status}
+          </label>
+          <select id={`${id}-status`} className={`${SELECT} h-10 w-full`} value={form.status} onChange={set('status')}>
+            {TASK_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {copy.taskStatuses[status]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${id}-team`} className={LABEL}>
+            {copy.team}
+          </label>
+          <TeamSelect
+            id={`${id}-team`}
+            className={`${SELECT} h-10 w-full`}
+            value={form.team}
+            onChange={set('team')}
+            teams={copy.teams}
+            empty={projectTeam ? `${copy.followsProject} (${copy.teams[projectTeam]})` : copy.followsProject}
+          />
+        </div>
+      </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
         <span>
@@ -105,10 +136,11 @@ function TaskEditor({ task, copy, onSave, onCancel }) {
   )
 }
 
-function TaskRow({ task, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
+function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
   const [editing, setEditing] = useState(false)
   const overdue = isOverdue(task, today)
-  const panel = { ...copy.panel, priorities: copy.priorities }
+  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
+  const otherTeam = task.team && task.team !== projectTeam
   return (
     <li className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
       <div className="flex items-start gap-3">
@@ -123,7 +155,7 @@ function TaskRow({ task, copy, locale, today, me, members, membersById, onPatch,
             {task.title}
           </button>
           {task.description && !editing && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
-          {(task.due || task.priority !== 'normal' || task.required) && (
+          {(task.due || task.priority !== 'normal' || task.required || otherTeam) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {task.due && (
                 <span className={overdue ? 'font-medium text-danger' : 'text-fg-muted'}>
@@ -136,6 +168,7 @@ function TaskRow({ task, copy, locale, today, me, members, membersById, onPatch,
                 </span>
               )}
               {task.required && <span className={`${BADGE} border-border-strong py-0 text-fg-muted`}>{copy.panel.required}</span>}
+              {otherTeam && <span className={`${BADGE} border-border-strong py-0 text-fg-muted`}>{copy.teams[task.team]}</span>}
             </p>
           )}
         </div>
@@ -144,6 +177,7 @@ function TaskRow({ task, copy, locale, today, me, members, membersById, onPatch,
           members={members}
           membersById={membersById}
           selected={task.assignees}
+          team={task.team || projectTeam}
           onChange={(assignees) => onPatch({ assignees })}
           copy={copy.people}
           me={me}
@@ -207,6 +241,7 @@ function TaskRow({ task, copy, locale, today, me, members, membersById, onPatch,
       {editing && (
         <TaskEditor
           task={task}
+          projectTeam={projectTeam}
           copy={panel}
           onCancel={() => setEditing(false)}
           onSave={(fields) => {
@@ -243,7 +278,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
       { action: 'updateTask', id: project.id, taskId: task.id, patch: fields },
       change((current) => ({
         ...current,
-        tasks: current.tasks.map((item) => (item.id === task.id ? { ...item, ...fields } : item)),
+        tasks: current.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields) : item)),
       })),
     )
   const remove = (task) =>
@@ -268,6 +303,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
     <TaskRow
       key={task.id}
       task={task}
+      projectTeam={project.team}
       copy={copy}
       locale={locale}
       today={today}
@@ -379,7 +415,7 @@ function DetailsTab({ project, copy, locale, run, change }) {
 
   const save = (e) => {
     e.preventDefault()
-    const next = { ...form, type: project.type, leads: project.leads }
+    const next = { ...form, type: project.type, leads: project.leads, team: project.team }
     run({ action: 'update', id: project.id, project: next }, change((current) => ({ ...current, ...form })))
   }
   const saveLessons = async (e) => {
@@ -544,15 +580,13 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   const done = project && progress(project.tasks)
   const day = project && projectDay(project)
 
-  const updateLeads = (leads) =>
+  const update = (changes) => {
+    const { title, description, type, due, leads, team } = project
     run(
-      {
-        action: 'update',
-        id: project.id,
-        project: { title: project.title, description: project.description, type: project.type, due: project.due, leads },
-      },
-      change((current) => ({ ...current, leads })),
+      { action: 'update', id: project.id, project: { title, description, type, due, leads, team, ...changes } },
+      change((current) => ({ ...current, ...changes })),
     )
+  }
   const archive = () =>
     run({ action: 'archive', id: project.id, archived: !project.archived }, change((current) => ({ ...current, archived: !current.archived })))
   const remove = async () => {
@@ -584,20 +618,25 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   {copy.types[project.type]}
                 </span>
                 <span className="ml-auto flex items-center gap-2">
-                  <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_TONE[project.status]}`} />
-                  <select
-                    aria-label={copy.panel.status}
-                    className={`${SELECT} h-8 text-xs`}
-                    value={project.status}
-                    disabled={project.archived}
-                    onChange={(e) => onStatus(project, e.target.value)}
-                  >
-                    {PROJECT_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {copy.statuses[status]}
-                      </option>
-                    ))}
-                  </select>
+                  {/* A single task has its own status on the board; a project status beside it would only compete. */}
+                  {project.type !== 'task' && (
+                    <>
+                      <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_TONE[project.status]}`} />
+                      <select
+                        aria-label={copy.panel.status}
+                        className={`${SELECT} h-8 text-xs`}
+                        value={project.status}
+                        disabled={project.archived}
+                        onChange={(e) => onStatus(project, e.target.value)}
+                      >
+                        {PROJECT_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {copy.statuses[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                 </span>
                 <Menu label={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} ariaLabel={copy.panel.projectMenu} className={ICON_BUTTON}>
                   {(close) => (
@@ -658,6 +697,17 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     {project.event && ` · ${berlinTime(project.event.startAt, locale)}`}
                   </span>
                 )}
+                <label className="inline-flex items-center gap-2">
+                  <span className="text-fg-muted">{copy.panel.team}</span>
+                  <TeamSelect
+                    className={`${SELECT} h-8 text-xs`}
+                    value={project.team}
+                    disabled={project.archived}
+                    onChange={(e) => update({ team: e.target.value })}
+                    teams={copy.teams}
+                    empty={copy.teamTabs.none}
+                  />
+                </label>
                 <span className="inline-flex items-center gap-2">
                   <span className="text-fg-muted">{copy.panel.leads}</span>
                   {/* Leads may archive, so only those who already may archive choose them (checked on the server too). */}
@@ -666,7 +716,8 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                       members={members}
                       membersById={membersById}
                       selected={project.leads}
-                      onChange={updateLeads}
+                      team={project.team}
+                      onChange={(leads) => update({ leads })}
                       copy={copy.people}
                       me={me}
                       label={copy.panel.leads}

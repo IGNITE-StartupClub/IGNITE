@@ -1,6 +1,6 @@
 /**
  * Rules of the tasks module ("Aufgaben" in the members area), shared by the API, the store, the daily digest and the
- * TaskWorkspace island: allowed values, input parsing, progress, the groups of "Meine Aufgaben", key figures, filters
+ * TaskWorkspace island: allowed values, input parsing, teams, progress, the deadline groups of the task list, filters
  * and copying a task list from a template or an earlier project. Free of local imports, so node --test runs it.
  * Days are YYYY-MM-DD in Europe/Berlin throughout, like the CRM; members are referenced by the hex id of their
  * `members` document, never by email, so no address reaches the browser.
@@ -13,6 +13,10 @@ export type ProjectType = (typeof PROJECT_TYPES)[number]
 export const PROJECT_STATUSES = ['planned', 'active', 'review', 'done'] as const
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 
+/** The columns of the task board, in order. */
+export const TASK_STATUSES = ['backlog', 'doing', 'review', 'done'] as const
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+
 export const PRIORITIES = ['low', 'normal', 'high'] as const
 export type Priority = (typeof PRIORITIES)[number]
 
@@ -21,6 +25,8 @@ export const TEAM_IDS = ['ignite-relations', 'ignite-marketing', 'ignite-hr', 'i
 export type TeamId = (typeof TEAM_IDS)[number]
 /** '' is no team: a member who has not chosen one, a project nobody sorted in, a task that follows its project. */
 export type TeamChoice = TeamId | ''
+/** The tab that shows every team. */
+export const ALL_TEAMS = 'all'
 
 export const TITLE_MAX = 200
 export const TEXT_MAX = 4000
@@ -37,6 +43,7 @@ export interface ProjectFields {
   /** Deadline of an internal project or a single task, the date of an event project without a public event. */
   due: string
   leads: string[]
+  team: TeamChoice
 }
 
 export interface TaskFields {
@@ -47,6 +54,9 @@ export interface TaskFields {
   /** A required task left open makes the board ask before the project moves to "done". */
   required: boolean
   assignees: string[]
+  /** Only when the task belongs to another team than its project; see taskTeam. */
+  team: TeamChoice
+  status: TaskStatus
 }
 
 /** What a template or an earlier project hands to a new project: no status, people or absolute dates. */
@@ -70,11 +80,12 @@ export interface TaskState {
   id: string
   title: string
   done: boolean
+  status: TaskStatus
   due: string
   priority: Priority
   required: boolean
   assignees: string[]
-  updatedAt?: string
+  team: TeamChoice
 }
 
 export interface ProjectState {
@@ -84,6 +95,7 @@ export interface ProjectState {
   status: ProjectStatus
   due: string
   leads: string[]
+  team: TeamChoice
   archived: boolean
   /** Start day of the linked public event, '' without one. */
   eventDay: string
@@ -168,6 +180,7 @@ export function parseProject(input: unknown): ProjectFields | null {
     type: choice(fields.type, PROJECT_TYPES, 'internal'),
     due: day(fields.due),
     leads: members(fields.leads),
+    team: team(fields.team),
   })
 }
 
@@ -181,6 +194,8 @@ export function parseTask(input: unknown): TaskFields | null {
     priority: choice(fields.priority, PRIORITIES, 'normal'),
     required: flag(fields.required),
     assignees: members(fields.assignees),
+    team: team(fields.team),
+    status: choice(fields.status, TASK_STATUSES, 'backlog'),
   })
 }
 
@@ -197,6 +212,8 @@ export function parseTaskPatch(input: unknown): TaskPatch | null {
     priority: (value) => choice(value, PRIORITIES, 'normal'),
     required: flag,
     assignees: members,
+    team,
+    status: (value) => choice(value, TASK_STATUSES, 'backlog'),
     done: flag,
   }
   const patch: Record<string, unknown> = {}
@@ -289,10 +306,28 @@ export const isOverdue = (task: Pick<TaskState, 'done' | 'due'>, today: string):
 export const openRequired = (tasks: Pick<TaskState, 'done' | 'required'>[]): number =>
   tasks.filter((task) => task.required && !task.done).length
 
+/** Tasks stored before the board have no status; their done flag tells where they stand. */
+export const taskStatus = (task: { done: boolean; status?: TaskStatus }): TaskStatus => task.status ?? (task.done ? 'done' : 'backlog')
+
+type Standing = Pick<TaskState, 'done' | 'status'>
+
+/**
+ * Where a task stands after a change. The board moves the status and checkboxes set done, so both always agree: the
+ * last column is done, and a task checked open again returns to the backlog.
+ */
+export function nextStanding(task: Standing, patch: TaskPatch): Standing {
+  if (patch.status) return { status: patch.status, done: patch.status === 'done' }
+  if (patch.done === undefined || patch.done === task.done) return { status: task.status, done: task.done }
+  return { status: patch.done ? 'done' : 'backlog', done: patch.done }
+}
+
+/** A task with a change applied, for updates the UI shows before the server answers. */
+export const patchedTask = <T extends Standing>(task: T, patch: TaskPatch): T => ({ ...task, ...patch, ...nextStanding(task, patch) })
+
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
 
-/** The one group of "Meine Aufgaben" a task belongs to. */
+/** The one group of the task list a task belongs to. */
 export function taskGroup(task: Pick<TaskState, 'done' | 'due'>, today: string): TaskGroup {
   if (task.done) return 'done'
   if (!task.due) return 'none'
@@ -300,82 +335,92 @@ export function taskGroup(task: Pick<TaskState, 'done' | 'due'>, today: string):
   return task.due <= weekEnd(today) ? 'week' : 'later'
 }
 
-/** Key figures of the board; archived projects count nowhere. */
-export function boardFigures(projects: ProjectState[], me: string, today: string) {
-  const live = projects.filter((project) => !project.archived)
-  const open = live.flatMap((project) => project.tasks.filter((task) => !task.done))
-  return {
-    active: live.filter((project) => project.status !== 'done').length,
-    open: open.length,
-    mine: open.filter((task) => task.assignees.includes(me)).length,
-    overdue: open.filter((task) => isOverdue(task, today)).length,
-  }
+/** What the workspace shows: the selected tab plus "Nur meine" and the search. */
+export interface Scope {
+  /** A team id or ALL_TEAMS. */
+  team: string
+  /** The member's own team, '' without one. Its tab also shows what they are assigned to in other teams. */
+  myTeam: string
+  onlyMine: boolean
+  query: string
 }
 
-export interface MyTask extends TaskState {
+/** The team a task counts for: its own, else the one of its project. */
+export const taskTeam = (task: Pick<TaskState, 'team'>, project: Pick<ProjectState, 'team'>): TeamChoice => task.team || project.team
+
+export interface ListTask extends TaskState {
   projectId: string
   projectTitle: string
+  projectType: ProjectType
   group: TaskGroup
 }
 
-/** The tasks assigned to `me` in projects that are not archived, each with its group. */
-export function myTasks(projects: ProjectState[], me: string, today: string): MyTask[] {
+const contains = (text: string, query: string) => text.toLowerCase().includes(query)
+
+/**
+ * The tasks of the task list, each with the team it counts for and its group. Archived and finished projects are
+ * over, so tasks left open in them no longer ask for attention.
+ */
+export function scopedTasks(projects: ProjectState[], scope: Scope, me: string, today: string): ListTask[] {
+  const query = scope.query.trim().toLowerCase()
   return projects
-    .filter((project) => !project.archived)
+    .filter((project) => !project.archived && project.status !== 'done')
     .flatMap((project) =>
       project.tasks
-        .filter((task) => task.assignees.includes(me))
-        .map((task) => ({ ...task, projectId: project.id, projectTitle: project.title, group: taskGroup(task, today) })),
+        .map((task) => ({
+          ...task,
+          team: taskTeam(task, project),
+          projectId: project.id,
+          projectTitle: project.title,
+          projectType: project.type,
+          group: taskGroup(task, today),
+        }))
+        .filter((task) => {
+          const assigned = task.assignees.includes(me)
+          const inTab = scope.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
+          return inTab && (!scope.onlyMine || assigned) && (!query || contains(task.title, query) || contains(task.projectTitle, query))
+        }),
     )
 }
 
-export function myFigures(tasks: MyTask[]) {
-  return {
-    open: tasks.filter((task) => !task.done).length,
-    week: tasks.filter((task) => task.group === 'week').length,
-    overdue: tasks.filter((task) => task.group === 'overdue').length,
-    done: tasks.filter((task) => task.done).length,
-  }
-}
-
-export const MY_SORTS = ['due', 'priority', 'updated'] as const
-export type MySort = (typeof MY_SORTS)[number]
-
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 }
 
-export function sortMyTasks<T extends MyTask>(tasks: T[], sort: MySort): T[] {
-  const byDue = (a: T, b: T) => (a.due || '9999').localeCompare(b.due || '9999')
-  const compare: Record<MySort, (a: T, b: T) => number> = {
-    due: (a, b) => byDue(a, b) || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority],
-    priority: (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || byDue(a, b),
-    updated: (a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
-  }
-  return [...tasks].sort(compare[sort])
-}
+/** Earliest deadline first, tasks without one last; on the same day the higher priority first. */
+export const sortTasks = <T extends Pick<TaskState, 'due' | 'priority'>>(tasks: T[]): T[] =>
+  [...tasks].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority])
 
-export interface BoardFilters {
-  query: string
-  type: ProjectType | ''
-  /** Only projects `me` leads or has tasks in. */
-  mine: boolean
-  overdue: boolean
-  member: string
-  archived: boolean
+/** The tasks of each board column: earliest deadline first, the done column with the last finished task on top. */
+export function boardColumns<T extends TaskState & { doneAt: string }>(tasks: T[]): Record<TaskStatus, T[]> {
+  const inColumn = (status: TaskStatus) => tasks.filter((task) => task.status === status)
+  return {
+    backlog: sortTasks(inColumn('backlog')),
+    doing: sortTasks(inColumn('doing')),
+    review: sortTasks(inColumn('review')),
+    done: inColumn('done').sort((a, b) => b.doneAt.localeCompare(a.doneAt)),
+  }
 }
 
 export const involves = (project: ProjectState, member: string): boolean =>
   project.leads.includes(member) || project.tasks.some((task) => task.assignees.includes(member))
 
-export function filterProjects<T extends ProjectState>(projects: T[], filters: BoardFilters, me: string, today: string): T[] {
+/**
+ * The cards of the board. A project shows for its own team and for every team with a task in it, and on the member's
+ * own tab also when they are involved. Single tasks live in the task list; only the archive shows them as cards.
+ */
+export function filterProjects<T extends ProjectState>(projects: T[], filters: Scope & { archived: boolean }, me: string): T[] {
   const query = filters.query.trim().toLowerCase()
+  const inTab = (project: T) =>
+    filters.team === ALL_TEAMS ||
+    project.team === filters.team ||
+    project.tasks.some((task) => task.team === filters.team) ||
+    (filters.team === filters.myTeam && involves(project, me))
   return projects.filter(
     (project) =>
       project.archived === filters.archived &&
-      (!filters.type || project.type === filters.type) &&
-      (!filters.mine || involves(project, me)) &&
-      (!filters.member || involves(project, filters.member)) &&
-      (!filters.overdue || project.tasks.some((task) => isOverdue(task, today))) &&
-      (!query || project.title.toLowerCase().includes(query) || project.tasks.some((task) => task.title.toLowerCase().includes(query))),
+      (filters.archived || project.type !== 'task') &&
+      inTab(project) &&
+      (!filters.onlyMine || involves(project, me)) &&
+      (!query || contains(project.title, query) || project.tasks.some((task) => contains(task.title, query))),
   )
 }
 
@@ -383,8 +428,9 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: B
 export const projectDay = (project: Pick<ProjectState, 'eventDay' | 'due'>): string => project.eventDay || project.due
 
 /**
- * The tasks of a template or an earlier project as new tasks: all open, nobody assigned, deadlines only where a
- * relative rule exists and the new project has a day to count from. Old absolute dates never carry over.
+ * The tasks of a template or an earlier project as new tasks: all open, nobody assigned, in the team of the new project,
+ * deadlines only where a relative rule exists and the new project has a day to count from. Old absolute dates never
+ * carry over.
  */
 export function tasksFromTemplate(tasks: TemplateTask[], anchorDay: string): TaskFields[] {
   return tasks.map((task) => ({
@@ -393,6 +439,8 @@ export function tasksFromTemplate(tasks: TemplateTask[], anchorDay: string): Tas
     priority: task.priority,
     required: task.required,
     assignees: [],
+    team: '',
+    status: 'backlog',
     due: anchorDay && task.offsetDays !== null ? addDays(anchorDay, task.offsetDays) : '',
   }))
 }

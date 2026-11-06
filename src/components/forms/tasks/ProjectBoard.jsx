@@ -2,8 +2,8 @@
  * The kanban board of the tasks module: one column per project status with one card per project (subtasks never
  * become cards). Cards move by drag and drop or, for keyboards and touch screens, through "Verschieben nach" in their
  * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns.
- * Props: projects (already filtered), archived (archive view), copy (workspace copy), locale, today, membersById,
- * onOpen(id), onMove(id, status).
+ * Props: projects (already filtered), archived (archive view), showTeam (cards name their team), copy (workspace copy,
+ * with teams), locale, today, membersById, onOpen(id), onMove(id, status).
  */
 import React, { useState } from 'react'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
@@ -11,7 +11,7 @@ import { isOverdue, PROJECT_STATUSES, progress, projectDay } from '../../../lib/
 import { fill, Menu, MENU_ITEM } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, ProgressBar, projectPeople, STATUS_TONE, TYPE_TEXT } from './taskUi'
 
-function ProjectCard({ project, copy, locale, today, membersById, onOpen, onMove, draggable, onDragStart, onDragEnd }) {
+function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOpen, onMove, draggable, onDragStart, onDragEnd }) {
   const done = progress(project.tasks)
   const overdue = project.tasks.filter((task) => isOverdue(task, today)).length
   const day = projectDay(project)
@@ -28,6 +28,7 @@ function ProjectCard({ project, copy, locale, today, membersById, onOpen, onMove
       <div className="flex items-start justify-between gap-2">
         <p className={`text-[0.6875rem] font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
           {copy.types[project.type]}
+          {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {copy.teams[project.team]}</span>}
         </p>
         <div className="relative z-10 -mr-2 -mt-2">
           <Menu
@@ -118,12 +119,13 @@ function ProjectCard({ project, copy, locale, today, membersById, onOpen, onMove
   )
 }
 
-export default function ProjectBoard({ projects, archived, copy, locale, today, membersById, onOpen, onMove }) {
+export default function ProjectBoard({ projects, archived, showTeam, copy, locale, today, membersById, onOpen, onMove }) {
   const [dragging, setDragging] = useState(null)
   const [over, setOver] = useState(null)
   const card = (project, draggable) => (
     <ProjectCard
       project={project}
+      showTeam={showTeam}
       copy={copy}
       locale={locale}
       today={today}
@@ -158,7 +160,6 @@ export default function ProjectBoard({ projects, archived, copy, locale, today, 
 
   return (
     <>
-      <p className="mb-2 text-xs text-fg-muted lg:hidden">{copy.board.scrollHint}</p>
       {/* Phones scroll through the columns one by one; from lg on all four sit side by side. */}
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible lg:pb-0">
         {PROJECT_STATUSES.map((status) => {
@@ -198,9 +199,9 @@ export default function ProjectBoard({ projects, archived, copy, locale, today, 
                     {card(project, true)}
                   </li>
                 ))}
-                {!column.length && (
+                {!column.length && target && (
                   <li className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border-strong p-4 text-center text-xs text-fg-subtle">
-                    {target ? copy.board.dropHere : copy.board.emptyColumn}
+                    {copy.board.dropHere}
                   </li>
                 )}
               </ul>

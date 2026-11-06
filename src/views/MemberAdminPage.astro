@@ -12,13 +12,15 @@ import Section from '../components/ui/Section.astro'
 import AdminSettings from '../components/forms/AdminSettings.jsx'
 import MemberAdmin from '../components/forms/MemberAdmin.jsx'
 import { getCopy } from '../data/copy'
+import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 import { memberSummaries } from '../lib/members'
 import { digestEnabled } from '../lib/taskDigest'
 
 const locale = resolveLocale(Astro.currentLocale)
-const { admin } = getCopy(locale).memberArea
+const { memberArea, openTeams } = getCopy(locale)
+const { admin } = memberArea
 const [members, taskDigest] = await Promise.all([memberSummaries(), digestEnabled()])
 ---
 
@@ -34,6 +36,7 @@ const [members, taskDigest] = await Promise.all([memberSummaries(), digestEnable
       client:load
       copy={admin.manager}
       initialMembers={members}
+      teams={teamNames(openTeams)}
       currentEmail={Astro.locals.member!.email}
       locale={locale}
       now={Date.now()}

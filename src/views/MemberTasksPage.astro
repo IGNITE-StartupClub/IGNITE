@@ -1,23 +1,27 @@
 ---
 /**
- * The tasks module of the members area ("Aufgaben & Events"), rendered on demand by pages/mitglieder/aufgaben.astro
- * and pages/en/members/tasks.astro. Loads the events of the public calendar (taskEvents.ts), refreshes the event
- * snapshots of planning projects and hands everything to the TaskWorkspace island, which talks to /api/members/tasks.
- * Data source: memberArea.tasks via getCopy(), projects and members via workspaceState().
+ * The tasks module of the members area, rendered on demand by pages/mitglieder/aufgaben.astro and
+ * pages/en/members/tasks.astro. Loads the events of the public calendar (taskEvents.ts), refreshes the event snapshots
+ * of planning projects and hands everything to the TaskWorkspace island, which talks to /api/members/tasks. The tool
+ * starts right below the header: the highlighted nav item already says where you are, so the title is for screen
+ * readers only.
+ * Data source: memberArea.tasks and openTeams via getCopy(), projects and members via workspaceState().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
-import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
 import TaskWorkspace from '../components/forms/TaskWorkspace.jsx'
 import { getCopy } from '../data/copy'
+import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
-import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+import { memberPagePath } from '../lib/memberAuth'
+import { isBoard } from '../lib/members'
 import { berlinDay } from '../lib/tasks'
 import { loadTaskEvents } from '../lib/taskEvents'
 import { syncEvents, taskActor, workspaceState } from '../lib/tasksStore'
 
 const locale = resolveLocale(Astro.currentLocale)
-const { tasks } = getCopy(locale).memberArea
+const { memberArea, openTeams } = getCopy(locale)
+const { tasks } = memberArea
 // The middleware let only signed-in members through; the member may have been removed in this very moment.
 const actor = await taskActor(Astro.locals.member!)
 if (!actor) return Astro.redirect(memberPagePath('login', locale))
@@ -35,19 +39,18 @@ const now = Date.now()
 ---
 
 <DefaultLayout title={tasks.pageTitle} alternatePath={memberPagePath('tasks', locale === 'de' ? 'en' : 'de')} noindex>
-  <PageHeader compact title={tasks.title} lead={tasks.lead}>
-    <p class="form-note"><a href={memberHomePath(locale)}>{tasks.back}</a></p>
-  </PageHeader>
-  <Section tone="subtle" spacing="xs" labelledby="page-title">
+  <Section spacing="xs" labelledby="page-title">
+    <h1 id="page-title" class="sr-only">{tasks.pageTitle}</h1>
     <TaskWorkspace
       client:load
-      copy={tasks.workspace}
+      copy={{ ...tasks.workspace, teams: teamNames(openTeams) }}
       initialState={state}
       events={calendar}
       eventsComplete={complete}
       me={actor.id}
       named={actor.named}
       admin={actor.role === 'admin'}
+      board={isBoard(Astro.locals.member!.email)}
       locale={locale}
       today={berlinDay(now)}
     />

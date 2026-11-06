@@ -11,10 +11,12 @@ const task = (id: string, fields: Partial<TaskState> = {}): TaskState => ({
   id,
   title: id,
   done: false,
+  status: 'backlog',
   due: '',
   priority: 'normal',
   required: false,
   assignees: [ME],
+  team: '',
   ...fields,
 })
 
@@ -25,6 +27,7 @@ const project = (id: string, tasks: TaskState[], fields: Partial<HomeProject> = 
   status: 'active',
   due: '',
   leads: [],
+  team: '',
   archived: false,
   eventDay: '',
   tasks,

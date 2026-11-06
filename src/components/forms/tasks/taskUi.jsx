@@ -1,16 +1,20 @@
 /**
  * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the member
- * picker popover, the progress bar, status and type styles and date formatting. Members are { id, name, photo }.
+ * picker popover, the team select, the progress bar, status and type styles and date formatting. Members are
+ * { id, name, photo, team }.
  */
 import React, { useId, useRef, useState } from 'react'
 import { Check, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
+import { TEAM_IDS } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 
-/** Dot and progress colour per board column; the review amber has no site token. */
+/** Dot and progress colour per board column of projects and tasks; the review amber has no site token. */
 export const STATUS_TONE = {
   planned: 'bg-fg-subtle',
+  backlog: 'bg-fg-subtle',
   active: 'bg-brand-bright',
+  doing: 'bg-brand-bright',
   review: 'bg-[#f2b35a]',
   done: 'bg-success',
 }
@@ -27,6 +31,9 @@ export const INPUT =
 export const LABEL = 'mb-1 block text-xs font-medium uppercase tracking-wider text-fg-muted'
 
 const dateFormat = (locale, options) => new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de', { timeZone: 'UTC', ...options })
+
+/** One part of a YYYY-MM-DD day, for layouts that set weekday, number and month apart. */
+export const dayPart = (day, locale, options) => dateFormat(locale, options).format(new Date(`${day}T00:00:00Z`))
 
 /** "19. Nov." / "19 Nov" for a YYYY-MM-DD day. */
 export const shortDay = (day, locale) => dateFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(`${day}T00:00:00Z`))
@@ -105,16 +112,18 @@ export function AvatarStack({ ids, membersById, copy, max = 3, size = 'sm' }) {
 
 /**
  * A button that opens a searchable member list with checkboxes; every toggle calls onChange with the new id list.
- * The popover is placed under its button and closes on Escape and outside clicks (browser popover API).
+ * The popover is placed under its button and closes on Escape and outside clicks (browser popover API). Members of
+ * `team`, the team the work belongs to, come right after the member themselves.
  */
-export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, compact = false }) {
+export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false }) {
   const id = useId()
   const button = useRef(null)
   const panel = useRef(null)
   const [query, setQuery] = useState('')
   const matches = members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase()))
   // Me first, so assigning yourself is one click.
-  const ordered = [...matches.filter((member) => member.id === me), ...matches.filter((member) => member.id !== me)]
+  const rank = (member) => (member.id === me ? 0 : team && member.team === team ? 1 : 2)
+  const ordered = [...matches].sort((a, b) => rank(a) - rank(b))
 
   const place = (event) => {
     if (event.newState !== 'open') return
@@ -198,6 +207,20 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
   )
 }
 
+/** A select of all teams; `empty` names the option for no team. Other props go to the select. */
+export function TeamSelect({ teams, empty, ...props }) {
+  return (
+    <select {...props}>
+      <option value="">{empty}</option>
+      {TEAM_IDS.map((team) => (
+        <option key={team} value={team}>
+          {teams[team]}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 /** A thin bar; nothing at all for a project without tasks, so it never shows a made-up value. Spans, so it fits in buttons. */
 export function ProgressBar({ percent, tone = 'bg-brand-bright', label }) {
   if (percent === null) return null
@@ -212,6 +235,25 @@ export function ProgressBar({ percent, tone = 'bg-brand-bright', label }) {
     >
       <span className={`block h-full rounded-full transition-[width] duration-500 ${tone}`} style={{ width: `${percent}%` }} />
     </span>
+  )
+}
+
+/** A small switch between display modes. `options` maps each key to its label. */
+export function Segmented({ label, options, value, onChange }) {
+  return (
+    <div role="group" aria-label={label} className="inline-flex rounded-lg border border-border-strong p-0.5">
+      {Object.entries(options).map(([key, text]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={value === key}
+          onClick={() => onChange(key)}
+          className={`h-8 rounded-md border-0 px-3 py-0 text-sm ${value === key ? 'bg-fg text-bg' : 'bg-transparent text-fg hover:bg-bg-subtle'}`}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
   )
 }
 
