@@ -117,7 +117,7 @@ Mitglieder von IGNITE melden sich im Mitgliederbereich der Website mit ihrer E-M
 
 Wir speichern das Passwort nicht im Klartext, sondern nur als gesalzenen Hashwert (Verfahren scrypt, zusätzlich mit einem geheimen Schlüssel des Servers), aus dem sich das Passwort nicht zurückrechnen lässt. Nach fünf falschen Passwörtern in Folge sperren wir die Anmeldung für 15 Minuten. Zum Schutz vor dem Durchprobieren vieler Konten speichern wir bei einer fehlgeschlagenen Anmeldung außerdem für 15 Minuten ein Pseudonym der IP-Adresse (ein mit einem geheimen Schlüssel gebildeter Hashwert, nicht die Adresse selbst).
 
-Nach der Anmeldung setzen wir das Cookie „ignite_member“. Es enthält eine zufällige Kennung, über die wir die Anmeldung wiedererkennen, und ist für den Mitgliederbereich technisch erforderlich. Es wird beim Abmelden gelöscht, spätestens aber nach 30 Tagen ungültig.
+Nach der Anmeldung setzen wir das Cookie „ignite_member“. Es enthält eine zufällige Kennung, über die wir die Anmeldung wiedererkennen, und ist für den Mitgliederbereich technisch erforderlich. Es wird beim Abmelden gelöscht, spätestens aber nach 30 Tagen ungültig. Zusätzlich legen wir im lokalen Speicher des Browsers den Eintrag „ignite_member_hint“ ab. Er enthält keine Kennung, sondern nur den Hinweis, dass in diesem Browser zuletzt ein Mitglied angemeldet war, damit beim Öffnen des Mitgliederbereichs die Ladeanimation erscheint. Er wird beim Abmelden gelöscht.
 
 Änderungen an der Mitgliederliste (hinzufügen, entfernen, Rolle ändern, Einladung senden) protokollieren wir mit Zeitpunkt, der betroffenen Adresse und der Adresse des Admins, der die Änderung vorgenommen hat.
 

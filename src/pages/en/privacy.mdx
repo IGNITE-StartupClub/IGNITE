@@ -119,7 +119,7 @@ IGNITE members sign in to the members area of the website with their email addre
 
 We do not store the password in plain text, only as a salted hash (scrypt, additionally keyed with a secret server key), from which the password cannot be recovered. After five wrong passwords in a row we lock sign-in for 15 minutes. To protect against trying passwords across many accounts, we also store a pseudonym of the IP address for 15 minutes after a failed sign-in (a hash formed with a secret key, not the address itself).
 
-After sign-in we set the cookie "ignite_member". It holds a random identifier that lets us recognise the sign-in and is technically necessary for the members area. It is deleted on sign-out and becomes invalid after 30 days at the latest.
+After sign-in we set the cookie "ignite_member". It holds a random identifier that lets us recognise the sign-in and is technically necessary for the members area. It is deleted on sign-out and becomes invalid after 30 days at the latest. We also store the entry "ignite_member_hint" in the browser's local storage. It holds no identifier, only the note that a member was last signed in on this browser, so that the loading animation appears when the members area is opened. It is deleted on sign-out.
 
 We log changes to the member list (adding, removing, changing a role, sending an invitation) with the time, the affected address and the address of the admin who made the change.
 

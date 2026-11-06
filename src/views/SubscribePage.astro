@@ -24,6 +24,6 @@ const { subscribePage, communityForm, memberArea, pageMeta } = getCopy(locale)
   <Section spacing="sm" labelledby="members-heading">
     <h2 id="members-heading" class="max-w-text text-display-sm" set:html={memberArea.teaser.heading} />
     <p class="mt-6 max-w-text text-lead text-fg-muted">{memberArea.teaser.lead}</p>
-    <Button href={memberHomePath(locale)} variant="outline" icon="ion:lock-closed-outline" class="mt-8">{memberArea.teaser.link}</Button>
+    <Button href={memberHomePath(locale)} variant="outline" icon="ion:lock-closed-outline" class="mt-8" data-member-entry>{memberArea.teaser.link}</Button>
   </Section>
 </DefaultLayout>

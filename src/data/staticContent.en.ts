@@ -400,6 +400,8 @@ export const memberArea = {
   login: {
     area: 'Members area',
     backHome: 'Back to the website',
+    // Loading screen for signed-in members (MemberPortal.astro).
+    portal: 'Signing you in...',
     panel: {
       title: 'Everything for the team, <em>in one place.</em>',
       lead: 'Internal news and contacts for everyone who is part of IGNITE.',
