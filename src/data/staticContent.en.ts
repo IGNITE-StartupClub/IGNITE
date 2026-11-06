@@ -391,6 +391,7 @@ export const communityForm = {
 // `admin.manager` to MemberAdmin.
 export const memberArea = {
   pageTitle: 'Members area',
+  loading: 'Loading page',
   // Entry point on the Community page.
   teaser: {
     heading: 'For <em>members</em>',
