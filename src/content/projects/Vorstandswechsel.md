@@ -1,7 +1,7 @@
 ---
 title: Neues Kapitel bei IGNITE – Unser Vorstandswechsel
 author: Ben Kaiser @IGNITE Team
-description: Ein neues Kapitel für IGNITE! Wir stellen unseren Vorstand mit Ben Kaiser, Laurens Rocker und Marie Grevers vor und freuen uns auf die gemeinsame Zeit.
+description: Ein neues Kapitel für IGNITE! Wir stellen unseren Vorstand mit Ben Kaiser, Laurens Rocker und Marie Gevers vor und freuen uns auf die gemeinsame Zeit.
 image: /news/vorstandswechsel.jpeg
 date: 2026-07-12
 ---
