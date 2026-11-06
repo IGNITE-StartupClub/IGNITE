@@ -462,8 +462,8 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       background-color var(--duration-fast) ease,
       transform 0.3s var(--ease-out);
   }
-  /* Keeps the member links next to logo and profile menu between lg and xl. */
-  @media (max-width: 1279px) {
+  /* Keeps the member links next to logo, search and profile menu up to where the full size fits. */
+  @media (max-width: 1399px) {
     .main-nav[data-member] ul {
       gap: 0;
     }

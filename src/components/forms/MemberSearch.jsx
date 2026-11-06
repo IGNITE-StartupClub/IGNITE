@@ -132,7 +132,7 @@ function Lines({ title, meta, done }) {
   return (
     <span className="min-w-0 flex-1">
       <span className={`block truncate font-medium ${done ? 'text-fg-muted line-through' : ''}`}>{title}</span>
-      {meta && <span className="block truncate text-[13px] text-fg-muted">{meta}</span>}
+      {meta && <span className="block truncate text-caption text-fg-muted">{meta}</span>}
     </span>
   )
 }
@@ -327,7 +327,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
           <Search aria-hidden="true" className="h-5 w-5 shrink-0 text-fg-muted" />
           {mode !== 'empty' && (
             <span
-              className={`shrink-0 rounded-button px-2.5 py-0.5 text-[13px] font-semibold ${
+              className={`shrink-0 rounded-button px-2.5 py-0.5 text-caption font-semibold ${
                 isTask ? 'bg-primary text-primary-fg' : mode === 'people' ? 'surface-brand' : 'bg-bg-subtle text-fg'
               }`}
             >
@@ -414,7 +414,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
                 </p>
               )}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-[13px] text-fg-muted">{copy.task.hint}</span>
+                <span className="text-caption text-fg-muted">{copy.task.hint}</span>
                 <button
                   type="button"
                   onClick={create}
@@ -467,7 +467,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
 
             {groups.map(({ kind, items: hits }) => (
               <div key={kind} role="group" aria-labelledby={`${uid}-${kind}`} className="pb-1.5">
-                <p id={`${uid}-${kind}`} className="px-5 pb-1 pt-3 text-[13px] font-semibold text-fg-muted">
+                <p id={`${uid}-${kind}`} className="px-5 pb-1 pt-3 text-caption font-semibold text-fg-muted">
                   {copy.groups[kind]}
                 </p>
                 {hits.map((item) => {
@@ -477,7 +477,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl }) {
                       <ItemIcon item={item} />
                       <Lines title={item.title} meta={item.meta} done={item.kind === 'task' && item.done} />
                       {item.kind === 'member' && (
-                        <span className="shrink-0 text-[13px] text-accent">{copy.assign}</span>
+                        <span className="shrink-0 text-caption text-accent">{copy.assign}</span>
                       )}
                     </Option>
                   )
