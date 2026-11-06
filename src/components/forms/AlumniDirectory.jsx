@@ -3,11 +3,12 @@
  * status; one match per group, every group must match), a card per alumni profile and a dialog to add or edit a
  * profile, which requires the person's consent. Posts { action, id?, alumni? } to /api/members/alumni and shows the
  * list the API returns after each action; an edit sends only the fields it changed, so it leaves what others saved in
- * the meantime alone. useLiveRefresh fetches the list when it changed while the page is in use.
+ * the meantime alone. useLiveRefresh fetches the list when it changed while the page is in use. A URL hash (#<id>, from
+ * the header search) narrows the list to that profile.
  * Props: copy (memberArea.alumni.directory), initialAlumni (alumniSummary objects), initialRevision (see liveUpdates.ts).
  * Styles: ./forms.css plus Tailwind utilities.
  */
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Mail, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ALUMNI_HELP, ALUMNI_INDUSTRIES, ALUMNI_STATUS, filterAlumni } from '../../lib/contacts'
 import { changedFields } from '../../lib/liveUpdates'
@@ -126,6 +127,16 @@ export default function AlumniDirectory({ copy, initialAlumni, initialRevision }
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const toggle = (list, value) => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value])
+
+  useEffect(() => {
+    const read = () => {
+      const person = alumni.find(({ id }) => id === decodeURIComponent(window.location.hash.slice(1)))
+      if (person) setQuery(person.name)
+    }
+    read()
+    window.addEventListener('popstate', read)
+    return () => window.removeEventListener('popstate', read)
+  }, [])
 
   const visible = filterAlumni(alumni, query, filters)
   const filtering = query.trim() || Object.values(filters).some((list) => list.length)
