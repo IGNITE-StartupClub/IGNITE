@@ -1,0 +1,52 @@
+---
+/**
+ * Frame of the Netzwerk section in the members area: one heading and a tab bar over CRM, alumni and teams. Each tab is
+ * a page of its own, so it loads only its own data and the CRM keeps the URL hash for the open contact.
+ * Props: tab (the active tab, which also selects the page title and lead).
+ * Slots: default (the content of the tab).
+ * Data source: memberArea.network and memberArea[tab] via getCopy().
+ */
+import DefaultLayout from './DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { memberHomePath, memberPagePath } from '../lib/memberAuth'
+
+const TABS = ['crm', 'alumni', 'team'] as const
+
+interface Props {
+  tab: (typeof TABS)[number]
+}
+
+const { tab } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const { network } = memberArea
+const { pageTitle, lead } = memberArea[tab]
+---
+
+<DefaultLayout title={pageTitle} alternatePath={memberPagePath(tab, locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader compact title={network.title} lead={lead}>
+    <p class="form-note"><a href={memberHomePath(locale)}>{network.back}</a></p>
+    <nav aria-label={network.tabsLabel} class="mt-4 flex gap-1 border-0 border-b border-solid border-border">
+      {
+        TABS.map((key) => (
+          <a
+            href={memberPagePath(key, locale)}
+            aria-current={key === tab ? 'page' : undefined}
+            class:list={[
+              '-mb-px border-0 border-b-2 border-solid px-3 py-2.5 text-sm font-medium no-underline',
+              key === tab ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg',
+            ]}
+          >
+            {network.tabs[key]}
+          </a>
+        ))
+      }
+    </nav>
+  </PageHeader>
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
+    <slot />
+  </Section>
+</DefaultLayout>

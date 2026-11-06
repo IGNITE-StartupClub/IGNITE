@@ -467,9 +467,7 @@ export const memberArea = {
     home: 'Start',
     signature: 'Mail-Signatur',
     tasks: 'Aufgaben',
-    crm: 'CRM',
-    alumni: 'Alumni',
-    team: 'Team',
+    network: 'Netzwerk',
     branding: 'Branding',
     benefits: 'Vorteile',
     newTab: 'öffnet in neuem Tab',
@@ -535,9 +533,7 @@ export const memberArea = {
     },
     toolsHeading: 'Im Mitgliederbereich',
     tools: {
-      crm: 'CRM',
-      alumni: 'Alumni-Netzwerk',
-      team: 'Team',
+      network: 'Netzwerk',
       guide: 'Guide',
       branding: 'Branding',
       benefits: 'Vorteile',
@@ -927,17 +923,19 @@ export const memberArea = {
       },
     ],
   },
+  network: {
+    title: 'Unser <em>Netzwerk</em>',
+    back: 'Zurück zum Mitgliederbereich',
+    tabsLabel: 'Bereiche des Netzwerks',
+    tabs: { crm: 'CRM', alumni: 'Alumni', team: 'Team' },
+  },
   team: {
     pageTitle: 'Team',
-    title: 'Unser <em>Team</em>',
     lead: 'Die Teams von IGNITE und wofür sie zuständig sind. Hier kommen später auch die Teamfotos hin.',
-    back: 'Zurück zum Mitgliederbereich',
   },
   crm: {
     pageTitle: 'CRM',
-    title: 'Unsere <em>Kontakte</em>',
     lead: 'Partner, Sponsoren, Startups und Ansprechpartner:innen, mit denen IGNITE im Austausch ist. Alle Mitglieder sehen und pflegen diese Liste.',
-    back: 'Zurück zum Mitgliederbereich',
     board: {
       listHeading: 'Kontakte',
       search: 'Name, Organisation oder Notiz suchen',
@@ -1023,10 +1021,8 @@ export const memberArea = {
     },
   },
   alumni: {
-    pageTitle: 'Alumni-Netzwerk',
-    title: 'Unser <em>Alumni-Netzwerk</em>',
+    pageTitle: 'Alumni',
     lead: 'Ehemalige von IGNITE, die gern weiterhelfen. Filter danach, wobei du Hilfe brauchst, und meld dich direkt bei ihnen.',
-    back: 'Zurück zum Mitgliederbereich',
     directory: {
       heading: 'Alumni',
       search: 'Name, Firma oder Stadt suchen',
