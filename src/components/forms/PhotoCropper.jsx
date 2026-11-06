@@ -1,7 +1,9 @@
 /**
- * Signature photo picker inside SignatureGenerator. Opens an image in the browser, lets the member move and zoom it
- * in a square frame, cuts the visible circle to an OUTPUT px PNG with transparent corners and stores it via
- * /api/members/photo. Only the cut photo leaves the browser.
+ * Picker for the member's one photo, in SignatureGenerator and TeamChoice. Opens an image in the browser, lets the
+ * member move and zoom it in a square frame, cuts the visible circle to an OUTPUT px PNG with transparent corners and
+ * stores it via /api/members/photo. Only the cut photo leaves the browser. Cropping happens in a modal dialog, because
+ * both pages sit in a form whose own submit button would otherwise drop an unfinished crop. The dialog holds no <form>
+ * for the same reason, so FormDialog does not fit here.
  * Props: copy (memberArea.signature.generator.photo), optional (the "(optional)" label), photo (path of the stored
  * photo or ''), onChange(path).
  * Styles: ./forms.css plus Tailwind utilities.
@@ -9,6 +11,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { UserRound } from 'lucide-react'
 import { PRIMARY_BUTTON, TOOL_BUTTON } from './memberUi.jsx'
+import './forms.css'
 
 const FRAME = 224 // px, the frame on screen
 const OUTPUT = 192 // px, twice the 96 px the signature shows, so it stays sharp on high-density screens
@@ -30,9 +33,13 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
   const [status, setStatus] = useState(null) // { message, isError } | null
   const [busy, setBusy] = useState(false)
   const fileInput = useRef(null)
+  const dialog = useRef(null)
   const dragFrom = useRef(null)
 
   useEffect(() => () => image && URL.revokeObjectURL(image.url), [image])
+  useEffect(() => {
+    if (image) dialog.current.showModal()
+  }, [image])
 
   // At zoom 1 the shorter side fills the frame.
   const baseScale = image ? FRAME / Math.min(image.width, image.height) : 1
@@ -125,7 +132,7 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
     context.fillRect(0, 0, OUTPUT, OUTPUT)
     context.drawImage(image.el, -offset.x / scale, -offset.y / scale, FRAME / scale, FRAME / scale, 0, 0, OUTPUT, OUTPUT)
     if (await send('POST', { image: canvas.toDataURL('image/png') })) {
-      setImage(null)
+      dialog.current.close()
       setStatus({ message: copy.saved, isError: false })
     }
   }
@@ -134,6 +141,10 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
     if (await send('DELETE')) setStatus({ message: copy.removed, isError: false })
   }
 
+  const statusLine = (
+    <div aria-live="polite">{status && <p className={status.isError ? 'form-error' : 'form-success'}>{status.message}</p>}</div>
+  )
+
   return (
     <div className="field">
       <span className="field-label">
@@ -141,67 +152,90 @@ export default function PhotoCropper({ copy, optional, photo, onChange }) {
       </span>
       <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} className="sr-only" tabIndex={-1} aria-hidden="true" />
 
-      {image ? (
-        <div className="flex flex-col gap-4">
-          <div
-            role="group"
-            tabIndex={0}
-            aria-label={copy.frame}
-            onPointerDown={startDrag}
-            onPointerMove={drag}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onKeyDown={moveByKey}
-            className="relative cursor-grab touch-none select-none overflow-hidden rounded-lg bg-bg-subtle outline-offset-2 active:cursor-grabbing"
-            style={{ width: FRAME, height: FRAME }}
-          >
-            <img
-              src={image.url}
-              alt=""
-              draggable={false}
-              className="pointer-events-none absolute"
-              style={{ left: offset.x, top: offset.y, width: size.w, height: size.h, maxWidth: 'none' }}
-            />
-            {/* Dims the corners, which the saved photo cuts away. */}
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full" style={{ boxShadow: '0 0 0 999px rgb(0 0 0 / 0.4)' }} />
-          </div>
-          <div className="flex flex-col gap-1" style={{ maxWidth: FRAME }}>
-            <label htmlFor="signature-photo-zoom" className="field-label">
-              {copy.zoom}
-            </label>
-            <input id="signature-photo-zoom" type="range" min="1" max={MAX_ZOOM} step="0.01" value={zoom} onChange={changeZoom} />
-          </div>
-          <p className="field-hint text-sm">{copy.cropHint}</p>
-          <div className="form-actions">
-            <button type="button" className={PRIMARY_BUTTON} onClick={save} disabled={busy}>
-              {copy.save}
-            </button>
-            <button type="button" className={TOOL_BUTTON} onClick={() => setImage(null)} disabled={busy}>
-              {copy.cancel}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          {photo ? (
-            <img src={photo} alt={copy.current} width="56" height="56" className="h-14 w-14 rounded-full object-cover" />
-          ) : (
-            <span aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border-strong text-fg-subtle">
-              <UserRound className="h-6 w-6" />
-            </span>
-          )}
-          <button type="button" className={TOOL_BUTTON} onClick={() => fileInput.current.click()} disabled={busy}>
-            {photo ? copy.change : copy.upload}
+      <div className="flex flex-wrap items-center gap-3">
+        {photo ? (
+          <img src={photo} alt={copy.current} width="56" height="56" className="h-14 w-14 rounded-full object-cover" />
+        ) : (
+          <span aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border-strong text-fg-subtle">
+            <UserRound className="h-6 w-6" />
+          </span>
+        )}
+        <button type="button" className={TOOL_BUTTON} onClick={() => fileInput.current.click()} disabled={busy}>
+          {photo ? copy.change : copy.upload}
+        </button>
+        {photo && (
+          <button type="button" className={TOOL_BUTTON} onClick={remove} disabled={busy}>
+            {copy.remove}
           </button>
-          {photo && (
-            <button type="button" className={TOOL_BUTTON} onClick={remove} disabled={busy}>
-              {copy.remove}
-            </button>
-          )}
-        </div>
-      )}
-      {!image && <p className="field-hint text-sm">{copy.hint}</p>}
-      <div aria-live="polite">{status && <p className={status.isError ? 'form-error' : 'form-success'}>{status.message}</p>}</div>
+        )}
+      </div>
+      <p className="field-hint text-sm">{copy.hint}</p>
+      {!image && statusLine}
+
+      <dialog
+        ref={dialog}
+        aria-labelledby="photo-crop-heading"
+        onClose={() => setImage(null)}
+        // A click on the backdrop lands on the dialog element itself.
+        onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+        className="w-[min(20rem,calc(100vw-2rem))] rounded-card border border-border bg-bg p-0 text-fg backdrop:bg-black/60"
+      >
+        {image && (
+          <div className="flex flex-col items-center gap-4 p-6">
+            <h2 id="photo-crop-heading" className="self-start text-lg font-semibold">
+              {copy.cropHeading}
+            </h2>
+            <div
+              role="group"
+              tabIndex={0}
+              aria-label={copy.frame}
+              onPointerDown={startDrag}
+              onPointerMove={drag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onKeyDown={moveByKey}
+              className="relative shrink-0 cursor-grab touch-none select-none overflow-hidden rounded-lg bg-bg-subtle outline-offset-2 active:cursor-grabbing"
+              style={{ width: FRAME, height: FRAME }}
+            >
+              <img
+                src={image.url}
+                alt=""
+                draggable={false}
+                className="pointer-events-none absolute"
+                style={{ left: offset.x, top: offset.y, width: size.w, height: size.h, maxWidth: 'none' }}
+              />
+              {/* Dims the corners, which the saved photo cuts away. */}
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full" style={{ boxShadow: '0 0 0 999px rgb(0 0 0 / 0.4)' }} />
+            </div>
+            <div className="flex w-full flex-col gap-1">
+              <label htmlFor="photo-zoom" className="field-label">
+                {copy.zoom}
+              </label>
+              {/* Enter on a range input submits the surrounding form, which would leave the page mid-crop. */}
+              <input
+                id="photo-zoom"
+                type="range"
+                min="1"
+                max={MAX_ZOOM}
+                step="0.01"
+                value={zoom}
+                onChange={changeZoom}
+                onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+            <p className="field-hint self-start text-sm">{copy.cropHint}</p>
+            {statusLine}
+            <div className="form-actions self-start">
+              <button type="button" className={PRIMARY_BUTTON} onClick={save} disabled={busy}>
+                {copy.save}
+              </button>
+              <button type="button" className={TOOL_BUTTON} onClick={() => dialog.current.close()} disabled={busy}>
+                {copy.cancel}
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
     </div>
   )
 }
