@@ -17,9 +17,10 @@
 import { randomUUID } from 'node:crypto'
 import { ObjectId } from 'mongodb'
 import type { MemberRole } from './memberAuth'
-import { database, displayName, type Member } from './members'
+import type { HomeProject } from './memberHome'
+import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
-import { changedSince, collectionRevision } from './liveUpdates'
+import { changedSince, collectionRevision, listRevision } from './liveUpdates'
 import { privateTasks } from './privateTasksStore'
 import { standardTemplates } from '../data/taskTemplates'
 import type { TaskEvent } from './taskEvents'
@@ -148,40 +149,41 @@ export interface TaskActor {
   named: boolean
 }
 
-let ready: Promise<unknown> | null = null
+let seeded = false
 
 async function collections() {
   const db = await database()
   const projects = db.collection<ProjectDoc>('task_projects')
   const templates = db.collection<TemplateDoc>('task_templates')
   const notifications = db.collection<NotificationDoc>('task_notifications')
-  ready ??= Promise.all([
-    projects.createIndex({ 'event.id': 1 }, { unique: true, partialFilterExpression: { 'event.id': { $type: 'string' } } }),
-    projects.createIndex({ 'tasks.id': 1 }),
-    projects.createIndex({ updatedAt: -1 }),
-    notifications.createIndex({ taskId: 1 }),
-    notifications.createIndex({ projectId: 1 }),
-    ...standardTemplates.map(({ id, ...template }) =>
-      templates.updateOne(
-        { _id: id },
-        {
-          $setOnInsert: {
-            ...template,
-            sourceProjectId: null,
-            createdBy: 'system',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            archivedAt: null,
-          },
-        },
-        { upsert: true },
-      ),
-    ),
-  ]).catch((err) => {
-    ready = null
-    throw err
-  })
-  await ready
+  if (!seeded) {
+    seeded = true
+    setUpInBackground('tasks', () =>
+      Promise.all([
+        projects.createIndex({ 'event.id': 1 }, { unique: true, partialFilterExpression: { 'event.id': { $type: 'string' } } }),
+        projects.createIndex({ 'tasks.id': 1 }),
+        projects.createIndex({ updatedAt: -1 }),
+        notifications.createIndex({ taskId: 1 }),
+        notifications.createIndex({ projectId: 1 }),
+        ...standardTemplates.map(({ id, ...template }) =>
+          templates.updateOne(
+            { _id: id },
+            {
+              $setOnInsert: {
+                ...template,
+                sourceProjectId: null,
+                createdBy: 'system',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                archivedAt: null,
+              },
+            },
+            { upsert: true },
+          ),
+        ),
+      ]),
+    )
+  }
   return { projects, templates, notifications, members: db.collection<Member & { _id: ObjectId }>('members') }
 }
 
@@ -191,6 +193,14 @@ export async function taskActor(session: { email: string; role: MemberRole }): P
   const member = await members.findOne({ email: session.email }, { projection: { _id: 1, firstName: 1, lastName: 1 } })
   return member && { id: member._id.toHexString(), email: session.email, role: session.role, named: !!(member.firstName && member.lastName) }
 }
+
+/** The same for a member the middleware has just read, without another query. */
+export const sessionActor = (member: SessionMember): TaskActor => ({
+  id: member.id,
+  email: member.email,
+  role: member.role,
+  named: !!(member.firstName && member.lastName),
+})
 
 /** Name, photo and team of every member, the only personal data the board shows. */
 async function directory() {
@@ -286,12 +296,9 @@ const WITHOUT_ACTIVITY = { projection: { activity: 0 } }
 
 /**
  * Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks.
- * The revision is read first in here and in workspaceChanges, so a change landing during the read arrives twice rather
- * than not at all.
  */
 export async function workspaceState(actor: TaskActor) {
   const { projects, templates } = await collections()
-  const revision = await workspaceRevision()
   const [projectList, templateList, members, ownTasks] = await Promise.all([
     projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
     templates.find({ archivedAt: null }, { sort: { name: 1 } }).toArray(),
@@ -300,7 +307,7 @@ export async function workspaceState(actor: TaskActor) {
   ])
   const known = new Set(members.map((member) => member.id))
   return {
-    revision,
+    revision: listRevision(projectList),
     projects: projectList.map((project) => projectSummary(project, actor, known)),
     templates: templateList.map(templateSummary),
     members,
@@ -309,7 +316,29 @@ export async function workspaceState(actor: TaskActor) {
 }
 export type WorkspaceState = Awaited<ReturnType<typeof workspaceState>>
 
-/** What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows. */
+/** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
+export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
+  const { projects } = await collections()
+  const list = await projects
+    .find(
+      { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
+      { projection: { title: 1, status: 1, 'event.id': 1, tasks: 1 }, sort: { updatedAt: -1 } },
+    )
+    .toArray()
+  return list.map(({ _id, title, status, event, tasks }) => ({
+    id: _id,
+    title,
+    status,
+    archived: false,
+    event: event ?? null,
+    tasks: [...tasks].sort((a, b) => a.position - b.position),
+  }))
+}
+
+/**
+ * What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows.
+ * The revision is read first, so a change landing during the read arrives twice rather than not at all.
+ */
 export async function workspaceChanges(actor: TaskActor, known: unknown) {
   const { projects } = await collections()
   const revision = await workspaceRevision()
@@ -653,12 +682,17 @@ export async function archiveTemplate(actor: TaskActor, id: string): Promise<Out
   return matchedCount ? 'ok' : 'unknown'
 }
 
+// The calendar itself only changes this often, see CACHE_MS in luma.ts.
+const EVENT_SYNC_MS = 5 * 60_000
+let nextSync = 0
+
 /**
  * Refreshes the event snapshot of every planning project from the calendar. Only title, dates, place and link change;
  * an event that left the calendar is marked missing, never deleted with its project. With an incomplete calendar
  * (Luma unreachable) or an event long past, which Luma no longer lists, the snapshot stays as it is.
  */
 export async function syncEvents(events: TaskEvent[], complete: boolean): Promise<void> {
+  if (Date.now() < nextSync) return
   const { projects } = await collections()
   const byId = new Map(events.map((event) => [event.id, event]))
   const linked = await projects.find({ event: { $ne: null } }, { projection: { event: 1 } }).toArray()
@@ -682,6 +716,7 @@ export async function syncEvents(events: TaskEvent[], complete: boolean): Promis
       return shouldBeListed && !event.missing ? projects.updateOne({ _id }, { $set: { 'event.missing': true, updatedAt: new Date() } }) : null
     }),
   )
+  nextSync = now + EVENT_SYNC_MS
 }
 
 /** For the digest: the projects behind the given ids, with the fields the mail needs. */

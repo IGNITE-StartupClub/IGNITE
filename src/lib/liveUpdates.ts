@@ -24,6 +24,13 @@ export const refreshDue = ({ now, lastCheck, lastUse, hidden }: RefreshMoment): 
 
 export const revisionOf = (count: number, latest: Date | null | undefined): string => `${count}.${latest?.getTime() ?? 0}`
 
+/**
+ * The revision of a list a page has just read. It saves the page a query of its own, and it cannot run ahead of what
+ * the client got: a change the list missed still counts as new.
+ */
+export const listRevision = (list: { updatedAt: Date }[]): string =>
+  revisionOf(list.length, list.reduce<Date | null>((latest, { updatedAt }) => (latest && latest > updatedAt ? latest : updatedAt), null))
+
 /** Where a client with this revision has to catch up from; null when it knows nothing yet. */
 export function changedSince(revision: unknown): Date | null {
   const match = typeof revision === 'string' ? /^\d+\.(\d{1,15})$/.exec(revision) : null

@@ -3,7 +3,7 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { saveName, saveTeam } from '../../../lib/members'
-import { currentMember, reply } from '../../../lib/memberSession'
+import { reply } from '../../../lib/memberSession'
 import { addPrivateTask, removePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
@@ -29,9 +29,9 @@ import {
   reorderTasks,
   saveAsTemplate,
   saveLessons,
+  sessionActor,
   setArchived,
   setStatus,
-  taskActor,
   templateTasks,
   updateProject,
   updateTask,
@@ -59,9 +59,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const known = url.searchParams.get('revision')
     const revision = await workspaceRevision()
     if (known === revision) return reply(200, { revision })
-    const actor = await taskActor(locals.member!)
-    if (!actor) return reply(401, { code: 'session', message: 'Nicht angemeldet.' })
-    return reply(200, { changes: await workspaceChanges(actor, known) })
+    return reply(200, { changes: await workspaceChanges(sessionActor(locals.member!), known) })
   } catch (err) {
     console.error('Tasks read failed:', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
@@ -80,14 +78,12 @@ export const GET: APIRoute = async ({ url, locals }) => {
  * as Fast Origin Transfer on Vercel. Rights: see tasksStore.ts and privateTasksStore.ts; every check runs here on the
  * server.
  */
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
     return reply(415, { message: 'Erwartet JSON.' })
   }
   try {
-    const session = await currentMember(cookies)
-    const actor = session && (await taskActor(session))
-    if (!actor) return reply(401, { code: 'session', message: 'Nicht angemeldet.' })
+    const actor = sessionActor(locals.member!)
     let body: Record<string, unknown> = {}
     try {
       body = await request.json()

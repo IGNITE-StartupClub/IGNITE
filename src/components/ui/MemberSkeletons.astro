@@ -1,0 +1,230 @@
+---
+/**
+ * Loading state between two pages of the members area. Member pages come from the server and the router only swaps once
+ * the whole answer is there, so a click would otherwise show nothing. If the answer takes longer than SHOW_AFTER_MS, the
+ * rough layout of the target page covers the old one below the header, and the swap replaces it with the body. The old
+ * page stays untouched underneath, so its islands and scroll position survive a cancelled navigation.
+ * One template per layout; `data-paths` lists the pages it stands for, in both languages, and a page with subpages
+ * also stands for those through `data-subpages`. The active nav item moves at once on every click.
+ * Rendered by DefaultLayout on every members area page with a header.
+ * Copy: memberArea.loading via getCopy() (src/data/copy.ts).
+ */
+import Section from './Section.astro'
+import { getCopy } from '../../data/copy'
+import { resolveLocale } from '../../lib/i18n'
+import { memberHomePath, memberPagePath, type MemberPage } from '../../lib/memberAuth'
+
+const { memberArea } = getCopy(resolveLocale(Astro.currentLocale))
+
+const paths = (...pages: MemberPage[]) =>
+  pages.flatMap((page) => [memberPagePath(page, 'de'), memberPagePath(page, 'en')]).join(' ')
+const layouts = [
+  { layout: 'home', paths: `${memberHomePath('de')} ${memberHomePath('en')}` },
+  { layout: 'tasks', paths: paths('tasks') },
+  { layout: 'table', paths: paths('crm', 'admin', 'connections') },
+  { layout: 'cards', paths: paths('alumni', 'team', 'branding', 'benefits') },
+  { layout: 'cards', paths: paths('guide'), subpages: true },
+  { layout: 'form', paths: paths('signature') },
+]
+const CARD = 'rounded-card border border-border bg-card'
+---
+
+{
+  layouts.map(({ layout, paths, subpages }) => (
+    <template data-member-skeleton data-paths={paths} data-subpages={subpages ? '' : undefined}>
+      <div class="member-loading" data-member-loading role="status" aria-label={memberArea.loading}>
+        {layout === 'home' && (
+          <Section spacing="xs">
+            <div class="flex flex-col gap-6">
+              <div class="surface-brand flex flex-col gap-4 rounded-3xl p-[clamp(20px,3vw,40px)]">
+                <span class="sk h-12 w-3/5 max-w-sm" />
+                <span class="sk h-10 w-44 rounded-full" />
+                <div class="mt-4 flex gap-3">
+                  {[1, 2, 3].map(() => <span class="sk h-24 w-28" />)}
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-6">
+                <div class={`${CARD} flex min-w-0 flex-[2_1_420px] flex-col gap-5 p-5`}>
+                  <span class="sk h-6 w-32" />
+                  {[1, 2, 3, 4].map(() => (
+                    <div class="flex items-center gap-3">
+                      <span class="sk h-6 w-6 shrink-0 rounded-full" />
+                      <span class="sk h-5 flex-1" />
+                      <span class="sk h-4 w-16" />
+                    </div>
+                  ))}
+                </div>
+                <div class={`${CARD} flex min-w-0 flex-[1_1_320px] flex-col gap-5 p-5`}>
+                  <span class="sk h-6 w-36" />
+                  <div class="flex items-center gap-4">
+                    <span class="sk h-[76px] w-[72px] shrink-0" />
+                    <span class="sk h-5 flex-1" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
+        {layout === 'tasks' && (
+          <Section spacing="xs">
+            <div class="flex flex-col gap-6">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex gap-4">
+                  {[1, 2, 3, 4].map(() => <span class="sk h-6 w-20" />)}
+                </div>
+                <span class="sk hidden h-10 w-40 sm:block" />
+              </div>
+              <div class={`${CARD} flex flex-col gap-6 p-6`}>
+                <span class="sk h-8 w-56" />
+                <span class="sk h-14 w-full" />
+              </div>
+              <div class="grid gap-6 md:grid-cols-2">
+                {[1, 2].map(() => (
+                  <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                    <span class="sk h-7 w-28" />
+                    {[1, 2, 3].map(() => <span class="sk h-12 w-full" />)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+        )}
+        {layout !== 'home' && layout !== 'tasks' && (
+          <>
+            <Section spacing="xs">
+              <div class="flex max-w-text flex-col gap-3">
+                <span class="sk h-11 w-3/5" />
+                <span class="sk h-5 w-full" />
+                <span class="sk h-5 w-4/5" />
+              </div>
+            </Section>
+            <Section tone="subtle" spacing="xs">
+              {layout === 'table' && (
+                <div class="flex flex-col gap-5">
+                  <span class="sk h-9 w-44" />
+                  <div class={`${CARD} flex flex-col gap-5 p-5`}>
+                    <div class="flex gap-3">
+                      <span class="sk h-10 flex-1" />
+                      <span class="sk h-10 w-40" />
+                    </div>
+                    {[1, 2, 3, 4, 5].map(() => <span class="sk h-9 w-full" />)}
+                  </div>
+                </div>
+              )}
+              {layout === 'cards' && (
+                <div class="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))]">
+                  {[1, 2, 3, 4, 5, 6].map(() => (
+                    <div class={`${CARD} flex flex-col gap-4 p-5`}>
+                      <span class="sk aspect-video w-full" />
+                      <span class="sk h-5 w-3/5" />
+                      <span class="sk h-4 w-2/5" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {layout === 'form' && (
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                  <div class={`${CARD} flex flex-col gap-5 p-6`}>
+                    {[1, 2, 3, 4].map(() => (
+                      <>
+                        <span class="sk h-4 w-24" />
+                        <span class="sk h-11 w-full" />
+                      </>
+                    ))}
+                  </div>
+                  <span class="sk h-96 w-full rounded-card" />
+                </div>
+              )}
+            </Section>
+          </>
+        )}
+      </div>
+    </template>
+  ))
+}
+
+<script>
+  import type { TransitionBeforePreparationEvent } from 'astro:transitions/client'
+
+  // Below this a skeleton would only flicker: the page itself is about to arrive.
+  const SHOW_AFTER_MS = 120
+
+  const withoutSlash = (path: string) => path.replace(/\/$/, '')
+
+  function templateFor(pathname: string) {
+    const target = withoutSlash(pathname)
+    return [...document.querySelectorAll<HTMLTemplateElement>('template[data-member-skeleton]')].find(({ dataset }) =>
+      dataset.paths!.split(' ').some((path) => {
+        const page = withoutSlash(path)
+        return target === page || (dataset.subpages !== undefined && target.startsWith(`${page}/`))
+      }),
+    )
+  }
+
+  function markActive(pathname: string) {
+    const target = withoutSlash(pathname)
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-main-nav] a')]
+    const next = links.find((link) => withoutSlash(link.pathname) === target)
+    if (!next) return
+    links.forEach((link) => link.removeAttribute('aria-current'))
+    next.setAttribute('aria-current', 'page')
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  document.addEventListener('astro:before-preparation', (e) => {
+    const { to, formData } = e as TransitionBeforePreparationEvent
+    clearTimeout(timer)
+    document.querySelector('[data-member-loading]')?.remove()
+    const template = formData ? undefined : templateFor(to.pathname)
+    if (!template) return
+    markActive(to.pathname)
+    timer = setTimeout(() => document.body.append(template.content.cloneNode(true)), SHOW_AFTER_MS)
+  })
+
+  document.addEventListener('astro:after-preparation', () => clearTimeout(timer))
+</script>
+
+<style>
+  .member-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    overflow: hidden;
+    padding-top: var(--header-height);
+    background: var(--color-bg);
+    animation: member-loading-in 160ms ease-out;
+  }
+
+  /* currentColor keeps the blocks visible on the purple surface and in both themes. */
+  .sk {
+    display: block;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, currentColor 9%, transparent);
+    background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, currentColor 9%, transparent) 50%, transparent 70%);
+    background-size: 220% 100%;
+    animation: member-loading-sweep 1.4s linear infinite;
+  }
+
+  @keyframes member-loading-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes member-loading-sweep {
+    from {
+      background-position: 130% 0;
+    }
+    to {
+      background-position: -90% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .member-loading,
+    .sk {
+      animation: none;
+    }
+  }
+</style>

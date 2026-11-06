@@ -16,6 +16,7 @@ import SiteMeta from '../components/SiteMeta.astro'
 import Header from '../components/layout/Header.astro'
 import Footer from '../components/layout/Footer.astro'
 import MemberPortal from '../components/ui/MemberPortal.astro'
+import MemberSkeletons from '../components/ui/MemberSkeletons.astro'
 import { getCopy } from '../data/copy'
 import { localizePath, resolveLocale, switchLocalePath } from '../lib/i18n'
 import { memberAreaLocale } from '../lib/memberAuth'
@@ -112,5 +113,6 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
     </main>
     {!bare && !memberAreaLocale(Astro.url.pathname) && <Footer />}
     <MemberPortal />
+    {!bare && memberAreaLocale(Astro.url.pathname) && <MemberSkeletons />}
   </body>
 </html>

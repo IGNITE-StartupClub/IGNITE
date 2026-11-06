@@ -11,10 +11,10 @@
  */
 import { randomUUID } from 'node:crypto'
 import type { MemberRole } from './memberAuth'
-import { database } from './members'
+import { database, setUpInBackground } from './members'
 import { validIgniteTime, type AlumniFields, type ContactFields, type EntryFields, type EntryType } from './contacts'
 import { emailFingerprint, fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
-import { collectionRevision } from './liveUpdates'
+import { collectionRevision, listRevision } from './liveUpdates'
 
 const CONTACT_TTL_SECONDS = 3 * 365 * 24 * 3600
 
@@ -53,19 +53,20 @@ interface Actor {
   role: MemberRole
 }
 
-let indexes: Promise<unknown> | null = null
+let indexed = false
 
 async function collections() {
   const db = await database()
-  indexes ??= Promise.all([
-    db.collection('crm_contacts').createIndex({ updatedAt: 1 }, { expireAfterSeconds: CONTACT_TTL_SECONDS }),
-    db.collection('crm_contacts').createIndex({ emailHash: 1 }),
-    db.collection('alumni').createIndex({ updatedAt: -1 }),
-  ]).catch((err) => {
-    indexes = null
-    throw err
-  })
-  await indexes
+  if (!indexed) {
+    indexed = true
+    setUpInBackground('contacts', () =>
+      Promise.all([
+        db.collection('crm_contacts').createIndex({ updatedAt: 1 }, { expireAfterSeconds: CONTACT_TTL_SECONDS }),
+        db.collection('crm_contacts').createIndex({ emailHash: 1 }),
+        db.collection('alumni').createIndex({ updatedAt: -1 }),
+      ]),
+    )
+  }
   return {
     contacts: db.collection<ContactDoc>('crm_contacts'),
     alumni: db.collection<AlumniDoc>('alumni'),
@@ -156,12 +157,11 @@ export async function contactsRevision(): Promise<string> {
   return collectionRevision(contacts)
 }
 
-/** The list and the revision it stands for, read first so a change during the read still counts as new. */
+/** The list and the revision it stands for. */
 export async function contactState(actor: Actor): Promise<{ revision: string; contacts: ContactSummary[] }> {
   const { contacts } = await collections()
-  const revision = await contactsRevision()
   const list = await contacts.find().toArray()
-  return { revision, contacts: list.map((contact) => contactSummary(contact, actor)).sort(byName) }
+  return { revision: listRevision(list), contacts: list.map((contact) => contactSummary(contact, actor)).sort(byName) }
 }
 
 const emailTaken = async (emailHash: string, id: string) => {
@@ -271,12 +271,11 @@ export async function alumniRevision(): Promise<string> {
   return collectionRevision(alumni)
 }
 
-/** The list and the revision it stands for, read first so a change during the read still counts as new. */
+/** The list and the revision it stands for. */
 export async function alumniState(actor: Actor): Promise<{ revision: string; alumni: AlumniSummary[] }> {
   const { alumni } = await collections()
-  const revision = await alumniRevision()
   const list = await alumni.find().toArray()
-  return { revision, alumni: list.map((person) => alumniSummary(person, actor)).sort(byName) }
+  return { revision: listRevision(list), alumni: list.map((person) => alumniSummary(person, actor)).sort(byName) }
 }
 
 /** parseAlumni checked the consent. */

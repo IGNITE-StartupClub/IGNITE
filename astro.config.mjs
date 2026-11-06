@@ -27,6 +27,10 @@ export default defineConfig({
     '/en/members/team': '/en/members/network/team',
   },
 
+  // ViewTransitions would prefetch every link on hover. Member pages answer no-store, so that rendered them twice;
+  // public links opt in with data-astro-prefetch (Header.astro).
+  prefetch: { prefetchAll: false },
+
   // German is served at the root, English under /en/. The pages in src/pages/en/ are written by hand; Astro only
   // provides the locale detection (Astro.currentLocale) and the routing rules.
   i18n: {

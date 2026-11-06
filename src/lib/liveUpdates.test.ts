@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { changedFields, changedSince, IDLE_MS, REFRESH_MS, refreshDue, revisionOf } from './liveUpdates.ts'
+import { changedFields, changedSince, IDLE_MS, listRevision, REFRESH_MS, refreshDue, revisionOf } from './liveUpdates.ts'
 
 const NOW = 1_000_000
 
@@ -10,6 +10,12 @@ test('refreshDue asks only on a visible page in use, and at most once per interv
   assert.equal(refreshDue({ ...moment, hidden: true }), false)
   assert.equal(refreshDue({ ...moment, lastUse: NOW - IDLE_MS }), false)
   assert.equal(refreshDue({ ...moment, lastCheck: NOW - REFRESH_MS + 1 }), false)
+})
+
+test('listRevision equals the revision of the collection, in whatever order the list came', () => {
+  const list = [new Date(2000), new Date(5000), new Date(3000)].map((updatedAt) => ({ updatedAt }))
+  assert.equal(listRevision(list), revisionOf(3, new Date(5000)))
+  assert.equal(listRevision([]), revisionOf(0, null))
 })
 
 test('revisionOf changes with the latest change and with the number of records', () => {

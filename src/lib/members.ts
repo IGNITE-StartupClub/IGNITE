@@ -108,7 +108,7 @@ async function connect(): Promise<MongoClient> {
   const client = new MongoClient(process.env.MONGODB_URI!)
   await client.connect()
   const db = client.db(process.env.MONGODB_DB!)
-  await Promise.all([
+  setUpInBackground('members', () => Promise.all([
     db.collection('members').createIndex({ email: 1 }, { unique: true }),
     db.collection('member_codes').createIndex({ email: 1, createdAt: -1 }),
     db.collection('member_codes').createIndex({ createdAt: 1 }, { expireAfterSeconds: CODE_RETENTION_SECONDS }),
@@ -119,8 +119,18 @@ async function connect(): Promise<MongoClient> {
     db.collection('member_login_clients').createIndex({ at: 1 }, { expireAfterSeconds: LOGIN_LOCK_SECONDS }),
     db.collection('member_photos').createIndex({ email: 1 }),
     db.collection('member_photos').createIndex({ formerIds: 1 }),
-  ])
+  ]))
   return client
+}
+
+/**
+ * Index and seed setup of a store. It repeats on every new instance and finds everything in place, so it must not hold
+ * up a request: on a cold start it would queue some twenty operations before the first query. setImmediate lets the
+ * request's own query reach the connection pool first. Only a database that was never set up runs briefly without
+ * indexes; a failure shows in the log and the next instance tries again.
+ */
+export function setUpInBackground(store: string, setup: () => Promise<unknown>): void {
+  setImmediate(() => setup().catch((err) => console.error(`Setting up ${store} failed:`, err)))
 }
 
 /** The members area database, shared with contactsStore.ts. */
@@ -463,15 +473,62 @@ export async function createSession(email: string): Promise<string> {
   return token
 }
 
+/** What every members area page knows of the signed-in member, from the one query of findSession. */
+export interface SessionMember extends Pick<Member, 'email' | 'firstName' | 'lastName' | 'team' | 'signature'> {
+  /** Hex id of the `members` document. */
+  id: string
+  role: MemberRole
+  position: MemberPosition
+  photoId: string | null
+}
+
 /**
  * The member behind a session token, or null when the session is unknown, expired, or its member was removed.
- * Role and position are read fresh on every request, so a change applies at once.
+ * Role and position are read fresh on every request, so a change applies at once. One aggregation also brings the
+ * photo for the header, because every sequential query costs a round trip on every page.
  */
-export async function findSession(token: string): Promise<{ email: string; role: MemberRole; position: MemberPosition } | null> {
+export async function findSession(token: string): Promise<SessionMember | null> {
   const { sessions } = await collections()
-  const session = await sessions.findOne({ tokenHash: hashToken(token), expiresAt: { $gt: new Date() } })
-  const member = session && (await findMember(session.email))
-  return member ? { email: member.email, role: member.role, position: member.position ?? 'member' } : null
+  const [session] = await sessions
+    .aggregate<{ member: (Member & { _id: ObjectId })[]; photo: { _id: string }[] }>([
+      { $match: { tokenHash: hashToken(token), expiresAt: { $gt: new Date() } } },
+      { $limit: 1 },
+      { $lookup: { from: 'members', localField: 'email', foreignField: 'email', as: 'member' } },
+      {
+        $lookup: {
+          from: 'member_photos',
+          let: { email: '$email' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$email', '$$email'] } } },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { _id: 1 } },
+          ],
+          as: 'photo',
+        },
+      },
+      {
+        $project: {
+          photo: 1,
+          member: { _id: 1, email: 1, role: 1, position: 1, firstName: 1, lastName: 1, team: 1, signature: 1 },
+        },
+      },
+    ])
+    .toArray()
+  const member = session?.member[0]
+  return member
+    ? {
+        id: member._id.toHexString(),
+        email: member.email,
+        role: member.role ?? 'member',
+        position: member.position ?? 'member',
+        firstName: member.firstName,
+        lastName: member.lastName,
+        team: member.team,
+        signature: member.signature,
+        photoId: session.photo[0]?._id ?? null,
+      }
+    : null
 }
 
 export async function deleteSession(token: string): Promise<void> {

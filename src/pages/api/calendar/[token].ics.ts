@@ -7,7 +7,7 @@ import { memberPagePath } from '../../../lib/memberAuth'
 import { openTasks } from '../../../lib/memberHome'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { berlinDay } from '../../../lib/tasks'
-import { taskActor, workspaceState } from '../../../lib/tasksStore'
+import { assignedProjects, taskActor } from '../../../lib/tasksStore'
 
 const text = (status: number, body: string, headers: Record<string, string> = {}) =>
   new Response(body, {
@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     const actor = member && (await taskActor(member))
     if (!actor) return text(404, 'Not found')
 
-    const [{ events, complete }, { projects }] = await Promise.all([loadTaskEvents('de'), workspaceState(actor)])
+    const [{ events, complete }, projects] = await Promise.all([loadTaskEvents('de'), assignedProjects(actor)])
     // A feed without the Luma events would delete them from the subscribed calendar until the next refresh.
     if (!complete) return text(503, 'Events are unavailable', { 'Retry-After': '900' })
 

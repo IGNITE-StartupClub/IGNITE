@@ -16,18 +16,21 @@ import { resolveLocale } from '../lib/i18n'
 import { memberPagePath } from '../lib/memberAuth'
 import { berlinDay } from '../lib/tasks'
 import { loadTaskEvents } from '../lib/taskEvents'
-import { syncEvents, taskActor, workspaceState } from '../lib/tasksStore'
+import { sessionActor, syncEvents, workspaceState } from '../lib/tasksStore'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, openTeams } = getCopy(locale)
 const { tasks } = memberArea
-// The middleware let only signed-in members through; the member may have been removed in this very moment.
-const actor = await taskActor(Astro.locals.member!)
-if (!actor) return Astro.redirect(memberPagePath('login', locale))
+const actor = sessionActor(Astro.locals.member!)
 
-const { events, complete } = await loadTaskEvents(locale)
-await syncEvents(events, complete)
-const state = await workspaceState(actor)
+// The projects do not wait for the calendar: a refreshed event snapshot shows with the next load.
+const [{ events, complete }, state] = await Promise.all([
+  loadTaskEvents(locale).then(async (loaded) => {
+    await syncEvents(loaded.events, loaded.complete)
+    return loaded
+  }),
+  workspaceState(actor),
+])
 const calendar = events.map((event) => ({
   ...event,
   startAt: event.startAt.toISOString(),
