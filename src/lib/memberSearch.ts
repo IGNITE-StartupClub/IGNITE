@@ -114,8 +114,50 @@ const WEEKDAYS: Record<string, number> = {
   saturday: 6,
 }
 const RELATIVE_DAYS: Record<string, number> = { heute: 0, today: 0, morgen: 1, tomorrow: 1, übermorgen: 2 }
+const MONTHS: Record<string, number> = {
+  jan: 1,
+  januar: 1,
+  january: 1,
+  feb: 2,
+  februar: 2,
+  february: 2,
+  mär: 3,
+  märz: 3,
+  mar: 3,
+  march: 3,
+  apr: 4,
+  april: 4,
+  mai: 5,
+  may: 5,
+  jun: 6,
+  juni: 6,
+  june: 6,
+  jul: 7,
+  juli: 7,
+  july: 7,
+  aug: 8,
+  august: 8,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  okt: 10,
+  oktober: 10,
+  oct: 10,
+  october: 10,
+  nov: 11,
+  november: 11,
+  dez: 12,
+  dezember: 12,
+  dec: 12,
+  december: 12,
+}
+const NUMERIC_DATE = /^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}|\d{2})?)?$/
+const NAMED_DATE = /^(\d{1,2})\.?\s+(\p{L}+)\.?(?:\s+(\d{4}))?$/u
 
-/** YYYY-MM-DD for "mi", "morgen" or "12.11.", '' for anything else. A weekday is its next day after today. */
+/**
+ * YYYY-MM-DD for "mi", "morgen", "17.11", "17.11.26" or "17. November 2026", '' for anything else. A weekday is its
+ * next day after today, a date without a year the next time it comes round.
+ */
 export function dueFrom(word: string, today: string): string {
   const value = word.toLowerCase()
   if (value in RELATIVE_DAYS) return addDays(today, RELATIVE_DAYS[value])
@@ -123,9 +165,13 @@ export function dueFrom(word: string, today: string): string {
     const weekday = new Date(`${today}T00:00:00Z`).getUTCDay()
     return addDays(today, ((WEEKDAYS[value] - weekday + 6) % 7) + 1)
   }
-  const date = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})?$/)
+  const numeric = value.match(NUMERIC_DATE)
+  const date = numeric ?? value.match(NAMED_DATE)
   if (!date) return ''
-  const [, day, month, year] = date
+  const [, day, monthWord, yearWord] = date
+  const month = numeric ? monthWord : String(MONTHS[monthWord] ?? '')
+  if (!month) return ''
+  const year = yearWord?.length === 2 ? `20${yearWord}` : yearWord
   const on = (y: string) => `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
   const thisYear = today.slice(0, 4)
   const result = year ? on(year) : on(thisYear) < today ? on(String(Number(thisYear) + 1)) : on(thisYear)
@@ -133,7 +179,13 @@ export function dueFrom(word: string, today: string): string {
   return !Number.isNaN(real.getTime()) && real.toISOString().slice(0, 10) === result ? result : ''
 }
 
-const DUE_WORD = /(?:^|\s)(?:bis|by)\s+(\S+)(?=\s|$)/gi
+/** "Mi, 17. Nov." with the year added when it is not this one, so a typed date can be checked before saving. */
+export const dueLabel = (due: string, today: string, locale: Locale): string =>
+  due.slice(0, 4) === today.slice(0, 4) ? dayLabel(due, locale) : `${dayLabel(due, locale)} ${due.slice(0, 4)}`
+
+// A named date spans several words. Its year needs four digits, so "bis 17. Mai 20 Flyer drucken" keeps the 20.
+// "bis 10.05 Uhr" is a time, not the 10 May.
+const DUE_WORD = /(?:^|\s)(?:bis|by)\s+(\d{1,2}\.?\s+\p{L}+\.?(?:\s+\d{4})?|\S+)(?=\s|$)(?!\s+uhr\b)/giu
 // At the start of a word, so a mail address stays text, and with a letter first, so "#2" does too.
 const PERSON = /(?:^|\s)@(\p{L}\S*)/gu
 const TEAM = /(?:^|\s)#(\p{L}\S*)/gu

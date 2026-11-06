@@ -494,7 +494,7 @@ export const memberArea = {
     groups: { task: 'Tasks', project: 'Projects', event: 'Events', guide: 'Guide', member: 'Members', alumni: 'Alumni', contact: 'CRM' },
     hints: {
       lead: 'Typing searches tasks, events, the guide and the network.',
-      task: { title: 'Add a new task', example: '+ Put up posters by Fri @Paul' },
+      task: { title: 'Add a new task', example: '+ Put up posters by 17 Nov @Paul' },
       people: { title: 'Find people', example: '@ Members, alumni and contacts' },
     },
     empty: 'Nothing found.',
@@ -509,7 +509,11 @@ export const memberArea = {
       me: 'me',
       team: 'Team',
       teamNone: 'none',
-      hint: '@Name assigns, #Team sorts it in, “by Wed” sets the deadline.',
+      hint: [
+        { token: '@Name', text: ' assigns, ' },
+        { token: '#Team', text: ' sorts it in, ' },
+        { token: 'by date', text: ' sets the deadline.' },
+      ],
       create: 'Add',
       creating: 'Adding...',
       created: 'Added: {title}',
