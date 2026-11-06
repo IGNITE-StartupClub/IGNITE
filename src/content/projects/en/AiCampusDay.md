@@ -1,6 +1,6 @@
 ---
 title: "AI Campus Day: Leuphana meets TUHH"
-author: Noah Samel, Head of Marketing @IGNITE
+author: Noah Samel @IGNITE Team
 description: At the first AI Campus Day, students from Leuphana and TUHH used AI to work on startup ideas and built clickable prototypes in about 25 minutes.
 image: /news/ai-campus-day.jpeg
 date: 2026-10-30
