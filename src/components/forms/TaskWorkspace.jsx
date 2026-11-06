@@ -374,6 +374,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           today={today}
           copy={copy}
           locale={locale}
+          membersById={membersById}
           onView={goTo}
           onStart={(event) => setCreateRequest({ kind: 'event', event, team: newTeam })}
           onOpen={open}

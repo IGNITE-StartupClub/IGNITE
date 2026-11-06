@@ -21,6 +21,7 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
+  projectAssignees,
   scopedPrivateTasks,
   scopedTasks,
   sortTasks,
@@ -168,6 +169,12 @@ test('weekEnd is the Sunday of the current week', () => {
   assert.equal(weekEnd('2026-10-28'), '2026-11-01') // Wednesday
   assert.equal(weekEnd('2026-11-01'), '2026-11-01') // Sunday
   assert.equal(weekEnd('2026-11-02'), '2026-11-08') // Monday
+})
+
+test('projectAssignees lists each assignee once and leaves out the leads', () => {
+  const tasks = [{ assignees: ['lead', 'ana'] }, { assignees: ['ana', 'ben'] }, { assignees: [] }]
+  assert.deepEqual(projectAssignees({ leads: ['lead'], tasks }), ['ana', 'ben'])
+  assert.deepEqual(projectAssignees({ leads: ['lead'], tasks: [] }), [])
 })
 
 test('progress has no percentage without tasks', () => {

@@ -1,7 +1,7 @@
 /**
- * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the member
- * picker popover, the team select, the marks of private tasks, the progress bar, status and type styles and date
- * formatting. Members are { id, name, photo, team }.
+ * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
+ * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, status
+ * and type styles and date formatting. Members are { id, name, photo, team }.
  */
 import React, { useId, useRef, useState } from 'react'
 import { Check, Lock, Search, UserPlus } from 'lucide-react'
@@ -61,9 +61,6 @@ export const dateTime = (iso, locale) =>
     minute: '2-digit',
   }).format(new Date(iso))
 
-/** Everyone on a project: leads first, then the assignees of its tasks, each once. */
-export const projectPeople = (project) => [...new Set([...project.leads, ...project.tasks.flatMap((task) => task.assignees)])]
-
 const SIZES = { sm:'h-6 w-6 text-[0.625rem]', md: 'h-8 w-8 text-xs' }
 
 /** A round photo or initials. Labelled with the name unless `decorative`, because stacks show no names. */
@@ -84,6 +81,17 @@ export function Avatar({ member, size = 'sm', decorative = false, className = ''
       className={`${base} flex items-center justify-center bg-[color-mix(in_srgb,var(--color-brand-bright)_35%,var(--color-bg-subtle))] font-semibold uppercase text-fg`}
     >
       {initials(member.name)}
+    </span>
+  )
+}
+
+/** The leads of a project by name, set apart from the avatars of its assignees. Nothing without leads. */
+export function LeadLine({ project, membersById, copy, className = '' }) {
+  const names = project.leads.map((id) => membersById.get(id)?.name).filter(Boolean)
+  if (!names.length) return null
+  return (
+    <span className={`block truncate text-xs text-fg-muted ${className}`}>
+      {copy.panel.leads}: {names.join(', ')}
     </span>
   )
 }

@@ -312,6 +312,10 @@ export function progress(tasks: Pick<TaskState, 'done'>[]): { done: number; tota
   return { done, total: tasks.length, percent: tasks.length ? Math.round((done / tasks.length) * 100) : null }
 }
 
+/** The people on a project's tasks without its leads, who are named on a line of their own. */
+export const projectAssignees = (project: { leads: string[]; tasks: Pick<TaskState, 'assignees'>[] }): string[] =>
+  [...new Set(project.tasks.flatMap((task) => task.assignees))].filter((id) => !project.leads.includes(id))
+
 export const isOverdue = (task: Pick<TaskState, 'done' | 'due'>, today: string): boolean =>
   !task.done && !!task.due && task.due < today
 

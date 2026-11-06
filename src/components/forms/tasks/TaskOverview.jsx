@@ -5,13 +5,13 @@
  * its full view.
  * Props: events (calendar events with `day`), complete, projectsByEvent, projects (filterProjects), tasks (scopedTasks of
  * the team), mine (scopedTasks of the member), both with scopedPrivateTasks, today, copy (workspace copy), locale,
- * onView(view), onStart(event), onOpen(projectId), onOpenTask(task), onPatch(task, fields).
+ * membersById, onView(view), onStart(event), onOpen(projectId), onOpenTask(task), onPatch(task, fields).
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { addDays, berlinDay, boardColumns, progress, sortTasks } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
-import { berlinTime, dayPart, ProgressBar, shortDay, TaskCheck } from './taskUi'
+import { berlinTime, dayPart, LeadLine, ProgressBar, shortDay, TaskCheck } from './taskUi'
 
 const BAND_DAYS = 14
 const PROJECTS_SHOWN = 3
@@ -68,7 +68,7 @@ function DayBand({ days, byDay, activeDay, today, projectsByEvent, locale, onPic
   )
 }
 
-function EventSummary({ event, project, copy, locale, onStart, onOpen }) {
+function EventSummary({ event, project, copy, locale, membersById, onStart, onOpen }) {
   const text = copy.overview
   const tasks = project && progress(project.tasks)
   const planning = !project ? text.noPlanning : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
@@ -87,7 +87,10 @@ function EventSummary({ event, project, copy, locale, onStart, onOpen }) {
           </p>
         </div>
       </div>
-      <p className="text-sm text-fg-muted">{planning}</p>
+      <div>
+        <p className="text-sm text-fg-muted">{planning}</p>
+        {project && <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />}
+      </div>
       <button type="button" className={`${TOOL_BUTTON} w-full justify-center`} onClick={() => (project ? onOpen(project.id) : onStart(event))}>
         {project ? text.openPlanning : copy.calendar.startPlanning}
       </button>
@@ -111,7 +114,7 @@ function OverviewCard({ title, link, onLink, children }) {
   )
 }
 
-export default function TaskOverview({ events, complete, projectsByEvent, projects, tasks, mine, today, copy, locale, onView, onStart, onOpen, onOpenTask, onPatch }) {
+export default function TaskOverview({ events, complete, projectsByEvent, projects, tasks, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenTask, onPatch }) {
   const text = copy.overview
   const [pickedDay, setPickedDay] = useState(null)
   // A task checked off here stays until the page changes, so a slip can be undone and the list does not jump.
@@ -157,6 +160,7 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
                 project={projectsByEvent.get(event.id)}
                 copy={copy}
                 locale={locale}
+                membersById={membersById}
                 onStart={onStart}
                 onOpen={onOpen}
               />
@@ -177,6 +181,7 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
                 onClick={() => onOpen(project.id)}
               >
                 <span className="block truncate text-sm font-medium">{project.title}</span>
+                <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />
                 <span className="mt-2 flex items-center gap-2.5">
                   {done.total ? (
                     <>
