@@ -11,6 +11,7 @@ import {
   isAdminPath,
   isListedAddress,
   isJsonRequest,
+  isMemberPosition,
   isMemberRole,
   isProtectedApiPath,
   isProtectedPath,
@@ -126,6 +127,14 @@ test('hashCode depends on code, address and key', () => {
   assert.equal(sameDigest(hash, hashCode('042918', 'max@leuphana.de', key)), false)
   assert.equal(sameDigest(hash, hashCode('042917', 'eva@leuphana.de', key)), false)
   assert.equal(sameDigest(hash, hashCode('042917', 'max@leuphana.de', codeKey('b'.repeat(64)))), false)
+})
+
+test('isMemberPosition accepts only known positions', () => {
+  assert.equal(isMemberPosition('member'), true)
+  assert.equal(isMemberPosition('teamlead'), true)
+  assert.equal(isMemberPosition('board'), true)
+  assert.equal(isMemberPosition('admin'), false)
+  assert.equal(isMemberPosition(undefined), false)
 })
 
 test('isMemberRole accepts only known roles', () => {

@@ -463,7 +463,7 @@ export const memberArea = {
   // The header pill inside the members area (Header.astro).
   nav: {
     label: 'Members area',
-    badge: 'Member',
+    badges: { member: 'Member', teamlead: 'Team lead', board: 'Board' },
     home: 'Home',
     signature: 'Email signature',
     tasks: 'Tasks',
@@ -1067,6 +1067,7 @@ export const memberArea = {
         member: 'Member',
         name: 'Name',
         role: 'Role',
+        position: 'Position',
         team: 'Team',
         lastLogin: 'Last login',
         status: 'Status',
@@ -1075,7 +1076,10 @@ export const memberArea = {
       },
       never: 'Never',
       noTeam: 'No team',
+      allTeams: 'All teams',
       teamOf: 'Team of {email}',
+      positionOf: 'Position of {email}',
+      positions: { member: 'Member', teamlead: 'Team lead', board: 'Board' },
       // {email} is replaced with the address.
       actionsFor: 'Actions for {email}',
       empty: 'No members found.',
@@ -1100,6 +1104,7 @@ export const memberArea = {
         mailFailed: 'The invitation could not be sent. Please try again later.',
         roleChanged: 'Role changed.',
         teamChanged: 'Team saved.',
+        positionChanged: 'Position saved.',
         removed: 'Removed.',
         exists: 'This address is already on the list.',
         unknown: 'This address is not on the list.',

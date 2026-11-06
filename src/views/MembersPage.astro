@@ -2,8 +2,8 @@
 /**
  * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
  * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
- * Astro.locals.member. Without a team (the board needs none), or with ?team from the profile menu and the team chip, it
- * shows the team choice.
+ * Astro.locals.member. Without a team, or with ?team from the profile menu and the team chip, it shows the team choice;
+ * the board has no team and never sees it.
  * Otherwise the dashboard (greeting, figures, next tasks, next event) and a tile per tool; member management only for
  * admins. Account actions (password, sign out) live in the profile menu of the header pill.
  * Data source: memberArea.home and openTeams via getCopy(), tasks via workspaceState(), events via loadTaskEvents().
@@ -17,8 +17,8 @@ import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
-import { dayLabel, eventDate, mustChooseTeam, nextEvent, openTasks, splitName } from '../lib/memberHome'
-import { displayName, findMember, isBoard } from '../lib/members'
+import { dayLabel, eventDate, nextEvent, openTasks, showsTeamChoice, splitName } from '../lib/memberHome'
+import { displayName, findMember } from '../lib/members'
 import { loadTaskEvents } from '../lib/taskEvents'
 import { berlinDay, type TeamId } from '../lib/tasks'
 import { taskActor, workspaceState } from '../lib/tasksStore'
@@ -44,8 +44,8 @@ const homeUrl = memberHomePath(locale)
 const guessedName = splitName(displayName(member))
 const greeting = member.firstName || guessedName.firstName
 const team = openTeams.find(({ id }) => id === member.team)
-const board = isBoard(member.email)
-const choosing = mustChooseTeam(!!team, board) || Astro.url.searchParams.has('team')
+const board = member.position === 'board'
+const choosing = showsTeamChoice(!!team, board, Astro.url.searchParams.has('team'))
 
 const names = teamNames(openTeams)
 const teamChoices = openTeams.map(({ id }) => ({
@@ -106,7 +106,7 @@ const tools = [
             lastName: member.lastName ?? guessedName.lastName,
             team: team?.id ?? '',
           }}
-          changing={!!team || board}
+          changing={!!team}
           homeUrl={homeUrl}
         />
       ) : (
@@ -122,7 +122,7 @@ const tools = [
             event={event}
             eventsComplete={complete}
             links={{
-              team: `${homeUrl}?team`,
+              team: board ? '' : `${homeUrl}?team`,
               mine: `${tasksUrl}?ansicht=meine`,
               tasks: `${tasksUrl}?ansicht=aufgaben`,
               events: `${tasksUrl}?ansicht=events`,
