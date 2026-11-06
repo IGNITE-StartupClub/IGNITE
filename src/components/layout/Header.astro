@@ -19,6 +19,7 @@ import Button from '../ui/Button.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 import LanguageToggle from '../ui/LanguageToggle.astro'
 import MemberLink from '../ui/MemberLink.astro'
+import ExitDoor from '../ui/ExitDoor.astro'
 import MobileNav from './MobileNav.astro'
 import MemberSearch from '../forms/MemberSearch.jsx'
 import { getCopy } from '../../data/copy'
@@ -207,6 +208,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
         aria-controls="mobile-nav"
         aria-label={navigation.menuOpenLabel}
         data-label-open={navigation.menuOpenLabel}
+      {member && <ExitDoor href={navigation.homeUrl} label={memberNav.website} />}
         data-label-close={navigation.menuCloseLabel}
       >
         <span class="menu-bars" aria-hidden="true"></span>
