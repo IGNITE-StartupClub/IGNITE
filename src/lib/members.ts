@@ -50,7 +50,7 @@ export interface Member {
   /** Entered by the member on the tasks page, so others can assign them by name. */
   firstName?: string
   lastName?: string
-  /** Chosen by the member on the start page. */
+  /** Chosen by the member on the start or tasks page, or set by an admin; decides which tasks they see first. */
   team?: TeamId
 }
 
@@ -86,9 +86,10 @@ interface MemberPhoto {
 interface AuditEntry {
   at: Date
   actor: string
-  action: 'add' | 'remove' | 'role' | 'invite'
+  action: 'add' | 'remove' | 'role' | 'invite' | 'team'
   email: string
   role?: MemberRole
+  team?: TeamChoice
 }
 
 const AUDIT_TTL_SECONDS = 365 * 24 * 3600
@@ -169,6 +170,7 @@ const memberSummary = (member: Member, photoId: string | undefined) => ({
   email: member.email,
   name: enteredName(member),
   role: member.role,
+  team: member.team ?? '',
   /** Signature photo shown in the admin list, or ''. */
   photo: photoId ? photoPath(photoId) : '',
   addedAt: member.addedAt.toISOString(),

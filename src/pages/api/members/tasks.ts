@@ -2,7 +2,7 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest } from '../../../lib/memberAuth'
-import { saveName } from '../../../lib/members'
+import { saveName, saveTeam } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
@@ -12,6 +12,7 @@ import {
   parseProject,
   parseTask,
   parseTaskPatch,
+  parseTeam,
   PROJECT_STATUSES,
   TITLE_MAX,
   type ProjectStatus,
@@ -40,7 +41,8 @@ import {
  * 'create' (project, status?, eventId?, template?, task?), 'update' (id, project), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'reorder' (id, order), 'lessons' (id, lessons), 'saveTemplate' (id, name),
- * 'archiveTemplate' (templateId) or 'name' (firstName, lastName). Answers with { code, id?, state } so the island
+ * 'archiveTemplate' (templateId), 'name' (firstName, lastName) or 'team' (team, the member's own). Answers with
+ * { code, id?, state } so the island
  * shows the current projects of everyone. Rights: see tasksStore.ts; every check runs here on the server.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -95,7 +97,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       case 'update': {
         const fields = parseProject(body.project)
         if (!id || !fields) return invalid()
-        code = await updateProject(actor, id, { title: fields.title, description: fields.description, due: fields.due, leads: fields.leads })
+        code = await updateProject(actor, id, { title: fields.title, description: fields.description, due: fields.due, leads: fields.leads, team: fields.team })
         break
       }
       case 'status':
@@ -150,6 +152,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const name = parseName(body)
         if (!name) return invalid()
         await saveName(actor.email, name.firstName, name.lastName)
+        code = 'ok'
+        break
+      }
+      case 'team': {
+        const team = parseTeam(body.team)
+        if (team === null) return invalid()
+        await saveTeam(actor.email, team)
         code = 'ok'
         break
       }

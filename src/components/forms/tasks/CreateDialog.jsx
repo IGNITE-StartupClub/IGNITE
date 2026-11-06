@@ -3,15 +3,15 @@
  * task. Projects start empty, from a standard template or from an earlier project; the preview lists the tasks to
  * take over, each with a checkbox, its relative deadline and, for earlier projects, whether it was done back then.
  * Only titles, descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server).
- * Props: request ({ kind, event? } or null = closed), copy (workspace copy), locale, me, members, membersById,
- * templates, projects, admin, run, onCreated(id).
+ * Props: request ({ kind, team, event? } or null = closed; team is preselected), copy (workspace copy), locale, me,
+ * members, membersById, templates, projects, admin, run, onCreated(id).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { addDays, PRIORITIES, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
-import { longDay, MemberPicker, shortDay } from './taskUi'
+import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
-const EMPTY = { title: '', description: '', due: '', priority: 'normal', leads: [], assignees: [] }
+const EMPTY = { title: '', description: '', due: '', priority: 'normal', team: '', leads: [], assignees: [] }
 
 function relative(offset, text) {
   if (offset === null) return text.noOffset
@@ -44,7 +44,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
 
   useEffect(() => {
     if (!request) return
-    setForm({ ...EMPTY, title: request.event?.title ?? '', leads: [me] })
+    setForm({ ...EMPTY, title: request.event?.title ?? '', team: request.team, leads: [me] })
     const useTemplate = request.kind === 'event' && templates.length > 0
     setStart(useTemplate ? 'template' : 'none')
     setSourceId(useTemplate ? templates[0].id : '')
@@ -64,7 +64,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
     const { kind, event } = request
     const body = {
       action: 'create',
-      project: { title: form.title, description: form.description, type: kind, due: event ? '' : form.due, leads: form.leads },
+      project: { title: form.title, description: form.description, type: kind, due: event ? '' : form.due, leads: form.leads, team: form.team },
     }
     if (event) body.eventId = event.id
     if (kind === 'task') {
@@ -122,6 +122,12 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
             </p>
           </div>
           <div className="form-row">
+            <div className="field">
+              <label htmlFor={`${id}-team`} className="field-label">
+                {text.team}
+              </label>
+              <TeamSelect id={`${id}-team`} className="input" value={form.team} onChange={set('team')} teams={copy.teams} empty={copy.teamTabs.none} />
+            </div>
             {!request.event && (
               <div className="field">
                 <label htmlFor={`${id}-due`} className="field-label">
@@ -152,6 +158,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
                 members={members}
                 membersById={membersById}
                 selected={form.leads}
+                team={form.team}
                 onChange={(leads) => setForm({ ...form, leads })}
                 copy={copy.people}
                 me={me}
@@ -165,6 +172,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
                   members={members}
                   membersById={membersById}
                   selected={form.assignees}
+                  team={form.team}
                   onChange={(assignees) => setForm({ ...form, assignees })}
                   copy={copy.people}
                   me={me}

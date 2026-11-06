@@ -1,10 +1,10 @@
 /**
  * Member management for admins (React island): a table of all members with search, filter, CSV export and paging,
- * an "add member" dialog and an actions menu per row. Posts { action, email, role?, locale } to /api/members/admin and
- * shows the member list the API returns after each action.
- * Props: copy (memberArea.admin.manager), initialMembers (memberSummary objects), currentEmail (the signed-in admin,
- * whose own row has no actions), locale ('de' | 'en'), now (render time in ms, so server and browser print the same
- * relative times). Owners look like any admin here: the API refuses changes to them (409 'owner') with a neutral
+ * an "add member" dialog, a team select and an actions menu per row. Posts { action, email, role?, team?, locale } to
+ * /api/members/admin and shows the member list the API returns after each action.
+ * Props: copy (memberArea.admin.manager), initialMembers (memberSummary objects), teams (team id → name), currentEmail
+ * (the signed-in admin, whose own row has no actions), locale ('de' | 'en'), now (render time in ms, so server and
+ * browser print the same relative times). Owners look like any admin here: the API refuses changes to them (409 'owner') with a neutral
  * message, so the list does not reveal who is protected.
  * Menus use the browser's popover API, which handles Escape, outside clicks and focus order.
  * Styles: ./forms.css plus Tailwind utilities.
@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, ListFilter, Plus, X } from 'lucide-react'
 import { filterMembers, formatDateTime, memberStatus, relativeTime, toCsv } from '../../lib/memberTable'
 import { BUTTON_BASE, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField, TOOL_BUTTON } from './memberUi'
+import { SELECT, TeamSelect } from './tasks/taskUi'
 import './forms.css'
 
 const ERROR_CODES = [
@@ -64,7 +65,7 @@ function RadioGroup({ legend, name, value, options, onChange }) {
   )
 }
 
-export default function MemberAdmin({ copy, initialMembers, currentEmail, locale, now }) {
+export default function MemberAdmin({ copy, initialMembers, teams, currentEmail, locale, now }) {
   const [members, setMembers] = useState(initialMembers)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('member')
@@ -136,12 +137,13 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
       member.email,
       member.name,
       roleLabel(member),
+      teams[member.team] ?? '',
       copy.status[memberStatus(member)],
       member.lastLoginAt ? formatDateTime(member.lastLoginAt, locale) : '',
       formatDateTime(member.addedAt, locale),
     ])
     const csv = toCsv(
-      [[copy.emailLabel, columns.name, columns.role, columns.status, columns.lastLogin, columns.addedAt], ...rows],
+      [[copy.emailLabel, columns.name, columns.role, columns.team, columns.status, columns.lastLogin, columns.addedAt], ...rows],
       locale,
     )
     const link = document.createElement('a')
@@ -232,7 +234,7 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[52rem] table-auto text-left text-sm">
+          <table className="w-full min-w-[62rem] table-auto text-left text-sm">
             <thead className="bg-bg-subtle">
               <tr>
                 <th scope="col" className={headClass}>
@@ -240,6 +242,9 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                 </th>
                 <th scope="col" className={headClass}>
                   {copy.columns.role}
+                </th>
+                <th scope="col" className={headClass}>
+                  {copy.columns.team}
                 </th>
                 <th scope="col" className={headClass}>
                   {copy.columns.lastLogin}
@@ -275,6 +280,17 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{roleLabel(member)}</td>
+                    <td className="px-4 py-3">
+                      <TeamSelect
+                        aria-label={fill(copy.teamOf, { email: member.email })}
+                        className={`${SELECT} h-8 text-xs`}
+                        value={member.team}
+                        disabled={busy}
+                        onChange={(e) => run({ action: 'team', email: member.email, team: e.target.value })}
+                        teams={teams}
+                        empty={copy.noTeam}
+                      />
+                    </td>
                     <td
                       className="whitespace-nowrap px-4 py-3 font-medium text-fg"
                       title={member.lastLoginAt ? formatDateTime(member.lastLoginAt, locale) : undefined}
@@ -356,7 +372,7 @@ export default function MemberAdmin({ copy, initialMembers, currentEmail, locale
               })}
               {pageMembers.length === 0 && (
                 <tr className="border-t border-border">
-                  <td colSpan={6} className="px-4 py-10 text-center text-fg-muted">
+                  <td colSpan={7} className="px-4 py-10 text-center text-fg-muted">
                     {copy.empty}
                   </td>
                 </tr>

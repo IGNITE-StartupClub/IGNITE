@@ -1,18 +1,17 @@
 /**
- * The events calendar above the project board: a month or week grid of the public events (Luma and externalEvents,
- * loaded by the page, never copied) and cards for the upcoming events or the selected day. Each card either starts the
- * planning project of its event or opens it. Collapsing is remembered for the browser session.
+ * The events view of the tasks module: a month or week grid of the public events (Luma and externalEvents, loaded by
+ * the page, never copied) and cards for the upcoming events or the selected day. Each card either starts the planning
+ * project of its event or opens it.
  * Props: events ({ id, title, startAt, endAt, location, url, day }), projectsByEvent (Map event id → project summary),
  * complete (false when the calendar could not be loaded), today, copy (workspace copy), locale, membersById,
  * onStart(event), onOpen(projectId).
  */
-import React, { useEffect, useId, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
+import React, { useState } from 'react'
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { addDays, progress } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
-import { AvatarStack, berlinTime, eventDayLabel, ICON_BUTTON, longDay, ProgressBar, projectPeople, SURFACE } from './taskUi'
+import { AvatarStack, berlinTime, eventDayLabel, ICON_BUTTON, longDay, ProgressBar, projectPeople, Segmented, SURFACE } from './taskUi'
 
-const COLLAPSED_KEY = 'ignite-tasks-calendar-collapsed'
 const UPCOMING_MAX = 4
 
 const weekday = (day) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7
@@ -74,27 +73,9 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
 
 export default function EventCalendar({ events, projectsByEvent, complete, today, copy, locale, membersById, onStart, onOpen }) {
   const text = copy.calendar
-  const gridId = useId()
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
   const [selected, setSelected] = useState(null)
-  const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    try {
-      setCollapsed(sessionStorage.getItem(COLLAPSED_KEY) === '1')
-    } catch {
-      // Without storage the calendar simply starts open.
-    }
-  }, [])
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed)
-    try {
-      sessionStorage.setItem(COLLAPSED_KEY, collapsed ? '0' : '1')
-    } catch {
-      // Not remembering the choice is harmless.
-    }
-  }
 
   const byDay = new Map()
   for (const event of events) byDay.set(event.day, [...(byDay.get(event.day) ?? []), event])
@@ -109,40 +90,13 @@ export default function EventCalendar({ events, projectsByEvent, complete, today
   const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => event.day >= today).slice(0, UPCOMING_MAX)
 
   return (
-    <section aria-labelledby={`${gridId}-heading`} className={`${SURFACE} p-4 sm:p-5`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`${gridId}-heading`} className="text-lg font-semibold">
-          {text.heading}
-        </h2>
-        <button
-          type="button"
-          className={`${TOOL_BUTTON} h-9`}
-          aria-expanded={!collapsed}
-          aria-controls={gridId}
-          onClick={toggleCollapsed}
-        >
-          {collapsed ? text.expand : text.collapse}
-          <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
-        </button>
-      </div>
-      {!complete && <p className="mt-3 text-sm text-fg-muted">{text.unavailable}</p>}
+    <section aria-label={text.heading} className={`${SURFACE} p-4 sm:p-5`}>
+      {!complete && <p className="mb-4 text-sm text-fg-muted">{text.unavailable}</p>}
 
-      <div id={gridId} hidden={collapsed} className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label={copy.views.label} className="inline-flex rounded-lg border border-border-strong p-0.5">
-              {['month', 'week'].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={mode === item}
-                  onClick={() => setMode(item)}
-                  className={`h-8 rounded-md border-0 px-3 text-sm ${mode === item ? 'bg-fg text-bg' : 'bg-transparent text-fg hover:bg-bg-subtle'}`}
-                >
-                  {text[item]}
-                </button>
-              ))}
-            </div>
+            <Segmented label={copy.views.label} options={{ month: text.month, week: text.week }} value={mode} onChange={setMode} />
             <button type="button" className={ICON_BUTTON} aria-label={text.previous} onClick={() => shift(-1)}>
               <ChevronLeft aria-hidden="true" className="h-5 w-5" />
             </button>

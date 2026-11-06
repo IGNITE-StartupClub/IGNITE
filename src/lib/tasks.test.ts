@@ -1,17 +1,17 @@
 import { test } from 'node:test'
-import { openTeams } from '../data/openTeams.ts'
 import assert from 'node:assert/strict'
+import { openTeams } from '../data/openTeams.ts'
 import {
   addDays,
+  ALL_TEAMS,
   assigneeChanges,
   berlinDay,
   berlinHour,
-  boardFigures,
+  boardColumns,
   filterProjects,
   isRecordId,
-  myFigures,
-  myTasks,
   nameFromEmail,
+  nextStanding,
   openRequired,
   parseLessons,
   parseName,
@@ -21,28 +21,35 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
-  sortMyTasks,
+  scopedTasks,
+  sortTasks,
   TEAM_IDS,
   taskGroup,
+  taskStatus,
+  taskTeam,
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
-  type BoardFilters,
   type ProjectState,
+  type Scope,
   type TaskState,
 } from './tasks.ts'
 
 const ME = 'a'.repeat(24)
 const BEN = 'b'.repeat(24)
+const MARKETING = 'ignite-marketing'
+const RELATIONS = 'ignite-relations'
 
 const task = (overrides: Partial<TaskState> = {}): TaskState => ({
   id: 't',
   title: 'Aufgabe',
   done: false,
+  status: 'backlog',
   due: '',
   priority: 'normal',
   required: false,
   assignees: [],
+  team: '',
   ...overrides,
 })
 const project = (overrides: Partial<ProjectState> = {}): ProjectState => ({
@@ -52,21 +59,23 @@ const project = (overrides: Partial<ProjectState> = {}): ProjectState => ({
   status: 'active',
   due: '',
   leads: [],
+  team: '',
   archived: false,
   eventDay: '',
   tasks: [],
   ...overrides,
 })
 
-test('parseProject requires a title and accepts only known types, real days and member ids', () => {
-  assert.deepEqual(parseProject({ title: ' Alumni-Netzwerk ', type: 'internal', leads: [ME, ME] }), {
+test('parseProject requires a title and accepts only known types, teams, real days and member ids', () => {
+  assert.deepEqual(parseProject({ title: ' Alumni-Netzwerk ', type: 'internal', leads: [ME, ME], team: MARKETING }), {
     title: 'Alumni-Netzwerk',
     description: '',
     type: 'internal',
     due: '',
     leads: [ME],
+    team: MARKETING,
   })
-  for (const bad of [{ title: ' ' }, { title: 'x', type: 'meeting' }, { title: 'x', due: '2026-02-30' }, { title: 'x', leads: ['ben@x.de'] }]) {
+  for (const bad of [{ title: ' ' }, { title: 'x', type: 'meeting' }, { title: 'x', due: '2026-02-30' }, { title: 'x', leads: ['ben@x.de'] }, { title: 'x', team: 'podcast' }]) {
     assert.equal(parseProject(bad), null, JSON.stringify(bad))
   }
 })
@@ -79,14 +88,23 @@ test('parseTask defaults priority and required, rejects unknown priorities', () 
     priority: 'normal',
     required: false,
     assignees: [BEN],
+    team: '',
+    status: 'backlog',
   })
   assert.equal(parseTask({ title: 'x', priority: 'urgent' }), null)
+  assert.equal(parseTask({ title: 'x', team: 'podcast' }), null)
   assert.equal(parseTask({ title: 'x', required: 'yes' }), null)
+  assert.equal(parseTask({ title: 'x', status: 'blocked' }), null)
+  assert.equal(parseTask({ title: 'x', status: 'review' })?.status, 'review')
 })
 
 test('parseTaskPatch keeps only the given fields and refuses unknown or empty changes', () => {
   assert.deepEqual(parseTaskPatch({ done: true }), { done: true })
   assert.deepEqual(parseTaskPatch({ due: '' }), { due: '' })
+  assert.deepEqual(parseTaskPatch({ team: MARKETING }), { team: MARKETING })
+  assert.deepEqual(parseTaskPatch({ status: 'doing' }), { status: 'doing' })
+  assert.equal(parseTaskPatch({ status: 'blocked' }), null)
+  assert.equal(parseTaskPatch({ team: 'podcast' }), null)
   assert.equal(parseTaskPatch({}), null)
   assert.equal(parseTaskPatch({ title: '' }), null)
   assert.equal(parseTaskPatch({ createdBy: ME }), null)
@@ -152,56 +170,131 @@ test('taskGroup puts every task in exactly one group', () => {
   assert.equal(taskGroup({ done: false, due: '' }, today), 'none')
 })
 
-test('boardFigures ignores archived projects', () => {
-  const projects = [
-    project({ tasks: [task({ assignees: [ME], due: '2026-10-01' }), task({ done: true })] }),
-    project({ status: 'done', tasks: [task()] }),
-    project({ archived: true, tasks: [task({ assignees: [ME] })] }),
-  ]
-  assert.deepEqual(boardFigures(projects, ME, '2026-10-28'), { active: 1, open: 2, mine: 1, overdue: 1 })
+const scope = (overrides: Partial<Scope> = {}): Scope => ({ team: ALL_TEAMS, myTeam: '', onlyMine: false, query: '', ...overrides })
+
+test('TEAM_IDS match the teams on the website', () => {
+  assert.deepEqual([...TEAM_IDS], openTeams.map((team) => team.id))
 })
 
-test('myTasks lists only direct assignments, not projects someone leads', () => {
-  const projects = [
-    project({ id: 'p1', leads: [ME], tasks: [task({ id: 'a', assignees: [BEN] }), task({ id: 'b', assignees: [ME, BEN] })] }),
-    project({ id: 'p2', archived: true, tasks: [task({ id: 'c', assignees: [ME] })] }),
-  ]
-  const mine = myTasks(projects, ME, '2026-10-28')
-  assert.deepEqual(mine.map((item) => [item.projectId, item.id]), [['p1', 'b']])
-  assert.deepEqual(myFigures(mine), { open: 1, week: 0, overdue: 0, done: 0 })
+test('parseTeam accepts a known team or no team', () => {
+  assert.equal(parseTeam(MARKETING), MARKETING)
+  assert.equal(parseTeam(''), '')
+  assert.equal(parseTeam(undefined), '')
+  assert.equal(parseTeam('ignite-podcast'), null)
+  assert.equal(parseTeam({ $ne: '' }), null)
 })
 
-test('sortMyTasks orders by due date, priority or last change', () => {
+test('taskTeam prefers the team of the task over the one of its project', () => {
+  assert.equal(taskTeam({ team: MARKETING }, { team: RELATIONS }), MARKETING)
+  assert.equal(taskTeam({ team: '' }, { team: RELATIONS }), RELATIONS)
+  assert.equal(taskTeam({ team: '' }, { team: '' }), '')
+})
+
+test('scopedTasks shows the team of a tab, and on the own tab also what the member is assigned to elsewhere', () => {
+  const projects = [
+    project({ id: 'm', team: MARKETING, tasks: [task({ id: 'post' }), task({ id: 'sponsor', team: RELATIONS })] }),
+    project({ id: 'r', team: RELATIONS, tasks: [task({ id: 'call', assignees: [ME] }), task({ id: 'flyer', team: MARKETING })] }),
+    project({ id: 'free', tasks: [task({ id: 'unsorted' })] }),
+  ]
+  const ids = (overrides: Partial<Scope>) => scopedTasks(projects, scope(overrides), ME, '2026-10-28').map((item) => item.id)
+  assert.deepEqual(ids({ team: MARKETING, myTeam: MARKETING }), ['post', 'call', 'flyer'])
+  assert.deepEqual(ids({ team: MARKETING, myTeam: RELATIONS }), ['post', 'flyer'])
+  assert.deepEqual(ids({ team: RELATIONS, myTeam: MARKETING }), ['sponsor', 'call'])
+  assert.deepEqual(ids({}), ['post', 'sponsor', 'call', 'flyer', 'unsorted'])
+})
+
+test('scopedTasks narrows to own tasks and the search, and hands out team and group of each task', () => {
+  const projects = [
+    project({ id: 'p', title: 'Sommerfest', team: MARKETING, tasks: [task({ id: 'a', title: 'Plakat', assignees: [ME], due: '2026-10-01' }), task({ id: 'b', title: 'Flyer' })] }),
+  ]
+  const list = (overrides: Partial<Scope>) => scopedTasks(projects, scope(overrides), ME, '2026-10-28')
+  assert.deepEqual(list({ onlyMine: true }).map((item) => [item.id, item.team, item.group, item.projectTitle]), [['a', MARKETING, 'overdue', 'Sommerfest']])
+  assert.deepEqual(list({ query: 'flyer' }).map((item) => item.id), ['b'])
+  assert.deepEqual(list({ query: 'sommer' }).map((item) => item.id), ['a', 'b'])
+})
+
+test('scopedTasks leaves out archived and finished projects', () => {
+  const projects = [
+    project({ id: 'old', archived: true, tasks: [task({ id: 'a', assignees: [ME] })] }),
+    project({ id: 'over', status: 'done', tasks: [task({ id: 'b', assignees: [ME] })] }),
+    project({ id: 'live', tasks: [task({ id: 'c', assignees: [ME], done: true })] }),
+  ]
+  assert.deepEqual(scopedTasks(projects, scope(), ME, '2026-10-28').map((item) => [item.id, item.group]), [['c', 'done']])
+})
+
+test('sortTasks puts the earliest deadline first, the higher priority before others on the same day', () => {
   const items = [
-    { ...task({ id: 'late', due: '2026-11-20', priority: 'high', updatedAt: '2026-10-01' }), projectId: 'p', projectTitle: 'P', group: 'later' as const },
-    { ...task({ id: 'none', due: '', priority: 'low', updatedAt: '2026-10-03' }), projectId: 'p', projectTitle: 'P', group: 'none' as const },
-    { ...task({ id: 'soon', due: '2026-10-29', priority: 'normal', updatedAt: '2026-10-02' }), projectId: 'p', projectTitle: 'P', group: 'week' as const },
+    task({ id: 'none', due: '', priority: 'high' }),
+    task({ id: 'late', due: '2026-11-20' }),
+    task({ id: 'soon', due: '2026-10-29', priority: 'low' }),
+    task({ id: 'urgent', due: '2026-10-29', priority: 'high' }),
   ]
-  assert.deepEqual(sortMyTasks(items, 'due').map((item) => item.id), ['soon', 'late', 'none'])
-  assert.deepEqual(sortMyTasks(items, 'priority').map((item) => item.id), ['late', 'soon', 'none'])
-  assert.deepEqual(sortMyTasks(items, 'updated').map((item) => item.id), ['none', 'soon', 'late'])
+  assert.deepEqual(sortTasks(items).map((item) => item.id), ['urgent', 'soon', 'late', 'none'])
 })
 
-test('filterProjects combines type, people, overdue, search and the archive', () => {
+test('filterProjects shows a project to its team, to teams with a task in it and on the own tab to those involved', () => {
   const projects = [
-    project({ id: 'event', type: 'event', tasks: [task({ title: 'Speaker kontaktieren', assignees: [BEN], due: '2026-10-01' })] }),
-    project({ id: 'mine', leads: [ME] }),
-    project({ id: 'old', archived: true }),
+    project({ id: 'own', team: MARKETING }),
+    project({ id: 'shared', team: RELATIONS, tasks: [task({ team: MARKETING })] }),
+    project({ id: 'other', team: RELATIONS, leads: [ME] }),
+    project({ id: 'free' }),
   ]
-  const base: BoardFilters = { query: '', type: '', mine: false, overdue: false, member: '', archived: false }
-  const ids = (filters: Partial<BoardFilters>) =>
-    filterProjects(projects, { ...base, ...filters }, ME, '2026-10-28').map((item) => item.id)
+  const ids = (overrides: Partial<Scope>) => filterProjects(projects, { ...scope(overrides), archived: false }, ME).map((item) => item.id)
+  assert.deepEqual(ids({ team: MARKETING, myTeam: MARKETING }), ['own', 'shared', 'other'])
+  assert.deepEqual(ids({ team: MARKETING }), ['own', 'shared'])
+  assert.deepEqual(ids({ team: RELATIONS }), ['shared', 'other'])
+  assert.deepEqual(ids({}), ['own', 'shared', 'other', 'free'])
+})
+
+test('filterProjects combines own projects, search and the archive; single tasks only show there', () => {
+  const projects = [
+    project({ id: 'event', type: 'event', tasks: [task({ title: 'Speaker kontaktieren', assignees: [BEN] })] }),
+    project({ id: 'mine', leads: [ME] }),
+    project({ id: 'single', type: 'task', tasks: [task()] }),
+    project({ id: 'old', archived: true }),
+    project({ id: 'oldSingle', type: 'task', archived: true }),
+  ]
+  const ids = (overrides: Partial<Scope & { archived: boolean }>) =>
+    filterProjects(projects, { ...scope(), archived: false, ...overrides }, ME).map((item) => item.id)
   assert.deepEqual(ids({}), ['event', 'mine'])
-  assert.deepEqual(ids({ type: 'event' }), ['event'])
-  assert.deepEqual(ids({ mine: true }), ['mine'])
-  assert.deepEqual(ids({ member: BEN }), ['event'])
-  assert.deepEqual(ids({ overdue: true }), ['event'])
+  assert.deepEqual(ids({ onlyMine: true }), ['mine'])
   assert.deepEqual(ids({ query: 'speaker' }), ['event'])
-  assert.deepEqual(ids({ archived: true }), ['old'])
+  assert.deepEqual(ids({ archived: true }), ['old', 'oldSingle'])
 })
 
 test('openRequired counts open required tasks only', () => {
   assert.equal(openRequired([task({ required: true }), task({ required: true, done: true }), task()]), 1)
+})
+
+test('taskStatus reads tasks stored before the board from their done flag', () => {
+  assert.equal(taskStatus({ done: true }), 'done')
+  assert.equal(taskStatus({ done: false }), 'backlog')
+  assert.equal(taskStatus({ done: false, status: 'review' }), 'review')
+})
+
+test('nextStanding keeps status and done in step', () => {
+  const open = { done: false, status: 'doing' } as const
+  const finished = { done: true, status: 'done' } as const
+  assert.deepEqual(nextStanding(open, { status: 'review' }), { done: false, status: 'review' })
+  assert.deepEqual(nextStanding(open, { status: 'done' }), finished)
+  assert.deepEqual(nextStanding(finished, { status: 'doing' }), open)
+  assert.deepEqual(nextStanding(open, { done: true }), finished)
+  assert.deepEqual(nextStanding(finished, { done: false }), { done: false, status: 'backlog' })
+  assert.deepEqual(nextStanding(open, { done: false }), open)
+  assert.deepEqual(nextStanding(open, { title: 'Neu' }), open)
+})
+
+test('boardColumns sorts open columns by deadline and shows the last finished task first', () => {
+  const columns = boardColumns([
+    { ...task({ id: 'late', status: 'doing', due: '2026-12-01' }), doneAt: '' },
+    { ...task({ id: 'soon', status: 'doing', due: '2026-11-10' }), doneAt: '' },
+    { ...task({ id: 'older', status: 'done', done: true }), doneAt: '2026-11-01T10:00:00.000Z' },
+    { ...task({ id: 'newer', status: 'done', done: true }), doneAt: '2026-11-05T10:00:00.000Z' },
+  ])
+  assert.deepEqual(columns.doing.map((item) => item.id), ['soon', 'late'])
+  assert.deepEqual(columns.done.map((item) => item.id), ['newer', 'older'])
+  assert.deepEqual(columns.backlog, [])
+  assert.deepEqual(columns.review, [])
 })
 
 test('tasksFromTemplate starts every task open and unassigned, with deadlines only from relative rules', () => {
@@ -214,7 +307,7 @@ test('tasksFromTemplate starts every task open and unassigned, with deadlines on
     '2027-03-10',
   )
   assert.deepEqual(copied.map((item) => item.due), ['2027-02-08', '2027-03-12', ''])
-  assert.ok(copied.every((item) => item.assignees.length === 0))
+  assert.ok(copied.every((item) => item.assignees.length === 0 && item.team === '' && item.status === 'backlog'))
   assert.deepEqual(tasksFromTemplate([{ title: 'x', description: '', priority: 'low', required: false, offsetDays: -3 }], '')[0].due, '')
 })
 

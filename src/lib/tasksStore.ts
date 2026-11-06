@@ -1,7 +1,8 @@
 /**
  * MongoDB access for the tasks module of the members area. Collections:
- * - `task_projects`: the cards of the board (event projects, internal projects, single tasks) with their subtasks,
- *   lessons learned and activity log embedded, so one update changes a project atomically. A unique index on
+ * - `task_projects`: event projects, internal projects and single tasks with their subtasks, lessons learned and
+ *   activity log embedded, so one update changes a project atomically. Projects and tasks saved before teams existed
+ *   have no `team` and read as ''. A unique index on
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
  *   syncEvents refreshes it and never touches tasks, people or status.
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
@@ -28,15 +29,21 @@ import {
   type ProjectType,
   type TaskFields,
   type TaskPatch,
+  type TaskStatus,
+  type TeamChoice,
   type TemplateTask,
+  nextStanding,
+  taskStatus,
   tasksFromTemplate,
   templateFromTasks,
 } from './tasks'
 
 const ACTIVITY_MAX = 300
 
-interface TaskDoc extends TaskFields {
+interface TaskDoc extends Omit<TaskFields, 'team' | 'status'> {
   id: string
+  team?: TeamChoice
+  status?: TaskStatus
   done: boolean
   doneBy: string | null
   doneAt: Date | null
@@ -92,6 +99,7 @@ interface ProjectDoc {
   event: EventSnapshot | null
   due: string
   leads: string[]
+  team?: TeamChoice
   tasks: TaskDoc[]
   lessons: (Lessons & { by: string; at: Date }) | null
   activity: Activity[]
@@ -175,19 +183,19 @@ export async function taskActor(session: { email: string; role: MemberRole }): P
   return member && { id: member._id.toHexString(), email: session.email, role: session.role, named: !!(member.firstName && member.lastName) }
 }
 
-/** Name and photo of every member, the only personal data the board shows. */
+/** Name, photo and team of every member, the only personal data the board shows. */
 async function directory() {
   const { members } = await collections()
   const db = await database()
   const [list, photos] = await Promise.all([
-    members.find({}, { projection: { _id: 1, email: 1, firstName: 1, lastName: 1, signature: 1 } }).toArray(),
+    members.find({}, { projection: { _id: 1, email: 1, firstName: 1, lastName: 1, signature: 1, team: 1 } }).toArray(),
     db.collection<{ _id: string; email: string }>('member_photos').find({}, { projection: { _id: 1, email: 1 }, sort: { createdAt: 1 } }).toArray(),
   ])
   const photoIds = new Map(photos.map(({ _id, email }) => [email, _id]))
   return list
     .map((member) => {
       const photoId = photoIds.get(member.email)
-      return { id: member._id.toHexString(), name: displayName(member), photo: photoId ? photoPath(photoId) : '' }
+      return { id: member._id.toHexString(), name: displayName(member), photo: photoId ? photoPath(photoId) : '', team: member.team ?? '' }
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'de'))
 }
@@ -212,6 +220,7 @@ function projectSummary(project: ProjectDoc, actor: TaskActor, known: Set<string
     eventDay: project.event ? berlinDay(project.event.startAt.getTime()) : '',
     due: project.due,
     leads: people(project.leads),
+    team: project.team ?? '',
     tasks: [...project.tasks]
       .sort((a, b) => a.position - b.position)
       .map((task) => ({
@@ -219,12 +228,14 @@ function projectSummary(project: ProjectDoc, actor: TaskActor, known: Set<string
         title: task.title,
         description: task.description,
         done: task.done,
+        status: taskStatus(task),
         doneBy: task.doneBy,
         doneAt: task.doneAt?.toISOString() ?? '',
         due: task.due,
         priority: task.priority,
         required: task.required,
         assignees: people(task.assignees),
+        team: task.team ?? '',
         createdBy: task.createdBy,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),
@@ -304,7 +315,18 @@ async function unnotify(taskId: string, memberIds?: string[]) {
 }
 
 function newTask(fields: TaskFields, position: number, actor: TaskActor, now: Date): TaskDoc {
-  return { ...fields, id: randomUUID(), done: false, doneBy: null, doneAt: null, position, createdBy: actor.id, createdAt: now, updatedAt: now }
+  const done = fields.status === 'done'
+  return {
+    ...fields,
+    id: randomUUID(),
+    done,
+    doneBy: done ? actor.id : null,
+    doneAt: done ? now : null,
+    position,
+    createdBy: actor.id,
+    createdAt: now,
+    updatedAt: now,
+  }
 }
 
 const eventSnapshot = (event: TaskEvent): EventSnapshot => ({
@@ -380,7 +402,7 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
 type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full'
 
 /**
- * Edits title, description, date and leads. Only those who may archive change the leads, because being a lead grants
+ * Edits title, description, date, team and leads. Only those who may archive change the leads, because being a lead grants
  * that right. Everyone else keeps the stored leads and gets 'forbidden' for adding one; a missing lead is ignored, since
  * the client never sees leads whose member was removed and sends the list without them.
  */
@@ -460,18 +482,21 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   if (!task) return 'unknown'
   const now = new Date()
   const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now }
-  for (const [key, value] of Object.entries(patch)) set[`tasks.$[t].${key}`] = value
+  const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
+  for (const [key, value] of Object.entries({ ...patch, done, status })) set[`tasks.$[t].${key}`] = value
   const entries: Activity[] = []
-  if (patch.done !== undefined && patch.done !== task.done) {
-    set['tasks.$[t].doneBy'] = patch.done ? actor.id : null
-    set['tasks.$[t].doneAt'] = patch.done ? now : null
-    entries.push(activity(actor, patch.done ? 'taskDone' : 'taskReopened', task.title))
+  if (done !== task.done) {
+    set['tasks.$[t].doneBy'] = done ? actor.id : null
+    set['tasks.$[t].doneAt'] = done ? now : null
+    entries.push(activity(actor, done ? 'taskDone' : 'taskReopened', task.title))
   }
   const { added, removed } = assigneeChanges(task.assignees, patch.assignees ?? task.assignees)
   for (const member of added) entries.push(activity(actor, 'assigned', task.title, member))
   for (const member of removed) entries.push(activity(actor, 'unassigned', task.title, member))
   if (patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
-  const edited = (['title', 'description', 'priority', 'required'] as const).some((key) => patch[key] !== undefined && patch[key] !== task[key])
+  const edited =
+    (['title', 'description', 'priority', 'required'] as const).some((key) => patch[key] !== undefined && patch[key] !== task[key]) ||
+    (patch.team !== undefined && patch.team !== (task.team ?? ''))
   if (edited) entries.push(activity(actor, 'taskEdited', patch.title ?? task.title))
 
   await projects.updateOne(
@@ -481,7 +506,7 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   )
   if (removed.length) await unnotify(taskId, removed)
   // A finished task needs no "you were assigned" mail any more.
-  if (patch.done) await unnotify(taskId)
+  if (done) await unnotify(taskId)
   else if (added.length && !task.done) await notify(id, taskId, added, actor)
   return 'ok'
 }
