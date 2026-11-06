@@ -90,7 +90,7 @@ export function LeadLine({ project, membersById, copy, className = '' }) {
   const names = project.leads.map((id) => membersById.get(id)?.name).filter(Boolean)
   if (!names.length) return null
   return (
-    <span className={`block truncate text-xs text-fg-muted ${className}`}>
+    <span className={`block truncate text-caption text-fg-muted ${className}`}>
       {copy.panel.leads}: {names.join(', ')}
     </span>
   )
@@ -296,15 +296,15 @@ export function Segmented({ label, options, value, onChange }) {
 /** A round checkbox for task rows; the native input stays for keyboard and screen readers. */
 export function TaskCheck({ checked, onChange, label }) {
   return (
-    <label className="relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center">
+    <label className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" aria-label={label} />
       <span
         aria-hidden="true"
-        className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus ${
+        className={`flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus ${
           checked ? 'border-fg bg-fg text-bg' : 'border-fg-subtle hover:border-fg'
         }`}
       >
-        {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+        {checked && <Check className="h-4 w-4" strokeWidth={3} />}
       </span>
     </label>
   )

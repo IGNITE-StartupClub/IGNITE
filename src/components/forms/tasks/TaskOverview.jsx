@@ -37,13 +37,13 @@ function DayBand({ days, byDay, activeDay, today, projectsByEvent, locale, onPic
                 aria-pressed={dayEvents.length ? day === activeDay : undefined}
                 aria-label={[...dayEvents.map((event) => event.title), date].join(', ')}
                 onClick={() => onPick(day)}
-                className={`flex h-full min-h-24 w-full min-w-0 flex-col items-start gap-0.5 overflow-hidden rounded-lg border p-1.5 text-left text-fg ${
+                className={`flex h-full min-h-28 w-full min-w-0 flex-col items-start gap-1 overflow-hidden rounded-lg border p-2 text-left text-fg ${
                   day === activeDay ? 'border-accent bg-bg-subtle' : 'border-transparent bg-transparent'
                 } ${dayEvents.length ? 'hover:bg-bg-subtle' : ''}`}
               >
-                <span className="text-xs text-fg-muted">{dayPart(day, locale, { weekday: 'short' }).replace('.', '')}</span>
+                <span className="text-caption text-fg-muted">{dayPart(day, locale, { weekday: 'short' }).replace('.', '')}</span>
                 <span
-                  className={`grid h-7 w-7 place-items-center rounded-full text-sm ${
+                  className={`-ml-1 grid h-10 w-10 place-items-center rounded-full text-[20px] ${
                     day === today ? 'bg-brand-bright font-semibold text-white' : 'font-medium'
                   }`}
                 >
@@ -52,7 +52,7 @@ function DayBand({ days, byDay, activeDay, today, projectsByEvent, locale, onPic
                 {dayEvents.map((event) => (
                   <span
                     key={event.id}
-                    className={`mt-0.5 block max-w-full truncate rounded-md px-1.5 py-px text-2xs ${
+                    className={`mt-0.5 block max-w-full truncate rounded-md px-1.5 py-px text-xs ${
                       projectsByEvent.has(event.id) ? 'surface-brand' : 'bg-[color-mix(in_srgb,var(--color-fg)_14%,transparent)] text-fg'
                     }`}
                   >
@@ -73,15 +73,15 @@ function EventSummary({ event, project, copy, locale, membersById, onStart, onOp
   const tasks = project && progress(project.tasks)
   const planning = !project ? text.noPlanning : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
-        <div aria-hidden="true" className="surface-brand flex h-[4.75rem] w-[4.5rem] shrink-0 flex-col items-center justify-center rounded-card">
-          <span className="text-xs font-medium">{dayPart(event.day, locale, { month: 'short' }).replace('.', '')}</span>
-          <span className="text-[1.75rem] font-semibold leading-tight">{dayPart(event.day, locale, { day: 'numeric' }).replace('.', '')}</span>
+        <div aria-hidden="true" className="surface-brand flex h-[5.5rem] w-20 shrink-0 flex-col items-center justify-center rounded-card">
+          <span className="text-caption font-medium">{dayPart(event.day, locale, { month: 'short' }).replace('.', '')}</span>
+          <span className="text-[2rem] font-semibold leading-tight">{dayPart(event.day, locale, { day: 'numeric' }).replace('.', '')}</span>
         </div>
         <div className="min-w-0">
-          <h3 className="text-lg font-semibold leading-tight">{event.title}</h3>
-          <p className="mt-0.5 text-caption text-fg-muted">
+          <h3 className="text-[20px] font-semibold leading-tight">{event.title}</h3>
+          <p className="mt-1 text-sm text-fg-muted">
             {dayPart(event.day, locale, { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
             {fill(text.time, { time: berlinTime(event.startAt, locale) })}
           </p>
@@ -91,7 +91,7 @@ function EventSummary({ event, project, copy, locale, membersById, onStart, onOp
         <p className="text-sm text-fg-muted">{planning}</p>
         {project && <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />}
       </div>
-      <button type="button" className={`${TOOL_BUTTON} w-full justify-center`} onClick={() => (project ? onOpen(project.id) : onStart(event))}>
+      <button type="button" className={`${TOOL_BUTTON} min-h-[52px] w-full justify-center`} onClick={() => (project ? onOpen(project.id) : onStart(event))}>
         {project ? text.openPlanning : copy.calendar.startPlanning}
       </button>
     </div>
@@ -102,11 +102,11 @@ function OverviewCard({ title, link, onLink, children }) {
   const id = useId()
   return (
     <section aria-labelledby={id} className={`${CARD} flex min-w-0 flex-[1_1_20rem] flex-col overflow-hidden`}>
-      <h2 id={id} className={`${HEADING} px-5 pb-3.5 pt-5`}>
+      <h2 id={id} className={`${HEADING} px-6 pb-4 pt-6`}>
         {title}
       </h2>
       <div className="flex flex-1 flex-col">{children}</div>
-      <button type="button" className={`${LEAD_ON} ${ROW_LINE} min-h-[3.25rem] w-full rounded-none px-5`} onClick={onLink}>
+      <button type="button" className={`${LEAD_ON} ${ROW_LINE} min-h-[60px] w-full rounded-none px-6`} onClick={onLink}>
         {link}
         <span aria-hidden="true">→</span>
       </button>
@@ -130,8 +130,8 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
   const assigned = sortTasks(mine.filter((task) => !task.done || checked.includes(task.id))).slice(0, TASKS_SHOWN)
 
   return (
-    <div className="flex flex-col gap-6">
-      <section aria-label={text.days} className={`${CARD} px-5 pb-5 pt-4`}>
+    <div className="flex flex-col gap-7">
+      <section aria-label={text.days} className={`${CARD} px-6 pb-6 pt-5`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <h2 className={HEADING}>{text.days}</h2>
           <button type="button" className={`${LEAD_ON} min-h-11`} onClick={() => onView('events')}>
@@ -150,9 +150,9 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
         />
       </section>
 
-      <div className="flex flex-wrap items-stretch gap-6">
+      <div className="flex flex-wrap items-stretch gap-7">
         <OverviewCard title={copy.views.events} link={copy.calendar.allEvents} onLink={() => onView('events')}>
-          <div className="flex flex-1 flex-col gap-6 px-5 pb-5">
+          <div className="flex flex-1 flex-col gap-6 px-6 pb-6">
             {listed.map((event) => (
               <EventSummary
                 key={event.id}
@@ -170,28 +170,28 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
         </OverviewCard>
 
         <OverviewCard title={copy.views.projects} link={text.allProjects} onLink={() => onView('projects')}>
-          {!projects.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted`}>{copy.board.noResults}</p>}
+          {!projects.length && <p className={`${ROW_LINE} px-6 py-4 text-sm text-fg-muted`}>{copy.board.noResults}</p>}
           {projects.slice(0, PROJECTS_SHOWN).map((project) => {
             const done = progress(project.tasks)
             return (
               <button
                 key={project.id}
                 type="button"
-                className={`${ROW_LINE} block w-full rounded-none bg-transparent px-5 py-3 text-left text-fg hover:bg-bg-subtle`}
+                className={`${ROW_LINE} block w-full rounded-none bg-transparent px-6 py-4 text-left text-fg hover:bg-bg-subtle`}
                 onClick={() => onOpen(project.id)}
               >
-                <span className="block truncate text-sm font-medium">{project.title}</span>
+                <span className="block truncate text-[18px] font-medium">{project.title}</span>
                 <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />
                 <span className="mt-2 flex items-center gap-2.5">
                   {done.total ? (
                     <>
                       <ProgressBar percent={done.percent} label={copy.board.progress} />
-                      <span className="shrink-0 text-xs tabular-nums text-fg-muted">
+                      <span className="shrink-0 text-caption tabular-nums text-fg-muted">
                         {done.done}/{done.total}
                       </span>
                     </>
                   ) : (
-                    <span className="text-xs text-fg-subtle">{copy.board.noTasks}</span>
+                    <span className="text-caption text-fg-subtle">{copy.board.noTasks}</span>
                   )}
                 </span>
               </button>
@@ -200,24 +200,24 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
         </OverviewCard>
 
         <OverviewCard title={copy.views.tasks} link={text.allTasks} onLink={() => onView('tasks')}>
-          <div className="grid grid-cols-3 gap-2 px-5 pb-4">
+          <div className="grid grid-cols-3 gap-3 px-6 pb-5">
             {TILES.map((status) => (
               <button
                 key={status}
                 type="button"
-                className="flex min-w-0 flex-col rounded-xl border-0 bg-bg-subtle px-2.5 py-2 text-left text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_10%,transparent)]"
+                className="flex min-w-0 flex-col rounded-xl border-0 bg-bg-subtle px-3.5 py-3 text-left text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_10%,transparent)]"
                 onClick={() => onView('tasks')}
               >
-                <span className="text-2xl font-semibold leading-tight tabular-nums">{columns[status].length}</span>
-                <span className="truncate text-caption text-fg-muted">{copy.taskStatuses[status]}</span>
+                <span className="text-[2.25rem] font-semibold leading-tight tabular-nums">{columns[status].length}</span>
+                <span className="truncate text-sm text-fg-muted">{copy.taskStatuses[status]}</span>
               </button>
             ))}
           </div>
-          <p className={`${ROW_LINE} px-5 pb-1 pt-3 text-xs font-medium uppercase tracking-wider text-fg-muted`}>{text.assigned}</p>
-          {!assigned.length && <p className="px-5 pb-4 text-sm text-fg-muted">{text.noneAssigned}</p>}
-          <ul role="list" className="flex-1 pb-1">
+          <p className={`${ROW_LINE} px-6 pb-1 pt-4 text-caption font-medium uppercase tracking-wider text-fg-muted`}>{text.assigned}</p>
+          {!assigned.length && <p className="px-6 pb-4 text-sm text-fg-muted">{text.noneAssigned}</p>}
+          <ul role="list" className="flex-1 pb-2">
             {assigned.map((task) => (
-              <li key={task.id} className="flex min-h-11 items-center gap-3 px-5">
+              <li key={task.id} className="flex min-h-14 items-center gap-3 px-6 py-1.5">
                 <TaskCheck
                   checked={task.done}
                   onChange={(done) => {
@@ -228,14 +228,14 @@ export default function TaskOverview({ events, complete, projectsByEvent, projec
                 />
                 <button
                   type="button"
-                  className={`min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-left text-sm font-medium ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
+                  className={`line-clamp-2 min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-sm font-medium leading-snug ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
                   onClick={() => onOpenTask(task)}
                 >
                   {task.title}
                 </button>
-                {task.private && <Lock role="img" aria-label={copy.private.badge} className="h-3.5 w-3.5 shrink-0 text-fg-muted" />}
+                {task.private && <Lock role="img" aria-label={copy.private.badge} className="h-4 w-4 shrink-0 text-fg-muted" />}
                 {task.due && (
-                  <span className={`shrink-0 text-xs tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
+                  <span className={`shrink-0 text-caption tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
                     {shortDay(task.due, locale)}
                   </span>
                 )}
