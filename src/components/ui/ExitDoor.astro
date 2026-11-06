@@ -1,21 +1,26 @@
 ---
 /**
- * Door icon (44x44) in the corner of the members area header that leads back to the public website.
+ * Door icon that leads from the members area back to the public website. Two placements, only one is visible:
+ * "corner" is a round glass button of its own at the top right of the window, outside the pill (from 92rem on, where
+ * the pill leaves room beside it; it must be a child of the header, not of .pill, because the pill's backdrop-filter
+ * would turn position: absolute into the pill's own box); "pill" sits inside the pill below that width.
  * The door is closed at rest. On hover or keyboard focus it swings open and a rocket flies out of it. Touch screens
  * have no hover, so a tap plays the same animation first and navigates 450 ms later.
- * Props: href (website home of the current language), label (aria-label and tooltip, memberArea.nav.website).
+ * Props: href (website home of the current language), label (aria-label and tooltip, memberArea.nav.website),
+ * placement ("pill" by default, or "corner").
  * Colours come from the theme tokens, so the icon works in light and dark mode. With prefers-reduced-motion the door
  * opens without the rocket.
  */
 interface Props {
   href: string
   label: string
+  placement?: 'pill' | 'corner'
 }
 
-const { href, label } = Astro.props
+const { href, label, placement = 'pill' } = Astro.props
 ---
 
-<a class="exit-door" href={href} aria-label={label} title={label} data-exit-door>
+<a class="exit-door" href={href} aria-label={label} title={label} data-exit-door data-placement={placement}>
   <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path class="doorway" d="M6 24.5V5.5A1.5 1.5 0 0 1 7.5 4H18.5A1.5 1.5 0 0 1 20 5.5V24.5" />
     <g class="rocket">
@@ -58,6 +63,39 @@ const { href, label } = Astro.props
   /* Below sm the pill has no room left for a third icon button; the profile menu still links to the website. */
   @media (max-width: 639px) {
     .exit-door {
+      display: none;
+    }
+  }
+  .exit-door[data-placement='corner'] {
+    position: absolute;
+    top: 0;
+    right: 0.75rem;
+    width: 3.75rem;
+    height: 3.75rem;
+    pointer-events: auto;
+    background-color: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.12);
+    transition:
+      width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color var(--duration-fast) ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Matches the pill, which gets smaller after scrolling. */
+  :global([data-scrolled]) .exit-door[data-placement='corner'] {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+  @media (min-width: 92rem) {
+    .exit-door[data-placement='pill'] {
+      display: none;
+    }
+  }
+  @media (max-width: 91.99rem) {
+    .exit-door[data-placement='corner'] {
       display: none;
     }
   }
@@ -119,9 +157,7 @@ const { href, label } = Astro.props
   // Without hover, the tap shows the launch and then follows the link. Modified clicks keep their normal behaviour.
   const LAUNCH_MS = 450
   const bindExitDoor = () => {
-    const door = document.querySelector<HTMLAnchorElement>('[data-exit-door]')
-    if (!door) return
-    door.addEventListener('click', (e) => {
+    document.querySelectorAll<HTMLAnchorElement>('[data-exit-door]').forEach((door) => door.addEventListener('click', (e) => {
       const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
       const noHover = window.matchMedia('(hover: none)').matches
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -129,7 +165,7 @@ const { href, label } = Astro.props
       e.preventDefault()
       door.setAttribute('data-play', '')
       setTimeout(() => navigate(door.href), LAUNCH_MS)
-    })
+    }))
   }
   // The header is swapped on every client-side navigation, so the listener is bound again after each load.
   document.addEventListener('astro:page-load', bindExitDoor)
