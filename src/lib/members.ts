@@ -153,6 +153,7 @@ async function collections() {
     clients: db.collection<ClientAttempt>('member_login_clients'),
     photos: db.collection<MemberPhoto>('member_photos'),
     privateTasks: db.collection<{ memberId: string }>('private_tasks'),
+    taskTrash: db.collection<{ deletedBy: string }>('task_trash'),
     // Their documents and all other access live in connectionsStore.ts.
     connections: db.collection<{ email: string }>('member_connections'),
     feeds: db.collection<{ _id: string }>('member_calendar_feeds'),
@@ -241,13 +242,15 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
 
 /** Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once. */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos, privateTasks, connections, feeds } = await collections()
+  const { members, sessions, codes, photos, privateTasks, taskTrash, connections, feeds } = await collections()
   const member = await members.findOneAndDelete({ email })
   await Promise.all([
     sessions.deleteMany({ email }),
     codes.deleteMany({ email }),
     photos.deleteMany({ email }),
-    ...(member ? [privateTasks.deleteMany({ memberId: member._id.toHexString() })] : []),
+    ...(member
+      ? [privateTasks.deleteMany({ memberId: member._id.toHexString() }), taskTrash.deleteMany({ deletedBy: member._id.toHexString() })]
+      : []),
     connections.deleteMany({ email }),
     feeds.deleteOne({ _id: email }),
   ])

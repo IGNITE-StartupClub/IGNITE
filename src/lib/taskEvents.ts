@@ -14,6 +14,7 @@ export interface TaskEvent {
   endAt: Date
   location: string | null
   url: string
+  coverUrl: string | null
   source: 'luma' | 'external'
 }
 
@@ -31,6 +32,7 @@ export async function loadTaskEvents(locale: Locale): Promise<{ events: TaskEven
       endAt: event.endAt,
       location: event.location,
       url: event.url,
+      coverUrl: event.coverUrl,
       source: 'luma',
     }),
   )
@@ -42,6 +44,7 @@ export async function loadTaskEvents(locale: Locale): Promise<{ events: TaskEven
       endAt: event.endAt,
       location: event.location,
       url: event.registerUrl,
+      coverUrl: event.coverUrl,
       source: 'external',
     }),
   )

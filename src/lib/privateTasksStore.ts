@@ -8,15 +8,17 @@
 import { randomUUID } from 'node:crypto'
 import { fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
 import { database, setUpInBackground } from './members'
-import { MAX_TASKS, nextStanding, type PrivateTaskState, type TaskFields, type TaskPatch } from './tasks'
+import { MAX_TASKS, nextStanding, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
+import { putInTrash, takeFromTrash } from './taskTrash'
 
 const COLLECTION = 'private_tasks'
 const SEALED = ['title', 'description'] as const
 const PLAIN = ['due', 'priority', 'team'] as const
 
-interface PrivateTaskDoc extends Omit<PrivateTaskState, 'id' | 'doneAt'> {
+interface PrivateTaskDoc extends Omit<PrivateTaskState, 'id' | 'doneAt' | 'status'> {
   _id: string
   memberId: string
+  status?: StoredStatus<TaskStatus>
   doneAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -48,7 +50,7 @@ export async function privateTasks(memberId: string): Promise<PrivateTaskState[]
     title: opened(task.title, memberId, task._id, 'title'),
     description: opened(task.description, memberId, task._id, 'description'),
     done: task.done,
-    status: task.status,
+    status: taskStatus(task),
     doneAt: task.doneAt?.toISOString() ?? '',
     due: task.due,
     priority: task.priority,
@@ -84,7 +86,7 @@ export async function updatePrivateTask(memberId: string, id: string, patch: Tas
   const task = await tasks.findOne({ _id: id, memberId }, { projection: { done: 1, status: 1 } })
   if (!task) return 'unknown'
   const now = new Date()
-  const { done, status } = nextStanding(task, patch)
+  const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
   const set: Partial<PrivateTaskDoc> = { done, status, updatedAt: now }
   if (done !== task.done) set.doneAt = done ? now : null
   for (const key of SEALED) if (patch[key] !== undefined) set[key] = sealed(patch[key], memberId, id, key)
@@ -93,8 +95,19 @@ export async function updatePrivateTask(memberId: string, id: string, patch: Tas
   return 'ok'
 }
 
+/** The trash keeps the task as stored, still sealed, so the undo puts back the same record. */
 export async function removePrivateTask(memberId: string, id: string): Promise<'ok' | 'unknown'> {
   const tasks = await collection()
-  const { deletedCount } = await tasks.deleteOne({ _id: id, memberId })
-  return deletedCount ? 'ok' : 'unknown'
+  const task = await tasks.findOneAndDelete({ _id: id, memberId })
+  if (!task) return 'unknown'
+  await putInTrash(memberId, id, task)
+  return 'ok'
+}
+
+export async function restorePrivateTask(memberId: string, id: string): Promise<'ok' | 'unknown'> {
+  const tasks = await collection()
+  const task = await takeFromTrash<PrivateTaskDoc>(memberId, id)
+  if (!task) return 'unknown'
+  await tasks.insertOne({ ...task, updatedAt: new Date() })
+  return 'ok'
 }
