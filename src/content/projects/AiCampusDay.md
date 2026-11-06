@@ -1,6 +1,6 @@
 ---
 title: "AI-Campus Day: Leuphana trifft TUHH"
-author: Noah Samel, Head of Marketing @IGNITE
+author: Noah Samel @IGNITE Team
 description: Beim ersten AI-Campus Day haben Studierende der Leuphana und der TUHH mit KI an Gründungsideen gearbeitet und in rund 25 Minuten klickbare Prototypen gebaut.
 image: /news/ai-campus-day.jpeg
 date: 2026-10-30
