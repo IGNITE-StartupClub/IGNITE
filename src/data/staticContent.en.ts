@@ -469,9 +469,7 @@ export const memberArea = {
     signature: 'Email signature',
     tasks: 'Tasks',
     network: 'Network',
-    guide: 'Guide',
-    branding: 'Branding',
-    benefits: 'Benefits',
+    storage: 'Files',
     newTab: 'opens in a new tab',
     profile: 'Profile and sign out',
     signedInAs: 'Signed in as',
@@ -814,12 +812,22 @@ export const memberArea = {
       },
     },
   },
+  // SharePoint folders of the Ablage (MemberStoragePage.astro). Only links that require a sign-in: this repository is public.
+  storage: {
+    pageTitle: 'Files',
+    title: 'Our <em>files</em>',
+    lead: 'Documents live in SharePoint, logos and colours are here to download.',
+    back: 'Back to the members area',
+    documentsHeading: 'Documents',
+    open: 'Open in SharePoint',
+    pending: 'Link coming soon',
+    folders: [{ name: 'Minutes', url: '' }, { name: 'Templates', url: '' }, { name: 'Guides', url: '' }],
+  },
   // The branding page (MemberBrandingPage.astro). Files and formats are in brandKit.ts; `assets` names them by id.
   branding: {
     pageTitle: 'Branding',
-    title: 'Our <em>branding</em>',
+    title: 'Branding',
     lead: 'IGNITE logos, mark, colours and templates to download. Please use them as they are.',
-    back: 'Back to the members area',
     // {name} and {format} are replaced.
     downloadLabel: 'Download {name} as {format}',
     groups: {
@@ -943,19 +951,20 @@ export const memberArea = {
       language: 'Deutsch',
     },
   },
-  // The benefits page (MemberBenefitsPage.astro): one card per offer, new offers go into `items`.
-  benefits: {
-    pageTitle: 'Benefits',
-    title: 'Your <em>benefits</em>',
-    lead: 'What you get on top as an IGNITE member.',
-    back: 'Back to the members area',
+  // The partner tab (MemberPartnersPage.astro): the first item is the large card, new partners go into `items`.
+  partners: {
+    pageTitle: 'Partners',
+    lead: 'Partners and programmes you can use as an IGNITE member.',
+    open: 'Visit the network',
+    moreHeading: 'More partnerships',
+    moreEmpty: 'More partners will appear here once they are confirmed.',
     items: [
       {
         id: 'emn',
+        kind: 'Mentoring',
         title: 'European Mentorship Network',
         text: 'Free mentoring with mentors from all over Europe. The IGNITE community has its own space there.',
         url: 'https://www.europeanmentorshipnetwork.com',
-        icon: 'ion:people-outline',
       },
     ],
   },
@@ -963,11 +972,14 @@ export const memberArea = {
     title: 'Our <em>network</em>',
     back: 'Back to the members area',
     tabsLabel: 'Network sections',
-    tabs: { crm: 'CRM', alumni: 'Alumni', team: 'Team' },
+    tabs: { crm: 'CRM', alumni: 'Alumni', team: 'Team', partners: 'Partners' },
   },
   team: {
     pageTitle: 'Team',
-    lead: 'The teams of IGNITE and what each one takes care of. Team photos will be added here later.',
+    lead: 'Who is in which IGNITE team and what the team is responsible for.',
+    board: { name: 'Board', text: 'Leads the club and keeps the teams together.' },
+    empty: 'Nobody listed yet.',
+    positions: { member: 'Member', teamlead: 'Teamlead', board: 'Board' },
   },
   crm: {
     pageTitle: 'CRM',

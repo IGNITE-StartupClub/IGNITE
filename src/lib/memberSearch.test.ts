@@ -284,7 +284,7 @@ const context = {
     tasks: '/mitglieder/aufgaben',
     crm: '/mitglieder/netzwerk',
     alumni: '/mitglieder/netzwerk/alumni',
-    guide: '/mitglieder/guide',
+    guide: '/materialien',
   },
   teamNames: { 'ignite-marketing': 'Marketing' },
   privateLabel: 'Nur für mich',

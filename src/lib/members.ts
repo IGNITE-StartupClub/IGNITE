@@ -215,6 +215,21 @@ export async function memberSummaries(): Promise<MemberSummary[]> {
   return members.map((member) => memberSummary(member, photoIds.get(member.email)))
 }
 
+/** What the team tab needs of every member, each with their photo. The address only serves displayName on the server. */
+export async function memberDirectory() {
+  const { members, photos } = await collections()
+  const [list, photoList] = await Promise.all([
+    members.find({}, { projection: { email: 1, firstName: 1, lastName: 1, signature: 1, team: 1, position: 1 } }).toArray(),
+    photos.find({}, { projection: { _id: 1, email: 1 }, sort: { createdAt: 1 } }).toArray(),
+  ])
+  // Sorted oldest first, so the newest photo of an address wins, as in photoIdOf.
+  const photoIds = new Map(photoList.map(({ _id, email }) => [email, _id]))
+  return list.map((member) => {
+    const photoId = photoIds.get(member.email)
+    return { ...member, team: member.team ?? '', position: member.position ?? 'member', photo: photoId ? photoPath(photoId) : '' }
+  })
+}
+
 /** Adds a member; false when the address is already on the list. */
 export async function addMember(email: string, role: MemberRole): Promise<boolean> {
   const { members } = await collections()

@@ -1,10 +1,7 @@
 ---
 /**
  * Paginated materials list (9 per page) from the `materials` content collection, rendered by
- * pages/materialien/[...page].astro and pages/en/materials/[...page].astro, and inside the members area by
- * pages/mitglieder/guide/[...path].astro (+ English). Props: page (Astro paginate() page or the same shape from
- * resolveGuide), basePath (list root the links use; default the public guide), alternatePath (members area only:
- * the other language's guide, which also marks the page noindex).
+ * pages/materialien/[...page].astro and pages/en/materials/[...page].astro. Props: page (Astro paginate() page).
  * The collection is not translated yet and is shared by both languages. Copy in listingPages.materials (getCopy()).
  */
 import type { Page } from 'astro'
@@ -16,25 +13,21 @@ import Pagination from '../components/ui/Pagination.astro'
 import OptimizedImage from '../components/ui/OptimizedImage.astro'
 import { getCopy } from '../data/copy'
 import { getMaterialCover } from '../data/editorialAssets'
-import type { GuidePage } from '../lib/memberGuide'
 
 interface Props {
-  page: Page<CollectionEntry<'materials'>> | GuidePage<CollectionEntry<'materials'>>
-  basePath?: string
-  alternatePath?: string
+  page: Page<CollectionEntry<'materials'>>
 }
 
 const { listingPages, pageMeta, commonUi } = getCopy(Astro.currentLocale)
 const copy = listingPages.materials
-const { page, basePath = copy.path, alternatePath } = Astro.props
+const { page } = Astro.props
+const basePath = copy.path
 ---
 
 <DefaultLayout
   title={pageMeta.materials.title}
   description={copy.lead}
-  url={alternatePath ? undefined : 'materialien'}
-  alternatePath={alternatePath}
-  noindex={!!alternatePath}
+  url="materialien"
 >
   <PageHeader title={copy.title} lead={copy.lead} />
   <Section tone="subtle" labelledby="page-title">
@@ -60,7 +53,7 @@ const { page, basePath = copy.path, alternatePath } = Astro.props
         </ul>
       )
     }
-    <Pagination page={page as Page<unknown>} basePath={basePath} label={copy.paginationLabel} />
+    <Pagination page={page} basePath={basePath} label={copy.paginationLabel} />
   </Section>
 </DefaultLayout>
 

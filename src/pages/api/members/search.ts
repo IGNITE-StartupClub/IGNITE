@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
   try {
     const member = locals.member!
     const locale = resolveLocale(url.searchParams.get('locale') ?? undefined)
-    const { memberArea, openTeams } = getCopy(locale)
+    const { memberArea, openTeams, listingPages } = getCopy(locale)
     const [workspace, { contacts }, { alumni }, { events }, materials] = await Promise.all([
       workspaceState(sessionActor(member)),
       contactState(member),
@@ -45,7 +45,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
           tasks: memberPagePath('tasks', locale),
           crm: memberPagePath('crm', locale),
           alumni: memberPagePath('alumni', locale),
-          guide: memberPagePath('guide', locale),
+          guide: listingPages.materials.path,
         },
         teamNames: names,
         privateLabel: memberArea.search.private,

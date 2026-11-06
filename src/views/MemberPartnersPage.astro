@@ -1,0 +1,56 @@
+---
+/**
+ * The partner tab of the Netzwerk section, rendered on demand by pages/mitglieder/netzwerk/partner.astro and
+ * pages/en/members/network/partners.astro. The first entry of memberArea.partners.items is the large card, every other
+ * one a card below it; a new partner is a new entry there (German and English), the page needs no change.
+ * Data source: memberArea.partners via getCopy().
+ */
+import MemberNetworkLayout from '../layouts/MemberNetworkLayout.astro'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+
+const { partners, nav } = getCopy(resolveLocale(Astro.currentLocale)).memberArea
+const [featured, ...others] = partners.items
+---
+
+<MemberNetworkLayout tab="partners">
+  <article class="surface-brand flex flex-wrap items-center justify-between gap-6 rounded-3xl p-[clamp(20px,3vw,36px)]">
+    <div class="min-w-0 flex-[1_1_26rem]">
+      <p class="text-caption font-semibold uppercase tracking-wider">{featured.kind}</p>
+      <h2 class="mt-2 text-display-sm">{featured.title}</h2>
+      <p class="mt-3 max-w-2xl">{featured.text}</p>
+    </div>
+    <a
+      href={featured.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-white px-5 font-semibold text-[#311763] no-underline"
+    >
+      {partners.open}
+      <span aria-hidden="true">↗</span>
+      <span class="sr-only">({nav.newTab})</span>
+    </a>
+  </article>
+
+  <h2 class="mb-3 mt-9 text-[24px] font-semibold">{partners.moreHeading}</h2>
+  {
+    others.length ? (
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {others.map((item) => (
+          <li class="relative rounded-card border border-border bg-card p-5">
+            <p class="text-caption font-semibold uppercase tracking-wider text-fg-muted">{item.kind}</p>
+            <h3 class="mt-1 text-[20px] font-semibold">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" class="after:absolute after:inset-0 after:content-['']">
+                {item.title}
+                <span class="sr-only"> ({nav.newTab})</span>
+              </a>
+            </h3>
+            <p class="mt-2 text-sm text-fg-muted">{item.text}</p>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="rounded-card border border-dashed border-border-strong p-5 text-fg-muted">{partners.moreEmpty}</p>
+    )
+  }
+</MemberNetworkLayout>

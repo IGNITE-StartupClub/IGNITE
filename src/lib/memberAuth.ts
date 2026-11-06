@@ -182,9 +182,8 @@ const PAGES = {
   tasks: { de: 'aufgaben', en: 'tasks' },
   alumni: { de: 'netzwerk/alumni', en: 'network/alumni' },
   team: { de: 'netzwerk/team', en: 'network/team' },
-  guide: { de: 'guide', en: 'guide' },
-  branding: { de: 'branding', en: 'branding' },
-  benefits: { de: 'vorteile', en: 'benefits' },
+  partners: { de: 'netzwerk/partner', en: 'network/partners' },
+  storage: { de: 'ablage', en: 'files' },
   connections: { de: 'verbindungen', en: 'connections' },
   connect: { de: 'verbinden', en: 'connect' },
 } as const
