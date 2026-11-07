@@ -45,15 +45,20 @@ function setup(projects = [project()], outcome = 'ok', complete = true) {
     added?: [string, TaskFields]
     updated?: [string, string, TaskPatch]
     single?: [ProjectFields, TaskFields]
+    workspaceReads?: number
   } = {}
   const store: TaskToolStore = {
-    workspace: async () => ({
-      projects,
-      members: [
-        { id: me, name: 'Noah', team: 'ignite-infrastructure' },
-        { id: other, name: 'Lisa', team: '' },
-      ],
-    }),
+    team: 'ignite-infrastructure',
+    workspace: async () => {
+      calls.workspaceReads = (calls.workspaceReads ?? 0) + 1
+      return {
+        projects,
+        members: [
+          { id: me, name: 'Noah', team: 'ignite-infrastructure' },
+          { id: other, name: 'Lisa', team: '' },
+        ],
+      }
+    },
     events: async () => ({
       complete,
       events: [
@@ -214,6 +219,8 @@ test("create_task without project makes a single task in the member's team", asy
   assert.equal(calls.single?.[0].type, 'task')
   assert.equal(calls.single?.[0].team, 'ignite-infrastructure')
   assert.deepEqual(calls.single?.[1].assignees, [me])
+  // The team comes with the member, so no project needs to be read for it.
+  assert.equal(calls.workspaceReads, undefined)
 })
 
 test('create_task takes no other assignees, whatever the model sends', async () => {

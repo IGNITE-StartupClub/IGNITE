@@ -11,7 +11,7 @@
  * - `member_photos`: each member's current signature photo, a round PNG (square JPEG if uploaded before) served
  *   publicly by its random id and by the ids of the photos it replaced.
  */
-import { Binary, MongoClient, type ObjectId } from 'mongodb'
+import { Binary, MongoClient, type ObjectId, type WithId } from 'mongodb'
 import 'dotenv/config'
 import {
   CODE_MAX_ATTEMPTS,
@@ -163,9 +163,9 @@ async function collections() {
 }
 
 /** Members created before roles existed have no `role`; they count as plain members. */
-const withRole = (member: Member): Member => ({ ...member, role: member.role ?? 'member' })
+const withRole = <T extends Member>(member: T): T => ({ ...member, role: member.role ?? 'member' })
 
-export async function findMember(email: string): Promise<Member | null> {
+export async function findMember(email: string): Promise<WithId<Member> | null> {
   const { members } = await collections()
   const member = await members.findOne({ email })
   return member && withRole(member)

@@ -43,6 +43,8 @@ interface ToolEvent {
 }
 
 export interface TaskToolStore {
+  /** The member's own team, which a task without a project joins. */
+  team: string
   workspace(): Promise<{ projects: ToolProject[]; members: { id: string; name: string; team: string }[] }>
   events(): Promise<{ events: ToolEvent[]; complete: boolean }>
   addTask(projectId: string, task: TaskFields): Promise<string>
@@ -224,12 +226,7 @@ export function taskTools(me: string, store: TaskToolStore, now: () => number = 
           checkOutcome(await store.addTask(id, task))
           return { created: task.title, project_id: id }
         }
-        const { members } = await store.workspace()
-        const project = parseProject({
-          title: task.title,
-          type: 'task',
-          team: members.find((member) => member.id === me)?.team,
-        })
+        const project = parseProject({ title: task.title, type: 'task', team: store.team })
         if (!project) throw new ToolError(INVALID_TASK)
         return { created: task.title, project_id: await store.createSingleTask(project, task) }
       },

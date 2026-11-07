@@ -207,15 +207,8 @@ async function collections() {
   return { projects, templates, notifications, members: db.collection<Member & { _id: ObjectId }>('members') }
 }
 
-/** The member behind a session, with the id the module uses; null when they were removed meanwhile. */
-export async function taskActor(session: { email: string; role: MemberRole }): Promise<TaskActor | null> {
-  const { members } = await collections()
-  const member = await members.findOne({ email: session.email }, { projection: { _id: 1, firstName: 1, lastName: 1 } })
-  return member && { id: member._id.toHexString(), email: session.email, role: session.role, named: !!(member.firstName && member.lastName) }
-}
-
-/** The same for a member the middleware has just read, without another query. */
-export const sessionActor = (member: SessionMember): TaskActor => ({
+/** The member the middleware or a connection (connectionsStore.ts) has just read, as the module sees them. */
+export const sessionActor = (member: Pick<SessionMember, 'id' | 'email' | 'role' | 'firstName' | 'lastName'>): TaskActor => ({
   id: member.id,
   email: member.email,
   role: member.role,
