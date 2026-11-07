@@ -13,8 +13,10 @@
  * Archived projects stay on the server until the archive, an archived project or an earlier project to copy is asked for
  * (loadArchive). From then on every request asks for them too (`withArchive`), and an answer to a request sent before
  * keeps what was loaded.
- * Page and open project live in the URL hash (taskHash), pushed as history entries like the CRM. ?ansicht=… from older
- * links, the digest mail and the search turns into that hash on load.
+ * Page and open project live in the URL hash (taskHash), as history entries with the state of Astro's router, which
+ * needs it to bring the page back after leaving it. Moving between this page's own entries is the island's business, so
+ * it takes those popstate events before the router, which would load the whole page again. ?ansicht=… from older links,
+ * the digest mail and the search turns into that hash on load.
  * Props: copy (memberArea.tasks.workspace plus teams, team id → name, and problems of the quick add), initialState
  * ({ revision, projects, templates, members, privateTasks }), events (public events with `day`, `endDay`, `time`),
  * eventsComplete, me (member id), named (has entered a name), admin, board (the board works across teams, so it is not
@@ -188,12 +190,19 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (linked) {
       url.searchParams.delete('ansicht')
       url.hash = taskHash(linked, null)
-      window.history.replaceState(null, '', url)
+      window.history.replaceState(window.history.state, '', url)
     }
+    const page = `${window.location.pathname}${window.location.search}`
     const read = () => setRoute(taskRoute(window.location.hash))
+    // Capture listeners on window run before the router's own. A traversal to another page stays the router's.
+    const traverse = (event) => {
+      if (`${window.location.pathname}${window.location.search}` !== page) return
+      event.stopImmediatePropagation()
+      read()
+    }
     read()
-    window.addEventListener('popstate', read)
-    return () => window.removeEventListener('popstate', read)
+    window.addEventListener('popstate', traverse, { capture: true })
+    return () => window.removeEventListener('popstate', traverse, { capture: true })
   }, [])
 
   // The toast is a manual popover, so it shows above open dialogs (top layer) as well.
@@ -209,13 +218,21 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     return () => clearTimeout(timer)
   }, [notice])
 
-  // Astro's router takes over hash links without a hashchange event, so the island pushes the entry itself.
-  const go = (nextView, nextProject) => {
-    window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${taskHash(nextView, nextProject)}`)
+  // Astro's router takes over hash links without a hashchange event, so the island writes the entry itself. `panel`
+  // marks an entry that opened a project, so closing it goes back instead of piling up entries.
+  const go = (nextView, nextProject, { replace = false } = {}) => {
+    const url = `${window.location.pathname}${window.location.search}${taskHash(nextView, nextProject)}`
+    const entry = { ...window.history.state, panel: !!nextProject }
+    if (replace) window.history.replaceState(entry, '', url)
+    else window.history.pushState(entry, '', url)
     setRoute({ view: nextView, projectId: nextProject })
   }
-  const open = (id) => go(view, id)
-  const closePanel = () => projectId && go(view, null)
+  const open = (id) => go(view, id, { replace: !!projectId })
+  const closePanel = () => {
+    if (!projectId) return
+    if (window.history.state?.panel) window.history.back()
+    else go(view, null, { replace: true })
+  }
   // The overview's links sit at the end of a long page on phones.
   const goTo = (next) => {
     go(next, null)

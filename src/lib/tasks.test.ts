@@ -681,6 +681,11 @@ test('taskHash and taskRoute are each other\'s inverse', () => {
   assert.equal(taskHash('tasks', 'x'), '#board/x')
 })
 
+test('taskRoute opens the view of a broken hash without a project', () => {
+  assert.deepEqual(taskRoute('#board/%E0%A4'), { view: 'tasks', projectId: null })
+  assert.deepEqual(taskRoute('#%E0%A4'), { view: 'overview', projectId: null })
+})
+
 test('taskRoute still opens the links of mails and of the older tabs', () => {
   assert.deepEqual(taskRoute('#f81d4fae-7dec-11d0-a765-00a0c91e6bf6'), { view: 'overview', projectId: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6' })
   assert.deepEqual(taskRoute(''), { view: 'overview', projectId: null })

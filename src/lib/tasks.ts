@@ -686,12 +686,21 @@ export function taskHash(view: TaskView, projectId: string | null): string {
   return parts.length ? `#${parts.join('/')}` : ''
 }
 
-/** View and open project of a hash. "#<id>" alone is the older link to a project and opens it on the overview. */
+/**
+ * View and open project of a hash. "#<id>" alone is the older link to a project and opens it on the overview. A hash
+ * that is no valid URI component, typed or cut off, opens the view without a project.
+ */
 export function taskRoute(hash: string): { view: TaskView; projectId: string | null } {
   const [first = '', second = ''] = hash.replace(/^#/, '').split('/')
   const view = (Object.keys(VIEW_SLUGS) as (keyof typeof VIEW_SLUGS)[]).find((key) => VIEW_SLUGS[key] === first)
-  if (view) return { view, projectId: second ? decodeURIComponent(second) : null }
-  return { view: 'overview', projectId: first ? decodeURIComponent(first) : null }
+  const project = (part: string) => {
+    try {
+      return part ? decodeURIComponent(part) : null
+    } catch {
+      return null
+    }
+  }
+  return view ? { view, projectId: project(second) } : { view: 'overview', projectId: project(first) }
 }
 
 /**

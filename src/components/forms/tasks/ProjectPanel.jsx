@@ -580,9 +580,9 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   }
   const archive = () =>
     run({ action: 'archive', id: project.id, archived: !project.archived }, change((current) => ({ ...current, archived: !current.archived })))
-  const remove = async () => {
-    if (!window.confirm(fill(copy.panel.confirmDelete, { title: project.title }))) return
-    if (await run({ action: 'delete', id: project.id })) onClose()
+  // The answer takes the project away, and that closes the panel. Closing it here as well would go back twice.
+  const remove = () => {
+    if (window.confirm(fill(copy.panel.confirmDelete, { title: project.title }))) run({ action: 'delete', id: project.id })
   }
   const saveTemplate = async (e) => {
     e.preventDefault()
