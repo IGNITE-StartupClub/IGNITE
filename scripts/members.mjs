@@ -9,7 +9,8 @@
  *   node scripts/members.mjs remove max@leuphana.de [...]
  *
  * `add` sends no invitation: the member requests a code on the login page ("Neu im Team?" → "Code anfordern").
- * `remove` also ends the open sessions and codes of that address and deletes the member's private tasks.
+ * `remove` also ends the open sessions and codes of that address and deletes the member's private tasks, their undo
+ * entries, pending digest entries and sent digests.
  */
 
 import { MongoClient } from 'mongodb'
@@ -82,7 +83,15 @@ try {
       const member = await members.findOneAndDelete({ email })
       const sessions = await db.collection('member_sessions').deleteMany({ email })
       await db.collection('member_codes').deleteMany({ email })
-      if (member) await db.collection('private_tasks').deleteMany({ memberId: member._id.toHexString() })
+      if (member) {
+        const memberId = member._id.toHexString()
+        await Promise.all([
+          db.collection('private_tasks').deleteMany({ memberId }),
+          db.collection('task_trash').deleteMany({ deletedBy: memberId }),
+          db.collection('task_notifications').deleteMany({ memberId }),
+          db.collection('task_digests').deleteMany({ memberId }),
+        ])
+      }
       console.log(member ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)
     }
   }
