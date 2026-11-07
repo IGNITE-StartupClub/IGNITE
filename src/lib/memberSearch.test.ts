@@ -338,6 +338,7 @@ const context = {
     crm: '/mitglieder/netzwerk',
     alumni: '/mitglieder/netzwerk/alumni',
     guide: '/materialien',
+    team: '/mitglieder/netzwerk/team',
   },
   teamNames: { 'ignite-marketing': 'Marketing' },
   privateLabel: 'Nur für mich',
@@ -359,6 +360,7 @@ test('buildSearchIndex links tasks to their project and names people and deadlin
   )
   const row = items.find(({ kind }) => kind === 'task')
   assert.equal(row?.url, '/mitglieder/aufgaben#p1')
+  assert.equal(items.find(({ kind }) => kind === 'member')?.url, '/mitglieder/netzwerk/team#person-m1')
   assert.equal(row?.meta, 'Open Weekly · Di, 10. Nov. · Lena Meyer')
   assert.ok(items.some(({ kind, title }) => kind === 'project' && title === 'Open Weekly'))
 })

@@ -499,7 +499,6 @@ export const memberArea = {
     },
     empty: 'Nothing found.',
     makeTask: 'Add “{text}” as a task',
-    assign: 'Give a task',
     private: 'Only for me',
     task: {
       titleEmpty: 'What needs doing?',

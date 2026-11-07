@@ -24,7 +24,7 @@ import {
   completeToken,
   dueLabel,
   openToken,
-  personHandle,
+  personAnchor,
   searchGroups,
   searchMode,
   suggestions,
@@ -66,7 +66,10 @@ function refresh() {
 /** Astro's router also handles such links without an event, so the page's islands get their popstate here. */
 function go(url, stale) {
   const target = new URL(url, window.location.href)
-  if (target.hash && target.pathname === window.location.pathname) {
+  // A person on the team tab is a plain anchor of that page, which only a real jump scrolls to and marks.
+  if (target.hash.startsWith(`#${personAnchor('')}`) && target.pathname === window.location.pathname) {
+    window.location.hash = target.hash
+  } else if (target.hash && target.pathname === window.location.pathname) {
     window.history.pushState(null, '', target.pathname + target.search + target.hash)
     if (stale) refresh()
     else window.dispatchEvent(new PopStateEvent('popstate'))
@@ -271,7 +274,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
             ...groups.flatMap((group) =>
               group.items.map((item) => ({
                 item,
-                run: () => (item.url ? leaveFor(item.url) : change(`+ ${personHandle(item.title)} `)),
+                run: () => leaveFor(item.url),
               })),
             ),
             ...(index && !groups.length && mode === 'search' ? [{ run: () => change(`+ ${text.trim()}`) }] : []),
@@ -496,9 +499,6 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
                     <Option key={`${item.kind}-${item.id}`} url={item.url} {...optionProps(position)}>
                       <ItemIcon item={item} />
                       <Lines title={item.title} meta={item.meta} done={item.kind === 'task' && item.done} />
-                      {item.kind === 'member' && (
-                        <span className="shrink-0 text-caption text-accent">{copy.assign}</span>
-                      )}
                     </Option>
                   )
                 })}

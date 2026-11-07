@@ -46,6 +46,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
           tasks: memberPagePath('tasks', locale),
           crm: memberPagePath('crm', locale),
           alumni: memberPagePath('alumni', locale),
+          team: memberPagePath('team', locale),
           guide: listingPages.materials.path,
         },
         teamNames: names,

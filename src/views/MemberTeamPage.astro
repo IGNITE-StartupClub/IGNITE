@@ -2,7 +2,8 @@
 /**
  * The team tab of the Netzwerk section, rendered on demand by pages/mitglieder/netzwerk/team.astro and
  * pages/en/members/network/team.astro: the board and each team with its task and its people. Only names, photos and
- * positions reach the page, never addresses.
+ * positions reach the page, never addresses. Each person is the anchor `#person-<member id>`, which the header search
+ * links to until members have a profile page.
  * Data source: openTeams and memberArea.team via getCopy(), people via memberSummaries().
  */
 import MemberNetworkLayout from '../layouts/MemberNetworkLayout.astro'
@@ -11,6 +12,7 @@ import { teamNames } from '../data/openTeams'
 import { initials } from '../lib/contacts'
 import { resolveLocale } from '../lib/i18n'
 import { BOARD_GROUP, rosterGroups } from '../lib/memberRoster'
+import { personAnchor } from '../lib/memberSearch'
 import { displayName, memberDirectory } from '../lib/members'
 
 const ICONS: Record<string, string> = {
@@ -48,7 +50,7 @@ const cards = [
           {groups[id].length ? (
             <ul class="mt-4 grid gap-3 sm:grid-cols-2">
               {groups[id].map((person) => (
-                <li class="flex min-w-0 items-center gap-2.5">
+                <li id={personAnchor(String(person._id))} class="-m-1.5 flex min-w-0 items-center gap-2.5 rounded-lg p-1.5 target:bg-bg-subtle target:ring-2 target:ring-accent">
                   {person.photo ? (
                     <img src={person.photo} alt="" loading="lazy" class="h-10 w-10 shrink-0 rounded-full object-cover" />
                   ) : (

@@ -18,7 +18,6 @@ export interface SearchItem {
   id: string
   title: string
   meta: string
-  /** '' for members, who have no page of their own: picking one starts a task for them. */
   url: string
   /** A finished task or a past event, listed after the rest. */
   done?: boolean
@@ -293,6 +292,9 @@ export function openToken(text: string): OpenToken | null {
 const SUGGESTION_LIMIT = 5
 
 /** The word without spaces that resolves to exactly this name. */
+/** The id of a member's entry on the team tab of the Netzwerk. */
+export const personAnchor = (id: string): string => `person-${id}`
+
 export const personHandle = (name: string): string => `@${name.trim().replace(/\s+/g, '-')}`
 
 /** What may complete the token. A word that already names its one match needs no completion. */
@@ -360,7 +362,7 @@ interface IndexSources {
 
 interface IndexContext {
   locale: Locale
-  paths: { tasks: string; crm: string; alumni: string; guide: string }
+  paths: { tasks: string; crm: string; alumni: string; guide: string; team: string }
   teamNames: Record<string, string>
   privateLabel: string
   now?: number
@@ -442,7 +444,8 @@ export function buildSearchIndex(
         id,
         title: name,
         meta: teamNames[team] ?? '',
-        url: '',
+        // A member has no profile page yet, so the entry on the team tab stands in for one.
+        url: `${paths.team}#${personAnchor(id)}`,
         photo,
         team,
       }),
