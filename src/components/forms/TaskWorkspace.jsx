@@ -77,7 +77,7 @@ function NamePrompt({ copy, current, run, onSaved }) {
           <span className={LABEL}>{copy[key]}</span>
           <input
             className={INPUT}
-            required={key === 'firstName'}
+            required
             maxLength={NAME_MAX}
             autoComplete={key === 'firstName' ? 'given-name' : 'family-name'}
             value={form[key]}
