@@ -596,8 +596,11 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
       change((current) => ({ ...current, leads: applyMemberChange(current.leads, leads) })),
     )
   }
-  const archive = () =>
-    run({ action: 'archive', id: project.id, archived: !project.archived }, change((current) => ({ ...current, archived: !current.archived })))
+  // Sets the value it sends instead of flipping: replayed on a newer state that already has it, a flip would undo it.
+  const archive = () => {
+    const archived = !project.archived
+    run({ action: 'archive', id: project.id, archived }, change((current) => ({ ...current, archived })))
+  }
   // The answer takes the project away, and that closes the panel. Closing it here as well would go back twice.
   const remove = () => {
     if (window.confirm(fill(copy.panel.confirmDelete, { title: project.title }))) run({ action: 'delete', id: project.id })
