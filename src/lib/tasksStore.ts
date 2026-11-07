@@ -339,7 +339,22 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
   const list = await projects
     .find(
       { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
-      { projection: { title: 1, type: 1, status: 1, 'event.id': 1, tasks: 1 }, sort: { updatedAt: -1 } },
+      {
+        // Only what openTasks reads: descriptions can be long, and the calendar feed asks this on every poll.
+        projection: {
+          title: 1,
+          type: 1,
+          status: 1,
+          'event.id': 1,
+          'tasks.id': 1,
+          'tasks.title': 1,
+          'tasks.due': 1,
+          'tasks.done': 1,
+          'tasks.assignees': 1,
+          'tasks.position': 1,
+        },
+        sort: { updatedAt: -1 },
+      },
     )
     .toArray()
   return list.map(({ _id, title, type, status, event, tasks }) => ({
@@ -355,11 +370,12 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
 
 /**
  * What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows.
- * The revision is read first, so a change landing during the read arrives twice rather than not at all.
+ * The revision is read before the changes, here or by the caller (`revision`), so a change landing during the read
+ * arrives twice rather than not at all.
  */
-export async function workspaceChanges(actor: TaskActor, known: unknown) {
+export async function workspaceChanges(actor: TaskActor, known: unknown, { revision }: { revision?: string } = {}) {
   const { projects } = await collections()
-  const revision = await workspaceRevision()
+  const current = revision ?? (await workspaceRevision())
   const since = changedSince(known)
   const [changed, ids, members, ownTasks] = await Promise.all([
     projects.find(since ? { updatedAt: { $gte: since } } : {}, WITHOUT_ACTIVITY).toArray(),
@@ -369,7 +385,7 @@ export async function workspaceChanges(actor: TaskActor, known: unknown) {
   ])
   const people = new Set(members.map((member) => member.id))
   return {
-    revision,
+    revision: current,
     ids: ids.map(({ _id }) => _id),
     projects: changed.map((project) => projectSummary(project, actor, people)),
     members,
@@ -443,6 +459,15 @@ const eventSnapshot = (event: TaskEvent): EventSnapshot => ({
 
 export type TemplateSource = { kind: 'template' | 'project'; id: string; include: number[] | null }
 
+/** A project's tasks as a checklist, with deadlines counted from the project's own day. */
+const checklist = (project: Pick<ProjectDoc, 'event' | 'due' | 'tasks'>): TemplateTask[] =>
+  templateFromTasks(
+    [...project.tasks].sort((a, b) => a.position - b.position),
+    project.event ? berlinDay(project.event.startAt.getTime()) : project.due,
+  )
+
+const CHECKLIST_FIELDS = { projection: { event: 1, due: 1, tasks: 1 } }
+
 /** The checklist a new project starts from; null for an unknown source. Earlier projects count from their own day. */
 export async function templateTasks(source: TemplateSource): Promise<TemplateTask[] | null> {
   const { projects, templates } = await collections()
@@ -452,12 +477,13 @@ export async function templateTasks(source: TemplateSource): Promise<TemplateTas
     if (!template) return null
     tasks = template.tasks
   } else {
-    const project = await projects.findOne({ _id: source.id })
+    const project = await projects.findOne({ _id: source.id }, CHECKLIST_FIELDS)
     if (!project) return null
-    const anchor = project.event ? berlinDay(project.event.startAt.getTime()) : project.due
-    tasks = templateFromTasks([...project.tasks].sort((a, b) => a.position - b.position), anchor)
+    tasks = checklist(project)
   }
-  return source.include ? tasks.filter((_, index) => source.include!.includes(index)) : tasks
+  if (!source.include) return tasks
+  const kept = new Set(source.include)
+  return tasks.filter((_, index) => kept.has(index))
 }
 
 interface NewProject {
@@ -783,11 +809,17 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
 /** Saves the project's task list as a new template, deadlines as days relative to its day. */
 export async function saveAsTemplate(actor: TaskActor, id: string, name: string): Promise<Outcome> {
   const { projects, templates } = await collections()
-  const project = await projects.findOne({ _id: id })
+  const project = await projects.findOne({ _id: id }, { projection: { ...CHECKLIST_FIELDS.projection, title: 1 } })
   if (!project) return 'unknown'
-  const tasks = await templateTasks({ kind: 'project', id, include: null })
-  if (!tasks?.length) return 'unknown'
+  const tasks = checklist(project)
+  if (!tasks.length) return 'unknown'
   const now = new Date()
+  // The log entry goes first: when the project is gone since the read above, no template is made from it.
+  const { matchedCount } = await projects.updateOne(
+    { _id: id },
+    { $set: { updatedAt: now }, $push: pushActivity([activity(actor, 'template', name)]) },
+  )
+  if (!matchedCount) return 'unknown'
   await templates.insertOne({
     _id: randomUUID(),
     name,
@@ -799,7 +831,6 @@ export async function saveAsTemplate(actor: TaskActor, id: string, name: string)
     updatedAt: now,
     archivedAt: null,
   })
-  await projects.updateOne({ _id: id }, { $set: { updatedAt: now }, $push: pushActivity([activity(actor, 'template', name)]) })
   return 'ok'
 }
 

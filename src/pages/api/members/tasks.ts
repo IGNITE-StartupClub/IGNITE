@@ -63,7 +63,9 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const known = url.searchParams.get('revision')
     const revision = await workspaceRevision()
     if (known === revision) return reply(200, { revision })
-    return reply(200, { changes: await workspaceChanges(sessionActor(locals.member!), known) })
+    // The revision just read goes along, so the changes cost no second read of it.
+    const changes = await workspaceChanges(sessionActor(locals.member!), known, { revision })
+    return reply(200, { changes })
   } catch (err) {
     console.error('Tasks read failed:', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
