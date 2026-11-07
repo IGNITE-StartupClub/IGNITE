@@ -9,6 +9,7 @@ import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
   isEvent,
   isRecordId,
+  MAX_TASKS,
   parseName,
   parseProject,
   parseProjectPatch,
@@ -88,12 +89,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   try {
     const actor = sessionActor(locals.member!)
-    let body: Record<string, unknown> = {}
-    try {
-      body = await request.json()
-    } catch {
-      // Unparsable JSON ends as the invalid request below.
-    }
+    // Unparsable JSON, and JSON that is no object, end as the invalid request below.
+    const parsed: unknown = await request.json().catch(() => null)
+    const body = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}) as Record<string, unknown>
     const id = isRecordId(body.id) ? body.id : null
     const taskId = isRecordId(body.taskId) ? body.taskId : null
     const status = PROJECT_STATUSES.includes(body.status as ProjectStatus) ? (body.status as ProjectStatus) : null
@@ -103,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     switch (body.action) {
       case 'create': {
         const fields = parseProject(body.project)
-        if (!fields) return invalid()
+        if (!fields || (body.status !== undefined && !status)) return invalid()
         if (fields.type === 'event' && body.eventId === undefined && !fields.due) return invalid()
         const template = parseTemplateSource(body.template)
         if (template === undefined) return invalid()
@@ -180,7 +178,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         code = await unlinkEvent(actor, id)
         break
       case 'reorder':
-        if (!id || !Array.isArray(body.order) || !body.order.every(isRecordId)) return invalid()
+        if (!id || !Array.isArray(body.order) || body.order.length > MAX_TASKS || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
         break
       case 'saveTemplate': {
@@ -257,9 +255,8 @@ function parseTemplateSource(input: unknown): TemplateSource | null | undefined 
   if (typeof input !== 'object') return undefined
   const { kind, id, include } = input as Record<string, unknown>
   if ((kind !== 'template' && kind !== 'project') || !isRecordId(id)) return undefined
-  if (include !== undefined && !(Array.isArray(include) && include.every((index) => Number.isInteger(index) && index >= 0))) {
-    return undefined
-  }
+  const indexes = Array.isArray(include) && include.length <= MAX_TASKS && include.every((index) => Number.isInteger(index) && index >= 0)
+  if (include !== undefined && !indexes) return undefined
   return { kind, id, include: (include as number[] | undefined) ?? null }
 }
 

@@ -768,8 +768,9 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
   const project = await projects.findOne({ _id: id }, { projection: { 'tasks.id': 1, 'tasks.position': 1 } })
   if (!project) return 'unknown'
   const known = new Set(project.tasks.map((task) => task.id))
-  const listed = order.filter((taskId) => known.has(taskId))
-  const rest = [...project.tasks].sort((a, b) => a.position - b.position).map((task) => task.id).filter((taskId) => !listed.includes(taskId))
+  // Each id once: two array filters on the same task make MongoDB refuse the whole update.
+  const listed = new Set(order.filter((taskId) => known.has(taskId)))
+  const rest = [...project.tasks].sort((a, b) => a.position - b.position).map((task) => task.id).filter((taskId) => !listed.has(taskId))
   const ids = [...listed, ...rest]
   const { matchedCount } = await projects.updateOne(
     { _id: id },
