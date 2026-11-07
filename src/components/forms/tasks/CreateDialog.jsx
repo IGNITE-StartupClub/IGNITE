@@ -75,7 +75,8 @@ export default function CreateDialog({
     setSourceId(useTemplate ? templates[0].id : '')
     if (!dialog.current.open) dialog.current.showModal()
   }, [request])
-  useEffect(() => setInclude(preview.map((_, index) => index)), [start, sourceId])
+  // Each request starts with every task ticked, also when it picks the same source as the one before.
+  useEffect(() => setInclude(preview.map((_, index) => index)), [request, start, sourceId])
   // The chosen source can go (an archived template) or arrive late (the archive with the earlier projects).
   const choiceIds = choices.map((item) => item.id).join()
   useEffect(() => {
