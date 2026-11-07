@@ -3,7 +3,9 @@
  * type, status, date, team, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
  * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
- * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure.
+ * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure. Rows
+ * carry data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes
+ * (keepFocus).
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
  * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
  * place in the page's language; the stored snapshot keeps the German one).
@@ -33,6 +35,7 @@ import {
   dateTime,
   ICON_BUTTON,
   INPUT,
+  keepFocus,
   LABEL,
   longDay,
   MemberPicker,
@@ -153,13 +156,21 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
   )
 }
 
+// A row that goes or moves takes the focus to the same or the next checkbox (keepFocus), not to the start of the page.
+const keepingFocus = (close, action) => () => {
+  const refocus = keepFocus(document.activeElement, 'check')
+  close()
+  action()
+  refocus()
+}
+
 function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
   const [editing, setEditing] = useState(false)
   const overdue = isOverdue(task, today)
   const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
   const otherTeam = task.team && task.team !== projectTeam
   return (
-    <li className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
+    <li data-task-item={task.id} className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
       <div className="flex items-start gap-3">
         <TaskCheck checked={task.done} onChange={(done) => onPatch({ done })} label={fill(copy.panel.markDone, { title: task.title })} />
         <div className="min-w-0 flex-1">
@@ -219,37 +230,16 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
               </button>
               {canMove && (
                 <>
-                  <button
-                    type="button"
-                    className={MENU_ITEM}
-                    onClick={() => {
-                      close()
-                      onMove(-1)
-                    }}
-                  >
+                  <button type="button" className={MENU_ITEM} onClick={keepingFocus(close, () => onMove(-1))}>
                     {copy.panel.moveUp}
                   </button>
-                  <button
-                    type="button"
-                    className={MENU_ITEM}
-                    onClick={() => {
-                      close()
-                      onMove(1)
-                    }}
-                  >
+                  <button type="button" className={MENU_ITEM} onClick={keepingFocus(close, () => onMove(1))}>
                     {copy.panel.moveDown}
                   </button>
                 </>
               )}
               {task.mayRemove && (
-                <button
-                  type="button"
-                  className={`${MENU_ITEM} text-danger`}
-                  onClick={() => {
-                    close()
-                    onRemove()
-                  }}
-                >
+                <button type="button" className={`${MENU_ITEM} text-danger`} onClick={keepingFocus(close, onRemove)}>
                   {copy.panel.deleteTask}
                 </button>
               )}
@@ -331,7 +321,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 
   return (
-    <div>
+    <div data-focus-scope>
       <form onSubmit={add} className="flex gap-2">
         <label className="min-w-0 flex-1">
           <span className="sr-only">{copy.panel.addTaskLabel}</span>

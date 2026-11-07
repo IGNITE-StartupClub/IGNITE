@@ -1,9 +1,11 @@
 /**
  * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
  * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, the filter
- * menu, the menu of a task, status and type styles and date formatting. Members are { id, name, photo, team }.
+ * menu, the menu of a task, keyboard focus around changing lists, status and type styles and date formatting. Members are
+ * { id, name, photo, team }.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
 import { TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
@@ -329,43 +331,99 @@ export function FilterMenu({ label, value, options, onChange }) {
 }
 
 const MENU_MARGIN = 8
+const visible = (element) => !!element && (element.checkVisibility ? element.checkVisibility() : true)
+
+/**
+ * Keeps keyboard focus on board, list or panel when the focused task changes place, hides in the done section or goes
+ * (each task's row or card carries data-task-item, its controls data-control, the list around them data-focus-scope).
+ * Call it before the change with the focused element and the kind of control to land on; call what it returns after the
+ * change. That focuses, once React has drawn it, this control of the same task where it is visible, else of the next
+ * task in the scope, else of the one before. Without focus inside a task nothing happens, so pointer use stays as it is.
+ */
+export function keepFocus(element, control) {
+  const scope = element?.closest?.('[data-focus-scope]')
+  const item = element?.closest?.('[data-task-item]')
+  if (!scope || !item || element !== document.activeElement) return () => {}
+  const ids = [...scope.querySelectorAll('[data-task-item]')].map((node) => node.getAttribute('data-task-item'))
+  const index = ids.indexOf(item.getAttribute('data-task-item'))
+  const order = [ids[index], ...ids.slice(index + 1), ...ids.slice(0, index).reverse()]
+  return () =>
+    setTimeout(() => {
+      for (const id of order) {
+        const target = scope.querySelector(`[data-task-item="${CSS.escape(id)}"] [data-control="${control}"]`)
+        if (visible(target)) return target.focus()
+      }
+    })
+}
+
+/**
+ * Shows the rest of a list cut short. Its button goes away, so focus moves on to the first entry it brought, which
+ * `firstNew` finds once the rest is drawn.
+ */
+export function showRest(show, firstNew) {
+  flushSync(show)
+  firstNew()?.focus()
+}
 
 /**
  * The menu of a task on board and list, at the pointer after a right click or below the card's own button. One for the
  * whole page, because a popover per card would put hundreds of them into the document. Deleting needs no question, the
  * toast offers to undo it. `menu` is { task, x, y } or null. The popover is manual: on a Mac the right click opens it
- * while the button is still down, and the browser's own dismissal would close it again on release.
+ * while the button is still down, and the browser's own dismissal would close it again on release. So it closes itself
+ * on outside clicks, Escape, scrolling and focus moving elsewhere; Escape and every action give keyboard focus back to
+ * the card it came from (keepFocus).
  */
 export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove }) {
   const panel = useRef(null)
+  const invoker = useRef(null)
+  const restore = useRef(() => {})
   useEffect(() => {
     if (!menu) return
     const popover = panel.current
+    invoker.current = document.activeElement
+    restore.current = keepFocus(invoker.current, 'menu')
     popover.showPopover()
     const { width, height } = popover.getBoundingClientRect()
     popover.style.left = `${Math.max(MENU_MARGIN, Math.min(menu.x, document.documentElement.clientWidth - width - MENU_MARGIN))}px`
     popover.style.top = `${Math.max(MENU_MARGIN, Math.min(menu.y, window.innerHeight - height - MENU_MARGIN))}px`
     popover.querySelector('button').focus()
     const outside = (event) => !popover.contains(event.target) && onClose()
-    const escape = (event) => event.key === 'Escape' && onClose()
+    const escape = (event) => {
+      if (event.key !== 'Escape') return
+      onClose()
+      invoker.current?.focus()
+    }
+    // Safari moves focus to the body on a click into the menu (relatedTarget null); outside clicks have their own handler.
+    const away = (event) => event.relatedTarget && !popover.contains(event.relatedTarget) && onClose()
     window.addEventListener('pointerdown', outside, { capture: true })
     window.addEventListener('keydown', escape)
     window.addEventListener('scroll', onClose, { capture: true, passive: true })
+    popover.addEventListener('focusout', away)
     return () => {
       window.removeEventListener('pointerdown', outside, { capture: true })
       window.removeEventListener('keydown', escape)
       window.removeEventListener('scroll', onClose, { capture: true })
+      popover.removeEventListener('focusout', away)
       popover.hidePopover()
     }
   }, [menu])
 
   const task = menu?.task
+  // Focus goes back first, so a panel opened from here returns it to the card when it closes.
   const item = (action) => () => {
     onClose()
+    invoker.current?.focus()
     action()
+    restore.current()
   }
   return (
-    <div ref={panel} popover="manual" className="fixed inset-auto m-0 min-w-44 rounded-lg border border-border bg-bg p-1 text-fg shadow-lg">
+    <div
+      ref={panel}
+      popover="manual"
+      role="group"
+      aria-label={task ? fill(copy.board.cardMenu, { title: task.title }) : undefined}
+      className="fixed inset-auto m-0 min-w-44 rounded-lg border border-border bg-bg p-1 text-fg shadow-lg"
+    >
       {task && (
         <>
           <button type="button" className={MENU_ITEM} onClick={item(() => onOpen(task))}>
@@ -389,11 +447,19 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
   )
 }
 
-/** A round checkbox for task rows; the native input stays for keyboard and screen readers. */
+/**
+ * A round checkbox for task rows; the native input stays for keyboard and screen readers. A row that leaves its list
+ * when ticked takes the focus along to its neighbour (keepFocus), instead of dropping it to the start of the page.
+ */
 export function TaskCheck({ checked, onChange, label }) {
+  const change = (e) => {
+    const refocus = keepFocus(e.target, 'check')
+    onChange(e.target.checked)
+    refocus()
+  }
   return (
     <label className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" aria-label={label} />
+      <input type="checkbox" data-control="check" checked={checked} onChange={change} className="peer sr-only" aria-label={label} />
       <span
         aria-hidden="true"
         className={`flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus ${

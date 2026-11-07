@@ -10,7 +10,7 @@ import React, { useState } from 'react'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { isOverdue, PROJECT_STATUSES, progress, projectAssignees, projectDay } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
-import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, STATUS_TONE, TYPE_TEXT } from './taskUi'
+import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, showRest, STATUS_TONE, TYPE_TEXT } from './taskUi'
 
 const ARCHIVE_SHOWN = 24
 
@@ -165,7 +165,10 @@ export default function ProjectBoard({ projects, archived, showTeam, copy, local
           <button
             type="button"
             className="mt-3 border-0 bg-transparent p-0 text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
-            onClick={() => setAllArchived(true)}
+            onClick={(e) => {
+              const list = e.currentTarget.previousElementSibling
+              showRest(() => setAllArchived(true), () => list.children[ARCHIVE_SHOWN]?.querySelector('button'))
+            }}
           >
             {fill(copy.taskBoard.showAll, { count: projects.length })}
           </button>
