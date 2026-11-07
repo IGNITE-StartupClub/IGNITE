@@ -24,7 +24,7 @@ import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
-import { changedSince, collectionRevision, listRevision } from './liveUpdates'
+import { changedSince, collectionRevision, listRevision, markUnsettled } from './liveUpdates'
 import { privateTasks } from './privateTasksStore'
 import { putInTrash, takeFromTrash } from './taskTrash'
 import { standardTemplates } from '../data/taskTemplates'
@@ -300,11 +300,12 @@ export type TemplateSummary = ReturnType<typeof templateSummary>
 
 /**
  * Stands for the project list. New templates, new members and a member's private tasks are not part of it; they arrive
- * with the next load or project change.
+ * with the next load or project change. A young revision carries a mark (markUnsettled), because projects are stamped by
+ * the instance that writes them, before the write reaches the database.
  */
 export async function workspaceRevision(): Promise<string> {
   const { projects } = await collections()
-  return collectionRevision(projects)
+  return markUnsettled(await collectionRevision(projects), Date.now())
 }
 
 // Projects completed before lessons learned were dropped still store `lessons`; nothing reads them any more.
@@ -323,7 +324,7 @@ export async function workspaceState(actor: TaskActor) {
   ])
   const known = new Set(members.map((member) => member.id))
   return {
-    revision: listRevision(projectList),
+    revision: markUnsettled(listRevision(projectList), Date.now()),
     projects: projectList.map((project) => projectSummary(project, actor, known)),
     templates: templateList.map(templateSummary),
     members,
