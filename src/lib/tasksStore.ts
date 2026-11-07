@@ -660,10 +660,12 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
     { arrayFilters: [{ 't.id': taskId }] },
   )
   if (!matchedCount) return 'unknown'
-  if (removed.length) await unnotify(taskId, removed)
-  // A finished task needs no "you were assigned" mail any more.
-  if (done) await unnotify(taskId)
-  else if (added.length && !task.done) await notify(id, taskId, added, actor)
+  // A finished task needs no "you were assigned" mail any more; the digest skips done tasks anyway.
+  const finished = done && !task.done
+  await Promise.all([
+    finished ? unnotify(taskId) : removed.length ? unnotify(taskId, removed) : null,
+    !done && !task.done && added.length ? notify(id, taskId, added, actor) : null,
+  ])
   return 'ok'
 }
 
@@ -855,7 +857,7 @@ export async function syncEvents(events: TaskEvent[], complete: boolean): Promis
 export async function projectsForDigest(ids: string[]) {
   const { projects } = await collections()
   return projects
-    .find({ _id: { $in: ids } }, { projection: { title: 1, archivedAt: 1, tasks: 1 } })
+    .find({ _id: { $in: ids } }, { projection: { title: 1, status: 1, archivedAt: 1, tasks: 1 } })
     .toArray()
 }
 
