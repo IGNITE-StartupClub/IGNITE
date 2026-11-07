@@ -684,14 +684,14 @@ export async function removeTask(actor: TaskActor, id: string, taskId: string): 
     ))
   const deleted = before?.tasks.find((item) => item.id === taskId)
   if (!deleted) return 'unknown'
-  await putInTrash<DeletedTask>(actor.id, taskId, { projectId: id, task: deleted, card })
+  await putInTrash<DeletedTask>('shared', actor.id, taskId, { projectId: id, task: deleted, card })
   return 'ok'
 }
 
 /** Undoes removeTask: back into its project with its old place and people, or back with its card. */
 export async function restoreTask(actor: TaskActor, taskId: string): Promise<Outcome> {
   const { projects } = await collections()
-  const deleted = await takeFromTrash<DeletedTask>(actor.id, taskId)
+  const deleted = await takeFromTrash<DeletedTask>('shared', actor.id, taskId)
   if (!deleted) return 'unknown'
   const now = new Date()
   const { matchedCount } = await projects.updateOne(

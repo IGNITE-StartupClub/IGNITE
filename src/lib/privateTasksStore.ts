@@ -100,13 +100,13 @@ export async function removePrivateTask(memberId: string, id: string): Promise<'
   const tasks = await collection()
   const task = await tasks.findOneAndDelete({ _id: id, memberId })
   if (!task) return 'unknown'
-  await putInTrash(memberId, id, task)
+  await putInTrash('private', memberId, id, task)
   return 'ok'
 }
 
 export async function restorePrivateTask(memberId: string, id: string): Promise<'ok' | 'unknown'> {
   const tasks = await collection()
-  const task = await takeFromTrash<PrivateTaskDoc>(memberId, id)
+  const task = await takeFromTrash<PrivateTaskDoc>('private', memberId, id)
   if (!task) return 'unknown'
   await tasks.insertOne({ ...task, updatedAt: new Date() })
   return 'ok'
