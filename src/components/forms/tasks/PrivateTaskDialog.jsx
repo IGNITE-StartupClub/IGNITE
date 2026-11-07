@@ -24,6 +24,10 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
     setForm({ title, description, due, priority, status, team })
     dialog.current.showModal()
   }, [task?.id])
+  // The task can go while the dialog is open: deleted on another device, or a restore was undone.
+  useEffect(() => {
+    if (!task && dialog.current.open) dialog.current.close()
+  }, [task])
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const save = async (e) => {
