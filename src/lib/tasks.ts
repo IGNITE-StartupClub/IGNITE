@@ -76,12 +76,6 @@ export interface TemplateTask {
   offsetDays: number | null
 }
 
-export interface Lessons {
-  wellDone: string
-  improve: string
-  notes: string
-}
-
 /** The parts of a task the rules below read. */
 export interface TaskState {
   id: string
@@ -290,17 +284,6 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     team,
     leads: memberChangeOf,
   })
-
-export function parseLessons(input: unknown): Lessons | null {
-  const fields = fieldsOf(input)
-  if (!fields) return null
-  const lessons = parse<Lessons>({
-    wellDone: text(fields.wellDone, TEXT_MAX),
-    improve: text(fields.improve, TEXT_MAX),
-    notes: text(fields.notes, TEXT_MAX),
-  })
-  return lessons && (lessons.wellDone || lessons.improve || lessons.notes) ? lessons : null
-}
 
 export function parseTemplateTasks(input: unknown): TemplateTask[] | null {
   if (!Array.isArray(input) || !input.length || input.length > MAX_TASKS) return null

@@ -21,7 +21,6 @@ import {
   memberChange,
   nextStanding,
   openRequired,
-  parseLessons,
   parseName,
   parseProject,
   parseProjectPatch,
@@ -155,11 +154,6 @@ test('parseTaskPatch keeps only the given fields and refuses unknown or empty ch
   assert.equal(parseTaskPatch({ title: '' }), null)
   assert.equal(parseTaskPatch({ createdBy: ME }), null)
   assert.equal(parseTaskPatch({ toString: 'x' }), null)
-})
-
-test('parseLessons needs at least one answer', () => {
-  assert.equal(parseLessons({ wellDone: '', improve: ' ' }), null)
-  assert.deepEqual(parseLessons({ improve: 'Früher buchen' }), { wellDone: '', improve: 'Früher buchen', notes: '' })
 })
 
 test('parseTemplateTasks checks offsets and needs at least one task', () => {

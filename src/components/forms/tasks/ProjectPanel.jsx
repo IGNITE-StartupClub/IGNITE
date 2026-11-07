@@ -1,7 +1,7 @@
 /**
  * The detail view of one project: a modal panel on the right from md on, full screen on phones. The header carries
  * type, status, date, team, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
- * assign, edit, order), the project details with lessons learned, and the activity log the server writes. A task
+ * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
  * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure.
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
@@ -388,46 +388,11 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 }
 
-function LessonsView({ lessons, copy }) {
-  return (
-    <dl className="flex flex-col gap-3 text-sm">
-      {['wellDone', 'improve', 'notes'].map(
-        (key) =>
-          lessons[key] && (
-            <div key={key}>
-              <dt className="font-medium">{copy.lessons[key]}</dt>
-              <dd className="mt-0.5 whitespace-pre-line text-fg-muted">{lessons[key]}</dd>
-            </div>
-          ),
-      )}
-    </dl>
-  )
-}
-
-/** The three lessons-learned questions; `onSubmit` gets { wellDone, improve, notes }. */
-export function LessonsFields({ value, onChange, copy, idPrefix }) {
-  return ['wellDone', 'improve', 'notes'].map((key) => (
-    <div key={key}>
-      <label htmlFor={`${idPrefix}-${key}`} className={LABEL}>
-        {copy.lessons[key]}
-      </label>
-      <textarea
-        id={`${idPrefix}-${key}`}
-        className={TEXTAREA}
-        maxLength={TEXT_MAX}
-        value={value[key]}
-        onChange={(e) => onChange({ ...value, [key]: e.target.value })}
-      />
-    </div>
-  ))
-}
-
 function DetailsTab({ project, copy, locale, run, change }) {
   const id = useId()
   const ownEvent = project.type === 'event' && !project.event
   const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
   const [form, setForm] = useState(fields)
-  const [lessons, setLessons] = useState(null) // null while not editing
   const start = useRef(form)
   // A change from elsewhere fills the fields nobody touched here; what the member is typing stays.
   useEffect(() => {
@@ -443,10 +408,6 @@ function DetailsTab({ project, copy, locale, run, change }) {
   const save = (e) => {
     e.preventDefault()
     run({ action: 'update', id: project.id, patch }, change((current) => ({ ...current, ...patch })))
-  }
-  const saveLessons = async (e) => {
-    e.preventDefault()
-    if (await run({ action: 'lessons', id: project.id, lessons })) setLessons(null)
   }
 
   return (
@@ -524,52 +485,6 @@ function DetailsTab({ project, copy, locale, run, change }) {
           )}
         </div>
       )}
-
-      <section aria-labelledby={`${id}-lessons`}>
-        <div className="flex items-center justify-between gap-2">
-          <h3 id={`${id}-lessons`} className="text-sm font-semibold">
-            {copy.panel.lessons}
-          </h3>
-          {!lessons && (
-            <button
-              type="button"
-              className={`${TOOL_BUTTON} h-8`}
-              onClick={() =>
-                setLessons({
-                  wellDone: project.lessons?.wellDone ?? '',
-                  improve: project.lessons?.improve ?? '',
-                  notes: project.lessons?.notes ?? '',
-                })
-              }
-            >
-              {copy.panel.addLessons}
-            </button>
-          )}
-        </div>
-        {lessons ? (
-          <form onSubmit={saveLessons} className="mt-3 flex flex-col gap-3">
-            <LessonsFields value={lessons} onChange={setLessons} copy={copy} idPrefix={`${id}-lessons`} />
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className={`${PRIMARY_BUTTON} h-9`}
-                disabled={!Object.values(lessons).some((answer) => answer.trim())}
-              >
-                {copy.panel.save}
-              </button>
-              <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => setLessons(null)}>
-                {copy.panel.cancel}
-              </button>
-            </div>
-          </form>
-        ) : (
-          project.lessons && (
-            <div className="mt-3">
-              <LessonsView lessons={project.lessons} copy={copy} />
-            </div>
-          )
-        )}
-      </section>
 
       <p className="text-xs text-fg-muted">
         {fill(copy.panel.created, { date: dateTime(project.createdAt, locale) })}
