@@ -572,11 +572,12 @@ export async function setArchived(actor: TaskActor, id: string, archived: boolea
   if (!project) return 'unknown'
   if (!mayArchive(project, actor)) return 'forbidden'
   const now = new Date()
-  await projects.updateOne(
+  // A single task's card goes with its last task, so it can be gone since the read above.
+  const { matchedCount } = await projects.updateOne(
     { _id: id },
     { $set: { archivedAt: archived ? now : null, updatedAt: now }, $push: pushActivity([activity(actor, archived ? 'archived' : 'restored')]) },
   )
-  return 'ok'
+  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** Final deletion with all tasks and pending notifications; admins only. */
@@ -761,12 +762,12 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
   const listed = order.filter((taskId) => known.has(taskId))
   const rest = [...project.tasks].sort((a, b) => a.position - b.position).map((task) => task.id).filter((taskId) => !listed.includes(taskId))
   const ids = [...listed, ...rest]
-  await projects.updateOne(
+  const { matchedCount } = await projects.updateOne(
     { _id: id },
     { $set: { updatedAt: new Date(), ...Object.fromEntries(ids.map((_, index) => [`tasks.$[t${index}].position`, index])) } },
     { arrayFilters: ids.map((taskId, index) => ({ [`t${index}.id`]: taskId })) },
   )
-  return 'ok'
+  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** Saves the project's task list as a new template, deadlines as days relative to its day. */
