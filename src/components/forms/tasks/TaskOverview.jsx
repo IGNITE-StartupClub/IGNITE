@@ -13,7 +13,7 @@ import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
-import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, TaskCheck } from './taskUi'
+import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, showRest, TaskCheck } from './taskUi'
 
 const CALENDAR_DAYS = 14
 const CHIPS_SHOWN = 3
@@ -26,12 +26,17 @@ const ROW_LINE = 'border-0 border-t border-solid border-border'
 const CHIP = 'block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
 
 function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask }) {
+  const [all, setAll] = useState(false)
   const chips = [
     ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onOpenEvent(entry) })),
     ...deadlines.map((task) => ({ id: task.id, title: task.title, tone: 'bg-bg-subtle text-fg', onClick: () => onOpenTask(task) })),
   ]
-  const shown = chips.length > CHIPS_SHOWN ? CHIPS_SHOWN - 1 : chips.length
+  const shown = all || chips.length <= CHIPS_SHOWN ? chips.length : CHIPS_SHOWN - 1
   const label = dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })
+  const showAll = (e) => {
+    const cell = e.currentTarget.parentElement
+    showRest(() => setAll(true), () => cell.querySelectorAll(':scope > button')[shown])
+  }
   return (
     <li className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'}`}>
       {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
@@ -52,7 +57,16 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
           {chip.title}
         </button>
       ))}
-      {shown < chips.length && <span className="px-1.5 text-xs text-fg-muted">{fill(copy.overview.moreOnDay, { count: chips.length - shown })}</span>}
+      {shown < chips.length && (
+        <button
+          type="button"
+          aria-label={fill(copy.overview.showDay, { date: label })}
+          className="w-fit border-0 bg-transparent px-1.5 py-0 text-xs text-fg-muted hover:text-fg hover:underline"
+          onClick={showAll}
+        >
+          {fill(copy.overview.moreOnDay, { count: chips.length - shown })}
+        </button>
+      )}
     </li>
   )
 }

@@ -629,6 +629,7 @@ export const memberArea = {
         legendEvent: 'Event',
         legendDeadline: 'Deine Frist',
         moreOnDay: '+{count}',
+        showDay: 'Alle Einträge am {date} zeigen',
         mine: 'Meine Aufgaben',
         openCount: '{count} offen',
         quickAdd: 'Neue Aufgabe, zum Beispiel: Flyer drucken bis Mi',
