@@ -674,6 +674,7 @@ export const memberArea = {
         past: 'Vergangene Events',
         showAllPast: 'Alle {count} anzeigen',
         own: 'Eigenes Event',
+        series: 'Jede Woche',
         eventPage: 'Eventseite',
         twin: 'In Luma steht „{title}“ am {date}. Ist das dasselbe Event?',
         merge: 'Zusammenführen',

@@ -64,6 +64,7 @@ function setup(projects = [project()], outcome = 'ok', complete = true) {
           endAt: new Date('2026-10-01T19:00:00Z'),
           location: null,
           url: 'https://luma.com/a',
+          source: 'luma',
         },
         {
           id: 'evt-next',
@@ -72,6 +73,16 @@ function setup(projects = [project()], outcome = 'ok', complete = true) {
           endAt: new Date('2026-11-20T19:00:00Z'),
           location: 'Campus',
           url: 'https://luma.com/b',
+          source: 'luma',
+        },
+        {
+          id: 'weekly-2026-11-24',
+          title: 'Weekly',
+          startAt: new Date('2026-11-24T15:00:00Z'),
+          endAt: new Date('2026-11-24T16:00:00Z'),
+          location: 'C.40.254',
+          url: '',
+          source: 'series',
         },
       ],
     }),
@@ -176,7 +187,7 @@ test('get_project reports unknown and malformed ids as tool errors', async () =>
   await assert.rejects(run('get_project', { project_id: 'x' }), ToolError)
 })
 
-test('upcoming_events skips past events and links the planning project', async () => {
+test('upcoming_events skips past events and the Weekly and links the planning project', async () => {
   const { events } = await setup([project({ event: { id: 'evt-next' } })]).run('upcoming_events')
   assert.equal(events.length, 1)
   assert.equal(events[0].title, 'Demo Day')

@@ -7,6 +7,7 @@ import { reply } from '../../../lib/memberSession'
 import { addPrivateTask, removePrivateTask, restorePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
+  isEvent,
   isRecordId,
   parseName,
   parseProject,
@@ -244,9 +245,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 }
 
+// The Weekly has no planning project, so its dates are not events to link or plan.
 const publicEvent = async (id: unknown) => {
   const { events } = await loadTaskEvents('de')
-  return events.find((event) => event.id === id) ?? null
+  return events.find((event) => event.id === id && isEvent(event)) ?? null
 }
 
 /** null without a template, undefined when the given one is malformed. */

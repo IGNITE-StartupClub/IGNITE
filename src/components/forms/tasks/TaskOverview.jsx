@@ -11,7 +11,7 @@
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
-import { addDays, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
 import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, TaskCheck } from './taskUi'
 
@@ -209,9 +209,11 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
   const [checked, setChecked] = useState([])
 
   const upcoming = entries.filter((entry) => entry.endDay >= today)
+  // The Weekly stays in the calendar, but the events card and its marked day skip it.
+  const events = upcoming.filter(isEvent)
   // An event of several days that has begun counts from today, so the card and the marked day agree.
-  const activeDay = upcoming[0]?.day < today ? today : upcoming[0]?.day
-  const listed = upcoming.filter((entry) => entry.day <= activeDay && activeDay <= entry.endDay)
+  const activeDay = events[0]?.day < today ? today : events[0]?.day
+  const listed = events.filter((entry) => entry.day <= activeDay && activeDay <= entry.endDay)
   const open = mine.filter((task) => !task.done)
   const shown = sortTasks(mine.filter((task) => !task.done || checked.includes(task.id))).slice(0, TASKS_SHOWN)
 

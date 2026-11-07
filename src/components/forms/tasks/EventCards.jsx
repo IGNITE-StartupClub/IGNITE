@@ -1,13 +1,13 @@
 /**
  * The events page as cards: everything coming up with cover, date and the state of its planning, then the past events
- * as a short list. Of the Weekly only the next date gets a card. An own event that may be a public event asks once
+ * as a short list. The Weekly is no event, so it shows in the calendars only. An own event that may be a public event asks once
  * whether the two are the same; only the answer changes anything, a card never merges by itself.
  * Props: entries and twins (calendarEntries), planOf(entry) → its project or undefined, complete, today, copy (workspace
  * copy), locale, membersById, onStart(entry), onOpen(projectId), onMerge(project, event), onApart(project, event).
  */
 import React, { useState } from 'react'
 import { ExternalLink, MapPin } from 'lucide-react'
-import { nextOfSeries, progress } from '../../../lib/tasks'
+import { isEvent, progress } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { dayPart, eventDayLabel, LeadLine, longDay } from './taskUi'
 
@@ -48,8 +48,10 @@ function TwinQuestion({ project, event, copy, locale, onMerge, onApart }) {
   )
 }
 
+/** Also the card of EventDialog, which opens on the Weekly too; that one has nothing to plan. */
 export function EventCard({ entry, project, twin, copy, locale, membersById, onStart, onOpen, onMerge, onApart }) {
   const text = copy.calendar
+  const plannable = isEvent(entry)
   const tasks = project && progress(project.tasks)
   const planning = !project ? copy.overview.noPlanning : tasks.total ? fill(copy.overview.planning, tasks) : copy.overview.planningEmpty
   return (
@@ -58,6 +60,7 @@ export function EventCard({ entry, project, twin, copy, locale, membersById, onS
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           {entry.source === 'own' && <p className="mb-1 text-caption font-medium text-accent">{text.own}</p>}
+          {!plannable && <p className="mb-1 text-caption font-medium text-accent">{text.series}</p>}
           <h2 className="text-[20px] font-semibold leading-tight">{entry.title}</h2>
           <p className="mt-1 text-sm text-fg-muted">
             {eventDayLabel(entry.day, locale)}
@@ -70,15 +73,19 @@ export function EventCard({ entry, project, twin, copy, locale, membersById, onS
             </p>
           )}
         </div>
-        <div>
-          <p className="text-sm text-fg-muted">{planning}</p>
-          {project && <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />}
-        </div>
+        {plannable && (
+          <div>
+            <p className="text-sm text-fg-muted">{planning}</p>
+            {project && <LeadLine project={project} membersById={membersById} copy={copy} className="mt-0.5" />}
+          </div>
+        )}
         {twin && <TwinQuestion project={project} event={twin} copy={copy} locale={locale} onMerge={onMerge} onApart={onApart} />}
         <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
-          <button type="button" className={project ? `${TOOL_BUTTON} h-10` : `${PRIMARY_BUTTON} h-10`} onClick={() => (project ? onOpen(project.id) : onStart(entry))}>
-            {project ? copy.overview.openPlanning : text.startPlanning}
-          </button>
+          {plannable && (
+            <button type="button" className={project ? `${TOOL_BUTTON} h-10` : `${PRIMARY_BUTTON} h-10`} onClick={() => (project ? onOpen(project.id) : onStart(entry))}>
+              {project ? copy.overview.openPlanning : text.startPlanning}
+            </button>
+          )}
           {entry.url && (
             <a href={entry.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
               {text.eventPage}
@@ -126,8 +133,9 @@ function PastEvents({ entries, planOf, copy, locale, onOpen }) {
 }
 
 export default function EventCards({ entries, twins, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onMerge, onApart }) {
-  const upcoming = nextOfSeries(entries.filter((entry) => entry.endDay >= today), planOf)
-  const past = entries.filter((entry) => entry.endDay < today).reverse()
+  const events = entries.filter(isEvent)
+  const upcoming = events.filter((entry) => entry.endDay >= today)
+  const past = events.filter((entry) => entry.endDay < today).reverse()
   return (
     <div className="flex flex-col gap-8">
       {!complete && <p className="text-sm text-fg-muted">{copy.calendar.unavailable}</p>}

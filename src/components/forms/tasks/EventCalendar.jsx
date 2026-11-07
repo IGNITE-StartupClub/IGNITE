@@ -1,13 +1,13 @@
 /**
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
- * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. Each card
+ * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. The Weekly shows in the grid and on its day, never among the upcoming events, and has nothing to plan. Each card
  * either starts the planning project of its event or opens it. A click on a title in the grid opens that event.
  * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
  * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event).
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { addDays, nextOfSeries, progress, projectAssignees } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
@@ -47,7 +47,9 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
           <span className="truncate">{event.location}</span>
         </p>
       )}
-      {project ? (
+      {!isEvent(event) ? (
+        <p className="mt-2 text-caption font-medium text-accent">{copy.calendar.series}</p>
+      ) : project ? (
         <>
           <div className="mt-3 flex items-center gap-3">
             <ProgressBar percent={done.percent} label={copy.board.progress} />
@@ -88,7 +90,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
       : new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(
           new Date(`${monthStart(cursor)}T00:00:00Z`),
         )
-  const listed = selected ? (byDay.get(selected) ?? []) : nextOfSeries(events.filter((event) => event.day >= today), planOf).slice(0, UPCOMING_MAX)
+  const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => isEvent(event) && event.day >= today).slice(0, UPCOMING_MAX)
 
   return (
     <section aria-label={text.heading} className={`${SURFACE} p-4 sm:p-5`}>

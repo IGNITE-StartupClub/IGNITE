@@ -15,6 +15,7 @@ import {
   eventTwin,
   filterProjects,
   filterScope,
+  isEvent,
   isRecordId,
   mayRemoveTask,
   nameFromEmail,
@@ -26,7 +27,6 @@ import {
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
-  nextOfSeries,
   patchedTask,
   parseTeam,
   parseTemplateTasks,
@@ -544,17 +544,15 @@ test('eventTwin prefers the similar title over the nearer day', () => {
   assert.equal(eventTwin(ownEvent(), [other, twin])?.event.id, 'evt-2')
 })
 
-test('eventTwin asks about a series only for a similar title', () => {
-  const tuesday = calendarEvent({ title: 'Weekly', source: 'series' })
-  assert.equal(eventTwin(ownEvent({ title: 'Pitch Night' }), [tuesday]), null)
-  assert.deepEqual(eventTwin(ownEvent({ title: 'Weekly' }), [tuesday]), { event: tuesday, sure: true })
-})
-
-test('nextOfSeries keeps the next date of a series and the planned ones', () => {
-  const dates = ['10', '17', '24'].map((day) => calendarEvent({ id: `weekly-${day}`, source: 'series' }))
-  const other = calendarEvent({ id: 'evt-2' })
-  const kept = nextOfSeries([dates[0], other, dates[1], dates[2]], (entry) => entry.id === 'weekly-24')
-  assert.deepEqual(kept.map(({ id }) => id), ['weekly-10', 'evt-2', 'weekly-24'])
+test('calendarEntries keeps the Weekly in the calendar and never pairs an own event with it', () => {
+  const tuesday = calendarEvent({ id: 'weekly-2026-11-20', title: 'Weekly', source: 'series' })
+  for (const title of ['Pitch Night', 'Weekly']) {
+    const { entries, twins } = calendarEntries([tuesday], [ownEvent({ title })])
+    assert.deepEqual(entries.map(({ id }) => id).sort(), [ownEvent().id, tuesday.id].sort())
+    assert.equal(twins.size, 0)
+  }
+  assert.equal(isEvent(tuesday), false)
+  assert.equal(isEvent(calendarEvent()), true)
 })
 
 test('calendarEntries shows own events and never the same event twice', () => {
