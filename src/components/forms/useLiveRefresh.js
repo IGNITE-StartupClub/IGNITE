@@ -4,7 +4,7 @@
  * the last check is old enough. It returns false when the session ended, which stops the checks for good.
  */
 import { useEffect, useRef } from 'react'
-import { REFRESH_MS, refreshDue } from '../../lib/liveUpdates'
+import { refreshDue } from '../../lib/liveUpdates'
 
 // Compares clocks only, so ticking more often than REFRESH_MS sends no extra requests.
 const TICK_MS = 5_000
