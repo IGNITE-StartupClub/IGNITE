@@ -122,14 +122,16 @@ export function AvatarStack({ ids, membersById, copy, max = 3, size = 'sm' }) {
 /**
  * A button that opens a searchable member list with checkboxes; every toggle calls onChange with the new id list.
  * The popover is placed under its button and closes on Escape and outside clicks (browser popover API). Members of
- * `team`, the team the work belongs to, come right after the member themselves.
+ * `team`, the team the work belongs to, come right after the member themselves. The list exists only while it is open:
+ * every card and row has a picker, and their closed lists made up most of the page's elements.
  */
 export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false }) {
   const id = useId()
   const button = useRef(null)
   const panel = useRef(null)
+  const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const matches = members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase()))
+  const matches = open ? members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase())) : []
   // Me first, so assigning yourself is one click.
   const rank = (member) => (member.id === me ? 0 : team && member.team === team ? 1 : 2)
   const ordered = [...matches].sort((a, b) => rank(a) - rank(b))
@@ -141,7 +143,11 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
     panel.current.style.left = `${Math.max(8, Math.min(anchor.left, document.documentElement.clientWidth - width - 8))}px`
     const below = anchor.bottom + 4
     panel.current.style.top = `${below + 320 > window.innerHeight ? Math.max(8, anchor.top - 324) : below}px`
-    setQuery('')
+    // Drawn before the popover shows, so it never opens empty.
+    flushSync(() => {
+      setQuery('')
+      setOpen(true)
+    })
   }
   const toggle = (memberId) =>
     onChange(selected.includes(memberId) ? selected.filter((item) => item !== memberId) : [...selected, memberId])
@@ -171,46 +177,51 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
         id={id}
         popover="auto"
         onBeforeToggle={place}
+        onToggle={(e) => e.newState === 'closed' && setOpen(false)}
         className="fixed inset-auto m-0 w-64 rounded-lg border border-border bg-bg p-2 text-fg shadow-lg"
       >
-        <label className="relative block">
-          <span className="sr-only">{copy.searchMembers}</span>
-          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={copy.searchMembers}
-            autoComplete="off"
-            className="h-9 w-full rounded-md border border-border-strong bg-bg-subtle pl-8 pr-2 text-sm text-fg placeholder:text-fg-subtle"
-          />
-        </label>
-        <ul className="mt-2 max-h-64 overflow-y-auto" role="list">
-          {ordered.map((member) => {
-            const checked = selected.includes(member.id)
-            return (
-              <li key={member.id}>
-                <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-bg-subtle">
-                  <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggle(member.id)} />
-                  <Avatar member={member} size="md" decorative />
-                  <span className="min-w-0 flex-1 truncate">
-                    {member.name}
-                    {member.id === me && <span className="text-fg-muted"> · {copy.me}</span>}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                      checked ? 'border-brand-bright bg-brand-bright text-white' : 'border-border-strong'
-                    }`}
-                  >
-                    {checked && <Check className="h-3.5 w-3.5" />}
-                  </span>
-                </label>
-              </li>
-            )
-          })}
-          {!ordered.length && <li className="px-2 py-3 text-sm text-fg-muted">{copy.noMatch}</li>}
-        </ul>
+        {open && (
+          <>
+            <label className="relative block">
+              <span className="sr-only">{copy.searchMembers}</span>
+              <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={copy.searchMembers}
+                autoComplete="off"
+                className="h-9 w-full rounded-md border border-border-strong bg-bg-subtle pl-8 pr-2 text-sm text-fg placeholder:text-fg-subtle"
+              />
+            </label>
+            <ul className="mt-2 max-h-64 overflow-y-auto" role="list">
+              {ordered.map((member) => {
+                const checked = selected.includes(member.id)
+                return (
+                  <li key={member.id}>
+                    <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-bg-subtle">
+                      <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggle(member.id)} />
+                      <Avatar member={member} size="md" decorative />
+                      <span className="min-w-0 flex-1 truncate">
+                        {member.name}
+                        {member.id === me && <span className="text-fg-muted"> · {copy.me}</span>}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                          checked ? 'border-brand-bright bg-brand-bright text-white' : 'border-border-strong'
+                        }`}
+                      >
+                        {checked && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+              {!ordered.length && <li className="px-2 py-3 text-sm text-fg-muted">{copy.noMatch}</li>}
+            </ul>
+          </>
+        )}
       </div>
     </>
   )

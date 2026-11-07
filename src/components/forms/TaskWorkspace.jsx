@@ -23,7 +23,7 @@
  * asked for one), locale, today (YYYY-MM-DD, Berlin).
  * Styles: ./forms.css plus Tailwind utilities.
  */
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus } from 'lucide-react'
 import { captureTask } from '../../lib/memberSearch'
@@ -158,7 +158,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const holding = useRef(false)
   const archiveLoad = useRef(null)
   const { projects, templates, members, privateTasks } = state
-  const membersById = new Map(members.map((member) => [member.id, member]))
+  const membersById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members])
   const myTeam = membersById.get(me)?.team ?? ''
 
   const [route, setRoute] = useState({ view: 'overview', projectId: null })
@@ -365,12 +365,13 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (hadFocus) focusTask(steps[steps.length - 1].taskId)
   }
 
+  const searchQuery = useDeferredValue(query)
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
   const found = projectId ? projects.find((project) => project.id === projectId) : null
   // A folded project lacks its tasks, so the panel waits for the archive.
   const openProject = found && !found.folded ? found : null
   const openEventPlace = openProject?.event ? events.find((event) => event.id === openProject.event.id)?.location : undefined
-  const { entries, twins } = calendarEntries(events, projects)
+  const { entries, twins } = useMemo(() => calendarEntries(events, projects), [events, projects])
   const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
   const openEvent = (entry) => {
     const project = planOf(entry)
@@ -414,16 +415,23 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (archived || found?.archived || unknown) loadArchive()
   }, [archived, projectId, !!found, found?.archived, openProject?.id])
 
-  const taskScope = filterScope(taskFilter, myTeam, query)
+  // Typing in the search must not wait for the lists: they follow the deferred query, and only the page on screen
+  // computes its own.
+  const taskScope = useMemo(() => filterScope(taskFilter, myTeam, searchQuery), [taskFilter, myTeam, searchQuery])
   const withPrivate = (scoped) => [...scopedTasks(projects, scoped, me, today), ...scopedPrivateTasks(privateTasks, scoped, me, today)]
-  const tasks = withPrivate(taskScope)
+  const tasks = useMemo(() => (view === 'tasks' ? withPrivate(taskScope) : []), [view, projects, privateTasks, taskScope, me, today])
+  const mine = useMemo(() => (view === 'overview' ? withPrivate(filterScope(MINE, myTeam, '')) : []), [view, projects, privateTasks, myTeam, me, today])
   const filter = view === 'tasks' ? taskFilter : projectFilter
   const teamFiltered = (view === 'tasks' || view === 'projects') && TEAM_IDS.includes(filter)
   // Tasks without a team belong to nobody, so the hint only has a place in a view of one team.
-  const unsorted = teamFiltered
-    ? scopedTasks(projects, { ...taskScope, team: ALL_TEAMS, onlyMine: false, query: '' }, me, today).filter((task) => !task.team && !task.done).length
-    : 0
-  const shown = filterProjects(projects, { ...filterScope(projectFilter, myTeam, query), archived }, me)
+  const unsorted = useMemo(
+    () =>
+      teamFiltered
+        ? scopedTasks(projects, { ...taskScope, team: ALL_TEAMS, onlyMine: false, query: '' }, me, today).filter((task) => !task.team && !task.done).length
+        : 0,
+    [teamFiltered, projects, taskScope, me, today],
+  )
+  const shown = filterProjects(projects, { ...filterScope(projectFilter, myTeam, searchQuery), archived }, me)
   // New work lands in the team on screen, otherwise in the member's own team.
   const newTeam = teamFiltered ? filter : myTeam
   const askTeam = hasName && !myTeam && !teamLater && !board
@@ -482,7 +490,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const taskProps = {
     tasks,
     filter: taskFilter,
-    searching: !!query.trim(),
+    searching: !!searchQuery.trim(),
     copy,
     locale,
     me,
@@ -591,7 +599,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           complete={eventsComplete}
           planOf={planOf}
           projects={openProjects}
-          mine={withPrivate(filterScope(MINE, myTeam, ''))}
+          mine={mine}
           today={today}
           copy={copy}
           locale={locale}
