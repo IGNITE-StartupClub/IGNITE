@@ -31,6 +31,7 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
+  projectEdits,
   projectAssignees,
   projectStatus,
   scopedPrivateTasks,
@@ -624,4 +625,31 @@ test('taskHash and taskRoute are each other\'s inverse', () => {
 test('taskRoute still opens the links of mails and of the older tabs', () => {
   assert.deepEqual(taskRoute('#f81d4fae-7dec-11d0-a765-00a0c91e6bf6'), { view: 'overview', projectId: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6' })
   assert.deepEqual(taskRoute(''), { view: 'overview', projectId: null })
+})
+
+test('projectEdits names every changed field and each lead who joins or leaves', () => {
+  const stored = { title: 'Teamfotos', description: '', due: '2026-11-20', leads: [ME], team: 'ignite-marketing' as const }
+  assert.deepEqual(
+    projectEdits(stored, { title: 'Teamfotos auf der Website', due: '', time: '18:30', team: '', leads: { add: [BEN], remove: [] } }),
+    [
+      { action: 'renamed', detail: 'Teamfotos auf der Website' },
+      { action: 'undated', detail: '' },
+      { action: 'timed', detail: '18:30' },
+      { action: 'unteamed', detail: '' },
+      { action: 'leadAdded', detail: '', member: BEN },
+    ],
+  )
+  assert.deepEqual(projectEdits(stored, { description: 'Für die Teamseite', place: 'C.40.254', team: 'ignite-hr', leads: { add: [], remove: [ME] } }), [
+    { action: 'described', detail: '' },
+    { action: 'placed', detail: 'C.40.254' },
+    { action: 'teamed', detail: 'ignite-hr' },
+    { action: 'leadRemoved', detail: '', member: ME },
+  ])
+})
+
+test('projectEdits ignores values that are already stored', () => {
+  const stored = { title: 'Weekly', description: 'Agenda', due: '2026-11-10', leads: [ME] }
+  assert.deepEqual(projectEdits(stored, { title: 'Weekly', description: 'Agenda', due: '2026-11-10', time: '', place: '', team: '' }), [])
+  assert.deepEqual(projectEdits(stored, { leads: { add: [ME], remove: [BEN] } }), [])
+  assert.deepEqual(projectEdits(stored, { due: '2026-11-17' }), [{ action: 'dated', detail: '2026-11-17' }])
 })

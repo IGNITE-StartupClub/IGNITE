@@ -37,6 +37,7 @@ import {
   MAX_TASKS,
   type MemberChange,
   type ProjectFields,
+  type ProjectEditAction,
   type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
@@ -48,6 +49,7 @@ import {
   type TemplateTask,
   mayRemoveTask,
   nextStanding,
+  projectEdits,
   projectStatus,
   sameTitle,
   taskStatus,
@@ -83,6 +85,7 @@ interface EventSnapshot {
 
 export type ActivityAction =
   | 'created'
+  // Only in logs from before updateProject named each change (projectEdits).
   | 'edited'
   | 'status'
   | 'archived'
@@ -101,6 +104,7 @@ export type ActivityAction =
   // Lessons learned are gone; logs from before still hold this entry.
   | 'lessons'
   | 'template'
+  | ProjectEditAction
 
 interface Activity {
   at: Date
@@ -525,7 +529,10 @@ const memberUpdate = (path: string, { add, remove }: MemberChange) =>
  */
 export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1, type: 1, event: 1 } })
+  const project = await projects.findOne(
+    { _id: id },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1 } },
+  )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
   // Its date is all that places an own event in the calendar.
@@ -534,11 +541,12 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   if (leads && applyMemberChange(project.leads, leads).length > MAX_ASSIGNEES) return 'crowded'
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.
   const leadOnly = leads && actor.role !== 'admin' && project.createdBy !== actor.id
+  const edits = projectEdits(project, patch)
   const { matchedCount } = await projects.updateOne(
     { _id: id, ...(leadOnly && { leads: actor.id }) },
     {
       $set: { ...fields, updatedAt: new Date() },
-      $push: pushActivity([activity(actor, 'edited')]),
+      ...(edits.length ? { $push: pushActivity(edits.map((edit) => activity(actor, edit.action, edit.detail, edit.member))) } : {}),
       ...(leads && memberUpdate('leads', leads)),
     },
   )

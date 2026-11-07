@@ -702,6 +702,52 @@ export function assigneeChanges(previous: string[], next: string[]) {
   return { added: next.filter((id) => !previous.includes(id)), removed: previous.filter((id) => !next.includes(id)) }
 }
 
+export type ProjectEditAction =
+  | 'renamed'
+  | 'described'
+  | 'dated'
+  | 'undated'
+  | 'timed'
+  | 'untimed'
+  | 'placed'
+  | 'unplaced'
+  | 'teamed'
+  | 'unteamed'
+  | 'leadAdded'
+  | 'leadRemoved'
+
+export interface ProjectEdit {
+  action: ProjectEditAction
+  /** The new title, day, time, place or team; '' where the log names no value. */
+  detail: string
+  member?: string
+}
+
+/**
+ * The log entries of a project edit: one per field the patch really changes and one per lead who joins or leaves, so
+ * the activity tab says what happened. A value someone else saved just before does not count as a change.
+ */
+export function projectEdits(
+  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; team?: TeamChoice },
+  patch: ProjectPatch,
+): ProjectEdit[] {
+  const edits: ProjectEdit[] = []
+  const changes = (key: 'title' | 'description' | 'due' | 'time' | 'place' | 'team') => patch[key] !== undefined && patch[key] !== (stored[key] ?? '')
+  const setOrClear = (value: string, set: ProjectEditAction, clear: ProjectEditAction) => edits.push({ action: value ? set : clear, detail: value })
+  if (changes('title')) edits.push({ action: 'renamed', detail: patch.title! })
+  if (changes('description')) edits.push({ action: 'described', detail: '' })
+  if (changes('due')) setOrClear(patch.due!, 'dated', 'undated')
+  if (changes('time')) setOrClear(patch.time!, 'timed', 'untimed')
+  if (changes('place')) setOrClear(patch.place!, 'placed', 'unplaced')
+  if (changes('team')) setOrClear(patch.team!, 'teamed', 'unteamed')
+  if (patch.leads) {
+    const { added, removed } = assigneeChanges(stored.leads, applyMemberChange(stored.leads, patch.leads))
+    for (const member of added) edits.push({ action: 'leadAdded', detail: '', member })
+    for (const member of removed) edits.push({ action: 'leadRemoved', detail: '', member })
+  }
+  return edits
+}
+
 /** What a picker changed, as the server takes it. */
 export function memberChange(previous: string[], next: string[]): MemberChange {
   const { added, removed } = assigneeChanges(previous, next)

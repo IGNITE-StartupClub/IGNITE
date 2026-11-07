@@ -515,6 +515,12 @@ function ActivityTab({ project, copy, locale, membersById }) {
     }
   }, [project.id, project.updatedAt])
   const name = (memberId) => (memberId === 'system' ? copy.activity.system : (membersById.get(memberId)?.name ?? copy.activity.someone))
+  // The server stores ids and days; names and dates follow the reader's language.
+  const details = {
+    status: (status) => copy.statuses[projectStatus(status)] ?? status,
+    dated: (day) => longDay(day, locale),
+    teamed: (team) => copy.teams[team] ?? team,
+  }
   if (failed) return <p className="text-sm text-fg-muted">{copy.results.error}</p>
   if (!entries) return <p className="text-sm text-fg-muted">{copy.panel.loadingActivity}</p>
   if (!entries.length) return <p className="text-sm text-fg-muted">{copy.panel.noActivity}</p>
@@ -522,7 +528,8 @@ function ActivityTab({ project, copy, locale, membersById }) {
     <ol className="flex flex-col gap-4">
       {entries.map((entry, index) => {
         const actor = membersById.get(entry.actor)
-        const detail = entry.action === 'status' ? (copy.statuses[projectStatus(entry.detail)] ?? entry.detail) : entry.detail
+        const detail = details[entry.action]?.(entry.detail) ?? entry.detail
+        const action = entry.action === 'dated' && project.type === 'event' ? 'eventDated' : entry.action
         return (
           <li key={`${entry.at}-${index}`} className="flex gap-3 text-sm">
             {actor ? (
@@ -531,7 +538,7 @@ function ActivityTab({ project, copy, locale, membersById }) {
               <span aria-hidden="true" className="h-8 w-8 shrink-0 rounded-full bg-bg-subtle" />
             )}
             <div>
-              <p>{fill(copy.activity[entry.action] ?? '', { actor: name(entry.actor), detail, member: name(entry.member) })}</p>
+              <p>{fill(copy.activity[action] ?? '', { actor: name(entry.actor), detail, member: name(entry.member) })}</p>
               <p className="text-xs text-fg-muted">{dateTime(entry.at, locale)}</p>
             </div>
           </li>
