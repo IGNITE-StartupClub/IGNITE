@@ -78,7 +78,7 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
             </div>
             <div className="field">
               <label htmlFor={`${id}-priority`} className="field-label">
-                {labels.priority}
+                {copy.panel.priority}
               </label>
               <select id={`${id}-priority`} className="input" value={form.priority} onChange={set('priority')}>
                 {PRIORITIES.map((priority) => (
