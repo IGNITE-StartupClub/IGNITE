@@ -7,8 +7,8 @@ import { reply } from '../../../lib/memberSession'
 import { addPrivateTask, removePrivateTask, restorePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
+  isEvent,
   isRecordId,
-  parseLessons,
   parseName,
   parseProject,
   parseProjectPatch,
@@ -31,7 +31,6 @@ import {
   reorderTasks,
   restoreTask,
   saveAsTemplate,
-  saveLessons,
   sessionActor,
   setArchived,
   setStatus,
@@ -74,7 +73,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
  * The tasks module of the members area (TaskWorkspace island). Body: { action, revision?, … } with action
  * 'create' (project, status?, eventId?, template?, task?), 'update' (id, patch), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
- * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order), 'lessons' (id, lessons),
+ * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order),
  * 'saveTemplate' (id, name), 'archiveTemplate' (templateId), 'linkEvent' (id, eventId), 'keepEventApart' (id, eventId),
  * 'unlinkEvent' (id), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
  * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes } for the island's
@@ -184,12 +183,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!id || !Array.isArray(body.order) || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
         break
-      case 'lessons': {
-        const lessons = parseLessons(body.lessons)
-        if (!id || !lessons) return invalid()
-        code = await saveLessons(actor, id, lessons)
-        break
-      }
       case 'saveTemplate': {
         const name = typeof body.name === 'string' ? body.name.trim() : ''
         if (!id || !name || name.length > TITLE_MAX) return invalid()
@@ -252,9 +245,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 }
 
+// The Weekly has no planning project, so its dates are not events to link or plan.
 const publicEvent = async (id: unknown) => {
   const { events } = await loadTaskEvents('de')
-  return events.find((event) => event.id === id) ?? null
+  return events.find((event) => event.id === id && isEvent(event)) ?? null
 }
 
 /** null without a template, undefined when the given one is malformed. */

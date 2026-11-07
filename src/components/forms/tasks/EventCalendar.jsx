@@ -1,13 +1,13 @@
 /**
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
- * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. Each card
- * either starts the planning project of its event or opens it.
+ * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. The Weekly shows in the grid and on its day, never among the upcoming events, and has nothing to plan. Each card
+ * either starts the planning project of its event or opens it. A click on a title in the grid opens that event.
  * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
- * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId).
+ * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event).
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { addDays, nextOfSeries, progress, projectAssignees } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
@@ -47,7 +47,9 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
           <span className="truncate">{event.location}</span>
         </p>
       )}
-      {project ? (
+      {!isEvent(event) ? (
+        <p className="mt-2 text-caption font-medium text-accent">{copy.calendar.series}</p>
+      ) : project ? (
         <>
           <div className="mt-3 flex items-center gap-3">
             <ProgressBar percent={done.percent} label={copy.board.progress} />
@@ -72,7 +74,7 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   )
 }
 
-export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen }) {
+export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent }) {
   const text = copy.calendar
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
@@ -88,7 +90,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
       : new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(
           new Date(`${monthStart(cursor)}T00:00:00Z`),
         )
-  const listed = selected ? (byDay.get(selected) ?? []) : nextOfSeries(events.filter((event) => event.day >= today), planOf).slice(0, UPCOMING_MAX)
+  const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => isEvent(event) && event.day >= today).slice(0, UPCOMING_MAX)
 
   return (
     <section aria-label={text.heading} className={`${SURFACE} p-4 sm:p-5`}>
@@ -131,51 +133,57 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
               const isToday = day === today
               const isSelected = day === selected
               return (
-                <li key={day}>
+                <li
+                  key={day}
+                  className={`relative flex flex-col items-stretch gap-1 rounded-md border p-1 transition-colors ${
+                    mode === 'week' ? 'min-h-28' : 'min-h-11 sm:min-h-16'
+                  } ${isSelected ? 'border-fg bg-bg-subtle' : 'border-transparent hover:bg-bg-subtle'} ${outside ? 'opacity-40' : ''}`}
+                >
+                  {/* The day is a layer behind the titles, because a button cannot hold the buttons of its events. */}
                   <button
                     type="button"
                     aria-pressed={isSelected}
                     aria-label={`${longDay(day, locale)}${dayEvents.length ? `: ${dayEvents.map((event) => event.title).join(', ')}` : ''}`}
                     onClick={() => setSelected(isSelected ? null : day)}
-                    className={`flex w-full flex-col items-stretch gap-1 rounded-md border p-1 text-left transition-colors ${
-                      mode === 'week' ? 'min-h-28' : 'min-h-11 sm:min-h-16'
-                    } ${isSelected ? 'border-fg bg-bg-subtle' : 'border-transparent hover:bg-bg-subtle'} ${outside ? 'opacity-40' : ''}`}
+                    className="absolute inset-0 rounded-md border-0 bg-transparent p-0"
+                  />
+                  <span
+                    className={`pointer-events-none relative flex h-6 w-6 items-center justify-center self-center rounded-full text-xs sm:self-start ${
+                      isToday ? 'bg-brand-bright font-semibold text-white' : day < today ? 'text-fg-muted' : 'text-fg'
+                    }`}
                   >
-                    <span
-                      className={`flex h-6 w-6 items-center justify-center self-center rounded-full text-xs sm:self-start ${
-                        isToday ? 'bg-brand-bright font-semibold text-white' : day < today ? 'text-fg-muted' : 'text-fg'
-                      }`}
-                    >
-                      {Number(day.slice(8))}
-                    </span>
-                    {dayEvents.length > 0 && (
-                      <>
-                        {/* Phones only get dots: titles do not fit into a seventh of the screen. */}
-                        <span className={`flex justify-center gap-0.5 ${mode === 'week' ? 'hidden' : 'sm:hidden'}`}>
-                          {dayEvents.map((event) => (
-                            <span
-                              key={event.id}
-                              className={`h-1.5 w-1.5 rounded-full ${planOf(event) ? 'bg-brand-bright' : 'bg-accent'}`}
-                            />
-                          ))}
-                        </span>
-                        <span className={`flex-col gap-0.5 ${mode === 'week' ? 'flex' : 'hidden sm:flex'}`}>
-                          {dayEvents.map((event) => (
-                            <span
-                              key={event.id}
-                              className={`truncate rounded px-1 py-0.5 text-2xs leading-tight ${
-                                planOf(event)
-                                  ? 'bg-brand-bright text-white'
-                                  : 'bg-[color-mix(in_srgb,var(--color-accent-text)_18%,transparent)] text-fg'
-                              }`}
-                            >
-                              {event.title}
-                            </span>
-                          ))}
-                        </span>
-                      </>
-                    )}
-                  </button>
+                    {Number(day.slice(8))}
+                  </span>
+                  {dayEvents.length > 0 && (
+                    <>
+                      {/* Phones only get dots: titles do not fit into a seventh of the screen. */}
+                      <span className={`pointer-events-none relative flex justify-center gap-0.5 ${mode === 'week' ? 'hidden' : 'sm:hidden'}`}>
+                        {dayEvents.map((event) => (
+                          <span
+                            key={event.id}
+                            className={`h-1.5 w-1.5 rounded-full ${planOf(event) ? 'bg-brand-bright' : 'bg-accent'}`}
+                          />
+                        ))}
+                      </span>
+                      <span className={`relative flex-col gap-0.5 ${mode === 'week' ? 'flex' : 'hidden sm:flex'}`}>
+                        {dayEvents.map((event) => (
+                          <button
+                            key={event.id}
+                            type="button"
+                            title={event.title}
+                            onClick={() => onOpenEvent(event)}
+                            className={`block w-full truncate rounded border-0 px-1 py-0.5 text-left text-2xs leading-tight ${
+                              planOf(event)
+                                ? 'bg-brand-bright text-white'
+                                : 'bg-[color-mix(in_srgb,var(--color-accent-text)_18%,transparent)] text-fg'
+                            }`}
+                          >
+                            {event.title}
+                          </button>
+                        ))}
+                      </span>
+                    </>
+                  )}
                 </li>
               )
             })}

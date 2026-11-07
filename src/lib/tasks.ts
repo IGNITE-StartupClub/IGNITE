@@ -76,12 +76,6 @@ export interface TemplateTask {
   offsetDays: number | null
 }
 
-export interface Lessons {
-  wellDone: string
-  improve: string
-  notes: string
-}
-
 /** The parts of a task the rules below read. */
 export interface TaskState {
   id: string
@@ -290,17 +284,6 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     team,
     leads: memberChangeOf,
   })
-
-export function parseLessons(input: unknown): Lessons | null {
-  const fields = fieldsOf(input)
-  if (!fields) return null
-  const lessons = parse<Lessons>({
-    wellDone: text(fields.wellDone, TEXT_MAX),
-    improve: text(fields.improve, TEXT_MAX),
-    notes: text(fields.notes, TEXT_MAX),
-  })
-  return lessons && (lessons.wellDone || lessons.improve || lessons.notes) ? lessons : null
-}
 
 export function parseTemplateTasks(input: unknown): TemplateTask[] | null {
   if (!Array.isArray(input) || !input.length || input.length > MAX_TASKS) return null
@@ -597,8 +580,7 @@ export function eventTwin<E extends CalendarEvent>(project: OwnEvent, events: E[
       const similar = similarTitles(project.title, event.title)
       return { event, distance, similar }
     })
-    // A series has a date every week, so sharing the day says nothing about it.
-    .filter(({ event, distance, similar }) => (similar ? distance <= TWIN_DAYS : distance === 0 && event.source !== 'series'))
+    .filter(({ distance, similar }) => (similar ? distance <= TWIN_DAYS : distance === 0))
     .sort((a, b) => Number(b.similar) - Number(a.similar) || a.distance - b.distance)
   const best = ranked[0]
   return best ? { event: best.event, sure: best.similar && best.distance === 0 } : null
@@ -611,7 +593,7 @@ export function eventTwin<E extends CalendarEvent>(project: OwnEvent, events: E[
  */
 export function calendarEntries<E extends CalendarEvent>(events: E[], projects: (ProjectState & OwnEvent)[]) {
   const planned = new Set(projects.flatMap((project) => (project.event ? [project.event.id] : [])))
-  const open = events.filter((event) => !planned.has(event.id))
+  const open = events.filter((event) => !planned.has(event.id) && isEvent(event))
   const twins = new Map<string, E>()
   const hidden = new Set<string>()
   const own: CalendarEvent[] = []
@@ -640,11 +622,8 @@ export function calendarEntries<E extends CalendarEvent>(events: E[], projects: 
   return { entries: entries.sort((a, b) => a.day.localeCompare(b.day) || a.time.localeCompare(b.time)), twins }
 }
 
-/** For lists: of a series only the next date and the dates with a plan, otherwise it fills the list with the same entry. */
-export function nextOfSeries<E extends Pick<CalendarEvent, 'source'>>(entries: E[], planned: (entry: E) => unknown): E[] {
-  const next = entries.find((entry) => entry.source === 'series')
-  return entries.filter((entry) => entry.source !== 'series' || entry === next || planned(entry))
-}
+/** The Weekly is the club's meeting, not an event: it shows in the calendars only, never in event lists, search or planning. */
+export const isEvent = (entry: { source: string }): boolean => entry.source !== 'series'
 
 /** The filters of the task board: the member's own tasks, a team, or every team. */
 export const MINE = 'mine'
@@ -717,6 +696,52 @@ export function templateFromTasks(
 /** Members newly on `next` and no longer on `previous`, for notifications and the activity log. */
 export function assigneeChanges(previous: string[], next: string[]) {
   return { added: next.filter((id) => !previous.includes(id)), removed: previous.filter((id) => !next.includes(id)) }
+}
+
+export type ProjectEditAction =
+  | 'renamed'
+  | 'described'
+  | 'dated'
+  | 'undated'
+  | 'timed'
+  | 'untimed'
+  | 'placed'
+  | 'unplaced'
+  | 'teamed'
+  | 'unteamed'
+  | 'leadAdded'
+  | 'leadRemoved'
+
+export interface ProjectEdit {
+  action: ProjectEditAction
+  /** The new title, day, time, place or team; '' where the log names no value. */
+  detail: string
+  member?: string
+}
+
+/**
+ * The log entries of a project edit: one per field the patch really changes and one per lead who joins or leaves, so
+ * the activity tab says what happened. A value someone else saved just before does not count as a change.
+ */
+export function projectEdits(
+  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; team?: TeamChoice },
+  patch: ProjectPatch,
+): ProjectEdit[] {
+  const edits: ProjectEdit[] = []
+  const changes = (key: 'title' | 'description' | 'due' | 'time' | 'place' | 'team') => patch[key] !== undefined && patch[key] !== (stored[key] ?? '')
+  const setOrClear = (value: string, set: ProjectEditAction, clear: ProjectEditAction) => edits.push({ action: value ? set : clear, detail: value })
+  if (changes('title')) edits.push({ action: 'renamed', detail: patch.title! })
+  if (changes('description')) edits.push({ action: 'described', detail: '' })
+  if (changes('due')) setOrClear(patch.due!, 'dated', 'undated')
+  if (changes('time')) setOrClear(patch.time!, 'timed', 'untimed')
+  if (changes('place')) setOrClear(patch.place!, 'placed', 'unplaced')
+  if (changes('team')) setOrClear(patch.team!, 'teamed', 'unteamed')
+  if (patch.leads) {
+    const { added, removed } = assigneeChanges(stored.leads, applyMemberChange(stored.leads, patch.leads))
+    for (const member of added) edits.push({ action: 'leadAdded', detail: '', member })
+    for (const member of removed) edits.push({ action: 'leadRemoved', detail: '', member })
+  }
+  return edits
 }
 
 /** What a picker changed, as the server takes it. */

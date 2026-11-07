@@ -1,17 +1,17 @@
 /**
  * The page the tasks module opens on: the next 14 days as a calendar with the events and the member's own deadlines,
- * then one card each for their tasks, the events and the projects, each leading on to its page. A click on an event in
- * the calendar shows it in the events card, which otherwise shows what comes next; a click on a deadline opens the task.
+ * then one card each for their tasks, the events and the projects, each leading on to its page. A click in the calendar
+ * opens the event or the task; the events card shows what comes next.
  * The field in the tasks card reads the same short form as the search ("Flyer drucken bis Mi @Lena #Marketing"); without
  * a person the task is the member's own.
  * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects, soonest
  * first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
- * onView(view), onStart(event), onOpen(projectId), onOpenTask(task), onPatch(task, fields), onCapture(text) → captureTask,
- * onQuickAdd(captured, isPrivate).
+ * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
+ * onCapture(text) → captureTask, onQuickAdd(captured, isPrivate).
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
-import { addDays, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
 import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, TaskCheck } from './taskUi'
 
@@ -25,9 +25,9 @@ const LEAD_ON = 'flex items-center justify-between gap-2 border-0 bg-transparent
 const ROW_LINE = 'border-0 border-t border-solid border-border'
 const CHIP = 'block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
 
-function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onPick, onOpenTask }) {
+function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask }) {
   const chips = [
-    ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onPick(day) })),
+    ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onOpenEvent(entry) })),
     ...deadlines.map((task) => ({ id: task.id, title: task.title, tone: 'bg-bg-subtle text-fg', onClick: () => onOpenTask(task) })),
   ]
   const shown = chips.length > CHIPS_SHOWN ? CHIPS_SHOWN - 1 : chips.length
@@ -51,7 +51,7 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onP
   )
 }
 
-function Calendar({ entries, deadlines, activeDay, today, copy, locale, onPick, onOpenTask }) {
+function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEvent, onOpenTask }) {
   const text = copy.overview
   const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(today, index))
   return (
@@ -84,7 +84,7 @@ function Calendar({ entries, deadlines, activeDay, today, copy, locale, onPick, 
               deadlines={deadlines.filter((task) => task.due === day)}
               copy={copy}
               locale={locale}
-              onPick={onPick}
+              onOpenEvent={onOpenEvent}
               onOpenTask={onOpenTask}
             />
           ))}
@@ -203,16 +203,17 @@ function ProjectRow({ project, copy, locale, membersById, onOpen }) {
   )
 }
 
-export default function TaskOverview({ entries, complete, planOf, projects, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenTask, onPatch, onCapture, onQuickAdd }) {
+export default function TaskOverview({ entries, complete, planOf, projects, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenEvent, onOpenTask, onPatch, onCapture, onQuickAdd }) {
   const text = copy.overview
-  const [pickedDay, setPickedDay] = useState(null)
   // A task checked off here stays until the page changes, so a slip can be undone and the list does not jump.
   const [checked, setChecked] = useState([])
 
   const upcoming = entries.filter((entry) => entry.endDay >= today)
+  // The Weekly stays in the calendar, but the events card and its marked day skip it.
+  const events = upcoming.filter(isEvent)
   // An event of several days that has begun counts from today, so the card and the marked day agree.
-  const activeDay = pickedDay ?? (upcoming[0]?.day < today ? today : upcoming[0]?.day)
-  const listed = upcoming.filter((entry) => entry.day <= activeDay && activeDay <= entry.endDay)
+  const activeDay = events[0]?.day < today ? today : events[0]?.day
+  const listed = events.filter((entry) => entry.day <= activeDay && activeDay <= entry.endDay)
   const open = mine.filter((task) => !task.done)
   const shown = sortTasks(mine.filter((task) => !task.done || checked.includes(task.id))).slice(0, TASKS_SHOWN)
 
@@ -225,7 +226,7 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
         today={today}
         copy={copy}
         locale={locale}
-        onPick={setPickedDay}
+        onOpenEvent={onOpenEvent}
         onOpenTask={onOpenTask}
       />
 

@@ -1,7 +1,7 @@
 /**
  * MongoDB access for the tasks module of the members area. Collections:
- * - `task_projects`: event projects, internal projects and single tasks with their subtasks, lessons learned and
- *   activity log embedded, so one update changes a project atomically. Projects and tasks saved before teams existed
+ * - `task_projects`: event projects, internal projects and single tasks with their subtasks and activity log
+ *   embedded, so one update changes a project atomically. Projects and tasks saved before teams existed
  *   have no `team` and read as ''. A unique index on
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
  *   syncEvents refreshes it and never touches tasks, people or status. Every write sets `updatedAt`, because the islands
@@ -35,9 +35,9 @@ import {
   berlinDay,
   MAX_ASSIGNEES,
   MAX_TASKS,
-  type Lessons,
   type MemberChange,
   type ProjectFields,
+  type ProjectEditAction,
   type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
@@ -49,6 +49,7 @@ import {
   type TemplateTask,
   mayRemoveTask,
   nextStanding,
+  projectEdits,
   projectStatus,
   sameTitle,
   taskStatus,
@@ -84,6 +85,7 @@ interface EventSnapshot {
 
 export type ActivityAction =
   | 'created'
+  // Only in logs from before updateProject named each change (projectEdits).
   | 'edited'
   | 'status'
   | 'archived'
@@ -99,8 +101,10 @@ export type ActivityAction =
   | 'assigned'
   | 'unassigned'
   | 'due'
+  // Lessons learned are gone; logs from before still hold this entry.
   | 'lessons'
   | 'template'
+  | ProjectEditAction
 
 interface Activity {
   at: Date
@@ -127,7 +131,6 @@ interface ProjectDoc {
   leads: string[]
   team?: TeamChoice
   tasks: TaskDoc[]
-  lessons: (Lessons & { by: string; at: Date }) | null
   activity: Activity[]
   createdBy: string
   createdAt: Date
@@ -280,7 +283,6 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),
       })),
-    lessons: project.lessons && { ...project.lessons, at: project.lessons.at.toISOString() },
     createdBy: project.createdBy,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -313,7 +315,8 @@ export async function workspaceRevision(): Promise<string> {
   return collectionRevision(projects)
 }
 
-const WITHOUT_ACTIVITY = { projection: { activity: 0 } }
+// Projects completed before lessons learned were dropped still store `lessons`; nothing reads them any more.
+const WITHOUT_ACTIVITY = { projection: { activity: 0, lessons: 0 } }
 
 /**
  * Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks.
@@ -498,7 +501,6 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
       status: input.status,
       event: input.event && eventSnapshot(input.event),
       tasks,
-      lessons: null,
       activity: [activity(actor, 'created')],
       createdBy: actor.id,
       createdAt: now,
@@ -527,7 +529,10 @@ const memberUpdate = (path: string, { add, remove }: MemberChange) =>
  */
 export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1, type: 1, event: 1 } })
+  const project = await projects.findOne(
+    { _id: id },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1 } },
+  )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
   // Its date is all that places an own event in the calendar.
@@ -536,11 +541,12 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   if (leads && applyMemberChange(project.leads, leads).length > MAX_ASSIGNEES) return 'crowded'
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.
   const leadOnly = leads && actor.role !== 'admin' && project.createdBy !== actor.id
+  const edits = projectEdits(project, patch)
   const { matchedCount } = await projects.updateOne(
     { _id: id, ...(leadOnly && { leads: actor.id }) },
     {
       $set: { ...fields, updatedAt: new Date() },
-      $push: pushActivity([activity(actor, 'edited')]),
+      ...(edits.length ? { $push: pushActivity(edits.map((edit) => activity(actor, edit.action, edit.detail, edit.member))) } : {}),
       ...(leads && memberUpdate('leads', leads)),
     },
   )
@@ -761,16 +767,6 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
     { arrayFilters: ids.map((taskId, index) => ({ [`t${index}.id`]: taskId })) },
   )
   return 'ok'
-}
-
-export async function saveLessons(actor: TaskActor, id: string, lessons: Lessons): Promise<Outcome> {
-  const { projects } = await collections()
-  const now = new Date()
-  const { matchedCount } = await projects.updateOne(
-    { _id: id },
-    { $set: { lessons: { ...lessons, by: actor.id, at: now }, updatedAt: now }, $push: pushActivity([activity(actor, 'lessons')]) },
-  )
-  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** Saves the project's task list as a new template, deadlines as days relative to its day. */

@@ -10,6 +10,7 @@ import { memberPagePath } from '../../../lib/memberAuth'
 import { buildSearchIndex } from '../../../lib/memberSearch'
 import { reply } from '../../../lib/memberSession'
 import { loadTaskEvents } from '../../../lib/taskEvents'
+import { isEvent } from '../../../lib/tasks'
 import { sessionActor, workspaceState } from '../../../lib/tasksStore'
 
 /**
@@ -36,7 +37,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
         members: workspace.members,
         contacts,
         alumni,
-        events,
+        events: events.filter(isEvent),
         guides: materials.map(({ id, data }) => ({ id, title: data.title, description: data.description })),
       },
       {
@@ -45,6 +46,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
           tasks: memberPagePath('tasks', locale),
           crm: memberPagePath('crm', locale),
           alumni: memberPagePath('alumni', locale),
+          team: memberPagePath('team', locale),
           guide: listingPages.materials.path,
         },
         teamNames: names,

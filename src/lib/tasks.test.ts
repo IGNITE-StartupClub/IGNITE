@@ -15,23 +15,23 @@ import {
   eventTwin,
   filterProjects,
   filterScope,
+  isEvent,
   isRecordId,
   mayRemoveTask,
   nameFromEmail,
   memberChange,
   nextStanding,
   openRequired,
-  parseLessons,
   parseName,
   parseProject,
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
-  nextOfSeries,
   patchedTask,
   parseTeam,
   parseTemplateTasks,
   progress,
+  projectEdits,
   projectAssignees,
   projectStatus,
   scopedPrivateTasks,
@@ -155,11 +155,6 @@ test('parseTaskPatch keeps only the given fields and refuses unknown or empty ch
   assert.equal(parseTaskPatch({ title: '' }), null)
   assert.equal(parseTaskPatch({ createdBy: ME }), null)
   assert.equal(parseTaskPatch({ toString: 'x' }), null)
-})
-
-test('parseLessons needs at least one answer', () => {
-  assert.equal(parseLessons({ wellDone: '', improve: ' ' }), null)
-  assert.deepEqual(parseLessons({ improve: 'Früher buchen' }), { wellDone: '', improve: 'Früher buchen', notes: '' })
 })
 
 test('parseTemplateTasks checks offsets and needs at least one task', () => {
@@ -549,17 +544,15 @@ test('eventTwin prefers the similar title over the nearer day', () => {
   assert.equal(eventTwin(ownEvent(), [other, twin])?.event.id, 'evt-2')
 })
 
-test('eventTwin asks about a series only for a similar title', () => {
-  const tuesday = calendarEvent({ title: 'Weekly', source: 'series' })
-  assert.equal(eventTwin(ownEvent({ title: 'Pitch Night' }), [tuesday]), null)
-  assert.deepEqual(eventTwin(ownEvent({ title: 'Weekly' }), [tuesday]), { event: tuesday, sure: true })
-})
-
-test('nextOfSeries keeps the next date of a series and the planned ones', () => {
-  const dates = ['10', '17', '24'].map((day) => calendarEvent({ id: `weekly-${day}`, source: 'series' }))
-  const other = calendarEvent({ id: 'evt-2' })
-  const kept = nextOfSeries([dates[0], other, dates[1], dates[2]], (entry) => entry.id === 'weekly-24')
-  assert.deepEqual(kept.map(({ id }) => id), ['weekly-10', 'evt-2', 'weekly-24'])
+test('calendarEntries keeps the Weekly in the calendar and never pairs an own event with it', () => {
+  const tuesday = calendarEvent({ id: 'weekly-2026-11-20', title: 'Weekly', source: 'series' })
+  for (const title of ['Pitch Night', 'Weekly']) {
+    const { entries, twins } = calendarEntries([tuesday], [ownEvent({ title })])
+    assert.deepEqual(entries.map(({ id }) => id).sort(), [ownEvent().id, tuesday.id].sort())
+    assert.equal(twins.size, 0)
+  }
+  assert.equal(isEvent(tuesday), false)
+  assert.equal(isEvent(calendarEvent()), true)
 })
 
 test('calendarEntries shows own events and never the same event twice', () => {
@@ -630,4 +623,31 @@ test('taskHash and taskRoute are each other\'s inverse', () => {
 test('taskRoute still opens the links of mails and of the older tabs', () => {
   assert.deepEqual(taskRoute('#f81d4fae-7dec-11d0-a765-00a0c91e6bf6'), { view: 'overview', projectId: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6' })
   assert.deepEqual(taskRoute(''), { view: 'overview', projectId: null })
+})
+
+test('projectEdits names every changed field and each lead who joins or leaves', () => {
+  const stored = { title: 'Teamfotos', description: '', due: '2026-11-20', leads: [ME], team: 'ignite-marketing' as const }
+  assert.deepEqual(
+    projectEdits(stored, { title: 'Teamfotos auf der Website', due: '', time: '18:30', team: '', leads: { add: [BEN], remove: [] } }),
+    [
+      { action: 'renamed', detail: 'Teamfotos auf der Website' },
+      { action: 'undated', detail: '' },
+      { action: 'timed', detail: '18:30' },
+      { action: 'unteamed', detail: '' },
+      { action: 'leadAdded', detail: '', member: BEN },
+    ],
+  )
+  assert.deepEqual(projectEdits(stored, { description: 'Für die Teamseite', place: 'C.40.254', team: 'ignite-hr', leads: { add: [], remove: [ME] } }), [
+    { action: 'described', detail: '' },
+    { action: 'placed', detail: 'C.40.254' },
+    { action: 'teamed', detail: 'ignite-hr' },
+    { action: 'leadRemoved', detail: '', member: ME },
+  ])
+})
+
+test('projectEdits ignores values that are already stored', () => {
+  const stored = { title: 'Weekly', description: 'Agenda', due: '2026-11-10', leads: [ME] }
+  assert.deepEqual(projectEdits(stored, { title: 'Weekly', description: 'Agenda', due: '2026-11-10', time: '', place: '', team: '' }), [])
+  assert.deepEqual(projectEdits(stored, { leads: { add: [ME], remove: [BEN] } }), [])
+  assert.deepEqual(projectEdits(stored, { due: '2026-11-17' }), [{ action: 'dated', detail: '2026-11-17' }])
 })

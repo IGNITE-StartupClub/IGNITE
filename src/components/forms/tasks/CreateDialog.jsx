@@ -10,7 +10,7 @@
  * run, onCreated(id), onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { addDays, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
@@ -46,7 +46,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
   const anchor = request?.event?.day || form.due
   const kind = request?.kind
   const ownEvent = kind === 'event' && !request?.event
-  const sameDay = ownEvent && form.due ? entries.filter((entry) => entry.day <= form.due && form.due <= entry.endDay) : []
+  const sameDay = ownEvent && form.due ? entries.filter((entry) => isEvent(entry) && entry.day <= form.due && form.due <= entry.endDay) : []
 
   useEffect(() => {
     if (!request) return
@@ -257,22 +257,6 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
                         </li>
                       ))}
                     </ul>
-                    {start === 'past' && source?.lessons && (
-                      <div className="rounded-md border border-border bg-bg p-3 text-sm">
-                        <p className="font-medium">{text.previousLessons}</p>
-                        <dl className="mt-2 flex flex-col gap-2">
-                          {['wellDone', 'improve', 'notes'].map(
-                            (key) =>
-                              source.lessons[key] && (
-                                <div key={key}>
-                                  <dt className="text-xs text-fg-muted">{copy.lessons[key]}</dt>
-                                  <dd className="whitespace-pre-line">{source.lessons[key]}</dd>
-                                </div>
-                              ),
-                          )}
-                        </dl>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <p className="text-sm text-fg-muted">{text.noPast}</p>

@@ -9,6 +9,7 @@ import {
   ALL_TEAMS,
   berlinDay,
   filterProjects,
+  isEvent,
   isRecordId,
   parseProject,
   parseTask,
@@ -38,6 +39,7 @@ interface ToolEvent {
   endAt: Date
   location: string | null
   url: string
+  source: string
 }
 
 export interface TaskToolStore {
@@ -186,7 +188,7 @@ export function taskTools(me: string, store: TaskToolStore, now: () => number = 
           throw new ToolError('Der Eventkalender ist gerade nicht erreichbar. Versuche es später noch einmal.')
         return {
           events: events
-            .filter((event) => event.endAt.getTime() >= now())
+            .filter((event) => isEvent(event) && event.endAt.getTime() >= now())
             .map((event) => ({
               title: event.title,
               start: event.startAt.toISOString(),

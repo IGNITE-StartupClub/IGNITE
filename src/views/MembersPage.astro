@@ -21,7 +21,7 @@ import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 import { dayLabel, eventDate, nextEvent, openTasks, showsTeamChoice, splitName } from '../lib/memberHome'
 import { displayName } from '../lib/members'
 import { loadTaskEvents } from '../lib/taskEvents'
-import { berlinDay, type TeamId } from '../lib/tasks'
+import { berlinDay, isEvent, type TeamId } from '../lib/tasks'
 import { privateTasks } from '../lib/privateTasksStore'
 import { assignedProjects, sessionActor } from '../lib/tasksStore'
 
@@ -65,7 +65,7 @@ const tasks = openTasks(projects, actor.id, today, ownTasks).map((task) => ({
   ...task,
   dueLabel: task.due === today ? home.dashboard.next.today : task.due && dayLabel(task.due, locale),
 }))
-const upcoming = nextEvent(events, now)
+const upcoming = nextEvent(events.filter(isEvent), now)
 const upcomingDate = upcoming && eventDate(upcoming.startAt, locale)
 const event = upcoming &&
   upcomingDate && {
