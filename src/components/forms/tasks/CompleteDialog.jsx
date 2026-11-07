@@ -1,6 +1,7 @@
 /**
  * Asks before a project moves to "done": warns about open required tasks and can save the task list as a template in
- * the same step. Status and template are separate API actions, sent in this order; open tasks stay in the project.
+ * the same step. Status and template are separate API actions, sent in this order; open tasks stay in the project. When
+ * only the template fails, the dialog stays open and a retry saves just the template.
  * Props: project (summary or null = closed), copy (workspace copy), run, onClose().
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
@@ -14,11 +15,13 @@ export default function CompleteDialog({ project, copy, run, onClose }) {
   const [asTemplate, setAsTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [finished, setFinished] = useState(false)
 
   useEffect(() => {
     if (!project) return
     setAsTemplate(false)
     setTemplateName(project.title)
+    setFinished(false)
     dialog.current.showModal()
   }, [project?.id])
 
@@ -28,12 +31,16 @@ export default function CompleteDialog({ project, copy, run, onClose }) {
   const submit = async (e) => {
     e.preventDefault()
     setBusy(true)
-    const done = await run({ action: 'status', id: project.id, status: 'done' }, (projects) =>
-      projects.map((item) => (item.id === project.id ? { ...item, status: 'done' } : item)),
-    )
-    if (done && asTemplate) await run({ action: 'saveTemplate', id: project.id, name: templateName.trim() })
+    const done =
+      finished ||
+      !!(await run({ action: 'status', id: project.id, status: 'done' }, (projects) =>
+        projects.map((item) => (item.id === project.id ? { ...item, status: 'done' } : item)),
+      ))
+    if (done) setFinished(true)
+    const saved =
+      done && (!asTemplate || !!(await run({ action: 'saveTemplate', id: project.id, name: templateName.trim() })))
     setBusy(false)
-    if (done) dialog.current.close()
+    if (saved) dialog.current.close()
   }
 
   return (
