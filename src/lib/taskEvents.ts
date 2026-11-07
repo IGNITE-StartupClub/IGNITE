@@ -1,11 +1,15 @@
 /**
  * The events of the tasks module: the same sources as the public /events page, the Luma calendar (luma.ts) plus
- * the hand-listed events of externalEvents.ts, with Luma cached for a few minutes. Nothing is copied into the database
- * except the snapshot a planning project keeps of its event (tasksStore.syncEvents).
+ * the hand-listed events of externalEvents.ts, with Luma cached for a few minutes, and on top the dates of the Weekly
+ * (eventSeries.ts), which only members see. Nothing is copied into the database except the snapshot a planning project
+ * keeps of its event (tasksStore.syncEvents).
  */
 import { getCopy } from '../data/copy'
+import { weekly } from '../data/eventSeries'
+import { seriesDates } from './eventSeries'
 import type { Locale } from './i18n'
 import { loadEvents } from './luma'
+import { berlinDay } from './tasks'
 
 export interface TaskEvent {
   id: string
@@ -15,7 +19,7 @@ export interface TaskEvent {
   location: string | null
   url: string
   coverUrl: string | null
-  source: 'luma' | 'external'
+  source: 'luma' | 'external' | 'series'
 }
 
 /**
@@ -48,7 +52,8 @@ export async function loadTaskEvents(locale: Locale): Promise<{ events: TaskEven
       source: 'external',
     }),
   )
-  const byId = new Map([...luma, ...external].map((event) => [event.id, event]))
+  const listed = [...luma, ...external]
+  const byId = new Map([...listed, ...seriesDates(weekly, berlinDay(Date.now()), listed)].map((event) => [event.id, event]))
   return {
     events: [...byId.values()].sort((a, b) => a.startAt.getTime() - b.startAt.getTime()),
     complete: future !== null && past !== null,

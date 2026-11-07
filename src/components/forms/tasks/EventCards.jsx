@@ -1,13 +1,13 @@
 /**
  * The events page as cards: everything coming up with cover, date and the state of its planning, then the past events
- * as a short list. An own event that may be a public event asks once whether the two are the same; only the answer
- * changes anything, a card never merges by itself.
+ * as a short list. Of the Weekly only the next date gets a card. An own event that may be a public event asks once
+ * whether the two are the same; only the answer changes anything, a card never merges by itself.
  * Props: entries and twins (calendarEntries), planOf(entry) → its project or undefined, complete, today, copy (workspace
  * copy), locale, membersById, onStart(entry), onOpen(projectId), onMerge(project, event), onApart(project, event).
  */
 import React, { useState } from 'react'
 import { ExternalLink, MapPin } from 'lucide-react'
-import { progress } from '../../../lib/tasks'
+import { nextOfSeries, progress } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { dayPart, eventDayLabel, LeadLine, longDay } from './taskUi'
 
@@ -126,7 +126,7 @@ function PastEvents({ entries, planOf, copy, locale, onOpen }) {
 }
 
 export default function EventCards({ entries, twins, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onMerge, onApart }) {
-  const upcoming = entries.filter((entry) => entry.endDay >= today)
+  const upcoming = nextOfSeries(entries.filter((entry) => entry.endDay >= today), planOf)
   const past = entries.filter((entry) => entry.endDay < today).reverse()
   return (
     <div className="flex flex-col gap-8">
