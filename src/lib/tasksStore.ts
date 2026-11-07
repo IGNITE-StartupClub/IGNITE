@@ -243,6 +243,10 @@ export type TaskMember = Awaited<ReturnType<typeof directory>>[number]
 const mayArchive = (project: Pick<ProjectDoc, 'createdBy' | 'leads'>, actor: TaskActor) =>
   actor.role === 'admin' || project.createdBy === actor.id || project.leads.includes(actor.id)
 
+/**
+ * Every member gets every project with each page load, so this holds only what the islands, the search and the MCP
+ * tools read; who created or finished a task stays on the server.
+ */
 function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>) {
   const people = (ids: string[]) => ids.filter((id) => known.has(id))
   return {
@@ -271,7 +275,6 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         description: task.description,
         done: task.done,
         status: taskStatus(task),
-        doneBy: task.doneBy,
         doneAt: task.doneAt?.toISOString() ?? '',
         due: task.due,
         priority: task.priority,
@@ -279,11 +282,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         assignees: people(task.assignees),
         team: task.team ?? '',
         mayRemove: mayRemoveTask(task, project, actor),
-        createdBy: task.createdBy,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
       })),
-    createdBy: project.createdBy,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     completedAt: project.completedAt?.toISOString() ?? '',
