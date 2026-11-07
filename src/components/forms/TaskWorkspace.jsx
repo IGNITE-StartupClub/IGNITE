@@ -43,6 +43,7 @@ import CompleteDialog from './tasks/CompleteDialog'
 import CreateDialog from './tasks/CreateDialog'
 import EventCalendar from './tasks/EventCalendar'
 import EventCards from './tasks/EventCards'
+import EventDialog from './tasks/EventDialog'
 import PrivateTaskDialog from './tasks/PrivateTaskDialog'
 import ProjectBoard from './tasks/ProjectBoard'
 import ProjectPanel from './tasks/ProjectPanel'
@@ -158,6 +159,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [query, setQuery] = useState('')
   const [openPrivateId, setOpenPrivateId] = useState(null)
   const [createRequest, setCreateRequest] = useState(null)
+  const [shownEvent, setShownEvent] = useState(null)
   const [completing, setCompleting] = useState(null)
   const [taskMenu, setTaskMenu] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -278,6 +280,11 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const openProject = projectId ? projects.find((project) => project.id === projectId) : null
   const { entries, twins } = calendarEntries(events, projects)
   const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
+  const openEvent = (entry) => {
+    const project = planOf(entry)
+    if (project) open(project.id)
+    else setShownEvent(entry)
+  }
 
   const move = (id, status) => {
     const project = projects.find((item) => item.id === id)
@@ -469,6 +476,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onView={goTo}
           onStart={startPlanning}
           onOpen={open}
+          onOpenEvent={openEvent}
           onOpenTask={openTask}
           onPatch={patchTask}
           onCapture={capture}
@@ -525,6 +533,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           membersById={membersById}
           onStart={startPlanning}
           onOpen={open}
+          onOpenEvent={openEvent}
         />
       )}
 
@@ -578,6 +587,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           else startPlanning(entry)
         }}
       />
+      <EventDialog entry={shownEvent} copy={copy} locale={locale} membersById={membersById} onStart={startPlanning} onClose={() => setShownEvent(null)} />
       <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
       <PrivateTaskDialog
         task={privateTasks.find((task) => task.id === openPrivateId) ?? null}

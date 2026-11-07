@@ -48,7 +48,7 @@ function TwinQuestion({ project, event, copy, locale, onMerge, onApart }) {
   )
 }
 
-function EventCard({ entry, project, twin, copy, locale, membersById, onStart, onOpen, onMerge, onApart }) {
+export function EventCard({ entry, project, twin, copy, locale, membersById, onStart, onOpen, onMerge, onApart }) {
   const text = copy.calendar
   const tasks = project && progress(project.tasks)
   const planning = !project ? copy.overview.noPlanning : tasks.total ? fill(copy.overview.planning, tasks) : copy.overview.planningEmpty
