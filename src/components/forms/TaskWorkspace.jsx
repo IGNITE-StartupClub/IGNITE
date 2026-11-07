@@ -29,6 +29,7 @@ import {
   filterScope,
   MINE,
   NAME_MAX,
+  patchedProject,
   patchedTask,
   projectDay,
   scopedPrivateTasks,
@@ -366,7 +367,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     task.private
       ? run({ action: 'updatePrivate', taskId: task.id, patch: fields }, (list) => patched(list, task, fields), 'privateTasks')
       : run({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: fields }, (list) =>
-          list.map((project) => (project.id === task.projectId ? { ...project, tasks: patched(project.tasks, task, fields) } : project)),
+          list.map((project) => (project.id === task.projectId ? patchedProject(project, task.id, fields) : project)),
         )
   const removeTask = (task) =>
     task.private

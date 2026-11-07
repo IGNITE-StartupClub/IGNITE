@@ -14,7 +14,7 @@ import {
   applyMemberChange,
   isOverdue,
   memberChange,
-  patchedTask,
+  patchedProject,
   PRIORITIES,
   PROJECT_STATUSES,
   progress,
@@ -293,13 +293,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
     if (!saved) setDraft(title)
   }
   const patch = (task, fields) =>
-    run(
-      { action: 'updateTask', id: project.id, taskId: task.id, patch: fields },
-      change((current) => ({
-        ...current,
-        tasks: current.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields) : item)),
-      })),
-    )
+    run({ action: 'updateTask', id: project.id, taskId: task.id, patch: fields }, change((current) => patchedProject(current, task.id, fields)))
   const remove = (task) =>
     run(
       { action: 'removeTask', id: project.id, taskId: task.id },

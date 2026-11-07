@@ -17,9 +17,11 @@ import {
   filterScope,
   isEvent,
   isRecordId,
+  isSingleTask,
   mayRemoveTask,
   nameFromEmail,
   memberChange,
+  mirroredFields,
   nextStanding,
   openRequired,
   parseName,
@@ -27,6 +29,7 @@ import {
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
+  patchedProject,
   patchedTask,
   parseTeam,
   parseTemplateTasks,
@@ -459,6 +462,25 @@ test('patchedTask stamps a task it finishes, so the done column shows it on top'
     { ...patchedTask({ ...task({ id: 'new' }), doneAt: '' }, { status: 'done' }, now) },
   ])
   assert.deepEqual(columns.done.map(({ id }) => id), ['new', 'old'])
+})
+
+test('a single task and its card keep title, description and deadline in step', () => {
+  const single = project({ type: 'task', title: 'Flyer', due: '2026-11-20', tasks: [task({ id: 'x', title: 'Flyer', due: '2026-11-20' })] })
+  const renamed = patchedProject(single, 'x', { title: 'Plakat', priority: 'high' })
+  assert.equal(renamed.title, 'Plakat')
+  assert.equal(renamed.tasks[0].title, 'Plakat')
+  assert.equal(renamed.tasks[0].priority, 'high')
+  assert.equal(patchedProject(single, 'x', { due: '2026-11-22' }).due, '2026-11-22')
+
+  // A card with more tasks, and every project, keeps its own title.
+  const two = project({ type: 'task', title: 'Flyer', tasks: [task({ id: 'x' }), task({ id: 'y' })] })
+  assert.equal(patchedProject(two, 'x', { title: 'Plakat' }).title, 'Flyer')
+  const internal = project({ tasks: [task({ id: 'x' })] })
+  assert.equal(patchedProject(internal, 'x', { title: 'Plakat' }).title, 'Projekt')
+
+  assert.equal(isSingleTask(single), true)
+  assert.equal(isSingleTask(two), false)
+  assert.deepEqual(mirroredFields({ title: 'A', priority: 'low', due: '' } as never), { title: 'A', due: '' })
 })
 
 test('applyChanges replaces what changed, keeps the rest and drops what is gone', () => {

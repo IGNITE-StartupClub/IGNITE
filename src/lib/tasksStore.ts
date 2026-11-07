@@ -6,7 +6,9 @@
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
  *   syncEvents refreshes it and never touches tasks, people or status. Every write sets `updatedAt`, because the islands
  *   learn of changes through it (liveUpdates.ts). The activity log stays out of the workspace state: it is most of a
- *   project's size and only one tab shows it, so that tab loads it through projectActivity.
+ *   project's size and only one tab shows it, so that tab loads it through projectActivity. A single task, a card of
+ *   type 'task' with one task, keeps title, description and deadline on both card and task (MIRRORED_FIELDS in
+ *   tasks.ts).
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
  *   (taskDigest.ts) sends it. Removing the assignment or finishing the task removes the entry. Deleting the task leaves
@@ -33,6 +35,7 @@ import {
   applyMemberChange,
   assigneeChanges,
   berlinDay,
+  isSingleTask,
   MAX_ASSIGNEES,
   MAX_TASKS,
   type MemberChange,
@@ -48,6 +51,7 @@ import {
   type TeamChoice,
   type TemplateTask,
   mayRemoveTask,
+  mirroredFields,
   nextStanding,
   projectEdits,
   projectStatus,
@@ -513,10 +517,12 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
   const anchor = input.event ? berlinDay(input.event.startAt.getTime()) : input.fields.due
   const fromTemplate = input.template ? tasksFromTemplate(input.template, anchor) : []
   const tasks = [...fromTemplate, ...(input.task ? [input.task] : [])].map((fields, index) => newTask(fields, index, actor, now))
+  // The card of a single task starts with its task's values (MIRRORED_FIELDS); the MCP tools send them only with the task.
+  const fields = input.fields.type === 'task' && input.task ? { ...input.fields, ...mirroredFields(input.task) } : input.fields
   try {
     await projects.insertOne({
       _id,
-      ...input.fields,
+      ...fields,
       status: input.status,
       event: input.event && eventSnapshot(input.event),
       tasks,
@@ -544,13 +550,13 @@ const memberUpdate = (path: string, { add, remove }: MemberChange) =>
 
 /**
  * Changes the given fields, leaving the others to whoever edits them at the same time. Only those who may archive change
- * the leads, because being a lead grants that right.
+ * the leads, because being a lead grants that right. The task of a single task follows its card (MIRRORED_FIELDS).
  */
 export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
   const project = await projects.findOne(
     { _id: id },
-    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1 } },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1, 'tasks.id': 1 } },
   )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
@@ -561,13 +567,20 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.
   const leadOnly = leads && actor.role !== 'admin' && project.createdBy !== actor.id
   const edits = projectEdits(project, patch)
+  const now = new Date()
+  // The task is addressed by its id, so a task added in between keeps its own values.
+  const mirror = isSingleTask(project) ? Object.entries(mirroredFields(fields)) : []
+  const set: Record<string, unknown> = { ...fields, updatedAt: now }
+  for (const [key, value] of mirror) set[`tasks.$[t].${key}`] = value
+  if (mirror.length) set['tasks.$[t].updatedAt'] = now
   const { matchedCount } = await projects.updateOne(
     { _id: id, ...(leadOnly && { leads: actor.id }) },
     {
-      $set: { ...fields, updatedAt: new Date() },
+      $set: set,
       ...(edits.length ? { $push: pushActivity(edits.map((edit) => activity(actor, edit.action, edit.detail, edit.member))) } : {}),
       ...(leads && memberUpdate('leads', leads)),
     },
+    mirror.length ? { arrayFilters: [{ 't.id': project.tasks[0].id }] } : {},
   )
   return matchedCount ? 'ok' : 'unknown'
 }
@@ -639,17 +652,24 @@ export async function addTask(actor: TaskActor, id: string, fields: TaskFields):
   return 'ok'
 }
 
-/** Changes the given fields of one task, logs what matters and keeps the digest entries in step with the people. */
+/**
+ * Changes the given fields of one task, logs what matters and keeps the digest entries in step with the people. The card
+ * of a single task follows its task (MIRRORED_FIELDS).
+ */
 export async function updateTask(actor: TaskActor, id: string, taskId: string, patch: TaskPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { tasks: { $elemMatch: { id: taskId } } } })
+  const project = await projects.findOne<Pick<ProjectDoc, 'type' | 'tasks'> & { taskCount: number }>(
+    { _id: id, 'tasks.id': taskId },
+    { projection: { type: 1, taskCount: { $size: '$tasks' }, tasks: { $elemMatch: { id: taskId } } } },
+  )
   const task = project?.tasks[0]
-  if (!task) return 'unknown'
+  if (!project || !task) return 'unknown'
   const { assignees: people, ...fields } = patch
   const assignees = people ? applyMemberChange(task.assignees, people) : task.assignees
   if (assignees.length > MAX_ASSIGNEES) return 'crowded'
   const now = new Date()
-  const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now }
+  const single = project.type === 'task' && project.taskCount === 1
+  const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now, ...(single && mirroredFields(fields)) }
   const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
   // Standing is only written when the patch moves the task: the values just read would undo a move made in between.
   const moved = patch.done !== undefined || patch.status !== undefined

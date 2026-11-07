@@ -402,6 +402,36 @@ export function patchedTask<T extends Standing & { assignees?: string[]; doneAt?
   }
 }
 
+/**
+ * A single task is a card of type 'task' with one task. The panel shows the card's title, description and deadline,
+ * everything else the task's, so the two keep the same values: the server copies a change of these fields to the other
+ * side (tasksStore.ts), and the islands show a task's change on its card before the answer (patchedProject).
+ */
+export const MIRRORED_FIELDS = ['title', 'description', 'due'] as const
+type MirroredFields = Partial<Record<(typeof MIRRORED_FIELDS)[number], string>>
+
+export const isSingleTask = (project: { type: ProjectType; tasks: readonly unknown[] }): boolean => project.type === 'task' && project.tasks.length === 1
+
+/** The fields of a task or card change that the other side of a single task takes over. */
+export function mirroredFields(patch: MirroredFields): MirroredFields {
+  const shared: MirroredFields = {}
+  for (const key of MIRRORED_FIELDS) if (patch[key] !== undefined) shared[key] = patch[key]
+  return shared
+}
+
+/** A project with one of its tasks changed (patchedTask); the card of a single task follows its task. */
+export function patchedProject<P extends { type: ProjectType; tasks: T[] }, T extends Standing & { id: string; assignees?: string[]; doneAt?: string }>(
+  project: P,
+  taskId: string,
+  patch: TaskPatch,
+): P {
+  return {
+    ...project,
+    ...(isSingleTask(project) && mirroredFields(patch)),
+    tasks: project.tasks.map((task) => (task.id === taskId ? patchedTask(task, patch) : task)),
+  }
+}
+
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
 
