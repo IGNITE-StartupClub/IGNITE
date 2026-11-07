@@ -606,6 +606,7 @@ export const memberArea = {
         hint: 'Only you can see this task. Admins and the board cannot.',
         remove: 'Delete',
         confirmRemove: 'Delete “{title}”?',
+        withPeople: 'A private task is yours alone. Take out {token} or switch off “Only for me”.',
       },
       archive: 'Archive',
       teamPrompt: {

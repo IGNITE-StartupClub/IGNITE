@@ -42,7 +42,11 @@ const now = Date.now()
   <Section spacing="xs" labelledby="page-title">
     <TaskWorkspace
       client:load
-      copy={{ ...tasks.workspace, teams: teamNames(openTeams), problems: memberArea.search.task.problems }}
+      copy={{
+        ...tasks.workspace,
+        teams: teamNames(openTeams),
+        problems: { ...memberArea.search.task.problems, privatePeople: tasks.workspace.private.withPeople },
+      }}
       initialState={state}
       events={calendar}
       eventsComplete={complete}

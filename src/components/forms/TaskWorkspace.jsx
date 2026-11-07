@@ -456,7 +456,14 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
             task: { description: '', due: '', priority: 'normal', required: false, assignees: taskFilter === MINE ? [me] : [], status },
           },
     )
-  const capture = (text) => captureTask(text, { members, teams: TEAM_IDS.map((id) => ({ id, name: copy.teams[id] })), me, today })
+  const capture = (text, isPrivate) => {
+    const captured = captureTask(text, { members, teams: TEAM_IDS.map((id) => ({ id, name: copy.teams[id] })), me, today })
+    // A private task has no people, so naming someone would drop them without a word.
+    const others = isPrivate ? captured.assignees.filter(({ id }) => id !== me) : []
+    if (!others.length) return captured
+    const token = others.map(({ name }) => `@${name}`).join(', ')
+    return { ...captured, problems: [...captured.problems, { kind: 'privatePeople', token }] }
+  }
   const quickAdd = async ({ title, due, assignees, team }, isPrivate) => {
     const data = await run(
       isPrivate

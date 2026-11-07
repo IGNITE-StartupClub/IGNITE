@@ -7,7 +7,7 @@
  * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects, soonest
  * first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
  * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
- * onCapture(text) → captureTask, onQuickAdd(captured, isPrivate).
+ * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate).
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
@@ -137,7 +137,7 @@ function QuickAdd({ copy, onCapture, onAdd }) {
   const text = copy.overview
   const [draft, setDraft] = useState('')
   const [isPrivate, setPrivate] = useState(false)
-  const capture = draft.trim() ? onCapture(draft) : null
+  const capture = draft.trim() ? onCapture(draft, isPrivate) : null
   const add = async (e) => {
     e.preventDefault()
     if (!capture?.title || capture.problems.length) return

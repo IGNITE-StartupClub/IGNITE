@@ -606,6 +606,7 @@ export const memberArea = {
         hint: 'Nur du siehst diese Aufgabe. Admins und Vorstand sehen sie nicht.',
         remove: 'Löschen',
         confirmRemove: '„{title}“ löschen?',
+        withPeople: 'Eine private Aufgabe gehört nur dir. Nimm {token} heraus oder schalte „Nur für mich“ aus.',
       },
       archive: 'Archiv',
       teamPrompt: {
