@@ -51,6 +51,7 @@ import {
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
+  withArchive,
   type PrivateTaskState,
   type ProjectState,
   type Scope,
@@ -506,6 +507,29 @@ test('applyChanges replaces what changed, keeps the rest and drops what is gone'
   assert.deepEqual(next.members, ['new'])
   assert.deepEqual(next.templates, ['kept'])
   assert.deepEqual(next.privateTasks, [own])
+})
+
+test('withArchive lets folded copies give way and keeps what the island got later', () => {
+  const project = (id: string, updatedAt: string, extra: { folded?: true; title?: string } = {}) => ({ id, updatedAt, title: id, ...extra })
+  const state = {
+    revision: '5.1',
+    projects: [
+      project('open', '2026-11-06T00:00:00.000Z'),
+      project('plan', '2026-10-01T00:00:00.000Z', { folded: true }),
+      // Restored by someone else after the archive was read: the island's copy is the newer one.
+      project('restored', '2026-11-05T00:00:00.000Z', { title: 'zurück' }),
+    ],
+  }
+  const next = withArchive(state, [
+    project('plan', '2026-10-01T00:00:00.000Z', { title: 'mit Aufgaben' }),
+    project('restored', '2026-10-20T00:00:00.000Z'),
+    project('old', '2026-09-01T00:00:00.000Z'),
+  ])
+  assert.deepEqual(next.projects.map(({ id }) => id), ['open', 'restored', 'plan', 'old'])
+  assert.equal(next.projects.find(({ id }) => id === 'plan')?.title, 'mit Aufgaben')
+  assert.equal(next.projects.find(({ id }) => id === 'plan')?.folded, undefined)
+  assert.equal(next.projects.find(({ id }) => id === 'restored')?.title, 'zurück')
+  assert.equal(next.revision, '5.1')
 })
 
 test('berlinClock follows summer and winter time', () => {

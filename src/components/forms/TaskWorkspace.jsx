@@ -10,6 +10,9 @@
  * checking off, assigning, deleting) stay in `pending` until their answer and are laid over `base`, so they survive a
  * refresh in between and vanish by themselves when the server refuses them. Deleting a task offers to undo it in the
  * toast.
+ * Archived projects stay on the server until the archive, an archived project or an earlier project to copy is asked for
+ * (loadArchive). From then on every request asks for them too (`withArchive`), and an answer to a request sent before
+ * keeps what was loaded.
  * Page and open project live in the URL hash (taskHash), pushed as history entries like the CRM. ?ansicht=… from older
  * links, the digest mail and the search turns into that hash on load.
  * Props: copy (memberArea.tasks.workspace plus teams, team id → name, and problems of the quick add), initialState
@@ -37,6 +40,7 @@ import {
   taskHash,
   taskRoute,
   TEAM_IDS,
+  withArchive,
 } from '../../lib/tasks'
 import { Chip, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField } from './memberUi'
 import { fetchNews, useLiveRefresh } from './useLiveRefresh'
@@ -147,6 +151,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const inFlight = useRef(0)
   const sent = useRef(0)
   const applied = useRef(0)
+  // True once the archive is loaded: requests then ask for it, and answers keep it.
+  const holding = useRef(false)
+  const archiveLoad = useRef(null)
   const { projects, templates, members, privateTasks } = state
   const membersById = new Map(members.map((member) => [member.id, member]))
   const myTeam = membersById.get(me)?.team ?? ''
@@ -157,6 +164,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [taskFilter, setTaskFilter] = useState(MINE)
   const [projectFilter, setProjectFilter] = useState(ALL_TEAMS)
   const [archived, setArchived] = useState(false)
+  const [archive, setArchive] = useState('none') // none, loading, loaded or failed
   const [query, setQuery] = useState('')
   const [openPrivateId, setOpenPrivateId] = useState(null)
   const [createRequest, setCreateRequest] = useState(null)
@@ -217,15 +225,20 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const show = () => setState(pending.current.reduce((current, change) => change(current), base.current))
 
   // An older answer must not undo a newer one. What it would have brought arrives with the next check at the latest.
-  const receive = (request, data) => {
+  // An answer to a request sent before the archive arrived knows none of it, so the archived projects stay.
+  const receive = (request, data, withArchived) => {
     if (request < applied.current) return
     applied.current = request
+    const kept = holding.current && !withArchived ? base.current.projects.filter((project) => project.archived) : []
     if (data.state) base.current = data.state
     else if (data.changes) base.current = applyChanges(base.current, data.changes)
+    if (kept.length) base.current = withArchive(base.current, kept)
   }
 
   const run = async (body, optimistic, key = 'projects') => {
     const request = ++sent.current
+    // Archiving an open project loads the archive, but its own answer may come first and would take the project away.
+    const withArchived = holding.current || (body.action === 'archive' && body.archived)
     inFlight.current += 1
     const change = optimistic && ((current) => ({ ...current, [key]: optimistic(current[key]) }))
     if (change) {
@@ -236,10 +249,10 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       const res = await fetch('/api/members/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, revision: base.current.revision }),
+        body: JSON.stringify({ ...body, revision: base.current.revision, ...(withArchived && { withArchive: true }) }),
       })
       const data = await res.json()
-      receive(request, data)
+      receive(request, data, withArchived)
       if (res.ok) {
         const undo = UNDO_OF[body.action]
         if (undo) setNotice({ code: 'removed', undo: { action: undo, taskId: body.taskId }, at: Date.now() })
@@ -263,12 +276,34 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     // A check sent after an action could overtake it and hide its answer as the older one.
     if (inFlight.current) return
     const request = ++sent.current
-    const data = await fetchNews('/api/members/tasks', base.current.revision)
+    const withArchived = holding.current
+    const data = await fetchNews('/api/members/tasks', base.current.revision, withArchived ? { withArchive: '1' } : {})
     if (!data) return false
     if (!data.changes) return
-    receive(request, data)
+    receive(request, data, withArchived)
     show()
   })
+
+  const loadArchive = () => {
+    if (holding.current || archiveLoad.current) return
+    setArchive('loading')
+    archiveLoad.current = fetch('/api/members/tasks?archive')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`Archive failed with ${res.status}`))))
+      .then((data) => {
+        holding.current = true
+        base.current = withArchive(base.current, data.projects)
+        show()
+        setArchive('loaded')
+      })
+      .catch((err) => {
+        console.error(err)
+        setArchive('failed')
+        setNotice({ code: 'error', error: true, at: Date.now() })
+      })
+      .finally(() => {
+        archiveLoad.current = null
+      })
+  }
 
   const undo = async () => {
     const step = notice.undo
@@ -278,7 +313,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   }
 
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
-  const openProject = projectId ? projects.find((project) => project.id === projectId) : null
+  const found = projectId ? projects.find((project) => project.id === projectId) : null
+  // A folded project lacks its tasks, so the panel waits for the archive.
+  const openProject = found && !found.folded ? found : null
   const openEventPlace = openProject?.event ? events.find((event) => event.id === openProject.event.id)?.location : undefined
   const { entries, twins } = calendarEntries(events, projects)
   const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
@@ -313,6 +350,16 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       // Not remembering the layout is harmless.
     }
   }
+
+  // The archive loads for its view, for a project opened by link or from the calendar that sits in it, and for an open
+  // project that is archived, which the next answer would otherwise take away. A project the panel showed and that left
+  // the state was deleted, so the archive would not bring it back.
+  const seen = useRef(new Set())
+  useEffect(() => {
+    if (openProject) seen.current.add(openProject.id)
+    const unknown = !!projectId && !found && !seen.current.has(projectId)
+    if (archived || found?.archived || unknown) loadArchive()
+  }, [archived, projectId, !!found, found?.archived, openProject?.id])
 
   const taskScope = filterScope(taskFilter, myTeam, query)
   const withPrivate = (scoped) => [...scopedTasks(projects, scoped, me, today), ...scopedPrivateTasks(privateTasks, scoped, me, today)]
@@ -492,7 +539,20 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       )}
 
       {view === 'projects' &&
-        (shown.length ? (
+        (archived && archive !== 'loaded' ? (
+          archive === 'failed' ? (
+            <p className="py-6 text-center text-sm text-fg-muted">
+              {copy.board.archiveFailed}{' '}
+              <button type="button" className={QUIET_LINK} onClick={loadArchive}>
+                {copy.board.retry}
+              </button>
+            </p>
+          ) : (
+            <p role="status" className="py-6 text-center text-sm text-fg-muted">
+              {copy.board.archiveLoading}
+            </p>
+          )
+        ) : shown.length ? (
           <ProjectBoard
             projects={shown}
             archived={archived}
@@ -582,7 +642,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         entries={entries}
         planOf={planOf}
         admin={admin}
+        archive={archive}
         run={run}
+        onPast={loadArchive}
         onCreated={created}
         onUseEntry={(entry) => {
           const project = planOf(entry)

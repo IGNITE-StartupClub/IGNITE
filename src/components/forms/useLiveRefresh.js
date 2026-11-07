@@ -44,9 +44,9 @@ export function useLiveRefresh(refresh) {
   }, [])
 }
 
-/** The answer to an island's regular check, null when the session ended. */
-export async function fetchNews(path, revision) {
-  const res = await fetch(`${path}?revision=${encodeURIComponent(revision)}`)
+/** The answer to an island's regular check, null when the session ended. `params` go along in the query. */
+export async function fetchNews(path, revision, params = {}) {
+  const res = await fetch(`${path}?${new URLSearchParams({ ...params, revision })}`)
   if (res.status === 401) return null
   if (!res.ok) throw new Error(`Refresh of ${path} failed with ${res.status}`)
   return res.json()

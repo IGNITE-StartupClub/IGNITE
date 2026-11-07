@@ -122,6 +122,8 @@ export interface ProjectState {
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   tasks: TaskState[]
+  /** Archived and sent without tasks and description until the island loads its archive (withArchive). */
+  folded?: true
 }
 
 // Marks an invalid field inside the parsers; never leaves this module.
@@ -792,7 +794,7 @@ export const applyMemberChange = (list: string[], { add, remove }: MemberChange)
 
 interface WorkspaceChanges<P, M> {
   revision: string
-  /** Every project there is, so the island drops what was deleted. */
+  /** Every project the island may hold, so it drops what was deleted. */
   ids: string[]
   /** Only the projects that changed. */
   projects: P[]
@@ -815,5 +817,22 @@ export function applyChanges<P extends { id: string; updatedAt: string }, M, S e
     members: changes.members,
     privateTasks: changes.privateTasks,
     projects: [...kept, ...changes.projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+  }
+}
+
+/**
+ * The workspace with archived projects laid over it, loaded on demand or kept from before an answer that knew none of
+ * them. A copy the state holds in full stays unless the archived one is newer; a folded one always gives way.
+ */
+export function withArchive<P extends { id: string; updatedAt: string; folded?: true }, S extends { projects: P[] }>(state: S, archived: P[]): S {
+  const held = new Map(state.projects.map((project) => [project.id, project]))
+  const taken = archived.filter((project) => {
+    const current = held.get(project.id)
+    return !current || current.folded || current.updatedAt < project.updatedAt
+  })
+  const replaced = new Set(taken.map((project) => project.id))
+  return {
+    ...state,
+    projects: [...state.projects.filter((project) => !replaced.has(project.id)), ...taken].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
   }
 }

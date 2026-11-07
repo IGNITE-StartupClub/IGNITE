@@ -1,7 +1,8 @@
 /**
  * The kanban board of the tasks module: one column per project status with one card per project (subtasks never
  * become cards). Cards move by drag and drop or, for keyboards and touch screens, through "Verschieben nach" in their
- * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns.
+ * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns, the latest
+ * first, because it only grows.
  * Props: projects (already filtered), archived (archive view), showTeam (cards name their team), copy (workspace copy,
  * with teams), locale, today, membersById, onOpen(id), onMove(id, status).
  */
@@ -10,6 +11,8 @@ import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { isOverdue, PROJECT_STATUSES, progress, projectAssignees, projectDay } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, STATUS_TONE, TYPE_TEXT } from './taskUi'
+
+const ARCHIVE_SHOWN = 24
 
 function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOpen, onMove, draggable, onDragStart, onDragEnd }) {
   const done = progress(project.tasks)
@@ -124,6 +127,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
 export default function ProjectBoard({ projects, archived, showTeam, copy, locale, today, membersById, onOpen, onMove }) {
   const [dragging, setDragging] = useState(null)
   const [over, setOver] = useState(null)
+  const [allArchived, setAllArchived] = useState(false)
   const card = (project, draggable) => (
     <ProjectCard
       project={project}
@@ -148,14 +152,24 @@ export default function ProjectBoard({ projects, archived, showTeam, copy, local
   )
 
   if (archived) {
+    const listed = allArchived ? projects : projects.slice(0, ARCHIVE_SHOWN)
     return (
       <>
         <p className="mb-3 text-sm text-fg-muted">{copy.board.archivedHint}</p>
         <ul role="list" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {listed.map((project) => (
             <li key={project.id}>{card(project, false)}</li>
           ))}
         </ul>
+        {listed.length < projects.length && (
+          <button
+            type="button"
+            className="mt-3 border-0 bg-transparent p-0 text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
+            onClick={() => setAllArchived(true)}
+          >
+            {fill(copy.taskBoard.showAll, { count: projects.length })}
+          </button>
+        )}
       </>
     )
   }

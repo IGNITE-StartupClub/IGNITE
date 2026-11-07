@@ -6,9 +6,10 @@
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
  *   syncEvents refreshes it and never touches tasks, people or status. Every write sets `updatedAt`, because the islands
  *   learn of changes through it (liveUpdates.ts). The activity log stays out of the workspace state: it is most of a
- *   project's size and only one tab shows it, so that tab loads it through projectActivity. A single task, a card of
- *   type 'task' with one task, keeps title, description and deadline on both card and task (MIRRORED_FIELDS in
- *   tasks.ts).
+ *   project's size and only one tab shows it, so that tab loads it through projectActivity. Archived projects stay out
+ *   too, apart from folded planning projects (sharedWorkspace), and load when someone opens the archive; finished single
+ *   tasks archive themselves after SETTLE_DAYS (settleFinishedTasks). A single task, a card of type 'task' with one
+ *   task, keeps title, description and deadline on both card and task (MIRRORED_FIELDS in tasks.ts).
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
  *   (taskDigest.ts) sends it. Removing the assignment or finishing the task removes the entry. Deleting the task leaves
@@ -93,6 +94,8 @@ export type ActivityAction =
   | 'edited'
   | 'status'
   | 'archived'
+  // By settleFinishedTasks, with the actor 'system' and the days as detail.
+  | 'autoArchived'
   | 'restored'
   | 'taskAdded'
   | 'taskEdited'
@@ -114,7 +117,7 @@ interface Activity {
   at: Date
   actor: string
   action: ActivityAction
-  /** Task title, new status, member id or template name, depending on the action. */
+  /** Task title, new status, member id, template name or number of days, depending on the action. */
   detail: string
   member?: string
 }
@@ -244,9 +247,11 @@ const mayArchive = (project: Pick<ProjectDoc, 'createdBy' | 'leads'>, actor: Tas
  * Every member gets every project with each page load, so this holds only what the islands, the search and the MCP
  * tools read; who created or finished a task stays on the server.
  */
-function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>) {
+function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>, folded = false) {
   const people = (ids: string[]) => ids.filter((id) => known.has(id))
   return {
+    // Archived and sent without tasks and description (sharedWorkspace); the island loads the rest on demand.
+    ...(folded && { folded }),
     id: project._id,
     title: project.title,
     description: project.description,
@@ -315,27 +320,103 @@ export async function workspaceRevision(): Promise<string> {
 // Projects completed before lessons learned were dropped still store `lessons`; nothing reads them any more.
 const WITHOUT_ACTIVITY = { projection: { activity: 0, lessons: 0 } }
 
+type ArchivedStub = Pick<ProjectDoc, '_id' | 'updatedAt' | 'archivedAt'>
+
+/** Archived projects the island still needs without its archive: the planning of a public event, see sharedWorkspace. */
+const NEEDED_WHEN_ARCHIVED = { event: { $ne: null } }
+
+/**
+ * Every project that is not archived, in full. Archived planning projects of public events come folded, without tasks
+ * and description: the calendar needs them to know an event was planned, otherwise it offered to plan it again. Other
+ * archived projects come as stubs, which count in the revision, so a poll matches it, but never leave the server.
+ * Without this the page would grow with every finished project; the archive loads when someone opens it.
+ */
+const CURRENT_PROJECTS = [
+  { $sort: { updatedAt: -1 } },
+  { $unset: ['activity', 'lessons'] },
+  {
+    $replaceWith: {
+      $switch: {
+        branches: [
+          { case: { $eq: [{ $ifNull: ['$archivedAt', null] }, null] }, then: '$$ROOT' },
+          { case: { $ne: [{ $ifNull: ['$event', null] }, null] }, then: { $mergeObjects: ['$$ROOT', { tasks: [], description: '' }] } },
+        ],
+        default: { _id: '$_id', updatedAt: '$updatedAt', archivedAt: '$archivedAt' },
+      },
+    },
+  },
+]
+
+/**
+ * Projects and the member directory: the core of workspaceState, and what the MCP tools read. `archived` brings the
+ * archived projects in full, for a TaskWorkspace that has loaded its archive.
+ */
+export async function sharedWorkspace(actor: TaskActor, { archived = false } = {}) {
+  const { projects } = await collections()
+  const [list, members] = await Promise.all([
+    archived
+      ? projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray()
+      : projects.aggregate<Omit<ProjectDoc, 'activity'> | ArchivedStub>(CURRENT_PROJECTS).toArray(),
+    directory(),
+  ])
+  const known = new Set(members.map((member) => member.id))
+  const sent = list.filter((project): project is Omit<ProjectDoc, 'activity'> => 'tasks' in project)
+  return {
+    revision: markUnsettled(listRevision(list), Date.now()),
+    projects: sent.map((project) => projectSummary(project, actor, known, !archived && !!project.archivedAt)),
+    members,
+  }
+}
+
 /**
  * Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks.
  */
-export async function workspaceState(actor: TaskActor) {
-  const { projects, templates } = await collections()
-  const [projectList, templateList, members, ownTasks] = await Promise.all([
-    projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
+export async function workspaceState(actor: TaskActor, options: { archived?: boolean } = {}) {
+  const { templates } = await collections()
+  const [shared, templateList, ownTasks] = await Promise.all([
+    sharedWorkspace(actor, options),
     templates.find({ archivedAt: null }, { sort: { name: 1 } }).toArray(),
-    directory(),
     privateTasks(actor.id),
   ])
-  const known = new Set(members.map((member) => member.id))
-  return {
-    revision: markUnsettled(listRevision(projectList), Date.now()),
-    projects: projectList.map((project) => projectSummary(project, actor, known)),
-    templates: templateList.map(templateSummary),
-    members,
-    privateTasks: ownTasks,
-  }
+  return { ...shared, templates: templateList.map(templateSummary), privateTasks: ownTasks }
 }
 export type WorkspaceState = Awaited<ReturnType<typeof workspaceState>>
+
+/** The archived projects in full, for the archive view, an archived project opened by link and copying an earlier one. */
+export async function archivedProjects(actor: TaskActor) {
+  const { projects } = await collections()
+  const [list, members] = await Promise.all([
+    projects.find({ archivedAt: { $ne: null } }, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
+    directory(),
+  ])
+  const known = new Set(members.map((member) => member.id))
+  return list.map((project) => projectSummary(project, actor, known))
+}
+
+/** A finished single task leaves the board after this many days without a change; a restore counts as a change. */
+export const SETTLE_DAYS = 30
+
+/**
+ * Archives the single tasks that were finished and left unchanged for SETTLE_DAYS, so the board and every load of the
+ * tasks page stay small; the nightly cron /api/cron/task-archive runs it. Returns how many it archived.
+ */
+export async function settleFinishedTasks(now: Date): Promise<number> {
+  const { projects } = await collections()
+  const { modifiedCount } = await projects.updateMany(
+    {
+      type: 'task',
+      archivedAt: null,
+      'tasks.0': { $exists: true },
+      tasks: { $not: { $elemMatch: { done: false } } },
+      updatedAt: { $lt: new Date(now.getTime() - SETTLE_DAYS * 86_400_000) },
+    },
+    {
+      $set: { archivedAt: now, updatedAt: now },
+      $push: pushActivity([{ at: now, actor: 'system', action: 'autoArchived', detail: String(SETTLE_DAYS) }]),
+    },
+  )
+  return modifiedCount
+}
 
 /** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
 export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
@@ -375,15 +456,17 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
 /**
  * What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows.
  * The revision is read before the changes, here or by the caller (`revision`), so a change landing during the read
- * arrives twice rather than not at all.
+ * arrives twice rather than not at all. Projects that changed come in full, archived ones too: that is how an island
+ * learns that another member archived or restored one. `ids` lists what the island may hold, so it drops what was
+ * deleted; without its archive (`archived`) that leaves out the archived projects sharedWorkspace does not send.
  */
-export async function workspaceChanges(actor: TaskActor, known: unknown, { revision }: { revision?: string } = {}) {
+export async function workspaceChanges(actor: TaskActor, known: unknown, { revision, archived = false }: { revision?: string; archived?: boolean } = {}) {
   const { projects } = await collections()
   const current = revision ?? (await workspaceRevision())
   const since = changedSince(known)
   const [changed, ids, members, ownTasks] = await Promise.all([
     projects.find(since ? { updatedAt: { $gte: since } } : {}, WITHOUT_ACTIVITY).toArray(),
-    projects.find({}, { projection: { _id: 1 } }).toArray(),
+    projects.find(archived ? {} : { $or: [{ archivedAt: null }, NEEDED_WHEN_ARCHIVED] }, { projection: { _id: 1 } }).toArray(),
     directory(),
     privateTasks(actor.id),
   ])

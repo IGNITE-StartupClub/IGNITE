@@ -6,7 +6,7 @@ import { connectedMember } from '../../lib/connectionsStore'
 import { handleMessage, isAllowedOrigin, isSupportedVersion } from '../../lib/mcp'
 import { isJsonRequest } from '../../lib/memberAuth'
 import { loadTaskEvents } from '../../lib/taskEvents'
-import { addTask, createProject, sessionActor, updateTask, workspaceState, type TaskActor } from '../../lib/tasksStore'
+import { addTask, createProject, sessionActor, sharedWorkspace, updateTask, type TaskActor } from '../../lib/tasksStore'
 import { taskTools, type TaskToolStore } from '../../lib/taskTools'
 
 const json = (status: number, body: unknown) =>
@@ -18,9 +18,14 @@ const json = (status: number, body: unknown) =>
 const rpcError = (status: number, code: number, message: string, id: unknown = null) =>
   json(status, { jsonrpc: '2.0', id, error: { code, message } })
 
+// Projects and directory only: no tool reads templates or private tasks, and decrypting those costs time on every call.
+// Archived projects stay out, as in the tools' lists; the workspace sends some of them folded, without their tasks.
 const toolStore = (actor: TaskActor, team: string): TaskToolStore => ({
   team,
-  workspace: () => workspaceState(actor),
+  workspace: async () => {
+    const { projects, members } = await sharedWorkspace(actor)
+    return { projects: projects.filter((project) => !project.archived), members }
+  },
   events: () => loadTaskEvents('de'),
   addTask: (id, fields) => addTask(actor, id, fields),
   updateTask: (id, taskId, patch) => updateTask(actor, id, taskId, patch),

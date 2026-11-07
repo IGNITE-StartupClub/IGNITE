@@ -152,7 +152,7 @@ function QuickAdd({ copy, onCapture, onAdd }) {
 function EventSummary({ entry, project, copy, locale, membersById, onStart, onOpen }) {
   const text = copy.overview
   const tasks = project && progress(project.tasks)
-  const planning = !project ? text.noPlanning : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
+  const planning = !project ? text.noPlanning : project.folded ? text.planningArchived : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
