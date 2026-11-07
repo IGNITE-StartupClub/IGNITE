@@ -389,13 +389,18 @@ export function nextStanding(task: Standing, patch: TaskPatch): Standing {
   return { status: patch.done ? 'done' : 'backlog', done: patch.done }
 }
 
-/** A task with a change applied, for updates the UI shows before the server answers. */
-export const patchedTask = <T extends Standing & { assignees?: string[] }>(task: T, patch: TaskPatch): T => ({
-  ...task,
-  ...patch,
-  ...nextStanding(task, patch),
-  ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
-})
+/** A task with a change applied, for updates the UI shows before the server answers; `now` stamps a task it finishes. */
+export function patchedTask<T extends Standing & { assignees?: string[]; doneAt?: string }>(task: T, patch: TaskPatch, now = new Date().toISOString()): T {
+  const standing = nextStanding(task, patch)
+  return {
+    ...task,
+    ...patch,
+    ...standing,
+    // The done column sorts by doneAt (boardColumns), so a finished card without one would drop out of its first rows.
+    ...(standing.done !== task.done && 'doneAt' in task && { doneAt: standing.done ? now : '' }),
+    ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
+  }
+}
 
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]

@@ -446,6 +446,21 @@ test('patchedTask adds no people to a private task', () => {
   assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
 })
 
+test('patchedTask stamps a task it finishes, so the done column shows it on top', () => {
+  const now = '2026-11-07T10:00:00.000Z'
+  const open = { done: false, status: 'doing' as const, doneAt: '' }
+  assert.deepEqual(patchedTask(open, { status: 'done' }, now), { done: true, status: 'done', doneAt: now })
+  assert.deepEqual(patchedTask(open, { done: true }, now), { done: true, status: 'done', doneAt: now })
+  const finished = { done: true, status: 'done' as const, doneAt: '2026-11-01T08:00:00.000Z' }
+  assert.deepEqual(patchedTask(finished, { done: false }, now), { done: false, status: 'backlog', doneAt: '' })
+  assert.deepEqual(patchedTask(finished, { title: 'B' }, now), { ...finished, title: 'B' })
+  const columns = boardColumns([
+    { ...task({ id: 'old', status: 'done', done: true }), doneAt: '2026-11-05T08:00:00.000Z' },
+    { ...patchedTask({ ...task({ id: 'new' }), doneAt: '' }, { status: 'done' }, now) },
+  ])
+  assert.deepEqual(columns.done.map(({ id }) => id), ['new', 'old'])
+})
+
 test('applyChanges replaces what changed, keeps the rest and drops what is gone', () => {
   const project = (id: string, updatedAt: string, title = id) => ({ id, updatedAt, title })
   const state = {
