@@ -580,6 +580,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
     }
     if (!projectId && element.open) element.close()
     setTab('tasks')
+    setTemplateSaved(false)
   }, [projectId])
 
   // Applies fn to this project in the project list: the optimistic version of a change.
