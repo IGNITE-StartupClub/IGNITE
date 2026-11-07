@@ -357,6 +357,21 @@ export function keepFocus(element, control) {
 }
 
 /**
+ * Focuses the first control of a task that came back with an undo, once React has drawn it. A copy behind an open modal
+ * dialog cannot take focus, so the one inside the dialog wins there.
+ */
+export function focusTask(taskId, tries = 10) {
+  setTimeout(() => {
+    const controls = [...document.querySelectorAll(`[data-task-item="${CSS.escape(taskId)}"] [data-control]`)].filter(visible)
+    for (const control of controls) {
+      control.focus()
+      if (document.activeElement === control) return
+    }
+    if (tries > 1) focusTask(taskId, tries - 1)
+  }, 50)
+}
+
+/**
  * Shows the rest of a list cut short. Its button goes away, so focus moves on to the first entry it brought, which
  * `firstNew` finds once the rest is drawn.
  */

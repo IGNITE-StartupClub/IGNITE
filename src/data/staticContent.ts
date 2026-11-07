@@ -849,6 +849,7 @@ export const memberArea = {
         created: 'Angelegt.',
         ok: 'Gespeichert.',
         removed: 'Gelöscht.',
+        removedMany: '{count} Aufgaben gelöscht.',
         restored: 'Wiederhergestellt.',
         merged: 'Zusammengeführt.',
         invalid: 'Bitte prüf deine Eingaben.',

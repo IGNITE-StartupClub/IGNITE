@@ -8,8 +8,8 @@
  * own private tasks; useLiveRefresh asks for the same while the page is in use. Private tasks sit between the others on
  * board and list, only for their member. `base` holds what the server said last. Changes the UI shows at once (moving,
  * checking off, assigning, deleting) stay in `pending` until their answer and are laid over `base`, so they survive a
- * refresh in between and vanish by themselves when the server refuses them. Deleting a task offers to undo it in the
- * toast.
+ * refresh in between and vanish by themselves when the server refuses them. Deleting tasks offers to undo them in the
+ * toast, which sits inside the topmost modal dialog while one is open, because everything outside it is inert.
  * Archived projects stay on the server until the archive, an archived project or an earlier project to copy is asked for
  * (loadArchive). From then on every request asks for them too (`withArchive`), and an answer to a request sent before
  * keeps what was loaded.
@@ -24,6 +24,7 @@
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus } from 'lucide-react'
 import { captureTask } from '../../lib/memberSearch'
 import {
@@ -57,7 +58,7 @@ import ProjectPanel from './tasks/ProjectPanel'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
-import { FilterMenu, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
+import { FilterMenu, focusTask, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
 
 const LAYOUT_KEY = 'ignite-tasks-layout'
@@ -174,6 +175,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [completing, setCompleting] = useState(null)
   const [taskMenu, setTaskMenu] = useState(null)
   const [notice, setNotice] = useState(null)
+  const [toastHost, setToastHost] = useState(null)
   const [hasName, setHasName] = useState(named)
   const [teamLater, setTeamLater] = useState(false)
   const toast = useRef(null)
@@ -205,18 +207,39 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     return () => window.removeEventListener('popstate', traverse, { capture: true })
   }, [])
 
-  // The toast is a manual popover, so it shows above open dialogs (top layer) as well.
+  // Outside an open modal dialog the toast would be inert: seen, but its undo out of reach for pointer, keyboard and
+  // screen readers. So while one is open, the toast is drawn inside the topmost one (the last in the document here).
+  useEffect(() => {
+    if (!notice) {
+      setToastHost(null)
+      return
+    }
+    const pick = () => {
+      const modals = document.querySelectorAll('dialog:modal')
+      setToastHost(modals[modals.length - 1] ?? null)
+    }
+    pick()
+    const observer = new MutationObserver(pick)
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] })
+    return () => observer.disconnect()
+  }, [notice])
+
+  // The toast is a manual popover, so it shows above open dialogs (top layer). Moving it to another dialog draws it anew,
+  // so it shows again for the rest of its time.
   useEffect(() => {
     const element = toast.current
     if (!notice) return
     if (element.matches(':popover-open')) element.hidePopover()
     element.showPopover()
-    const timer = setTimeout(() => {
-      element.hidePopover()
-      setNotice(null)
-    }, notice.undo ? UNDO_MS : NOTICE_MS)
+    const timer = setTimeout(
+      () => {
+        element.hidePopover()
+        setNotice(null)
+      },
+      Math.max(0, notice.at + (notice.undo ? UNDO_MS : NOTICE_MS) - Date.now()),
+    )
     return () => clearTimeout(timer)
-  }, [notice])
+  }, [notice, toastHost])
 
   // Astro's router takes over hash links without a hashchange event, so the island writes the entry itself. `panel`
   // marks an entry that opened a project, so closing it goes back instead of piling up entries.
@@ -272,7 +295,14 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       receive(request, data, withArchived)
       if (res.ok) {
         const undo = UNDO_OF[body.action]
-        if (undo) setNotice({ code: 'removed', undo: { action: undo, taskId: body.taskId }, at: Date.now() })
+        if (undo) {
+          // Every deletion joins the toast, so a second one in a row does not leave the first beyond reach.
+          const step = { action: undo, taskId: body.taskId }
+          setNotice((current) => {
+            const steps = [...(current?.undo ?? []), step]
+            return { code: steps.length > 1 ? 'removedMany' : 'removed', count: steps.length, undo: steps, at: Date.now() }
+          })
+        }
         return data
       }
       if (res.status >= 500) console.error(data.message)
@@ -322,11 +352,17 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       })
   }
 
+  // One after the other, so each answer builds on the one before.
   const undo = async () => {
-    const step = notice.undo
+    const steps = notice.undo
+    const hadFocus = toast.current.contains(document.activeElement)
     toast.current.hidePopover()
     setNotice(null)
-    if (await run(step)) setNotice({ code: 'restored', at: Date.now() })
+    let restored = 0
+    for (const step of steps) if (await run(step)) restored += 1
+    if (restored < steps.length) return
+    setNotice({ code: 'restored', at: Date.now() })
+    if (hadFocus) focusTask(steps[steps.length - 1].taskId)
   }
 
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
@@ -484,6 +520,27 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         ))
       }
     </Menu>
+  )
+  const toastElement = (
+    <div
+      ref={toast}
+      popover="manual"
+      role="status"
+      className={`fixed inset-auto bottom-4 left-1/2 m-0 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border bg-bg px-4 py-3 text-sm shadow-lg ${
+        notice?.error ? 'border-danger text-danger' : 'border-border text-fg'
+      }`}
+    >
+      {notice && (
+        <span className="flex items-center gap-4">
+          {fill(copy.results[notice.code], { count: notice.count })}
+          {notice.undo && (
+            <button type="button" className="border-0 bg-transparent p-0 text-sm font-medium text-accent underline underline-offset-2" onClick={undo}>
+              {copy.undo}
+            </button>
+          )}
+        </span>
+      )}
+    </div>
   )
   const search = (
     <div className="w-56 max-w-full">
@@ -686,25 +743,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         onRemove={removeTask}
       />
 
-      <div
-        ref={toast}
-        popover="manual"
-        role="status"
-        className={`fixed inset-auto bottom-4 left-1/2 m-0 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border bg-bg px-4 py-3 text-sm shadow-lg ${
-          notice?.error ? 'border-danger text-danger' : 'border-border text-fg'
-        }`}
-      >
-        {notice && (
-          <span className="flex items-center gap-4">
-            {copy.results[notice.code]}
-            {notice.undo && (
-              <button type="button" className="border-0 bg-transparent p-0 text-sm font-medium text-accent underline underline-offset-2" onClick={undo}>
-                {copy.undo}
-              </button>
-            )}
-          </span>
-        )}
-      </div>
+      {toastHost ? createPortal(toastElement, toastHost) : toastElement}
     </div>
   )
 }

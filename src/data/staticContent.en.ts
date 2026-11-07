@@ -849,6 +849,7 @@ export const memberArea = {
         created: 'Created.',
         ok: 'Saved.',
         removed: 'Deleted.',
+        removedMany: '{count} tasks deleted.',
         restored: 'Restored.',
         merged: 'Merged.',
         invalid: 'Please check your input.',
