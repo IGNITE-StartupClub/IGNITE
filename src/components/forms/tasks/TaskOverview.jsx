@@ -160,11 +160,14 @@ function QuickAdd({ copy, onCapture, onAdd }) {
         </label>
         <PrivateToggle pressed={isPrivate} onChange={setPrivate} label={copy.private.toggle} />
       </div>
-      {capture?.problems.map(({ kind, token }) => (
-        <p key={`${kind}${token}`} role="alert" className="mt-1.5 text-caption text-danger">
-          {fill(copy.problems[kind], { token })}
-        </p>
-      ))}
+      {/* One polite region for all problems: an alert per problem was announced again with every letter typed. */}
+      <div aria-live="polite">
+        {capture?.problems.map(({ kind, token }) => (
+          <p key={`${kind}${token}`} className="mt-1.5 text-caption text-danger">
+            {fill(copy.problems[kind], { token })}
+          </p>
+        ))}
+      </div>
     </form>
   )
 }
