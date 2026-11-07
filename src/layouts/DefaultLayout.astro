@@ -52,12 +52,14 @@ const alternates = otherPath === null ? [] : [
   { hreflang: otherLocale, href: new URL(otherPath, Astro.site).href },
 ]
 const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'de')
+const memberLocale = memberAreaLocale(Astro.url.pathname)
 ---
 
 <html lang={locale} dir="ltr" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0c0b0e" />
 
     <script is:inline>
       // Sets the theme before first paint to avoid a flash.
@@ -68,13 +70,24 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
           if (stored === 'light' || stored === 'dark') theme = stored
           else if (window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark'
         } catch (e) {}
+        // Android colours the installed app's status bar with theme-color, so it follows the page background
+        // (--color-bg). iOS ignores it and takes the body background.
+        function setThemeColor(doc, value) {
+          doc.querySelector('meta[name="theme-color"]').content = value === 'light' ? '#f7f6f9' : '#0c0b0e'
+        }
         document.documentElement.dataset.theme = theme
         document.documentElement.style.colorScheme = theme
+        setThemeColor(document, theme)
+        // ThemeToggle only switches data-theme.
+        new MutationObserver(function () {
+          setThemeColor(document, document.documentElement.dataset.theme)
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
         // Keep the chosen theme across view transitions.
         document.addEventListener('astro:before-swap', function (e) {
           var current = document.documentElement
           e.newDocument.documentElement.dataset.theme = current.dataset.theme
           e.newDocument.documentElement.style.colorScheme = current.dataset.theme
+          setThemeColor(e.newDocument, current.dataset.theme)
         })
       })()
     </script>
@@ -89,9 +102,18 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.ico" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/site.webmanifest" />
     <link rel="shortcut icon" href="/favicon.ico" />
-    <meta name="theme-color" content="#0c0b0e" />
+    {memberLocale && (
+      <>
+        {/* Installable app of the members area. Public pages link no manifest, so visitors are not offered an app
+            that opens on the members login. */}
+        <link rel="manifest" href={memberLocale === 'en' ? '/en/site.webmanifest' : '/site.webmanifest'} />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+      </>
+    )}
+    <meta name="apple-mobile-web-app-title" content="IGNITE" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
 
     <script async src="https://plausible.io/js/pa-8RFRHH2yFxceEm9sT_OoQ.js"></script>
@@ -100,7 +122,7 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
       plausible.init()
     </script>
   </head>
-  <body class:list={[!bare && memberAreaLocale(Astro.url.pathname) && 'member-area']}>
+  <body class:list={[!bare && memberLocale && 'member-area']}>
     <a
       href="#main-content"
       class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-button focus:bg-primary focus:px-6 focus:py-3 focus:text-primary-fg"
@@ -111,8 +133,8 @@ const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'd
     <main id="main-content" tabindex="-1" class:list={[bare && 'pt-0']}>
       <slot />
     </main>
-    {!bare && !memberAreaLocale(Astro.url.pathname) && <Footer />}
+    {!bare && !memberLocale && <Footer />}
     <MemberPortal />
-    {!bare && memberAreaLocale(Astro.url.pathname) && <MemberSkeletons />}
+    {!bare && memberLocale && <MemberSkeletons />}
   </body>
 </html>
