@@ -2,7 +2,7 @@
  * The kanban board of the tasks module: one column per project status with one card per project (subtasks never
  * become cards). Cards move by drag and drop or, for keyboards and touch screens, through "Verschieben nach" in their
  * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns, the latest
- * first, because it only grows.
+ * first, because it only grows. A click anywhere on a card opens it.
  * Props: projects (already filtered), archived (archive view), showTeam (cards name their team), copy (workspace copy,
  * with teams), locale, today, membersById, onOpen(id), onMove(id, status).
  */
@@ -25,8 +25,10 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`relative rounded-lg border border-border bg-bg p-4 shadow-sm transition-colors hover:border-border-strong ${
-        draggable ? 'cursor-grab active:cursor-grabbing' : ''
+      // Firefox starts no drag on a button, so the card opens from here and not from a stretched title button.
+      onClick={(e) => !e.target.closest('button, a, [popover]') && onOpen(project.id)}
+      className={`rounded-lg border border-border bg-bg p-4 shadow-sm transition-colors hover:border-border-strong ${
+        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -34,7 +36,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           {copy.types[project.type]}
           {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {copy.teams[project.team]}</span>}
         </p>
-        <div className="relative z-10 -mr-2 -mt-2">
+        <div className="-mr-2 -mt-2">
           <Menu
             label={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
             ariaLabel={fill(copy.board.cardMenu, { title: project.title })}
@@ -77,12 +79,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
         </div>
       </div>
       <h3 className="mt-1 text-[17px] font-semibold leading-snug">
-        {/* The ::after layer makes the whole card the click target; menu and avatars sit above it. */}
-        <button
-          type="button"
-          className="border-0 bg-transparent p-0 text-left after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-focus"
-          onClick={() => onOpen(project.id)}
-        >
+        <button type="button" className="border-0 bg-transparent p-0 text-left" onClick={() => onOpen(project.id)}>
           {project.title}
         </button>
       </h3>
@@ -115,9 +112,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           ) : (
             <span />
           )}
-          <span className="relative z-10">
-            <AvatarStack ids={assignees} membersById={membersById} copy={copy.people} />
-          </span>
+          <AvatarStack ids={assignees} membersById={membersById} copy={copy.people} />
         </div>
       )}
     </article>
