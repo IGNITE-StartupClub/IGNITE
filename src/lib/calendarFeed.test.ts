@@ -68,3 +68,8 @@ test('folds long lines at 75 octets without splitting a character', () => {
   assert.equal(feed.includes('�'), false)
   assert.ok(lines(feed).some((line) => line.includes('Übergabe für das Wintersemester\\, Übergabe')))
 })
+
+test('leaves out the URL of an event without a page', () => {
+  const feed = lines(calendarFeed([{ ...event, url: '' }], [], now))
+  assert.equal(feed.some((line) => line.startsWith('URL:')), false)
+})

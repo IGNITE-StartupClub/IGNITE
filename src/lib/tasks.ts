@@ -553,7 +553,7 @@ export interface CalendarEvent {
   location: string | null
   url: string
   coverUrl: string | null
-  source: 'luma' | 'external' | 'own'
+  source: 'luma' | 'external' | 'series' | 'own'
 }
 
 /** Lower case without accents or punctuation, so "Founder-Talk!" and "founder talk" compare equal. */
@@ -597,7 +597,8 @@ export function eventTwin<E extends CalendarEvent>(project: OwnEvent, events: E[
       const similar = similarTitles(project.title, event.title)
       return { event, distance, similar }
     })
-    .filter(({ distance, similar }) => distance === 0 || (similar && distance <= TWIN_DAYS))
+    // A series has a date every week, so sharing the day says nothing about it.
+    .filter(({ event, distance, similar }) => (similar ? distance <= TWIN_DAYS : distance === 0 && event.source !== 'series'))
     .sort((a, b) => Number(b.similar) - Number(a.similar) || a.distance - b.distance)
   const best = ranked[0]
   return best ? { event: best.event, sure: best.similar && best.distance === 0 } : null
@@ -637,6 +638,12 @@ export function calendarEntries<E extends CalendarEvent>(events: E[], projects: 
   }
   const entries: CalendarEvent[] = [...events.filter((event) => !hidden.has(event.id)), ...own]
   return { entries: entries.sort((a, b) => a.day.localeCompare(b.day) || a.time.localeCompare(b.time)), twins }
+}
+
+/** For lists: of a series only the next date and the dates with a plan, otherwise it fills the list with the same entry. */
+export function nextOfSeries<E extends Pick<CalendarEvent, 'source'>>(entries: E[], planned: (entry: E) => unknown): E[] {
+  const next = entries.find((entry) => entry.source === 'series')
+  return entries.filter((entry) => entry.source !== 'series' || entry === next || planned(entry))
 }
 
 /** The filters of the task board: the member's own tasks, a team, or every team. */

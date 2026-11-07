@@ -63,7 +63,7 @@ function eventLines({ id, title, startAt, endAt, location, url }: FeedEvent, sta
     `DTEND:${utcTime(endAt)}`,
     `SUMMARY:${escapeText(title)}`,
     ...(location ? [`LOCATION:${escapeText(location)}`] : []),
-    `URL:${url}`,
+    ...(url ? [`URL:${url}`] : []),
     'END:VEVENT',
   ]
 }

@@ -1,13 +1,13 @@
 /**
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
- * page, never copied) and the own events, and cards for the upcoming events or the selected day. Each card either starts
- * the planning project of its event or opens it.
+ * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. Each card
+ * either starts the planning project of its event or opens it.
  * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
  * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId).
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { addDays, progress, projectAssignees } from '../../../lib/tasks'
+import { addDays, nextOfSeries, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
@@ -88,7 +88,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
       : new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(
           new Date(`${monthStart(cursor)}T00:00:00Z`),
         )
-  const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => event.day >= today).slice(0, UPCOMING_MAX)
+  const listed = selected ? (byDay.get(selected) ?? []) : nextOfSeries(events.filter((event) => event.day >= today), planOf).slice(0, UPCOMING_MAX)
 
   return (
     <section aria-label={text.heading} className={`${SURFACE} p-4 sm:p-5`}>
