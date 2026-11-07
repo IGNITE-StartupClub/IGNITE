@@ -3,9 +3,9 @@
  * type, status, date, team, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
  * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
- * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure. Rows
- * carry data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes
- * (keepFocus).
+ * Every change goes through `run` (TaskWorkspace), which shows most of them at once and rolls them back on failure; the
+ * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Rows carry
+ * data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus).
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
  * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
  * place in the page's language; the stored snapshot keeps the German one).
@@ -56,26 +56,15 @@ const SORTS = {
 }
 const TEXTAREA = `${INPUT} h-auto min-h-20 py-2`
 
-function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
-  // Kept from the moment the editor opened: only what the member changes since then is saved.
-  const [start] = useState(() => ({
-    title: task.title,
-    description: task.description,
-    due: task.due,
-    priority: task.priority,
-    required: task.required,
-    team: task.team,
-    status: task.status,
-  }))
-  const [form, setForm] = useState(start)
+function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel }) {
   const id = useId()
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+  const set = (key) => (e) => onChange({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   return (
     <form
       className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-3"
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(changedFields(start, form))
+        onSave()
       }}
     >
       <div>
@@ -145,7 +134,7 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
         </span>
       </label>
       <div className="flex gap-2">
-        <button type="submit" className={`${PRIMARY_BUTTON} h-9`}>
+        <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={busy}>
           {copy.save}
         </button>
         <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={onCancel}>
@@ -164,8 +153,7 @@ const keepingFocus = (close, action) => () => {
   refocus()
 }
 
-function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
-  const [editing, setEditing] = useState(false)
+function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, editor, onEdit, onEditor, onPatch, onRemove, onMove, canMove }) {
   const overdue = isOverdue(task, today)
   const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
   const otherTeam = task.team && task.team !== projectTeam
@@ -177,12 +165,12 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           <button
             type="button"
             className={`block border-0 bg-transparent p-0 text-left text-sm font-medium ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
-            onClick={() => setEditing(!editing)}
-            aria-expanded={editing}
+            onClick={() => (editor ? onEditor.cancel() : onEdit())}
+            aria-expanded={!!editor}
           >
             {task.title}
           </button>
-          {task.description && !editing && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
+          {task.description && !editor && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
           {(task.due || task.priority !== 'normal' || task.required || otherTeam) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {task.due && (
@@ -223,7 +211,7 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
                 className={MENU_ITEM}
                 onClick={() => {
                   close()
-                  setEditing(true)
+                  onEdit()
                 }}
               >
                 {copy.panel.edit}
@@ -247,16 +235,15 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           )}
         </Menu>
       </div>
-      {editing && (
+      {editor && (
         <TaskEditor
-          task={task}
+          form={editor.form}
+          busy={editor.busy}
           projectTeam={projectTeam}
           copy={panel}
-          onCancel={() => setEditing(false)}
-          onSave={(fields) => {
-            setEditing(false)
-            if (Object.keys(fields).length) onPatch(fields)
-          }}
+          onChange={onEditor.change}
+          onSave={onEditor.save}
+          onCancel={onEditor.cancel}
         />
       )}
     </li>
@@ -266,6 +253,9 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
 function TasksTab({ project, copy, locale, today, me, members, membersById, run, change }) {
   const [draft, setDraft] = useState('')
   const [sort, setSort] = useState('manual')
+  // The open editor ({ taskId, start, form, busy }) lives here and not in its row, because a row remounts when its task
+  // moves between the open and the done list, and a live update can do that while someone types.
+  const [editor, setEditor] = useState(null)
   const sorted = [...project.tasks].sort(SORTS[sort])
   const open = sorted.filter((task) => !task.done)
   const done = sorted.filter((task) => task.done)
@@ -284,6 +274,32 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   }
   const patch = (task, fields) =>
     run({ action: 'updateTask', id: project.id, taskId: task.id, patch: fields }, change((current) => patchedProject(current, task.id, fields)))
+  const edit = (task) => {
+    // Kept from the moment the editor opened: only what the member changes since then is saved.
+    const start = {
+      title: task.title,
+      description: task.description,
+      due: task.due,
+      priority: task.priority,
+      required: task.required,
+      team: task.team,
+      status: task.status,
+    }
+    setEditor({ taskId: task.id, start, form: start, busy: false })
+  }
+  // Open until the answer, so a refused change keeps what was typed.
+  const editorActions = {
+    change: (form) => setEditor((current) => ({ ...current, form })),
+    cancel: () => setEditor(null),
+    save: async () => {
+      const task = project.tasks.find((item) => item.id === editor.taskId)
+      const fields = changedFields(editor.start, editor.form)
+      if (!task || !Object.keys(fields).length) return setEditor(null)
+      setEditor({ ...editor, busy: true })
+      const saved = await patch(task, fields)
+      setEditor((current) => (current?.taskId !== task.id ? current : saved ? null : { ...current, busy: false }))
+    },
+  }
   const remove = (task) =>
     run(
       { action: 'removeTask', id: project.id, taskId: task.id },
@@ -313,6 +329,9 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
       me={me}
       members={members}
       membersById={membersById}
+      editor={editor?.taskId === task.id ? editor : null}
+      onEdit={() => edit(task)}
+      onEditor={editorActions}
       onPatch={(fields) => patch(task, fields)}
       onRemove={() => remove(task)}
       onMove={(step) => move(list, task, step)}
@@ -373,8 +392,12 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 }
 
-function DetailsTab({ project, copy, locale, run, change, eventPlace }) {
+// The server trims what it stores, so a trailing space is no change to offer saving.
+const trimmed = (form) => ({ ...form, title: form.title.trim(), description: form.description.trim(), place: form.place.trim() })
+
+function DetailsTab({ project, copy, locale, run, eventPlace }) {
   const id = useId()
+  const [busy, setBusy] = useState(false)
   const publicPlace = eventPlace ?? project.event?.location
   const ownEvent = project.type === 'event' && !project.event
   const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
@@ -388,12 +411,16 @@ function DetailsTab({ project, copy, locale, run, change, eventPlace }) {
     setForm((current) => ({ ...next, ...changedFields(previous, current) }))
   }, [project.title, project.description, project.due, project.time, project.place])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
-  const patch = changedFields(fields(), form)
+  const patch = changedFields(fields(), trimmed(form))
   const changed = Object.keys(patch).length > 0
 
-  const save = (e) => {
+  // Without an optimistic change: the fields keep what was typed until the answer, and after a refusal too. The server
+  // copies title, description and deadline of a single task to its task (tasksStore.ts), and the answer brings both.
+  const save = async (e) => {
     e.preventDefault()
-    run({ action: 'update', id: project.id, patch }, change((current) => ({ ...current, ...patch })))
+    setBusy(true)
+    await run({ action: 'update', id: project.id, patch })
+    setBusy(false)
   }
 
   return (
@@ -437,7 +464,7 @@ function DetailsTab({ project, copy, locale, run, change, eventPlace }) {
         )}
         {changed && (
           <div className="flex gap-2">
-            <button type="submit" className={`${PRIMARY_BUTTON} h-9`}>
+            <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={busy}>
               {copy.panel.save}
             </button>
             <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => setForm(fields())}>
@@ -752,6 +779,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
             <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} className="flex-1 overflow-y-auto p-4 sm:p-5">
               {tab === 'tasks' && (
                 <TasksTab
+                  key={project.id}
                   project={project}
                   copy={copy}
                   locale={locale}
@@ -764,7 +792,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                 />
               )}
               {tab === 'details' && (
-                <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} change={change} eventPlace={eventPlace} />
+                <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} eventPlace={eventPlace} />
               )}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>
