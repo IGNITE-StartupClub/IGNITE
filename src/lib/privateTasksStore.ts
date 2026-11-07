@@ -83,16 +83,21 @@ export async function addPrivateTask(memberId: string, fields: TaskFields): Prom
 
 export async function updatePrivateTask(memberId: string, id: string, patch: TaskPatch): Promise<'ok' | 'unknown'> {
   const tasks = await collection()
-  const task = await tasks.findOne({ _id: id, memberId }, { projection: { done: 1, status: 1 } })
-  if (!task) return 'unknown'
   const now = new Date()
-  const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
-  const set: Partial<PrivateTaskDoc> = { done, status, updatedAt: now }
-  if (done !== task.done) set.doneAt = done ? now : null
+  const set: Partial<PrivateTaskDoc> = { updatedAt: now }
   for (const key of SEALED) if (patch[key] !== undefined) set[key] = sealed(patch[key], memberId, id, key)
   for (const key of PLAIN) if (patch[key] !== undefined) Object.assign(set, { [key]: patch[key] })
-  await tasks.updateOne({ _id: id, memberId }, { $set: set })
-  return 'ok'
+  // Standing is only written when the patch moves the task, as in updateTask: the values read here would undo a tick
+  // made on another device in between.
+  if (patch.done !== undefined || patch.status !== undefined) {
+    const task = await tasks.findOne({ _id: id, memberId }, { projection: { done: 1, status: 1 } })
+    if (!task) return 'unknown'
+    const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
+    Object.assign(set, { done, status })
+    if (done !== task.done) set.doneAt = done ? now : null
+  }
+  const { matchedCount } = await tasks.updateOne({ _id: id, memberId }, { $set: set })
+  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** The trash keeps the task as stored, still sealed, so the undo puts back the same record. */
