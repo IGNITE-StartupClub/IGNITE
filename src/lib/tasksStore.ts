@@ -804,7 +804,8 @@ const EVENT_SYNC_MS = 5 * 60_000
 let nextSync = 0
 
 /**
- * Refreshes the event snapshot of every planning project from the calendar. Only title, dates, place and link change;
+ * Refreshes the event snapshot of every planning project from the German calendar, the language the snapshot is stored
+ * in (the English one names places differently). Only title, dates, place and link change;
  * an event that left the calendar is marked missing, never deleted with its project. With an incomplete calendar
  * (Luma unreachable) or an event long past, which Luma no longer lists, the snapshot stays as it is.
  */

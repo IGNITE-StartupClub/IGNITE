@@ -22,13 +22,12 @@ const { memberArea, openTeams } = getCopy(locale)
 const { tasks } = memberArea
 const actor = sessionActor(Astro.locals.member!)
 
-// The projects do not wait for the calendar: a refreshed event snapshot shows with the next load.
+// The projects do not wait for the calendar: a refreshed event snapshot shows with the next load. Snapshots are stored
+// once for both languages, in German like the link in the tasks API, otherwise every English load rewrote the place.
 const [{ events, complete }, state] = await Promise.all([
-  loadTaskEvents(locale).then(async (loaded) => {
-    await syncEvents(loaded.events, loaded.complete)
-    return loaded
-  }),
+  loadTaskEvents(locale),
   workspaceState(actor),
+  loadTaskEvents('de').then((german) => syncEvents(german.events, german.complete)),
 ])
 const calendar = events.map(({ startAt, endAt, ...event }) => ({
   ...event,
