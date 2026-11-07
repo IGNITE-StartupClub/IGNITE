@@ -2,10 +2,10 @@
 /**
  * Members area start page, rendered on demand by pages/mitglieder/index.astro and pages/en/members/index.astro.
  * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
- * Astro.locals.member. Without a team, or with ?team from the profile menu and the team chip, it shows the team choice;
- * the board has no team and never sees it.
+ * Astro.locals.member. Without a team it shows the team choice; with ?team from the profile menu and the team chip the
+ * same form is the settings page. The board has no team and never sees it.
  * Otherwise the dashboard (greeting, figures, next tasks, next event). The tools are in the header pill, account actions
- * (member management for admins, password, sign out) in its profile menu.
+ * (member management for admins, settings, mail signature, password, sign out) in its profile menu.
  * Data source: memberArea.home and openTeams via getCopy(), tasks via assignedProjects() and privateTasks(), events via
  * loadTaskEvents().
  */
@@ -99,6 +99,7 @@ const tasksUrl = memberPagePath('tasks', locale)
           }}
           changing={!!team}
           homeUrl={homeUrl}
+          signatureUrl={memberPagePath('signature', locale)}
         />
       ) : (
         <MemberDashboard

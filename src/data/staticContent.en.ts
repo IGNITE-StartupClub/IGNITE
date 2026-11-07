@@ -474,7 +474,7 @@ export const memberArea = {
     profile: 'Profile and sign out',
     signedInAs: 'Signed in as',
     admin: 'Member management',
-    changeTeam: 'Change team',
+    settings: 'Settings',
     password: 'Change password',
     connections: 'Connections',
     website: 'To the website',
@@ -530,15 +530,21 @@ export const memberArea = {
   home: {
     welcome: 'Welcome',
     teamChoice: {
+      title: 'Settings',
       lead: 'Good to have you here. Which team do you work in?',
       changeLead: 'Which team do you work in?',
       legend: 'Your team',
       firstName: 'First name',
       lastName: 'Last name',
-      hint: 'You can change your team later in the profile menu.',
+      hint: 'You can change your team later in the settings.',
       photo: {
         label: 'Profile photo',
         hint: 'Other members can see it. Your email signature uses the same photo.',
+      },
+      signature: {
+        label: 'Email signature',
+        hint: 'Your signature for Outlook, with your name and photo.',
+        link: 'Open signature',
       },
       pick: 'Choose a team',
       start: 'Let’s go',

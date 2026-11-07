@@ -229,65 +229,63 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
         onOpenTask={onOpenTask}
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <OverviewCard title={text.mine} aside={fill(text.openCount, { count: open.length })} link={text.toBoard} onLink={() => onView('tasks')}>
-          <QuickAdd copy={copy} onCapture={onCapture} onAdd={onQuickAdd} />
-          {!shown.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{text.noneMine}</p>}
-          <ul role="list" className="flex-1">
-            {shown.map((task) => (
-              <li key={task.id} className={`${ROW_LINE} flex min-h-14 items-center gap-3 px-5 py-2 sm:px-6`}>
-                <TaskCheck
-                  checked={task.done}
-                  onChange={(done) => {
-                    setChecked([...checked, task.id])
-                    onPatch(task, { done })
-                  }}
-                  label={fill(copy.panel.markDone, { title: task.title })}
-                />
-                <button
-                  type="button"
-                  className={`line-clamp-2 min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-sm font-medium leading-snug ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
-                  onClick={() => onOpenTask(task)}
-                >
-                  {task.title}
-                </button>
-                {task.private && <Lock role="img" aria-label={copy.private.badge} className="h-4 w-4 shrink-0 text-fg-muted" />}
-                {task.due && (
-                  <span className={`shrink-0 text-caption tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
-                    {shortDay(task.due, locale)}
-                  </span>
-                )}
-              </li>
+      <OverviewCard title={text.mine} aside={fill(text.openCount, { count: open.length })} link={text.toBoard} onLink={() => onView('tasks')}>
+        <QuickAdd copy={copy} onCapture={onCapture} onAdd={onQuickAdd} />
+        {!shown.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{text.noneMine}</p>}
+        <ul role="list" className="flex-1">
+          {shown.map((task) => (
+            <li key={task.id} className={`${ROW_LINE} flex min-h-14 items-center gap-3 px-5 py-2 sm:px-6`}>
+              <TaskCheck
+                checked={task.done}
+                onChange={(done) => {
+                  setChecked([...checked, task.id])
+                  onPatch(task, { done })
+                }}
+                label={fill(copy.panel.markDone, { title: task.title })}
+              />
+              <button
+                type="button"
+                className={`line-clamp-2 min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-sm font-medium leading-snug ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
+                onClick={() => onOpenTask(task)}
+              >
+                {task.title}
+              </button>
+              {task.private && <Lock role="img" aria-label={copy.private.badge} className="h-4 w-4 shrink-0 text-fg-muted" />}
+              {task.due && (
+                <span className={`shrink-0 text-caption tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
+                  {shortDay(task.due, locale)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </OverviewCard>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <OverviewCard title={copy.views.events} link={copy.calendar.allEvents} onLink={() => onView('events')}>
+          <div className="flex flex-col gap-6 px-5 pb-5 sm:px-6">
+            {listed.map((entry) => (
+              <EventSummary
+                key={entry.id}
+                entry={entry}
+                project={planOf(entry)}
+                copy={copy}
+                locale={locale}
+                membersById={membersById}
+                onStart={onStart}
+                onOpen={onOpen}
+              />
             ))}
-          </ul>
+            {!listed.length && <p className="text-sm text-fg-muted">{complete ? copy.calendar.noUpcoming : copy.calendar.unavailable}</p>}
+          </div>
         </OverviewCard>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <OverviewCard title={copy.views.events} link={copy.calendar.allEvents} onLink={() => onView('events')}>
-            <div className="flex flex-col gap-6 px-5 pb-5 sm:px-6">
-              {listed.map((entry) => (
-                <EventSummary
-                  key={entry.id}
-                  entry={entry}
-                  project={planOf(entry)}
-                  copy={copy}
-                  locale={locale}
-                  membersById={membersById}
-                  onStart={onStart}
-                  onOpen={onOpen}
-                />
-              ))}
-              {!listed.length && <p className="text-sm text-fg-muted">{complete ? copy.calendar.noUpcoming : copy.calendar.unavailable}</p>}
-            </div>
-          </OverviewCard>
-
-          <OverviewCard title={copy.views.projects} link={text.allProjects} onLink={() => onView('projects')}>
-            {!projects.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{copy.board.noResults}</p>}
-            {projects.slice(0, PROJECTS_SHOWN).map((project) => (
-              <ProjectRow key={project.id} project={project} copy={copy} locale={locale} membersById={membersById} onOpen={onOpen} />
-            ))}
-          </OverviewCard>
-        </div>
+        <OverviewCard title={copy.views.projects} link={text.allProjects} onLink={() => onView('projects')}>
+          {!projects.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{copy.board.noResults}</p>}
+          {projects.slice(0, PROJECTS_SHOWN).map((project) => (
+            <ProjectRow key={project.id} project={project} copy={copy} locale={locale} membersById={membersById} onOpen={onOpen} />
+          ))}
+        </OverviewCard>
       </div>
     </div>
   )

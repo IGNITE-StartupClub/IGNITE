@@ -54,7 +54,6 @@ const items: NavItem[] = member
       { label: memberNav.tasks, url: memberPagePath('tasks', locale) },
       { label: memberNav.network, url: memberPagePath('crm', locale) },
       { label: memberNav.storage, url: memberPagePath('storage', locale) },
-      { label: memberNav.signature, url: memberPagePath('signature', locale) },
     ]
   : [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
@@ -170,29 +169,34 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
               )}
               {member.position !== 'board' && (
                 <li style="--i: 2">
-                  <a class="panel-link" href={`${memberHome}?team`}>{memberNav.changeTeam}</a>
+                  <a class="panel-link" href={`${memberHome}?team`}>{memberNav.settings}</a>
                 </li>
               )}
               <li style="--i: 3">
+                <a class="panel-link" href={memberPagePath('signature', locale)} aria-current={isCurrent(memberPagePath('signature', locale)) ? 'page' : undefined}>
+                  {memberNav.signature}
+                </a>
+              </li>
+              <li style="--i: 4">
                 <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>
               {mayConnect(member.email) && (
-                <li style="--i: 4">
+                <li style="--i: 5">
                   <a class="panel-link" href={memberPagePath('connections', locale)} aria-current={isCurrent(memberPagePath('connections', locale)) ? 'page' : undefined}>
                     {memberNav.connections}
                   </a>
                 </li>
               )}
-              <li style="--i: 5">
+              <li style="--i: 6">
                 <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
               </li>
-              <li style="--i: 6">
+              <li style="--i: 7">
                 <form method="post" action="/api/members/logout">
                   <input type="hidden" name="locale" value={locale} />
                   <button type="submit" class="panel-link logout">{memberNav.logout}</button>
                 </form>
               </li>
-              <li class="profile-legal" style="--i: 7">
+              <li class="profile-legal" style="--i: 8">
                 {footer.legalLinks.map((link) => <a href={link.url}>{link.label}</a>)}
               </li>
             </ul>
