@@ -31,11 +31,17 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
     ...deadlines.map((task) => ({ id: task.id, title: task.title, tone: 'bg-bg-subtle text-fg', onClick: () => onOpenTask(task) })),
   ]
   const shown = chips.length > CHIPS_SHOWN ? CHIPS_SHOWN - 1 : chips.length
+  const label = dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })
   return (
     <li className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'}`}>
-      <p className="mb-0.5 flex items-center justify-between gap-1" aria-label={dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}>
-        <span className="text-caption text-fg-muted">{dayPart(day, locale, { weekday: 'short' }).replace('.', '')}</span>
+      {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
+      <p className="mb-0.5 flex items-center justify-between gap-1">
+        <span className="sr-only">{label}</span>
+        <span aria-hidden="true" className="text-caption text-fg-muted">
+          {dayPart(day, locale, { weekday: 'short' }).replace('.', '')}
+        </span>
         <span
+          aria-hidden="true"
           className={`grid h-7 w-7 place-items-center rounded-full text-sm ${day === today ? 'bg-brand-bright font-semibold text-white' : 'font-medium'}`}
         >
           {dayPart(day, locale, { day: 'numeric' }).replace('.', '')}
