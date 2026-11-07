@@ -22,7 +22,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store')
 ---
 
 <DefaultLayout title={memberArea.pageTitle} noindex bare>
-  <div class="grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-2 lg:grid-rows-none">
+  <div class="member-login grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-2 lg:grid-rows-none">
     <section
       aria-label={login.area}
       class="surface-brand relative flex items-center justify-between gap-4 overflow-hidden px-gutter py-4 lg:flex-col lg:items-stretch lg:gap-12 lg:px-16 lg:py-12"
@@ -51,7 +51,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store')
       <p class="relative m-0 hidden text-sm text-fg-muted lg:block">{login.panel.footer}</p>
     </section>
 
-    <div class="flex flex-col px-gutter pb-16 pt-4 lg:px-16 lg:py-12">
+    <div class="flex flex-col bg-bg px-gutter pb-16 pt-4 lg:px-16 lg:py-12">
       <div class="hidden justify-end lg:flex">
         <a href={navigation.homeUrl} class="flex min-h-11 items-center gap-1.5 text-sm text-fg-muted no-underline hover:text-fg">
           <Icon name="ion:arrow-back" aria-hidden="true" />
@@ -73,6 +73,14 @@ Astro.response.headers.set('Cache-Control', 'private, no-store')
 </DefaultLayout>
 
 <style>
+  /* The installed iOS app paints its status bar with the body background (theme-color has no effect there). Below lg
+     the body takes the purple of the bar above the form, so the bar reaches the top edge without a light strip. */
+  @media (max-width: 1023px) {
+    :global(body:has(.member-login)) {
+      background-color: var(--color-brand-deep);
+    }
+  }
+
   .member-login-watermark {
     position: absolute;
     right: -9rem;

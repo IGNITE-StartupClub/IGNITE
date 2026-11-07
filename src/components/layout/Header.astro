@@ -3,9 +3,9 @@
  * Floating pill navigation. Desktop (lg+): logo, centered links (Events as dropdown), theme and language toggle, the
  * members area link and the primary "Mitmachen" pill (kept outermost). Below lg: logo, small Mitmachen pill and a menu button that opens MobileNav (fullscreen overlay).
  * Inside the members area (signed in; the login page has no header) the pill switches: "IGNITE Member" logo linking to
- * the members home, the member navigation (memberArea.nav) and a profile menu with photo instead of the members link
- * and "Mitmachen". The menu also carries the legal links, because the members area has no footer. The search field
- * (MemberSearch) sits right of the links.
+ * the members home (below sm only the mark, so the pill fits on phones), the member navigation (memberArea.nav) and a
+ * profile menu with photo instead of the members link and "Mitmachen". The menu also carries the legal links, because
+ * the members area has no footer. The search field (MemberSearch) sits right of the links.
  * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
@@ -69,7 +69,16 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
       class="logo-link"
       aria-label={badge ? `${navigation.logoText} ${badge}` : navigation.logoText}
     >
-      <Logo color="currentColor" name={navigation.logoText} />
+      {
+        member ? (
+          <>
+            <span class="logo-wordmark"><Logo color="currentColor" name={navigation.logoText} /></span>
+            <span class="logo-mark"><Logo markOnly color="currentColor" name={navigation.logoText} /></span>
+          </>
+        ) : (
+          <Logo color="currentColor" name={navigation.logoText} />
+        )
+      }
       {badge && <span class="member-badge" aria-hidden="true">{badge}</span>}
     </a>
 
@@ -398,6 +407,21 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
   }
   .logo-link:active :global(svg) {
     transform: scale(0.97);
+  }
+  .logo-mark {
+    display: none;
+  }
+  .logo-mark :global(svg) {
+    width: 2.25rem;
+  }
+  /* With the wordmark, logo, badge, search, profile menu and menu button only fit from 480 px. */
+  @media (max-width: 639px) {
+    .logo-wordmark {
+      display: none;
+    }
+    .logo-mark {
+      display: block;
+    }
   }
   .member-badge {
     margin-left: 0.625rem;
