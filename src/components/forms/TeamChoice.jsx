@@ -1,13 +1,17 @@
 /**
- * Team choice of the members start page: shown until a member has a team and again from the profile menu (`changing`).
+ * Team choice of the members start page: shown until a member has a team, and with a team as the settings page from the
+ * profile menu (`changing`), which also leads to the mail signature. A first visit has no such link, because leaving
+ * would drop the name and team entered so far.
  * Saves name and team through /api/members/profile, then loads the start page, which shows the dashboard. The photo is
  * the one of the mail signature and saves on its own in PhotoCropper, so cancelling this form does not undo it.
  * Props: copy (memberArea.home.teamChoice), photoCopy (PhotoCropper's copy), optional (the "(optional)" label), welcome,
- * name (greeting), teams ([{ id, name, text, icon }]), current ({ firstName, lastName, team, photo }), changing, homeUrl.
+ * name (greeting), teams ([{ id, name, text, icon }]), current ({ firstName, lastName, team, photo }), changing, homeUrl,
+ * signatureUrl.
  */
 import React, { useState } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { NAME_MAX } from '../../lib/tasks'
+import { TOOL_BUTTON } from './memberUi'
 import PhotoCropper from './PhotoCropper.jsx'
 
 const FIELD = 'flex min-w-0 max-w-[280px] flex-[1_1_200px] flex-col gap-1.5'
@@ -37,7 +41,7 @@ function TeamCard({ team, selected, onPick }) {
   )
 }
 
-export default function TeamChoice({ copy, photoCopy, optional, welcome, name, teams, current, changing, homeUrl }) {
+export default function TeamChoice({ copy, photoCopy, optional, welcome, name, teams, current, changing, homeUrl, signatureUrl }) {
   const [team, setTeam] = useState(current.team)
   const [firstName, setFirstName] = useState(current.firstName)
   const [lastName, setLastName] = useState(current.lastName)
@@ -68,7 +72,13 @@ export default function TeamChoice({ copy, photoCopy, optional, welcome, name, t
     <form onSubmit={save} className="flex flex-col gap-10">
       <div className="flex flex-col gap-2.5">
         <h1 id="page-title" className="text-display-sm hyphens-none">
-          {welcome}, <em>{name}</em>
+          {changing ? (
+            copy.title
+          ) : (
+            <>
+              {welcome}, <em>{name}</em>
+            </>
+          )}
         </h1>
         <p className="text-lg text-fg-muted">{changing ? copy.changeLead : copy.lead}</p>
       </div>
@@ -82,8 +92,19 @@ export default function TeamChoice({ copy, photoCopy, optional, welcome, name, t
         </div>
       </fieldset>
 
-      <div className="border-t border-border pt-6">
+      <div className="grid gap-6 border-t border-border pt-6 md:grid-cols-2">
         <PhotoCropper copy={photoCopy} optional={optional} photo={photo} onChange={setPhoto} />
+        {changing && (
+          <div className="field">
+            <span className="field-label">{copy.signature.label}</span>
+            <div className="flex min-h-14 items-center">
+              <a href={signatureUrl} className={`${TOOL_BUTTON} no-underline`}>
+                {copy.signature.link}
+              </a>
+            </div>
+            <p className="field-hint text-sm">{copy.signature.hint}</p>
+          </div>
+        )}
       </div>
 
       <div className="-mt-4 flex flex-wrap items-end gap-4">
