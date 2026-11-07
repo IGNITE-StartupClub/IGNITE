@@ -19,7 +19,7 @@
  * task up to them and the task's creator (mayRemoveTask), deleting a project and archiving templates up to admins.
  */
 import { randomUUID } from 'node:crypto'
-import { ObjectId } from 'mongodb'
+import { ObjectId, type Filter } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
@@ -565,18 +565,29 @@ export async function setStatus(actor: TaskActor, id: string, status: ProjectSta
   return matchedCount ? 'ok' : 'unknown'
 }
 
+/**
+ * mayArchive and mayRemoveTask as filters. A write repeats the rights it checked, so a lead who lost the role since the
+ * read misses like anyone else (see `leadOnly` in updateProject). Admins need no filter.
+ */
+const runsProject = (actor: TaskActor): Filter<ProjectDoc>[] => [{ createdBy: actor.id }, { leads: actor.id }]
+const archiveRight = (actor: TaskActor): Filter<ProjectDoc> => (actor.role === 'admin' ? {} : { $or: runsProject(actor) })
+const removeRight = (actor: TaskActor, taskId: string): Filter<ProjectDoc> =>
+  actor.role === 'admin' ? {} : { $or: [...runsProject(actor), { tasks: { $elemMatch: { id: taskId, createdBy: actor.id } } }] }
+
+/** What a write with rights in its filter means when it matched nothing: still there, so the rights failed. */
+async function missed(target: Filter<ProjectDoc>): Promise<Outcome> {
+  const { projects } = await collections()
+  return (await projects.countDocuments(target, { limit: 1 })) ? 'forbidden' : 'unknown'
+}
+
 export async function setArchived(actor: TaskActor, id: string, archived: boolean): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1 } })
-  if (!project) return 'unknown'
-  if (!mayArchive(project, actor)) return 'forbidden'
   const now = new Date()
-  // A single task's card goes with its last task, so it can be gone since the read above.
   const { matchedCount } = await projects.updateOne(
-    { _id: id },
+    { _id: id, ...archiveRight(actor) },
     { $set: { archivedAt: archived ? now : null, updatedAt: now }, $push: pushActivity([activity(actor, archived ? 'archived' : 'restored')]) },
   )
-  return matchedCount ? 'ok' : 'unknown'
+  return matchedCount ? 'ok' : missed({ _id: id })
 }
 
 /** Final deletion with all tasks and pending notifications; admins only. */
@@ -670,20 +681,23 @@ interface DeletedTask {
  */
 export async function removeTask(actor: TaskActor, id: string, taskId: string): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId })
-  const task = project?.tasks.find((item) => item.id === taskId)
+  const oneTask = { tasks: { $elemMatch: { id: taskId } } }
+  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { createdBy: 1, leads: 1, ...oneTask } })
+  const task = project?.tasks[0]
   if (!project || !task) return 'unknown'
   if (!mayRemoveTask(task, project, actor)) return 'forbidden'
-  const card = await projects.findOneAndDelete({ _id: id, type: 'task', 'tasks.id': taskId, 'tasks.1': { $exists: false } })
+  const target: Filter<ProjectDoc> = { _id: id, 'tasks.id': taskId, ...removeRight(actor, taskId) }
+  // The card keeps all of itself for the undo; from a project only the task is needed.
+  const card = await projects.findOneAndDelete({ ...target, type: 'task', 'tasks.1': { $exists: false } })
   const before =
     card ??
     (await projects.findOneAndUpdate(
-      { _id: id, 'tasks.id': taskId },
+      target,
       { $pull: { tasks: { id: taskId } }, $set: { updatedAt: new Date() }, $push: pushActivity([activity(actor, 'taskRemoved', task.title)]) },
-      { returnDocument: 'before' },
+      { returnDocument: 'before', projection: oneTask },
     ))
   const deleted = before?.tasks.find((item) => item.id === taskId)
-  if (!deleted) return 'unknown'
+  if (!deleted) return missed({ _id: id, 'tasks.id': taskId })
   await putInTrash<DeletedTask>('shared', actor.id, taskId, { projectId: id, task: deleted, card })
   return 'ok'
 }
