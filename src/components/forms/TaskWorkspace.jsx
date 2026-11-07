@@ -278,6 +278,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
 
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
   const openProject = projectId ? projects.find((project) => project.id === projectId) : null
+  const openEventPlace = openProject?.event ? events.find((event) => event.id === openProject.event.id)?.location : undefined
   const { entries, twins } = calendarEntries(events, projects)
   const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
   const openEvent = (entry) => {
@@ -566,6 +567,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         run={run}
         onClose={closePanel}
         onStatus={(project, status) => move(project.id, status)}
+        eventPlace={openEventPlace}
       />
       <CreateDialog
         request={createRequest}

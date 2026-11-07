@@ -5,7 +5,8 @@
  * follows the team of its project unless its editor gives it another one.
  * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure.
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
- * onClose(), onStatus(project, status) (the board's move, which asks before "done").
+ * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
+ * place in the page's language; the stored snapshot keeps the German one).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
@@ -388,8 +389,9 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 }
 
-function DetailsTab({ project, copy, locale, run, change }) {
+function DetailsTab({ project, copy, locale, run, change, eventPlace }) {
   const id = useId()
+  const publicPlace = eventPlace ?? project.event?.location
   const ownEvent = project.type === 'event' && !project.event
   const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
   const [form, setForm] = useState(fields)
@@ -466,7 +468,7 @@ function DetailsTab({ project, copy, locale, run, change }) {
           <p className="font-medium">{project.event.title}</p>
           <p className="mt-1 text-fg-muted">
             {longDay(project.eventDay, locale)} · {berlinTime(project.event.startAt, locale)}
-            {project.event.location && ` · ${project.event.location}`}
+            {publicPlace && ` · ${publicPlace}`}
           </p>
           {project.event.url && (
             <a href={project.event.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-accent underline">
@@ -548,7 +550,7 @@ function ActivityTab({ project, copy, locale, membersById }) {
   )
 }
 
-export default function ProjectPanel({ project, copy, locale, today, me, members, membersById, run, onClose, onStatus }) {
+export default function ProjectPanel({ project, copy, locale, today, me, members, membersById, run, onClose, onStatus, eventPlace }) {
   const dialog = useRef(null)
   const closeButton = useRef(null)
   const templateDialog = useRef(null)
@@ -777,7 +779,9 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   change={change}
                 />
               )}
-              {tab === 'details' && <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} change={change} />}
+              {tab === 'details' && (
+                <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} change={change} eventPlace={eventPlace} />
+              )}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>
           </div>
