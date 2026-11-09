@@ -9,6 +9,7 @@ import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
   isEvent,
   isRecordId,
+  MAX_TASKS,
   parseName,
   parseProject,
   parseProjectPatch,
@@ -21,6 +22,7 @@ import {
 } from '../../../lib/tasks'
 import {
   addTask,
+  archivedProjects,
   archiveTemplate,
   createProject,
   deleteProject,
@@ -49,8 +51,10 @@ const TEMPLATE_ACTIONS = ['saveTemplate', 'archiveTemplate']
 
 /**
  * What the TaskWorkspace island asks for without changing anything. ?revision=… is its regular check: the same revision
- * comes back while nothing changed, otherwise { changes }. This route runs most often of all, so its usual path reads
- * neither the member nor a project. ?activity=<project id> answers with { activity }, the project's log.
+ * comes back while nothing changed, otherwise { changes }; &withArchive says the island holds its archive. This route
+ * runs most often of all, so its usual path reads neither the member nor a project. ?activity=<project id> answers with
+ * { activity }, the project's log, and ?archive with { projects }, the archived projects in full, which the page leaves
+ * out until someone opens the archive.
  */
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
@@ -59,10 +63,13 @@ export const GET: APIRoute = async ({ url, locals }) => {
       const activity = isRecordId(project) ? await projectActivity(project) : null
       return activity ? reply(200, { activity }) : reply(404, { code: 'unknown' })
     }
+    if (url.searchParams.has('archive')) return reply(200, { projects: await archivedProjects(sessionActor(locals.member!)) })
     const known = url.searchParams.get('revision')
     const revision = await workspaceRevision()
     if (known === revision) return reply(200, { revision })
-    return reply(200, { changes: await workspaceChanges(sessionActor(locals.member!), known) })
+    // The revision just read goes along, so the changes cost no second read of it.
+    const changes = await workspaceChanges(sessionActor(locals.member!), known, { revision, archived: url.searchParams.has('withArchive') })
+    return reply(200, { changes })
   } catch (err) {
     console.error('Tasks read failed:', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
@@ -70,17 +77,18 @@ export const GET: APIRoute = async ({ url, locals }) => {
 }
 
 /**
- * The tasks module of the members area (TaskWorkspace island). Body: { action, revision?, … } with action
+ * The tasks module of the members area (TaskWorkspace island). Body: { action, revision?, withArchive?, … } with action
  * 'create' (project, status?, eventId?, template?, task?), 'update' (id, patch), 'status' (id, status),
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order),
  * 'saveTemplate' (id, name), 'archiveTemplate' (templateId), 'linkEvent' (id, eventId), 'keepEventApart' (id, eventId),
  * 'unlinkEvent' (id), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
- * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes } for the island's
- * `revision` and without either for a caller that sends none (the dashboard); a refused action comes with the whole
- * { state }, which is the island's rollback. Both carry the member's own private tasks. Every byte of an answer counts
- * as Fast Origin Transfer on Vercel. Rights: see tasksStore.ts and privateTasksStore.ts; every check runs here on the
- * server.
+ * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes }
+ * for the island's `revision`, and a refused action with the whole { state } instead, which is the island's rollback;
+ * `withArchive` says the island holds the archive, so the state brings it too. Both carry the member's own private
+ * tasks. A caller without a revision (start page, search) gets neither, because it reads no more than the code. Every
+ * byte of an answer counts as Fast Origin Transfer on Vercel. Rights: see tasksStore.ts and privateTasksStore.ts; every
+ * check runs here on the server.
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -88,12 +96,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   try {
     const actor = sessionActor(locals.member!)
-    let body: Record<string, unknown> = {}
-    try {
-      body = await request.json()
-    } catch {
-      // Unparsable JSON ends as the invalid request below.
-    }
+    // Unparsable JSON, and JSON that is no object, end as the invalid request below.
+    const parsed: unknown = await request.json().catch(() => null)
+    const body = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}) as Record<string, unknown>
+    const rollback = async () =>
+      typeof body.revision === 'string' ? { state: await workspaceState(actor, { archived: body.withArchive === true }) } : {}
     const id = isRecordId(body.id) ? body.id : null
     const taskId = isRecordId(body.taskId) ? body.taskId : null
     const status = PROJECT_STATUSES.includes(body.status as ProjectStatus) ? (body.status as ProjectStatus) : null
@@ -103,7 +110,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     switch (body.action) {
       case 'create': {
         const fields = parseProject(body.project)
-        if (!fields) return invalid()
+        if (!fields || (body.status !== undefined && !status)) return invalid()
         if (fields.type === 'event' && body.eventId === undefined && !fields.due) return invalid()
         const template = parseTemplateSource(body.template)
         if (template === undefined) return invalid()
@@ -113,10 +120,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (body.eventId !== undefined) {
           if (fields.type !== 'event') return invalid()
           event = await publicEvent(body.eventId)
-          if (!event) return reply(404, { code: 'unknown', state: await workspaceState(actor) })
+          if (!event) return reply(404, { code: 'unknown', ...(await rollback()) })
         }
         const templateList = template && (await templateTasks(template))
-        if (template && !templateList) return reply(404, { code: 'unknown', state: await workspaceState(actor) })
+        if (template && !templateList) return reply(404, { code: 'unknown', ...(await rollback()) })
         const created = await createProject(actor, {
           fields,
           status: status ?? 'planned',
@@ -124,7 +131,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           template: templateList,
           task,
         })
-        if (created === 'duplicate') return reply(409, { code: 'duplicate', state: await workspaceState(actor) })
+        if (created === 'duplicate') return reply(409, { code: 'duplicate', ...(await rollback()) })
         code = 'created'
         createdId = created.id
         break
@@ -171,7 +178,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       case 'keepEventApart': {
         if (!id) return invalid()
         const event = await publicEvent(body.eventId)
-        if (!event) return reply(404, { code: 'unknown', state: await workspaceState(actor) })
+        if (!event) return reply(404, { code: 'unknown', ...(await rollback()) })
         code = body.action === 'linkEvent' ? await linkEvent(actor, id, event) : await keepEventApart(id, event.id)
         break
       }
@@ -180,7 +187,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         code = await unlinkEvent(actor, id)
         break
       case 'reorder':
-        if (!id || !Array.isArray(body.order) || !body.order.every(isRecordId)) return invalid()
+        if (!id || !Array.isArray(body.order) || body.order.length > MAX_TASKS || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
         break
       case 'saveTemplate': {
@@ -232,12 +239,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const statusCode = { invalid: 400, unknown: 404, forbidden: 403, full: 409, privateFull: 409, crowded: 409, duplicate: 409 }[code] ?? 200
     if (statusCode !== 200 || TEMPLATE_ACTIONS.includes(body.action as string)) {
-      return reply(statusCode, { code, id: createdId, state: await workspaceState(actor) })
+      return reply(statusCode, { code, id: createdId, ...(await rollback()) })
     }
     return reply(200, {
       code,
       id: createdId,
-      ...(typeof body.revision === 'string' && { changes: await workspaceChanges(actor, body.revision) }),
+      ...(typeof body.revision === 'string' && { changes: await workspaceChanges(actor, body.revision, { archived: body.withArchive === true }) }),
     })
   } catch (err) {
     console.error('Tasks action failed:', err)
@@ -257,9 +264,8 @@ function parseTemplateSource(input: unknown): TemplateSource | null | undefined 
   if (typeof input !== 'object') return undefined
   const { kind, id, include } = input as Record<string, unknown>
   if ((kind !== 'template' && kind !== 'project') || !isRecordId(id)) return undefined
-  if (include !== undefined && !(Array.isArray(include) && include.every((index) => Number.isInteger(index) && index >= 0))) {
-    return undefined
-  }
+  const indexes = Array.isArray(include) && include.length <= MAX_TASKS && include.every((index) => Number.isInteger(index) && index >= 0)
+  if (include !== undefined && !indexes) return undefined
   return { kind, id, include: (include as number[] | undefined) ?? null }
 }
 

@@ -11,7 +11,7 @@
  * - `member_photos`: each member's current signature photo, a round PNG (square JPEG if uploaded before) served
  *   publicly by its random id and by the ids of the photos it replaced.
  */
-import { Binary, MongoClient, type ObjectId } from 'mongodb'
+import { Binary, MongoClient, type ObjectId, type WithId } from 'mongodb'
 import 'dotenv/config'
 import {
   CODE_MAX_ATTEMPTS,
@@ -154,6 +154,8 @@ async function collections() {
     photos: db.collection<MemberPhoto>('member_photos'),
     privateTasks: db.collection<{ memberId: string }>('private_tasks'),
     taskTrash: db.collection<{ deletedBy: string }>('task_trash'),
+    taskNotifications: db.collection<{ memberId: string }>('task_notifications'),
+    taskDigests: db.collection<{ memberId: string }>('task_digests'),
     // Their documents and all other access live in connectionsStore.ts.
     connections: db.collection<{ email: string }>('member_connections'),
     feeds: db.collection<{ _id: string }>('member_calendar_feeds'),
@@ -161,9 +163,9 @@ async function collections() {
 }
 
 /** Members created before roles existed have no `role`; they count as plain members. */
-const withRole = (member: Member): Member => ({ ...member, role: member.role ?? 'member' })
+const withRole = <T extends Member>(member: T): T => ({ ...member, role: member.role ?? 'member' })
 
-export async function findMember(email: string): Promise<Member | null> {
+export async function findMember(email: string): Promise<WithId<Member> | null> {
   const { members } = await collections()
   const member = await members.findOne({ email })
   return member && withRole(member)
@@ -255,16 +257,25 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
   }
 }
 
-/** Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once. */
+/**
+ * Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once,
+ * and with their private tasks and digest data.
+ */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos, privateTasks, taskTrash, connections, feeds } = await collections()
+  const { members, sessions, codes, photos, privateTasks, taskTrash, taskNotifications, taskDigests, connections, feeds } = await collections()
   const member = await members.findOneAndDelete({ email })
+  const memberId = member?._id.toHexString()
   await Promise.all([
     sessions.deleteMany({ email }),
     codes.deleteMany({ email }),
     photos.deleteMany({ email }),
-    ...(member
-      ? [privateTasks.deleteMany({ memberId: member._id.toHexString() }), taskTrash.deleteMany({ deletedBy: member._id.toHexString() })]
+    ...(memberId
+      ? [
+          privateTasks.deleteMany({ memberId }),
+          taskTrash.deleteMany({ deletedBy: memberId }),
+          taskNotifications.deleteMany({ memberId }),
+          taskDigests.deleteMany({ memberId }),
+        ]
       : []),
     connections.deleteMany({ email }),
     feeds.deleteOne({ _id: email }),

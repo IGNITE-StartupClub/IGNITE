@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { changedFields, changedSince, IDLE_MS, listRevision, REFRESH_MS, refreshDue, revisionOf } from './liveUpdates.ts'
+import { changedFields, changedSince, IDLE_MS, listRevision, markUnsettled, REFRESH_MS, refreshDue, revisionOf } from './liveUpdates.ts'
 
 const NOW = 1_000_000
 
@@ -31,6 +31,28 @@ test('changedSince reaches back a little behind the revision and refuses anythin
   assert.equal(changedSince('latest'), null)
   assert.equal(changedSince('3.' + '9'.repeat(16)), null)
   assert.equal(changedSince({ $gt: '' }), null)
+})
+
+test('changedSince reads a marked revision like a plain one', () => {
+  assert.equal(changedSince('3.1000000~')?.getTime(), 995_000)
+  assert.equal(changedSince('3.1000000~~'), null)
+})
+
+test('markUnsettled marks a revision only while its latest change is young', () => {
+  const revision = revisionOf(3, new Date(NOW))
+  assert.equal(markUnsettled(revision, NOW + 1_000), `${revision}~`)
+  assert.equal(markUnsettled(revision, NOW + REFRESH_MS), revision)
+})
+
+test('a write that lands after a poll with an older stamp still reaches that client', () => {
+  // The poll sees Y; X was stamped a second earlier by another instance and lands right after the poll.
+  const y = NOW
+  const x = y - 1_000
+  const seen = markUnsettled(revisionOf(3, new Date(y)), y + 200)
+  // X changes neither the count nor the latest change, so only the mark tells the revisions apart.
+  const next = markUnsettled(revisionOf(3, new Date(y)), y + REFRESH_MS)
+  assert.notEqual(seen, next)
+  assert.ok(changedSince(seen)!.getTime() <= x)
 })
 
 test('changedFields keeps only what differs from the start, lists included', () => {

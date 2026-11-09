@@ -6,7 +6,10 @@
  *   `event.id` lets every public event have at most one planning project. `event` is a snapshot of the public event;
  *   syncEvents refreshes it and never touches tasks, people or status. Every write sets `updatedAt`, because the islands
  *   learn of changes through it (liveUpdates.ts). The activity log stays out of the workspace state: it is most of a
- *   project's size and only one tab shows it, so that tab loads it through projectActivity.
+ *   project's size and only one tab shows it, so that tab loads it through projectActivity. Archived projects stay out
+ *   too, apart from folded planning projects (sharedWorkspace), and load when someone opens the archive; finished single
+ *   tasks archive themselves after SETTLE_DAYS (settleFinishedTasks). A single task, a card of type 'task' with one
+ *   task, keeps title, description and deadline on both card and task (MIRRORED_FIELDS in tasks.ts).
  * - `task_templates`: checklists to start a project from; the standard ones (data/taskTemplates.ts) are copied in once.
  * - `task_notifications`: one pending entry per member and task they were newly assigned to, until the daily digest
  *   (taskDigest.ts) sends it. Removing the assignment or finishing the task removes the entry. Deleting the task leaves
@@ -19,12 +22,12 @@
  * task up to them and the task's creator (mayRemoveTask), deleting a project and archiving templates up to admins.
  */
 import { randomUUID } from 'node:crypto'
-import { ObjectId } from 'mongodb'
+import { ObjectId, type Filter } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
-import { changedSince, collectionRevision, listRevision } from './liveUpdates'
+import { changedSince, collectionRevision, listRevision, markUnsettled } from './liveUpdates'
 import { privateTasks } from './privateTasksStore'
 import { putInTrash, takeFromTrash } from './taskTrash'
 import { standardTemplates } from '../data/taskTemplates'
@@ -33,6 +36,7 @@ import {
   applyMemberChange,
   assigneeChanges,
   berlinDay,
+  isSingleTask,
   MAX_ASSIGNEES,
   MAX_TASKS,
   type MemberChange,
@@ -48,6 +52,7 @@ import {
   type TeamChoice,
   type TemplateTask,
   mayRemoveTask,
+  mirroredFields,
   nextStanding,
   projectEdits,
   projectStatus,
@@ -89,6 +94,8 @@ export type ActivityAction =
   | 'edited'
   | 'status'
   | 'archived'
+  // By settleFinishedTasks, with the actor 'system' and the days as detail.
+  | 'autoArchived'
   | 'restored'
   | 'taskAdded'
   | 'taskEdited'
@@ -110,7 +117,7 @@ interface Activity {
   at: Date
   actor: string
   action: ActivityAction
-  /** Task title, new status, member id or template name, depending on the action. */
+  /** Task title, new status, member id, template name or number of days, depending on the action. */
   detail: string
   member?: string
 }
@@ -207,15 +214,8 @@ async function collections() {
   return { projects, templates, notifications, members: db.collection<Member & { _id: ObjectId }>('members') }
 }
 
-/** The member behind a session, with the id the module uses; null when they were removed meanwhile. */
-export async function taskActor(session: { email: string; role: MemberRole }): Promise<TaskActor | null> {
-  const { members } = await collections()
-  const member = await members.findOne({ email: session.email }, { projection: { _id: 1, firstName: 1, lastName: 1 } })
-  return member && { id: member._id.toHexString(), email: session.email, role: session.role, named: !!(member.firstName && member.lastName) }
-}
-
-/** The same for a member the middleware has just read, without another query. */
-export const sessionActor = (member: SessionMember): TaskActor => ({
+/** The member the middleware or a connection (connectionsStore.ts) has just read, as the module sees them. */
+export const sessionActor = (member: Pick<SessionMember, 'id' | 'email' | 'role' | 'firstName' | 'lastName'>): TaskActor => ({
   id: member.id,
   email: member.email,
   role: member.role,
@@ -243,9 +243,15 @@ export type TaskMember = Awaited<ReturnType<typeof directory>>[number]
 const mayArchive = (project: Pick<ProjectDoc, 'createdBy' | 'leads'>, actor: TaskActor) =>
   actor.role === 'admin' || project.createdBy === actor.id || project.leads.includes(actor.id)
 
-function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>) {
+/**
+ * Every member gets every project with each page load, so this holds only what the islands, the search and the MCP
+ * tools read; who created or finished a task stays on the server.
+ */
+function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor, known: Set<string>, folded = false) {
   const people = (ids: string[]) => ids.filter((id) => known.has(id))
   return {
+    // Archived and sent without tasks and description (sharedWorkspace); the island loads the rest on demand.
+    ...(folded && { folded }),
     id: project._id,
     title: project.title,
     description: project.description,
@@ -271,7 +277,6 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         description: task.description,
         done: task.done,
         status: taskStatus(task),
-        doneBy: task.doneBy,
         doneAt: task.doneAt?.toISOString() ?? '',
         due: task.due,
         priority: task.priority,
@@ -279,11 +284,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         assignees: people(task.assignees),
         team: task.team ?? '',
         mayRemove: mayRemoveTask(task, project, actor),
-        createdBy: task.createdBy,
-        createdAt: task.createdAt.toISOString(),
-        updatedAt: task.updatedAt.toISOString(),
       })),
-    createdBy: project.createdBy,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     completedAt: project.completedAt?.toISOString() ?? '',
@@ -308,37 +309,114 @@ export type TemplateSummary = ReturnType<typeof templateSummary>
 
 /**
  * Stands for the project list. New templates, new members and a member's private tasks are not part of it; they arrive
- * with the next load or project change.
+ * with the next load or project change. A young revision carries a mark (markUnsettled), because projects are stamped by
+ * the instance that writes them, before the write reaches the database.
  */
 export async function workspaceRevision(): Promise<string> {
   const { projects } = await collections()
-  return collectionRevision(projects)
+  return markUnsettled(await collectionRevision(projects), Date.now())
 }
 
 // Projects completed before lessons learned were dropped still store `lessons`; nothing reads them any more.
 const WITHOUT_ACTIVITY = { projection: { activity: 0, lessons: 0 } }
 
+type ArchivedStub = Pick<ProjectDoc, '_id' | 'updatedAt' | 'archivedAt'>
+
+/** Archived projects the island still needs without its archive: the planning of a public event, see sharedWorkspace. */
+const NEEDED_WHEN_ARCHIVED = { event: { $ne: null } }
+
+/**
+ * Every project that is not archived, in full. Archived planning projects of public events come folded, without tasks
+ * and description: the calendar needs them to know an event was planned, otherwise it offered to plan it again. Other
+ * archived projects come as stubs, which count in the revision, so a poll matches it, but never leave the server.
+ * Without this the page would grow with every finished project; the archive loads when someone opens it.
+ */
+const CURRENT_PROJECTS = [
+  { $sort: { updatedAt: -1 } },
+  { $unset: ['activity', 'lessons'] },
+  {
+    $replaceWith: {
+      $switch: {
+        branches: [
+          { case: { $eq: [{ $ifNull: ['$archivedAt', null] }, null] }, then: '$$ROOT' },
+          { case: { $ne: [{ $ifNull: ['$event', null] }, null] }, then: { $mergeObjects: ['$$ROOT', { tasks: [], description: '' }] } },
+        ],
+        default: { _id: '$_id', updatedAt: '$updatedAt', archivedAt: '$archivedAt' },
+      },
+    },
+  },
+]
+
+/**
+ * Projects and the member directory: the core of workspaceState, and what the MCP tools read. `archived` brings the
+ * archived projects in full, for a TaskWorkspace that has loaded its archive.
+ */
+export async function sharedWorkspace(actor: TaskActor, { archived = false } = {}) {
+  const { projects } = await collections()
+  const [list, members] = await Promise.all([
+    archived
+      ? projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray()
+      : projects.aggregate<Omit<ProjectDoc, 'activity'> | ArchivedStub>(CURRENT_PROJECTS).toArray(),
+    directory(),
+  ])
+  const known = new Set(members.map((member) => member.id))
+  const sent = list.filter((project): project is Omit<ProjectDoc, 'activity'> => 'tasks' in project)
+  return {
+    revision: markUnsettled(listRevision(list), Date.now()),
+    projects: sent.map((project) => projectSummary(project, actor, known, !archived && !!project.archivedAt)),
+    members,
+  }
+}
+
 /**
  * Everything the TaskWorkspace island shows: projects, active templates, the member directory and their private tasks.
  */
-export async function workspaceState(actor: TaskActor) {
-  const { projects, templates } = await collections()
-  const [projectList, templateList, members, ownTasks] = await Promise.all([
-    projects.find({}, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
+export async function workspaceState(actor: TaskActor, options: { archived?: boolean } = {}) {
+  const { templates } = await collections()
+  const [shared, templateList, ownTasks] = await Promise.all([
+    sharedWorkspace(actor, options),
     templates.find({ archivedAt: null }, { sort: { name: 1 } }).toArray(),
-    directory(),
     privateTasks(actor.id),
   ])
-  const known = new Set(members.map((member) => member.id))
-  return {
-    revision: listRevision(projectList),
-    projects: projectList.map((project) => projectSummary(project, actor, known)),
-    templates: templateList.map(templateSummary),
-    members,
-    privateTasks: ownTasks,
-  }
+  return { ...shared, templates: templateList.map(templateSummary), privateTasks: ownTasks }
 }
 export type WorkspaceState = Awaited<ReturnType<typeof workspaceState>>
+
+/** The archived projects in full, for the archive view, an archived project opened by link and copying an earlier one. */
+export async function archivedProjects(actor: TaskActor) {
+  const { projects } = await collections()
+  const [list, members] = await Promise.all([
+    projects.find({ archivedAt: { $ne: null } }, { ...WITHOUT_ACTIVITY, sort: { updatedAt: -1 } }).toArray(),
+    directory(),
+  ])
+  const known = new Set(members.map((member) => member.id))
+  return list.map((project) => projectSummary(project, actor, known))
+}
+
+/** A finished single task leaves the board after this many days without a change; a restore counts as a change. */
+export const SETTLE_DAYS = 30
+
+/**
+ * Archives the single tasks that were finished and left unchanged for SETTLE_DAYS, so the board and every load of the
+ * tasks page stay small; the nightly cron /api/cron/task-archive runs it. Returns how many it archived.
+ */
+export async function settleFinishedTasks(now: Date): Promise<number> {
+  const { projects } = await collections()
+  const { modifiedCount } = await projects.updateMany(
+    {
+      type: 'task',
+      archivedAt: null,
+      'tasks.0': { $exists: true },
+      tasks: { $not: { $elemMatch: { done: false } } },
+      updatedAt: { $lt: new Date(now.getTime() - SETTLE_DAYS * 86_400_000) },
+    },
+    {
+      $set: { archivedAt: now, updatedAt: now },
+      $push: pushActivity([{ at: now, actor: 'system', action: 'autoArchived', detail: String(SETTLE_DAYS) }]),
+    },
+  )
+  return modifiedCount
+}
 
 /** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
 export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
@@ -346,7 +424,22 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
   const list = await projects
     .find(
       { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
-      { projection: { title: 1, type: 1, status: 1, 'event.id': 1, tasks: 1 }, sort: { updatedAt: -1 } },
+      {
+        // Only what openTasks reads: descriptions can be long, and the calendar feed asks this on every poll.
+        projection: {
+          title: 1,
+          type: 1,
+          status: 1,
+          'event.id': 1,
+          'tasks.id': 1,
+          'tasks.title': 1,
+          'tasks.due': 1,
+          'tasks.done': 1,
+          'tasks.assignees': 1,
+          'tasks.position': 1,
+        },
+        sort: { updatedAt: -1 },
+      },
     )
     .toArray()
   return list.map(({ _id, title, type, status, event, tasks }) => ({
@@ -362,21 +455,24 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
 
 /**
  * What changed since the client's revision, for applyChanges: answers stay small however large the workspace grows.
- * The revision is read first, so a change landing during the read arrives twice rather than not at all.
+ * The revision is read before the changes, here or by the caller (`revision`), so a change landing during the read
+ * arrives twice rather than not at all. Projects that changed come in full, archived ones too: that is how an island
+ * learns that another member archived or restored one. `ids` lists what the island may hold, so it drops what was
+ * deleted; without its archive (`archived`) that leaves out the archived projects sharedWorkspace does not send.
  */
-export async function workspaceChanges(actor: TaskActor, known: unknown) {
+export async function workspaceChanges(actor: TaskActor, known: unknown, { revision, archived = false }: { revision?: string; archived?: boolean } = {}) {
   const { projects } = await collections()
-  const revision = await workspaceRevision()
+  const current = revision ?? (await workspaceRevision())
   const since = changedSince(known)
   const [changed, ids, members, ownTasks] = await Promise.all([
     projects.find(since ? { updatedAt: { $gte: since } } : {}, WITHOUT_ACTIVITY).toArray(),
-    projects.find({}, { projection: { _id: 1 } }).toArray(),
+    projects.find(archived ? {} : { $or: [{ archivedAt: null }, NEEDED_WHEN_ARCHIVED] }, { projection: { _id: 1 } }).toArray(),
     directory(),
     privateTasks(actor.id),
   ])
   const people = new Set(members.map((member) => member.id))
   return {
-    revision,
+    revision: current,
     ids: ids.map(({ _id }) => _id),
     projects: changed.map((project) => projectSummary(project, actor, people)),
     members,
@@ -450,6 +546,15 @@ const eventSnapshot = (event: TaskEvent): EventSnapshot => ({
 
 export type TemplateSource = { kind: 'template' | 'project'; id: string; include: number[] | null }
 
+/** A project's tasks as a checklist, with deadlines counted from the project's own day. */
+const checklist = (project: Pick<ProjectDoc, 'event' | 'due' | 'tasks'>): TemplateTask[] =>
+  templateFromTasks(
+    [...project.tasks].sort((a, b) => a.position - b.position),
+    project.event ? berlinDay(project.event.startAt.getTime()) : project.due,
+  )
+
+const CHECKLIST_FIELDS = { projection: { event: 1, due: 1, tasks: 1 } }
+
 /** The checklist a new project starts from; null for an unknown source. Earlier projects count from their own day. */
 export async function templateTasks(source: TemplateSource): Promise<TemplateTask[] | null> {
   const { projects, templates } = await collections()
@@ -459,12 +564,13 @@ export async function templateTasks(source: TemplateSource): Promise<TemplateTas
     if (!template) return null
     tasks = template.tasks
   } else {
-    const project = await projects.findOne({ _id: source.id })
+    const project = await projects.findOne({ _id: source.id }, CHECKLIST_FIELDS)
     if (!project) return null
-    const anchor = project.event ? berlinDay(project.event.startAt.getTime()) : project.due
-    tasks = templateFromTasks([...project.tasks].sort((a, b) => a.position - b.position), anchor)
+    tasks = checklist(project)
   }
-  return source.include ? tasks.filter((_, index) => source.include!.includes(index)) : tasks
+  if (!source.include) return tasks
+  const kept = new Set(source.include)
+  return tasks.filter((_, index) => kept.has(index))
 }
 
 interface NewProject {
@@ -494,10 +600,12 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
   const anchor = input.event ? berlinDay(input.event.startAt.getTime()) : input.fields.due
   const fromTemplate = input.template ? tasksFromTemplate(input.template, anchor) : []
   const tasks = [...fromTemplate, ...(input.task ? [input.task] : [])].map((fields, index) => newTask(fields, index, actor, now))
+  // The card of a single task starts with its task's values (MIRRORED_FIELDS); the MCP tools send them only with the task.
+  const fields = input.fields.type === 'task' && input.task ? { ...input.fields, ...mirroredFields(input.task) } : input.fields
   try {
     await projects.insertOne({
       _id,
-      ...input.fields,
+      ...fields,
       status: input.status,
       event: input.event && eventSnapshot(input.event),
       tasks,
@@ -525,13 +633,13 @@ const memberUpdate = (path: string, { add, remove }: MemberChange) =>
 
 /**
  * Changes the given fields, leaving the others to whoever edits them at the same time. Only those who may archive change
- * the leads, because being a lead grants that right.
+ * the leads, because being a lead grants that right. The task of a single task follows its card (MIRRORED_FIELDS).
  */
 export async function updateProject(actor: TaskActor, id: string, patch: ProjectPatch): Promise<Outcome> {
   const { projects } = await collections()
   const project = await projects.findOne(
     { _id: id },
-    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1 } },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1, 'tasks.id': 1 } },
   )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
@@ -542,13 +650,20 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.
   const leadOnly = leads && actor.role !== 'admin' && project.createdBy !== actor.id
   const edits = projectEdits(project, patch)
+  const now = new Date()
+  // The task is addressed by its id, so a task added in between keeps its own values.
+  const mirror = isSingleTask(project) ? Object.entries(mirroredFields(fields)) : []
+  const set: Record<string, unknown> = { ...fields, updatedAt: now }
+  for (const [key, value] of mirror) set[`tasks.$[t].${key}`] = value
+  if (mirror.length) set['tasks.$[t].updatedAt'] = now
   const { matchedCount } = await projects.updateOne(
     { _id: id, ...(leadOnly && { leads: actor.id }) },
     {
-      $set: { ...fields, updatedAt: new Date() },
+      $set: set,
       ...(edits.length ? { $push: pushActivity(edits.map((edit) => activity(actor, edit.action, edit.detail, edit.member))) } : {}),
       ...(leads && memberUpdate('leads', leads)),
     },
+    mirror.length ? { arrayFilters: [{ 't.id': project.tasks[0].id }] } : {},
   )
   return matchedCount ? 'ok' : 'unknown'
 }
@@ -566,17 +681,29 @@ export async function setStatus(actor: TaskActor, id: string, status: ProjectSta
   return matchedCount ? 'ok' : 'unknown'
 }
 
+/**
+ * mayArchive and mayRemoveTask as filters. A write repeats the rights it checked, so a lead who lost the role since the
+ * read misses like anyone else (see `leadOnly` in updateProject). Admins need no filter.
+ */
+const runsProject = (actor: TaskActor): Filter<ProjectDoc>[] => [{ createdBy: actor.id }, { leads: actor.id }]
+const archiveRight = (actor: TaskActor): Filter<ProjectDoc> => (actor.role === 'admin' ? {} : { $or: runsProject(actor) })
+const removeRight = (actor: TaskActor, taskId: string): Filter<ProjectDoc> =>
+  actor.role === 'admin' ? {} : { $or: [...runsProject(actor), { tasks: { $elemMatch: { id: taskId, createdBy: actor.id } } }] }
+
+/** What a write with rights in its filter means when it matched nothing: still there, so the rights failed. */
+async function missed(target: Filter<ProjectDoc>): Promise<Outcome> {
+  const { projects } = await collections()
+  return (await projects.countDocuments(target, { limit: 1 })) ? 'forbidden' : 'unknown'
+}
+
 export async function setArchived(actor: TaskActor, id: string, archived: boolean): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { createdBy: 1, leads: 1 } })
-  if (!project) return 'unknown'
-  if (!mayArchive(project, actor)) return 'forbidden'
   const now = new Date()
-  await projects.updateOne(
-    { _id: id },
+  const { matchedCount } = await projects.updateOne(
+    { _id: id, ...archiveRight(actor) },
     { $set: { archivedAt: archived ? now : null, updatedAt: now }, $push: pushActivity([activity(actor, archived ? 'archived' : 'restored')]) },
   )
-  return 'ok'
+  return matchedCount ? 'ok' : missed({ _id: id })
 }
 
 /** Final deletion with all tasks and pending notifications; admins only. */
@@ -608,17 +735,24 @@ export async function addTask(actor: TaskActor, id: string, fields: TaskFields):
   return 'ok'
 }
 
-/** Changes the given fields of one task, logs what matters and keeps the digest entries in step with the people. */
+/**
+ * Changes the given fields of one task, logs what matters and keeps the digest entries in step with the people. The card
+ * of a single task follows its task (MIRRORED_FIELDS).
+ */
 export async function updateTask(actor: TaskActor, id: string, taskId: string, patch: TaskPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { tasks: { $elemMatch: { id: taskId } } } })
+  const project = await projects.findOne<Pick<ProjectDoc, 'type' | 'tasks'> & { taskCount: number }>(
+    { _id: id, 'tasks.id': taskId },
+    { projection: { type: 1, taskCount: { $size: '$tasks' }, tasks: { $elemMatch: { id: taskId } } } },
+  )
   const task = project?.tasks[0]
-  if (!task) return 'unknown'
+  if (!project || !task) return 'unknown'
   const { assignees: people, ...fields } = patch
   const assignees = people ? applyMemberChange(task.assignees, people) : task.assignees
   if (assignees.length > MAX_ASSIGNEES) return 'crowded'
   const now = new Date()
-  const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now }
+  const single = project.type === 'task' && project.taskCount === 1
+  const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now, ...(single && mirroredFields(fields)) }
   const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
   // Standing is only written when the patch moves the task: the values just read would undo a move made in between.
   const moved = patch.done !== undefined || patch.status !== undefined
@@ -649,10 +783,12 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
     { arrayFilters: [{ 't.id': taskId }] },
   )
   if (!matchedCount) return 'unknown'
-  if (removed.length) await unnotify(taskId, removed)
-  // A finished task needs no "you were assigned" mail any more.
-  if (done) await unnotify(taskId)
-  else if (added.length && !task.done) await notify(id, taskId, added, actor)
+  // A finished task needs no "you were assigned" mail any more; the digest skips done tasks anyway.
+  const finished = done && !task.done
+  await Promise.all([
+    finished ? unnotify(taskId) : removed.length ? unnotify(taskId, removed) : null,
+    !done && !task.done && added.length ? notify(id, taskId, added, actor) : null,
+  ])
   return 'ok'
 }
 
@@ -670,28 +806,31 @@ interface DeletedTask {
  */
 export async function removeTask(actor: TaskActor, id: string, taskId: string): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId })
-  const task = project?.tasks.find((item) => item.id === taskId)
+  const oneTask = { tasks: { $elemMatch: { id: taskId } } }
+  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { createdBy: 1, leads: 1, ...oneTask } })
+  const task = project?.tasks[0]
   if (!project || !task) return 'unknown'
   if (!mayRemoveTask(task, project, actor)) return 'forbidden'
-  const card = await projects.findOneAndDelete({ _id: id, type: 'task', 'tasks.id': taskId, 'tasks.1': { $exists: false } })
+  const target: Filter<ProjectDoc> = { _id: id, 'tasks.id': taskId, ...removeRight(actor, taskId) }
+  // The card keeps all of itself for the undo; from a project only the task is needed.
+  const card = await projects.findOneAndDelete({ ...target, type: 'task', 'tasks.1': { $exists: false } })
   const before =
     card ??
     (await projects.findOneAndUpdate(
-      { _id: id, 'tasks.id': taskId },
+      target,
       { $pull: { tasks: { id: taskId } }, $set: { updatedAt: new Date() }, $push: pushActivity([activity(actor, 'taskRemoved', task.title)]) },
-      { returnDocument: 'before' },
+      { returnDocument: 'before', projection: oneTask },
     ))
   const deleted = before?.tasks.find((item) => item.id === taskId)
-  if (!deleted) return 'unknown'
-  await putInTrash<DeletedTask>(actor.id, taskId, { projectId: id, task: deleted, card })
+  if (!deleted) return missed({ _id: id, 'tasks.id': taskId })
+  await putInTrash<DeletedTask>('shared', actor.id, taskId, { projectId: id, task: deleted, card })
   return 'ok'
 }
 
 /** Undoes removeTask: back into its project with its old place and people, or back with its card. */
 export async function restoreTask(actor: TaskActor, taskId: string): Promise<Outcome> {
   const { projects } = await collections()
-  const deleted = await takeFromTrash<DeletedTask>(actor.id, taskId)
+  const deleted = await takeFromTrash<DeletedTask>('shared', actor.id, taskId)
   if (!deleted) return 'unknown'
   const now = new Date()
   const { matchedCount } = await projects.updateOne(
@@ -758,25 +897,32 @@ export async function reorderTasks(id: string, order: string[]): Promise<Outcome
   const project = await projects.findOne({ _id: id }, { projection: { 'tasks.id': 1, 'tasks.position': 1 } })
   if (!project) return 'unknown'
   const known = new Set(project.tasks.map((task) => task.id))
-  const listed = order.filter((taskId) => known.has(taskId))
-  const rest = [...project.tasks].sort((a, b) => a.position - b.position).map((task) => task.id).filter((taskId) => !listed.includes(taskId))
+  // Each id once: two array filters on the same task make MongoDB refuse the whole update.
+  const listed = new Set(order.filter((taskId) => known.has(taskId)))
+  const rest = [...project.tasks].sort((a, b) => a.position - b.position).map((task) => task.id).filter((taskId) => !listed.has(taskId))
   const ids = [...listed, ...rest]
-  await projects.updateOne(
+  const { matchedCount } = await projects.updateOne(
     { _id: id },
     { $set: { updatedAt: new Date(), ...Object.fromEntries(ids.map((_, index) => [`tasks.$[t${index}].position`, index])) } },
     { arrayFilters: ids.map((taskId, index) => ({ [`t${index}.id`]: taskId })) },
   )
-  return 'ok'
+  return matchedCount ? 'ok' : 'unknown'
 }
 
 /** Saves the project's task list as a new template, deadlines as days relative to its day. */
 export async function saveAsTemplate(actor: TaskActor, id: string, name: string): Promise<Outcome> {
   const { projects, templates } = await collections()
-  const project = await projects.findOne({ _id: id })
+  const project = await projects.findOne({ _id: id }, { projection: { ...CHECKLIST_FIELDS.projection, title: 1 } })
   if (!project) return 'unknown'
-  const tasks = await templateTasks({ kind: 'project', id, include: null })
-  if (!tasks?.length) return 'unknown'
+  const tasks = checklist(project)
+  if (!tasks.length) return 'unknown'
   const now = new Date()
+  // The log entry goes first: when the project is gone since the read above, no template is made from it.
+  const { matchedCount } = await projects.updateOne(
+    { _id: id },
+    { $set: { updatedAt: now }, $push: pushActivity([activity(actor, 'template', name)]) },
+  )
+  if (!matchedCount) return 'unknown'
   await templates.insertOne({
     _id: randomUUID(),
     name,
@@ -788,7 +934,6 @@ export async function saveAsTemplate(actor: TaskActor, id: string, name: string)
     updatedAt: now,
     archivedAt: null,
   })
-  await projects.updateOne({ _id: id }, { $set: { updatedAt: now }, $push: pushActivity([activity(actor, 'template', name)]) })
   return 'ok'
 }
 
@@ -804,7 +949,8 @@ const EVENT_SYNC_MS = 5 * 60_000
 let nextSync = 0
 
 /**
- * Refreshes the event snapshot of every planning project from the calendar. Only title, dates, place and link change;
+ * Refreshes the event snapshot of every planning project from the German calendar, the language the snapshot is stored
+ * in (the English one names places differently). Only title, dates, place and link change;
  * an event that left the calendar is marked missing, never deleted with its project. With an incomplete calendar
  * (Luma unreachable) or an event long past, which Luma no longer lists, the snapshot stays as it is.
  */
@@ -840,7 +986,7 @@ export async function syncEvents(events: TaskEvent[], complete: boolean): Promis
 export async function projectsForDigest(ids: string[]) {
   const { projects } = await collections()
   return projects
-    .find({ _id: { $in: ids } }, { projection: { title: 1, archivedAt: 1, tasks: 1 } })
+    .find({ _id: { $in: ids } }, { projection: { title: 1, status: 1, archivedAt: 1, tasks: 1 } })
     .toArray()
 }
 

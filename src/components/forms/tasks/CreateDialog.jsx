@@ -7,7 +7,8 @@
  * the server).
  * Props: request ({ kind, team, event? } or null = closed; team is preselected), copy (workspace copy), locale, me,
  * members, membersById, templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
- * run, onCreated(id), onUseEntry(entry).
+ * archive (none, loading, loaded or failed: most earlier projects are archived, so choosing one loads it through
+ * onPast()), run, onCreated(id), onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { addDays, isEvent, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
@@ -22,7 +23,24 @@ function relative(offset, text) {
   return fill(offset < 0 ? text.relative : text.relativeAfter, { days: Math.abs(offset) })
 }
 
-export default function CreateDialog({ request, copy, locale, me, members, membersById, templates, projects, entries, planOf, admin, run, onCreated, onUseEntry }) {
+export default function CreateDialog({
+  request,
+  copy,
+  locale,
+  me,
+  members,
+  membersById,
+  templates,
+  projects,
+  entries,
+  planOf,
+  admin,
+  archive,
+  run,
+  onPast,
+  onCreated,
+  onUseEntry,
+}) {
   const text = copy.createDialog
   const dialog = useRef(null)
   const id = useId()
@@ -36,7 +54,8 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
     .filter((project) => project.type !== 'task' && project.tasks.length)
     .sort((a, b) => projectDay(b).localeCompare(projectDay(a)))
   const sources = { template: templates, past }
-  const source = start === 'none' ? null : sources[start].find((item) => item.id === sourceId)
+  const choices = start === 'none' ? [] : sources[start]
+  const source = choices.find((item) => item.id === sourceId)
   const preview =
     start === 'template' && source
       ? source.tasks
@@ -56,12 +75,19 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
     setSourceId(useTemplate ? templates[0].id : '')
     if (!dialog.current.open) dialog.current.showModal()
   }, [request])
-  useEffect(() => setInclude(preview.map((_, index) => index)), [start, sourceId])
+  // Each request starts with every task ticked, also when it picks the same source as the one before.
+  useEffect(() => setInclude(preview.map((_, index) => index)), [request, start, sourceId])
+  // The chosen source can go (an archived template) or arrive late (the archive with the earlier projects).
+  const choiceIds = choices.map((item) => item.id).join()
+  useEffect(() => {
+    if (start !== 'none' && !source) setSourceId(choices[0]?.id ?? '')
+  }, [start, choiceIds])
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const choose = (next) => {
     setStart(next)
     setSourceId(next === 'none' ? '' : (sources[next][0]?.id ?? ''))
+    if (next === 'past') onPast()
   }
   const toggle = (index) => setInclude(include.includes(index) ? include.filter((item) => item !== index) : [...include, index])
 
@@ -84,7 +110,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
   }
   const archiveTemplate = async () => {
     if (!window.confirm(fill(text.confirmArchiveTemplate, { name: source.name }))) return
-    if (await run({ action: 'archiveTemplate', templateId: source.id })) choose('template')
+    await run({ action: 'archiveTemplate', templateId: source.id })
   }
 
   const heading = request?.event ? fill(text.eventHeading, { title: request.event.title }) : kind ? text.headings[kind] : ''
@@ -203,7 +229,20 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
 
             {start !== 'none' && (
               <div className="mt-2 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-4">
-                {sources[start].length ? (
+                {start === 'past' && archive === 'loading' && (
+                  <p role="status" className="text-sm text-fg-muted">
+                    {text.pastLoading}
+                  </p>
+                )}
+                {start === 'past' && archive === 'failed' && (
+                  <p className="text-sm text-fg-muted">
+                    {copy.board.archiveFailed}{' '}
+                    <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={onPast}>
+                      {copy.board.retry}
+                    </button>
+                  </p>
+                )}
+                {choices.length ? (
                   <>
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="field min-w-0 flex-1">
@@ -211,7 +250,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
                           {start === 'template' ? text.template : text.pastProject}
                         </label>
                         <select id={`${id}-source`} className="input" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
-                          {sources[start].map((item) => (
+                          {choices.map((item) => (
                             <option key={item.id} value={item.id}>
                               {start === 'template' ? item.name : `${item.title}${projectDay(item) ? ` · ${shortDay(projectDay(item), locale)}` : ''}`}
                             </option>
@@ -259,7 +298,7 @@ export default function CreateDialog({ request, copy, locale, me, members, membe
                     </ul>
                   </>
                 ) : (
-                  <p className="text-sm text-fg-muted">{text.noPast}</p>
+                  archive !== 'loading' && <p className="text-sm text-fg-muted">{text.noPast}</p>
                 )}
               </div>
             )}

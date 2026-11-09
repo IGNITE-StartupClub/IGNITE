@@ -17,9 +17,11 @@ import {
   filterScope,
   isEvent,
   isRecordId,
+  isSingleTask,
   mayRemoveTask,
   nameFromEmail,
   memberChange,
+  mirroredFields,
   nextStanding,
   openRequired,
   parseName,
@@ -27,6 +29,7 @@ import {
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
+  patchedProject,
   patchedTask,
   parseTeam,
   parseTemplateTasks,
@@ -48,6 +51,7 @@ import {
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
+  withArchive,
   type PrivateTaskState,
   type ProjectState,
   type Scope,
@@ -446,6 +450,40 @@ test('patchedTask adds no people to a private task', () => {
   assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
 })
 
+test('patchedTask stamps a task it finishes, so the done column shows it on top', () => {
+  const now = '2026-11-07T10:00:00.000Z'
+  const open = { done: false, status: 'doing' as const, doneAt: '' }
+  assert.deepEqual(patchedTask(open, { status: 'done' }, now), { done: true, status: 'done', doneAt: now })
+  assert.deepEqual(patchedTask(open, { done: true }, now), { done: true, status: 'done', doneAt: now })
+  const finished = { done: true, status: 'done' as const, doneAt: '2026-11-01T08:00:00.000Z' }
+  assert.deepEqual(patchedTask(finished, { done: false }, now), { done: false, status: 'backlog', doneAt: '' })
+  assert.deepEqual(patchedTask(finished, { title: 'B' }, now), { ...finished, title: 'B' })
+  const columns = boardColumns([
+    { ...task({ id: 'old', status: 'done', done: true }), doneAt: '2026-11-05T08:00:00.000Z' },
+    { ...patchedTask({ ...task({ id: 'new' }), doneAt: '' }, { status: 'done' }, now) },
+  ])
+  assert.deepEqual(columns.done.map(({ id }) => id), ['new', 'old'])
+})
+
+test('a single task and its card keep title, description and deadline in step', () => {
+  const single = project({ type: 'task', title: 'Flyer', due: '2026-11-20', tasks: [task({ id: 'x', title: 'Flyer', due: '2026-11-20' })] })
+  const renamed = patchedProject(single, 'x', { title: 'Plakat', priority: 'high' })
+  assert.equal(renamed.title, 'Plakat')
+  assert.equal(renamed.tasks[0].title, 'Plakat')
+  assert.equal(renamed.tasks[0].priority, 'high')
+  assert.equal(patchedProject(single, 'x', { due: '2026-11-22' }).due, '2026-11-22')
+
+  // A card with more tasks, and every project, keeps its own title.
+  const two = project({ type: 'task', title: 'Flyer', tasks: [task({ id: 'x' }), task({ id: 'y' })] })
+  assert.equal(patchedProject(two, 'x', { title: 'Plakat' }).title, 'Flyer')
+  const internal = project({ tasks: [task({ id: 'x' })] })
+  assert.equal(patchedProject(internal, 'x', { title: 'Plakat' }).title, 'Projekt')
+
+  assert.equal(isSingleTask(single), true)
+  assert.equal(isSingleTask(two), false)
+  assert.deepEqual(mirroredFields({ title: 'A', priority: 'low', due: '' } as never), { title: 'A', due: '' })
+})
+
 test('applyChanges replaces what changed, keeps the rest and drops what is gone', () => {
   const project = (id: string, updatedAt: string, title = id) => ({ id, updatedAt, title })
   const state = {
@@ -469,6 +507,29 @@ test('applyChanges replaces what changed, keeps the rest and drops what is gone'
   assert.deepEqual(next.members, ['new'])
   assert.deepEqual(next.templates, ['kept'])
   assert.deepEqual(next.privateTasks, [own])
+})
+
+test('withArchive lets folded copies give way and keeps what the island got later', () => {
+  const project = (id: string, updatedAt: string, extra: { folded?: true; title?: string } = {}) => ({ id, updatedAt, title: id, ...extra })
+  const state = {
+    revision: '5.1',
+    projects: [
+      project('open', '2026-11-06T00:00:00.000Z'),
+      project('plan', '2026-10-01T00:00:00.000Z', { folded: true }),
+      // Restored by someone else after the archive was read: the island's copy is the newer one.
+      project('restored', '2026-11-05T00:00:00.000Z', { title: 'zurück' }),
+    ],
+  }
+  const next = withArchive(state, [
+    project('plan', '2026-10-01T00:00:00.000Z', { title: 'mit Aufgaben' }),
+    project('restored', '2026-10-20T00:00:00.000Z'),
+    project('old', '2026-09-01T00:00:00.000Z'),
+  ])
+  assert.deepEqual(next.projects.map(({ id }) => id), ['open', 'restored', 'plan', 'old'])
+  assert.equal(next.projects.find(({ id }) => id === 'plan')?.title, 'mit Aufgaben')
+  assert.equal(next.projects.find(({ id }) => id === 'plan')?.folded, undefined)
+  assert.equal(next.projects.find(({ id }) => id === 'restored')?.title, 'zurück')
+  assert.equal(next.revision, '5.1')
 })
 
 test('berlinClock follows summer and winter time', () => {
@@ -618,6 +679,11 @@ test('taskHash and taskRoute are each other\'s inverse', () => {
   }
   assert.equal(taskHash('overview', null), '')
   assert.equal(taskHash('tasks', 'x'), '#board/x')
+})
+
+test('taskRoute opens the view of a broken hash without a project', () => {
+  assert.deepEqual(taskRoute('#board/%E0%A4'), { view: 'tasks', projectId: null })
+  assert.deepEqual(taskRoute('#%E0%A4'), { view: 'overview', projectId: null })
 })
 
 test('taskRoute still opens the links of mails and of the older tabs', () => {

@@ -6,7 +6,7 @@ import { connectedMember } from '../../lib/connectionsStore'
 import { handleMessage, isAllowedOrigin, isSupportedVersion } from '../../lib/mcp'
 import { isJsonRequest } from '../../lib/memberAuth'
 import { loadTaskEvents } from '../../lib/taskEvents'
-import { addTask, createProject, taskActor, updateTask, workspaceState, type TaskActor } from '../../lib/tasksStore'
+import { addTask, createProject, sessionActor, sharedWorkspace, updateTask, type TaskActor } from '../../lib/tasksStore'
 import { taskTools, type TaskToolStore } from '../../lib/taskTools'
 
 const json = (status: number, body: unknown) =>
@@ -18,8 +18,14 @@ const json = (status: number, body: unknown) =>
 const rpcError = (status: number, code: number, message: string, id: unknown = null) =>
   json(status, { jsonrpc: '2.0', id, error: { code, message } })
 
-const toolStore = (actor: TaskActor): TaskToolStore => ({
-  workspace: () => workspaceState(actor),
+// Projects and directory only: no tool reads templates or private tasks, and decrypting those costs time on every call.
+// Archived projects stay out, as in the tools' lists; the workspace sends some of them folded, without their tasks.
+const toolStore = (actor: TaskActor, team: string): TaskToolStore => ({
+  team,
+  workspace: async () => {
+    const { projects, members } = await sharedWorkspace(actor)
+    return { projects: projects.filter((project) => !project.archived), members }
+  },
   events: () => loadTaskEvents('de'),
   addTask: (id, fields) => addTask(actor, id, fields),
   updateTask: (id, taskId, patch) => updateTask(actor, id, taskId, patch),
@@ -38,11 +44,11 @@ export const ALL: APIRoute = async ({ request, url }) => {
   let message: unknown = null
   try {
     const token = /^Bearer (\S+)$/i.exec(request.headers.get('authorization') ?? '')?.[1]
-    const session = token ? await connectedMember(token, mcpResource(url.origin)) : null
-    const actor = session && (await taskActor(session))
-    if (!actor) {
+    const member = token ? await connectedMember(token, mcpResource(url.origin)) : null
+    if (!member) {
       return new Response(null, { status: 401, headers: { 'WWW-Authenticate': bearerChallenge(url.origin, !!token) } })
     }
+    const actor = sessionActor(member)
     if (!isAllowedOrigin(request.headers.get('origin'), url.origin)) return rpcError(403, -32000, 'Origin not allowed')
     if (request.method !== 'POST') return new Response(null, { status: 405, headers: { Allow: 'POST' } })
     if (!isSupportedVersion(request.headers.get('mcp-protocol-version'))) {
@@ -54,7 +60,7 @@ export const ALL: APIRoute = async ({ request, url }) => {
     } catch {
       return rpcError(400, -32700, 'Parse error')
     }
-    const answer = await handleMessage(message, taskTools(actor.id, toolStore(actor)))
+    const answer = await handleMessage(message, taskTools(actor.id, toolStore(actor, member.team ?? '')))
     return answer ? json(200, answer) : new Response(null, { status: 202 })
   } catch (err) {
     console.error('MCP request failed:', err)

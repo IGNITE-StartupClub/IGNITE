@@ -51,12 +51,17 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
         <p className="mt-2 text-caption font-medium text-accent">{copy.calendar.series}</p>
       ) : project ? (
         <>
-          <div className="mt-3 flex items-center gap-3">
-            <ProgressBar percent={done.percent} label={copy.board.progress} />
-            <span className="shrink-0 text-xs text-fg-muted">
-              {done.total ? fill(copy.panel.progress, done) : copy.board.noTasks}
-            </span>
-          </div>
+          {/* An archived planning comes without its tasks until it is opened, so it has no progress to show. */}
+          {project.folded ? (
+            <p className="mt-3 text-xs text-fg-muted">{copy.overview.planningArchived}</p>
+          ) : (
+            <div className="mt-3 flex items-center gap-3">
+              <ProgressBar percent={done.percent} label={copy.board.progress} />
+              <span className="shrink-0 text-xs text-fg-muted">
+                {done.total ? fill(copy.panel.progress, done) : copy.board.noTasks}
+              </span>
+            </div>
+          )}
           <LeadLine project={project} membersById={membersById} copy={copy} className="mt-3" />
           <div className="mt-3 flex items-center justify-between gap-2">
             <AvatarStack ids={projectAssignees(project)} membersById={membersById} copy={copy.people} />

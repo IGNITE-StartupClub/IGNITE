@@ -122,6 +122,8 @@ export interface ProjectState {
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   tasks: TaskState[]
+  /** Archived and sent without tasks and description until the island loads its archive (withArchive). */
+  folded?: true
 }
 
 // Marks an invalid field inside the parsers; never leaves this module.
@@ -389,13 +391,48 @@ export function nextStanding(task: Standing, patch: TaskPatch): Standing {
   return { status: patch.done ? 'done' : 'backlog', done: patch.done }
 }
 
-/** A task with a change applied, for updates the UI shows before the server answers. */
-export const patchedTask = <T extends Standing & { assignees?: string[] }>(task: T, patch: TaskPatch): T => ({
-  ...task,
-  ...patch,
-  ...nextStanding(task, patch),
-  ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
-})
+/** A task with a change applied, for updates the UI shows before the server answers; `now` stamps a task it finishes. */
+export function patchedTask<T extends Standing & { assignees?: string[]; doneAt?: string }>(task: T, patch: TaskPatch, now = new Date().toISOString()): T {
+  const standing = nextStanding(task, patch)
+  return {
+    ...task,
+    ...patch,
+    ...standing,
+    // The done column sorts by doneAt (boardColumns), so a finished card without one would drop out of its first rows.
+    ...(standing.done !== task.done && 'doneAt' in task && { doneAt: standing.done ? now : '' }),
+    ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
+  }
+}
+
+/**
+ * A single task is a card of type 'task' with one task. The panel shows the card's title, description and deadline,
+ * everything else the task's, so the two keep the same values: the server copies a change of these fields to the other
+ * side (tasksStore.ts), and the islands show a task's change on its card before the answer (patchedProject).
+ */
+export const MIRRORED_FIELDS = ['title', 'description', 'due'] as const
+type MirroredFields = Partial<Record<(typeof MIRRORED_FIELDS)[number], string>>
+
+export const isSingleTask = (project: { type: ProjectType; tasks: readonly unknown[] }): boolean => project.type === 'task' && project.tasks.length === 1
+
+/** The fields of a task or card change that the other side of a single task takes over. */
+export function mirroredFields(patch: MirroredFields): MirroredFields {
+  const shared: MirroredFields = {}
+  for (const key of MIRRORED_FIELDS) if (patch[key] !== undefined) shared[key] = patch[key]
+  return shared
+}
+
+/** A project with one of its tasks changed (patchedTask); the card of a single task follows its task. */
+export function patchedProject<P extends { type: ProjectType; tasks: T[] }, T extends Standing & { id: string; assignees?: string[]; doneAt?: string }>(
+  project: P,
+  taskId: string,
+  patch: TaskPatch,
+): P {
+  return {
+    ...project,
+    ...(isSingleTask(project) && mirroredFields(patch)),
+    tasks: project.tasks.map((task) => (task.id === taskId ? patchedTask(task, patch) : task)),
+  }
+}
 
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
@@ -649,12 +686,21 @@ export function taskHash(view: TaskView, projectId: string | null): string {
   return parts.length ? `#${parts.join('/')}` : ''
 }
 
-/** View and open project of a hash. "#<id>" alone is the older link to a project and opens it on the overview. */
+/**
+ * View and open project of a hash. "#<id>" alone is the older link to a project and opens it on the overview. A hash
+ * that is no valid URI component, typed or cut off, opens the view without a project.
+ */
 export function taskRoute(hash: string): { view: TaskView; projectId: string | null } {
   const [first = '', second = ''] = hash.replace(/^#/, '').split('/')
   const view = (Object.keys(VIEW_SLUGS) as (keyof typeof VIEW_SLUGS)[]).find((key) => VIEW_SLUGS[key] === first)
-  if (view) return { view, projectId: second ? decodeURIComponent(second) : null }
-  return { view: 'overview', projectId: first ? decodeURIComponent(first) : null }
+  const project = (part: string) => {
+    try {
+      return part ? decodeURIComponent(part) : null
+    } catch {
+      return null
+    }
+  }
+  return view ? { view, projectId: project(second) } : { view: 'overview', projectId: project(first) }
 }
 
 /**
@@ -757,7 +803,7 @@ export const applyMemberChange = (list: string[], { add, remove }: MemberChange)
 
 interface WorkspaceChanges<P, M> {
   revision: string
-  /** Every project there is, so the island drops what was deleted. */
+  /** Every project the island may hold, so it drops what was deleted. */
   ids: string[]
   /** Only the projects that changed. */
   projects: P[]
@@ -780,5 +826,22 @@ export function applyChanges<P extends { id: string; updatedAt: string }, M, S e
     members: changes.members,
     privateTasks: changes.privateTasks,
     projects: [...kept, ...changes.projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+  }
+}
+
+/**
+ * The workspace with archived projects laid over it, loaded on demand or kept from before an answer that knew none of
+ * them. A copy the state holds in full stays unless the archived one is newer; a folded one always gives way.
+ */
+export function withArchive<P extends { id: string; updatedAt: string; folded?: true }, S extends { projects: P[] }>(state: S, archived: P[]): S {
+  const held = new Map(state.projects.map((project) => [project.id, project]))
+  const taken = archived.filter((project) => {
+    const current = held.get(project.id)
+    return !current || current.folded || current.updatedAt < project.updatedAt
+  })
+  const replaced = new Set(taken.map((project) => project.id))
+  return {
+    ...state,
+    projects: [...state.projects.filter((project) => !replaced.has(project.id)), ...taken].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
   }
 }

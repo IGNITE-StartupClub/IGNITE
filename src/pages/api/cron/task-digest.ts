@@ -5,9 +5,10 @@ import { rejectCron } from '../../../lib/cron'
 import { sendDigests } from '../../../lib/taskDigest'
 
 /**
- * Daily digest of new task assignments (taskDigest.ts). vercel.json calls it at 17:00 and 18:00 UTC: in summer
- * (CEST) the first call is 19:00 in Berlin, in winter (CET) the second, and the call before 19:00 does nothing.
- * The call after the one that sent works as a retry for failed digests; sent ones are never sent twice.
+ * Daily digest of new task assignments (taskDigest.ts). vercel.json calls it at 17:00, 18:00 and 19:00 UTC; on Hobby
+ * each call comes anywhere within its hour. In summer (CEST) the first call is 19:00 in Berlin and the two after it
+ * retry failed digests. In winter (CET) the first call comes before 19:00 and does nothing, the second sends and the
+ * third retries. Sent digests are never sent twice.
  */
 export const GET: APIRoute = async ({ request }) => {
   const rejected = rejectCron(request)

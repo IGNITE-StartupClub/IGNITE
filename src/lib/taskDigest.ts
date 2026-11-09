@@ -2,10 +2,12 @@
  * The daily digest of new task assignments (cron /api/cron/task-digest). From 19:00 Berlin time on, every member with
  * pending entries in `task_notifications` gets one mail with all of them, grouped by project.
  * `task_digests` holds one document per member and Berlin day (`_id` `${memberId}:${day}`), so a member gets at most
- * one digest a day however often the job runs. A run claims the document before sending; a failed send is tried again
- * by a later run (at most MAX_ATTEMPTS times a day) and keeps the entries for the next day after that. Resend gets the
- * same idempotency key on every try, so a send that went out although the run failed afterwards is not repeated.
- * Entries whose task was finished, deleted, archived or handed to someone else meanwhile are dropped unsent.
+ * one digest a day however often the job runs; a TTL index removes it after KEEP_DAYS. A run claims the document before
+ * sending; a failed send is tried again by the day's later runs (two in summer, one in winter, see the cron route; at
+ * most MAX_ATTEMPTS tries) and keeps the entries for the next day after that. Resend gets the same idempotency key on
+ * every try, so a send that went out although the run failed afterwards is not repeated.
+ * Entries whose task or project was finished, deleted or archived meanwhile, or whose task went to someone else, are
+ * dropped unsent.
  * Admins can switch the digest off for everyone (setting `taskDigest` in `settings`, AdminSettings island); while it is
  * off, each run drops the pending entries, so switching it on again sends no backlog.
  */
@@ -14,15 +16,17 @@ import 'dotenv/config'
 import { globalConfig } from '../data/staticContent'
 import { getTaskDigestEmailHTML, getTaskDigestSubject, type DigestProject } from '../templates/emails/taskDigestEmail'
 import { memberPagePath } from './memberAuth'
-import { database } from './members'
+import { database, setUpInBackground } from './members'
 import { assertSent } from './resend'
-import { berlinDay, berlinHour } from './tasks'
+import { berlinDay, berlinHour, projectStatus } from './tasks'
 import { dropNotifications, pendingNotifications, projectsForDigest, recipients, type NotificationDoc } from './tasksStore'
 
 export const DIGEST_HOUR = 19
 const MAX_ATTEMPTS = 3
 /** A claim older than this belongs to a run that died; the next run may take it over. */
 const CLAIM_TIMEOUT_MS = 10 * 60 * 1000
+/** Long enough to look into a question about a digest, short enough to keep no history of who got which task. */
+const KEEP_DAYS = 30
 
 interface DigestDoc {
   _id: string
@@ -64,8 +68,15 @@ export async function setDigestEnabled(enabled: boolean, actor: string): Promise
   )
 }
 
+let indexed = false
+
 async function digests() {
-  return (await database()).collection<DigestDoc>('task_digests')
+  const collection = (await database()).collection<DigestDoc>('task_digests')
+  if (!indexed) {
+    indexed = true
+    setUpInBackground('task digests', () => collection.createIndex({ claimedAt: 1 }, { expireAfterSeconds: KEEP_DAYS * 86_400 }))
+  }
+  return collection
 }
 
 /** Takes the member's digest of `day` for this run; false when it was sent, is being sent or has used its attempts. */
@@ -98,8 +109,10 @@ async function digestContent(entries: NotificationDoc[], memberId: string, origi
   const taskIds: string[] = []
   for (const entry of entries) {
     const project = byId.get(entry.projectId)
-    const task = project?.tasks.find((item) => item.id === entry.taskId)
-    if (!project || project.archivedAt || !task || task.done || !task.assignees.includes(memberId)) continue
+    // A done project hides its tasks on the start page, in "Meine Aufgaben" and in the calendar feed, so the mail does too.
+    if (!project || project.archivedAt || projectStatus(project.status) === 'done') continue
+    const task = project.tasks.find((item) => item.id === entry.taskId)
+    if (!task || task.done || !task.assignees.includes(memberId)) continue
     const group = groups.get(project._id) ?? {
       title: project.title,
       url: new URL(`${memberPagePath('tasks', 'de')}#${project._id}`, origin).href,

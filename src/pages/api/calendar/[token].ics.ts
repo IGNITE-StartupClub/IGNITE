@@ -7,7 +7,7 @@ import { memberPagePath } from '../../../lib/memberAuth'
 import { openTasks } from '../../../lib/memberHome'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { berlinDay } from '../../../lib/tasks'
-import { assignedProjects, taskActor } from '../../../lib/tasksStore'
+import { assignedProjects, sessionActor } from '../../../lib/tasksStore'
 
 const text = (status: number, body: string, headers: Record<string, string> = {}) =>
   new Response(body, {
@@ -22,8 +22,8 @@ const text = (status: number, body: string, headers: Record<string, string> = {}
 export const GET: APIRoute = async ({ params, url }) => {
   try {
     const member = await calendarFeedMember(params.token ?? '')
-    const actor = member && (await taskActor(member))
-    if (!actor) return text(404, 'Not found')
+    if (!member) return text(404, 'Not found')
+    const actor = sessionActor(member)
 
     const [{ events, complete }, projects] = await Promise.all([loadTaskEvents('de'), assignedProjects(actor)])
     // A feed without the Luma events would delete them from the subscribed calendar until the next refresh.

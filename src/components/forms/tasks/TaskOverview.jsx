@@ -7,13 +7,13 @@
  * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects, soonest
  * first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
  * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
- * onCapture(text) → captureTask, onQuickAdd(captured, isPrivate).
+ * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate).
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
-import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, TaskCheck } from './taskUi'
+import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, showRest, TaskCheck } from './taskUi'
 
 const CALENDAR_DAYS = 14
 const CHIPS_SHOWN = 3
@@ -26,16 +26,27 @@ const ROW_LINE = 'border-0 border-t border-solid border-border'
 const CHIP = 'block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
 
 function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask }) {
+  const [all, setAll] = useState(false)
   const chips = [
     ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onOpenEvent(entry) })),
     ...deadlines.map((task) => ({ id: task.id, title: task.title, tone: 'bg-bg-subtle text-fg', onClick: () => onOpenTask(task) })),
   ]
-  const shown = chips.length > CHIPS_SHOWN ? CHIPS_SHOWN - 1 : chips.length
+  const shown = all || chips.length <= CHIPS_SHOWN ? chips.length : CHIPS_SHOWN - 1
+  const label = dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })
+  const showAll = (e) => {
+    const cell = e.currentTarget.parentElement
+    showRest(() => setAll(true), () => cell.querySelectorAll(':scope > button')[shown])
+  }
   return (
     <li className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'}`}>
-      <p className="mb-0.5 flex items-center justify-between gap-1" aria-label={dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}>
-        <span className="text-caption text-fg-muted">{dayPart(day, locale, { weekday: 'short' }).replace('.', '')}</span>
+      {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
+      <p className="mb-0.5 flex items-center justify-between gap-1">
+        <span className="sr-only">{label}</span>
+        <span aria-hidden="true" className="text-caption text-fg-muted">
+          {dayPart(day, locale, { weekday: 'short' }).replace('.', '')}
+        </span>
         <span
+          aria-hidden="true"
           className={`grid h-7 w-7 place-items-center rounded-full text-sm ${day === today ? 'bg-brand-bright font-semibold text-white' : 'font-medium'}`}
         >
           {dayPart(day, locale, { day: 'numeric' }).replace('.', '')}
@@ -46,7 +57,16 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
           {chip.title}
         </button>
       ))}
-      {shown < chips.length && <span className="px-1.5 text-xs text-fg-muted">{fill(copy.overview.moreOnDay, { count: chips.length - shown })}</span>}
+      {shown < chips.length && (
+        <button
+          type="button"
+          aria-label={fill(copy.overview.showDay, { date: label })}
+          className="w-fit border-0 bg-transparent px-1.5 py-0 text-xs text-fg-muted hover:text-fg hover:underline"
+          onClick={showAll}
+        >
+          {fill(copy.overview.moreOnDay, { count: chips.length - shown })}
+        </button>
+      )}
     </li>
   )
 }
@@ -117,7 +137,7 @@ function QuickAdd({ copy, onCapture, onAdd }) {
   const text = copy.overview
   const [draft, setDraft] = useState('')
   const [isPrivate, setPrivate] = useState(false)
-  const capture = draft.trim() ? onCapture(draft) : null
+  const capture = draft.trim() ? onCapture(draft, isPrivate) : null
   const add = async (e) => {
     e.preventDefault()
     if (!capture?.title || capture.problems.length) return
@@ -140,11 +160,14 @@ function QuickAdd({ copy, onCapture, onAdd }) {
         </label>
         <PrivateToggle pressed={isPrivate} onChange={setPrivate} label={copy.private.toggle} />
       </div>
-      {capture?.problems.map(({ kind, token }) => (
-        <p key={`${kind}${token}`} role="alert" className="mt-1.5 text-caption text-danger">
-          {fill(copy.problems[kind], { token })}
-        </p>
-      ))}
+      {/* One polite region for all problems: an alert per problem was announced again with every letter typed. */}
+      <div aria-live="polite">
+        {capture?.problems.map(({ kind, token }) => (
+          <p key={`${kind}${token}`} className="mt-1.5 text-caption text-danger">
+            {fill(copy.problems[kind], { token })}
+          </p>
+        ))}
+      </div>
     </form>
   )
 }
@@ -152,7 +175,7 @@ function QuickAdd({ copy, onCapture, onAdd }) {
 function EventSummary({ entry, project, copy, locale, membersById, onStart, onOpen }) {
   const text = copy.overview
   const tasks = project && progress(project.tasks)
-  const planning = !project ? text.noPlanning : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
+  const planning = !project ? text.noPlanning : project.folded ? text.planningArchived : tasks.total ? fill(text.planning, tasks) : text.planningEmpty
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
