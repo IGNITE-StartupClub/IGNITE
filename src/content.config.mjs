@@ -3,6 +3,7 @@ import { defineCollection, z } from 'astro:content'
 
 // 2. Import loader(s)
 import { glob } from 'astro/loaders'
+import { editionProblems } from './lib/startupWeek.ts'
 
 // 3. Define your collection(s)
 const newsSchema = z.object({
@@ -56,5 +57,37 @@ const materials = defineCollection({
   }),
 })
 
+// "Deine Startup-Woche" (/startup-woche): one file per week, named after its Monday (2026-11-09.json).
+// Each event carries its German and English text; links go straight to the registration.
+const startupWeekText = z.object({
+  title: z.string().min(1),
+  text: z.string().min(1),
+  place: z.string().min(1),
+  note: z.string().min(1).optional(),
+})
+const startupWeek = defineCollection({
+  loader: glob({ pattern: '*.json', base: './src/content/startupWeek' }),
+  schema: z
+    .object({
+      start: z.string(),
+      events: z
+        .array(
+          z.object({
+            date: z.string(),
+            time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+            emoji: z.string().optional(),
+            host: z.string().min(1),
+            url: z.string().url(),
+            de: startupWeekText,
+            en: startupWeekText,
+          }),
+        )
+        .min(1),
+    })
+    .superRefine((edition, context) => {
+      for (const message of editionProblems(edition.start, edition.events.map((event) => event.date))) context.addIssue({ code: 'custom', message })
+    }),
+})
+
 // 4. Export a single `collections` object to register you collection(s)
-export const collections = { projects, projectsEn, events, materials }
+export const collections = { projects, projectsEn, events, materials, startupWeek }
