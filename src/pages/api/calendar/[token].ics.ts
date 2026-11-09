@@ -1,7 +1,7 @@
 export const prerender = false
 
 import type { APIRoute } from 'astro'
-import { calendarFeed } from '../../../lib/calendarFeed'
+import { calendarFeed, FEED_HEADERS } from '../../../lib/calendarFeed'
 import { calendarFeedMember } from '../../../lib/connectionsStore'
 import { memberPagePath } from '../../../lib/memberAuth'
 import { openTasks } from '../../../lib/memberHome'
@@ -9,6 +9,8 @@ import { loadTaskEvents } from '../../../lib/taskEvents'
 import { berlinDay } from '../../../lib/tasks'
 import { assignedProjects, sessionActor } from '../../../lib/tasksStore'
 
+// Refusals and failures stay out of every cache: a cached 404 would keep refusing a link for half an hour after an
+// admin switches connections on again.
 const text = (status: number, body: string, headers: Record<string, string> = {}) =>
   new Response(body, {
     status,
@@ -34,7 +36,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       .filter((task) => task.due)
       .map((task) => ({ ...task, url: `${url.origin}${memberPagePath('tasks', 'de')}#${task.projectId}` }))
     return new Response(calendarFeed(events, tasks, new Date()), {
-      headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'private, no-store' },
+      headers: FEED_HEADERS,
     })
   } catch (err) {
     console.error('Calendar feed failed:', err)

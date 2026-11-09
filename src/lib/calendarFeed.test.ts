@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { calendarFeed, type FeedEvent, type FeedTask } from './calendarFeed.ts'
+import { calendarFeed, FEED_HEADERS, type FeedEvent, type FeedTask } from './calendarFeed.ts'
 
 const now = new Date('2026-11-06T10:00:00.000Z')
 const event: FeedEvent = {
@@ -72,4 +72,11 @@ test('folds long lines at 75 octets without splitting a character', () => {
 test('leaves out the URL of an event without a page', () => {
   const feed = lines(calendarFeed([{ ...event, url: '' }], [], now))
   assert.equal(feed.some((line) => line.startsWith('URL:')), false)
+})
+
+test('a delivered feed is cached by Vercel for 30 minutes and by nobody else', () => {
+  assert.match(FEED_HEADERS['Vercel-CDN-Cache-Control'], /^max-age=1800, stale-if-error=86400$/)
+  // Vercel does not cache a response whose Cache-Control says private, no-cache or no-store.
+  assert.doesNotMatch(FEED_HEADERS['Cache-Control'], /private|no-cache|no-store/)
+  assert.match(FEED_HEADERS['Cache-Control'], /max-age=0/)
 })

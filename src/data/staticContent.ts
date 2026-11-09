@@ -1009,7 +1009,7 @@ export const memberArea = {
         once: 'Dieser Link erscheint nur jetzt. Wer ihn kennt, sieht deine Termine, also behalte ihn für dich.',
         open: 'Im Kalender abonnieren',
         address: 'Abo-Link',
-        renewNote: 'Ein neuer Link schaltet den alten ab.',
+        renewNote: 'Ein neuer Link schaltet den alten ab, spätestens nach 30 Minuten.',
       },
     },
     consent: {

@@ -1009,7 +1009,7 @@ export const memberArea = {
         once: 'This link only appears now. Anyone who has it can see your dates, so keep it to yourself.',
         open: 'Subscribe in calendar',
         address: 'Subscription link',
-        renewNote: 'A new link turns the old one off.',
+        renewNote: 'A new link turns the old one off within 30 minutes.',
       },
     },
     consent: {
