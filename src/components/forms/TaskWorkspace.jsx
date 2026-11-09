@@ -18,7 +18,7 @@
  * asked for one), locale, today (YYYY-MM-DD, Berlin).
  * Styles: ./forms.css plus Tailwind utilities.
  */
-import React, { useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { captureTask } from '../../lib/memberSearch'
 import {
@@ -39,19 +39,49 @@ import {
 } from '../../lib/tasks'
 import { Chip, fill, Menu, MENU_ITEM, PRIMARY_BUTTON, SearchField } from './memberUi'
 import { fetchNews, useLiveRefresh } from './useLiveRefresh'
-import CompleteDialog from './tasks/CompleteDialog'
-import CreateDialog from './tasks/CreateDialog'
 import EventCalendar from './tasks/EventCalendar'
 import EventCards from './tasks/EventCards'
-import EventDialog from './tasks/EventDialog'
-import PrivateTaskDialog from './tasks/PrivateTaskDialog'
 import ProjectBoard from './tasks/ProjectBoard'
-import ProjectPanel from './tasks/ProjectPanel'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
 import { FilterMenu, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
+
+// The dialogs, the project panel above all, were about a third of this island's code but show only after a click or a
+// deep link. They load in chunks of their own, so the page hydrates without them, and are fetched once the page is idle
+// (loadDialogs), so opening one does not wait for the network.
+const DIALOG_CHUNKS = {
+  ProjectPanel: () => import('./tasks/ProjectPanel'),
+  CreateDialog: () => import('./tasks/CreateDialog'),
+  CompleteDialog: () => import('./tasks/CompleteDialog'),
+  EventDialog: () => import('./tasks/EventDialog'),
+  PrivateTaskDialog: () => import('./tasks/PrivateTaskDialog'),
+}
+const ProjectPanel = lazy(DIALOG_CHUNKS.ProjectPanel)
+const CreateDialog = lazy(DIALOG_CHUNKS.CreateDialog)
+const CompleteDialog = lazy(DIALOG_CHUNKS.CompleteDialog)
+const EventDialog = lazy(DIALOG_CHUNKS.EventDialog)
+const PrivateTaskDialog = lazy(DIALOG_CHUNKS.PrivateTaskDialog)
+
+function loadDialogs() {
+  for (const load of Object.values(DIALOG_CHUNKS)) {
+    // Safe to ignore: this only warms the cache. If the chunk fails here, React.lazy loads it again when the dialog
+    // is opened and reports a failure there.
+    load().catch(() => {})
+  }
+}
+
+/**
+ * Mounts a dialog the first time `open` is set and keeps it mounted afterwards, like before the split: the dialogs open
+ * and close their <dialog> themselves in an effect on their prop, which also runs on the first mount. Nothing renders
+ * on the server, because every dialog starts closed.
+ */
+function Deferred({ open, children }) {
+  const [used, setUsed] = useState(false)
+  if (open && !used) setUsed(true)
+  return open || used ? <Suspense fallback={null}>{children}</Suspense> : null
+}
 
 const LAYOUT_KEY = 'ignite-tasks-layout'
 const LINKED_VIEWS = { aufgaben: 'tasks', meine: 'tasks', projekte: 'projects', events: 'events' }
@@ -187,6 +217,16 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     return () => window.removeEventListener('popstate', read)
   }, [])
 
+  useEffect(() => {
+    // Safari has no requestIdleCallback.
+    if (!('requestIdleCallback' in window)) {
+      const timer = setTimeout(loadDialogs, 1000)
+      return () => clearTimeout(timer)
+    }
+    const handle = window.requestIdleCallback(loadDialogs, { timeout: 3000 })
+    return () => window.cancelIdleCallback(handle)
+  }, [])
+
   // The toast is a manual popover, so it shows above open dialogs (top layer) as well.
   useEffect(() => {
     const element = toast.current
@@ -278,6 +318,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
 
   const projectsByEvent = new Map(projects.filter((project) => project.event).map((project) => [project.event.id, project]))
   const openProject = projectId ? projects.find((project) => project.id === projectId) : null
+  const openPrivateTask = privateTasks.find((task) => task.id === openPrivateId) ?? null
   const { entries, twins } = calendarEntries(events, projects)
   const planOf = (entry) => (entry.source === 'own' ? projects.find((project) => project.id === entry.id) : projectsByEvent.get(entry.id))
   const openEvent = (entry) => {
@@ -555,46 +596,51 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         </div>
       )}
 
-      <ProjectPanel
-        project={openProject}
-        copy={copy}
-        locale={locale}
-        today={today}
-        me={me}
-        members={members}
-        membersById={membersById}
-        run={run}
-        onClose={closePanel}
-        onStatus={(project, status) => move(project.id, status)}
-      />
-      <CreateDialog
-        request={createRequest}
-        copy={copy}
-        locale={locale}
-        me={me}
-        members={members}
-        membersById={membersById}
-        templates={templates}
-        projects={projects}
-        entries={entries}
-        planOf={planOf}
-        admin={admin}
-        run={run}
-        onCreated={created}
-        onUseEntry={(entry) => {
-          const project = planOf(entry)
-          if (project) open(project.id)
-          else startPlanning(entry)
-        }}
-      />
-      <EventDialog entry={shownEvent} copy={copy} locale={locale} membersById={membersById} onStart={startPlanning} onClose={() => setShownEvent(null)} />
-      <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
-      <PrivateTaskDialog
-        task={privateTasks.find((task) => task.id === openPrivateId) ?? null}
-        copy={copy}
-        run={run}
-        onClose={() => setOpenPrivateId(null)}
-      />
+      <Deferred open={openProject}>
+        <ProjectPanel
+          project={openProject}
+          copy={copy}
+          locale={locale}
+          today={today}
+          me={me}
+          members={members}
+          membersById={membersById}
+          run={run}
+          onClose={closePanel}
+          onStatus={(project, status) => move(project.id, status)}
+        />
+      </Deferred>
+      <Deferred open={createRequest}>
+        <CreateDialog
+          request={createRequest}
+          copy={copy}
+          locale={locale}
+          me={me}
+          members={members}
+          membersById={membersById}
+          templates={templates}
+          projects={projects}
+          entries={entries}
+          planOf={planOf}
+          admin={admin}
+          run={run}
+          onCreated={created}
+          onUseEntry={(entry) => {
+            const project = planOf(entry)
+            if (project) open(project.id)
+            else startPlanning(entry)
+          }}
+        />
+      </Deferred>
+      <Deferred open={shownEvent}>
+        <EventDialog entry={shownEvent} copy={copy} locale={locale} membersById={membersById} onStart={startPlanning} onClose={() => setShownEvent(null)} />
+      </Deferred>
+      <Deferred open={completing}>
+        <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
+      </Deferred>
+      <Deferred open={openPrivateTask}>
+        <PrivateTaskDialog task={openPrivateTask} copy={copy} run={run} onClose={() => setOpenPrivateId(null)} />
+      </Deferred>
       <TaskContextMenu
         menu={taskMenu}
         copy={copy}

@@ -7,6 +7,7 @@
  * Data source: openTeams and memberArea.team via getCopy(), people via memberSummaries().
  */
 import MemberNetworkLayout from '../layouts/MemberNetworkLayout.astro'
+import { teamIconPath, type TeamIcon } from '../data/brandKit'
 import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { initials } from '../lib/contacts'
@@ -15,7 +16,7 @@ import { BOARD_GROUP, rosterGroups } from '../lib/memberRoster'
 import { personAnchor } from '../lib/memberSearch'
 import { displayName, memberDirectory } from '../lib/members'
 
-const ICONS: Record<string, string> = {
+const ICONS: Record<string, TeamIcon> = {
   [BOARD_GROUP]: 'board',
   'ignite-relations': 'relations',
   'ignite-marketing': 'marketing',
@@ -41,7 +42,7 @@ const cards = [
       cards.map(({ id, name, text }) => (
         <section aria-labelledby={`team-${id}`} class="rounded-card border border-border bg-card p-5">
           <div class="flex items-start gap-3">
-            <img src={`/brand/ignite-team-${ICONS[id]}.png`} alt="" class="h-12 w-12 shrink-0 rounded-full" />
+            <img src={teamIconPath(ICONS[id])} alt="" width="48" height="48" class="h-12 w-12 shrink-0 rounded-full" />
             <div class="min-w-0">
               <h2 id={`team-${id}`} class="text-[20px] font-semibold leading-tight">{name}</h2>
               <p class="mt-1 text-sm text-fg-muted">{text}</p>

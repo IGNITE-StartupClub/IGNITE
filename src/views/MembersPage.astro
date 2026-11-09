@@ -13,6 +13,7 @@ import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
 import MemberDashboard from '../components/forms/MemberDashboard.jsx'
 import TeamChoice from '../components/forms/TeamChoice.jsx'
+import { teamIconPath } from '../data/brandKit'
 import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { photoPath } from '../lib/emailSignature'
@@ -26,13 +27,13 @@ import { privateTasks } from '../lib/privateTasksStore'
 import { assignedProjects, sessionActor } from '../lib/tasksStore'
 
 const TEAM_ICONS: Record<TeamId, string> = {
-  'ignite-relations': '/brand/ignite-team-relations.png',
-  'ignite-marketing': '/brand/ignite-team-marketing.png',
-  'ignite-hr': '/brand/ignite-team-community.png',
-  'ignite-finance-legal': '/brand/ignite-team-finance.png',
-  'ignite-infrastructure': '/brand/ignite-team-organisation.png',
+  'ignite-relations': teamIconPath('relations'),
+  'ignite-marketing': teamIconPath('marketing'),
+  'ignite-hr': teamIconPath('community'),
+  'ignite-finance-legal': teamIconPath('finance'),
+  'ignite-infrastructure': teamIconPath('organisation'),
 }
-const BOARD_ICON = '/brand/ignite-team-board.png'
+const BOARD_ICON = teamIconPath('board')
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, openTeams } = getCopy(locale)
