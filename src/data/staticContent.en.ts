@@ -991,7 +991,7 @@ export const memberArea = {
       failed: 'That did not work. Please try again.',
       assistant: {
         title: 'AI assistant',
-        text: 'Add this address to Claude or ChatGPT as a custom connector and sign in with your member account. You can then ask about your tasks there, add new ones and change them. The app cannot delete anything.',
+        text: 'Add this address to Claude or ChatGPT as a custom connector and sign in with your member account. You can then ask about your tasks there, add new ones, including repeating ones or ones for other members, and change them. The app cannot delete anything.',
         address: 'Connector address',
         connected: 'Connected apps',
         none: 'No app connected yet.',
@@ -1017,9 +1017,12 @@ export const memberArea = {
       title: 'Connect {app} to your account?',
       account: 'Signed in as {email}',
       can: 'The app may',
-      canItems: ['read your tasks, the projects and the events', 'add and change tasks'],
+      canItems: [
+        'read your tasks, the projects, the events and the names of members',
+        'add and change tasks, also for other members when you ask for it',
+      ],
       cannot: 'The app may not',
-      cannotItems: ['delete projects or tasks', 'assign tasks to other members', 'see the CRM, alumni or addresses'],
+      cannotItems: ['delete projects or tasks', 'see your private tasks', 'see the CRM, alumni or addresses'],
       note: 'What the app fetches goes to its provider. That includes tasks and names of other members from the projects. You can disconnect the app at any time under “Connections” in the profile menu.',
       approve: 'Connect',
       deny: 'Cancel',

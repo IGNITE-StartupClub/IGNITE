@@ -6,6 +6,7 @@ import type { ProjectFields, TaskFields, TaskPatch } from './tasks.ts'
 
 const me = 'a'.repeat(24)
 const other = 'b'.repeat(24)
+const third = 'c'.repeat(24)
 const projectId = '11111111-1111-4111-8111-111111111111'
 const taskId = '22222222-2222-4222-8222-222222222222'
 const now = Date.parse('2026-11-06T10:00:00.000Z')
@@ -56,6 +57,7 @@ function setup(projects = [project()], outcome = 'ok', complete = true) {
         members: [
           { id: me, name: 'Noah', team: 'ignite-infrastructure' },
           { id: other, name: 'Lisa', team: '' },
+          { id: third, name: 'Lena Müller', team: 'ignite-marketing' },
         ],
       }
     },
@@ -112,7 +114,15 @@ function setup(projects = [project()], outcome = 'ok', complete = true) {
 
 test('offers no tool that deletes or archives', () => {
   const names = setup().tools.map((tool) => tool.name)
-  assert.deepEqual(names, ['my_tasks', 'list_projects', 'get_project', 'upcoming_events', 'create_task', 'update_task'])
+  assert.deepEqual(names, [
+    'my_tasks',
+    'list_projects',
+    'get_project',
+    'find_members',
+    'upcoming_events',
+    'create_task',
+    'update_task',
+  ])
   for (const tool of setup().tools) assert.equal(tool.annotations.destructiveHint ?? false, false)
 })
 
@@ -177,13 +187,34 @@ test('list_projects leaves out archived projects and single tasks, and filters',
   assert.deepEqual((await run('list_projects')).projects[0].progress, { done: 0, total: 1, percent: 0 })
 })
 
-test('get_project shows names instead of member ids and skips removed members', async () => {
-  const { leads, tasks } = await setup([project({ tasks: [task({ assignees: [me, 'c'.repeat(24)] })] })]).run(
+test('get_project names the people with their ids and skips removed members', async () => {
+  const { leads, tasks } = await setup([project({ tasks: [task({ assignees: [me, 'd'.repeat(24)] })] })]).run(
     'get_project',
     { project_id: projectId },
   )
   assert.deepEqual(leads, ['Lisa'])
-  assert.deepEqual(tasks[0].assignees, ['Noah'])
+  assert.deepEqual(tasks[0].assignees, [{ member_id: me, name: 'Noah' }])
+  assert.equal(tasks[0].repeat, '')
+})
+
+test('find_members lists name and team by name, marks the member and sends no address', async () => {
+  const { run } = setup()
+  const all = await run('find_members')
+  assert.deepEqual(
+    all.members.map((member: { name: string }) => member.name),
+    ['Lena Müller', 'Lisa', 'Noah'],
+  )
+  assert.deepEqual(all.members[2], { member_id: me, name: 'Noah', team: 'ignite-infrastructure', you: true })
+  assert.deepEqual(Object.keys(all.members[0]).sort(), ['member_id', 'name', 'team'])
+  assert.equal(all.more, false)
+  assert.deepEqual(
+    (await run('find_members', { query: 'lena muller' })).members.map((member: { member_id: string }) => member.member_id),
+    [third],
+  )
+  assert.deepEqual(
+    (await run('find_members', { team: 'ignite-marketing' })).members.map((member: { name: string }) => member.name),
+    ['Lena Müller'],
+  )
 })
 
 test('get_project reports unknown and malformed ids as tool errors', async () => {
@@ -223,10 +254,29 @@ test("create_task without project makes a single task in the member's team", asy
   assert.equal(calls.workspaceReads, undefined)
 })
 
-test('create_task takes no other assignees, whatever the model sends', async () => {
+test('create_task assigns members from the directory, and a single task joins the team of its first person', async () => {
   const { calls, run } = setup()
-  await run('create_task', { title: 'Raum buchen', assignees: [other] })
-  assert.deepEqual(calls.single?.[1].assignees, [me])
+  await run('create_task', { title: 'Plakat', assignees: [third, me, third] })
+  assert.deepEqual(calls.single?.[1].assignees, [third, me])
+  assert.equal(calls.single?.[0].team, 'ignite-marketing')
+  await run('create_task', { title: 'Raum buchen', project_id: projectId, assignees: [other] })
+  assert.deepEqual(calls.added?.[1].assignees, [other])
+})
+
+test('create_task refuses ids that are not in the directory or an empty list', async () => {
+  const { calls, run } = setup()
+  await assert.rejects(run('create_task', { title: 'Plakat', assignees: ['d'.repeat(24)] }), ToolError)
+  await assert.rejects(run('create_task', { title: 'Plakat', assignees: ['Lena'] }), ToolError)
+  await assert.rejects(run('create_task', { title: 'Plakat', assignees: [] }), ToolError)
+  await assert.rejects(run('create_task', { title: 'Plakat', assignees: other }), ToolError)
+  assert.equal(calls.single, undefined)
+})
+
+test('create_task takes a repeat rhythm and refuses an unknown one', async () => {
+  const { calls, run } = setup()
+  await run('create_task', { title: 'Newsletter', due: '2026-11-10', repeat: 'weekly' })
+  assert.equal(calls.single?.[1].repeat, 'weekly')
+  await assert.rejects(run('create_task', { title: 'Newsletter', repeat: 'daily' }), ToolError)
 })
 
 test('create_task refuses invalid input', async () => {
@@ -247,6 +297,32 @@ test('update_task passes only the fields it allows', async () => {
     required: true,
   })
   assert.deepEqual(calls.updated, [projectId, taskId, { status: 'done' }])
+})
+
+test('update_task adds people from the directory or removes people, one direction per call', async () => {
+  const { calls, run } = setup()
+  await run('update_task', { project_id: projectId, task_id: taskId, add_assignees: [third] })
+  assert.deepEqual(calls.updated?.[2], { assignees: { add: [third], remove: [] } })
+  // A removed member is no longer in the directory but can still leave the task.
+  await run('update_task', { project_id: projectId, task_id: taskId, remove_assignees: ['d'.repeat(24)] })
+  assert.deepEqual(calls.updated?.[2], { assignees: { add: [], remove: ['d'.repeat(24)] } })
+  await assert.rejects(
+    run('update_task', { project_id: projectId, task_id: taskId, add_assignees: ['d'.repeat(24)] }),
+    ToolError,
+  )
+  await assert.rejects(
+    run('update_task', { project_id: projectId, task_id: taskId, add_assignees: [third], remove_assignees: [me] }),
+    ToolError,
+  )
+  await assert.rejects(run('update_task', { project_id: projectId, task_id: taskId, remove_assignees: ['x'] }), ToolError)
+})
+
+test('update_task sets or ends the repeat rhythm', async () => {
+  const { calls, run } = setup()
+  await run('update_task', { project_id: projectId, task_id: taskId, repeat: 'monthly' })
+  assert.deepEqual(calls.updated?.[2], { repeat: 'monthly' })
+  await run('update_task', { project_id: projectId, task_id: taskId, repeat: '' })
+  assert.deepEqual(calls.updated?.[2], { repeat: '' })
 })
 
 test('update_task can clear the deadline and refuses an empty change', async () => {
