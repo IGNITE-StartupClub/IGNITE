@@ -31,9 +31,20 @@ export const revisionOf = (count: number, latest: Date | null | undefined): stri
 export const listRevision = (list: { updatedAt: Date }[]): string =>
   revisionOf(list.length, list.reduce<Date | null>((latest, { updatedAt }) => (latest && latest > updatedAt ? latest : updatedAt), null))
 
+/**
+ * Marks a revision whose latest change is younger than OVERLAP_MS. A write stamped just before that change can still be
+ * under way and land later without changing the count or the latest change, so the plain revision would hide it for
+ * good. A client holding the marked revision asks once more after the moment has passed: the plain revision differs
+ * then, and changedSince reaches back far enough to bring that write.
+ */
+export function markUnsettled(revision: string, now: number): string {
+  const latest = Number(/^\d+\.(\d+)$/.exec(revision)?.[1] ?? 0)
+  return now - latest < OVERLAP_MS ? `${revision}~` : revision
+}
+
 /** Where a client with this revision has to catch up from; null when it knows nothing yet. */
 export function changedSince(revision: unknown): Date | null {
-  const match = typeof revision === 'string' ? /^\d+\.(\d{1,15})$/.exec(revision) : null
+  const match = typeof revision === 'string' ? /^\d+\.(\d{1,15})~?$/.exec(revision) : null
   return match ? new Date(Number(match[1]) - OVERLAP_MS) : null
 }
 

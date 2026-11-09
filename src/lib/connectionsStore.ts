@@ -8,8 +8,8 @@
  * setPassword (members.ts) delete a member's connections and feed. Rules live in connections.ts.
  */
 import { randomUUID } from 'node:crypto'
-import { database, findMember, mayConnect, setUpInBackground } from './members'
-import { connectionKey, hashToken, newToken, type MemberRole } from './memberAuth'
+import { database, findMember, mayConnect, setUpInBackground, type SessionMember } from './members'
+import { connectionKey, hashToken, newToken } from './memberAuth'
 import {
   ACCESS_TTL_SECONDS,
   AUTH_CODE_TTL_SECONDS,
@@ -93,10 +93,25 @@ export function refusedRequestUrl(url: URL): string | null {
   return request && authResponseUrl(request, url.origin, { error: 'access_denied' })
 }
 
-/** The member behind an access right, or null when they were removed or are not on the list (any more). */
-async function allowedMember(email: string): Promise<{ email: string; role: MemberRole } | null> {
+/** What the MCP endpoint and the calendar feed need of the member: who acts on the tasks (sessionActor) and their team. */
+export type ConnectedMember = Pick<SessionMember, 'id' | 'email' | 'role' | 'firstName' | 'lastName' | 'team'>
+
+/**
+ * The member behind an access right, or null when they were removed or are not on the list (any more). It carries all
+ * the routes need, so they read the member only this once.
+ */
+async function allowedMember(email: string): Promise<ConnectedMember | null> {
   const member = mayConnect(email) ? await findMember(email) : null
-  return member && { email: member.email, role: member.role }
+  return (
+    member && {
+      id: member._id.toHexString(),
+      email: member.email,
+      role: member.role,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      team: member.team,
+    }
+  )
 }
 
 /** A fresh token pair, as the database stores it and as the client gets it. */

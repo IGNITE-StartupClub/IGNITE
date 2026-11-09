@@ -3,22 +3,26 @@
  * type, status, date, team, leads, progress and the public event link; the tabs show the tasks (quick add, check off,
  * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
- * Every change goes through `run` (TaskWorkspace), which applies it optimistically and rolls it back on failure.
+ * Every change goes through `run` (TaskWorkspace), which shows most of them at once and rolls them back on failure; the
+ * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Rows carry
+ * data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus).
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
- * onClose(), onStatus(project, status) (the board's move, which asks before "done").
+ * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
+ * place in the page's language; the stored snapshot keeps the German one).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
 import {
   applyMemberChange,
   isOverdue,
   memberChange,
-  patchedTask,
+  patchedProject,
   PRIORITIES,
   PROJECT_STATUSES,
   progress,
   projectDay,
   projectStatus,
+  REPEATS,
   TASK_STATUSES,
   TEXT_MAX,
   TITLE_MAX,
@@ -32,6 +36,7 @@ import {
   dateTime,
   ICON_BUTTON,
   INPUT,
+  keepFocus,
   LABEL,
   longDay,
   MemberPicker,
@@ -52,26 +57,15 @@ const SORTS = {
 }
 const TEXTAREA = `${INPUT} h-auto min-h-20 py-2`
 
-function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
-  // Kept from the moment the editor opened: only what the member changes since then is saved.
-  const [start] = useState(() => ({
-    title: task.title,
-    description: task.description,
-    due: task.due,
-    priority: task.priority,
-    required: task.required,
-    team: task.team,
-    status: task.status,
-  }))
-  const [form, setForm] = useState(start)
+function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel }) {
   const id = useId()
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+  const set = (key) => (e) => onChange({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   return (
     <form
       className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-3"
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(changedFields(start, form))
+        onSave()
       }}
     >
       <div>
@@ -133,6 +127,21 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
           />
         </div>
       </div>
+      <div>
+        <label htmlFor={`${id}-repeat`} className={LABEL}>
+          {copy.repeat}
+        </label>
+        <select id={`${id}-repeat`} className={`${SELECT} h-10 w-full`} value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+          {REPEATS.map((repeat) => (
+            <option key={repeat} value={repeat}>
+              {copy.repeats[repeat]}
+            </option>
+          ))}
+        </select>
+        <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+          {copy.repeatHint}
+        </p>
+      </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
         <span>
@@ -141,7 +150,7 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
         </span>
       </label>
       <div className="flex gap-2">
-        <button type="submit" className={`${PRIMARY_BUTTON} h-9`}>
+        <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={busy}>
           {copy.save}
         </button>
         <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={onCancel}>
@@ -152,30 +161,43 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
   )
 }
 
-function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
-  const [editing, setEditing] = useState(false)
+// A row that goes or moves takes the focus to the same or the next checkbox (keepFocus), not to the start of the page.
+const keepingFocus = (close, action) => () => {
+  const refocus = keepFocus(document.activeElement, 'check')
+  close()
+  action()
+  refocus()
+}
+
+function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, editor, onEdit, onEditor, onPatch, onRemove, onMove, canMove }) {
   const overdue = isOverdue(task, today)
-  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
+  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses, repeats: copy.repeats }
   const otherTeam = task.team && task.team !== projectTeam
   return (
-    <li className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
+    <li data-task-item={task.id} className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
       <div className="flex items-start gap-3">
         <TaskCheck checked={task.done} onChange={(done) => onPatch({ done })} label={fill(copy.panel.markDone, { title: task.title })} />
         <div className="min-w-0 flex-1">
           <button
             type="button"
             className={`block border-0 bg-transparent p-0 text-left text-sm font-medium ${task.done ? 'text-fg-muted line-through' : 'text-fg'}`}
-            onClick={() => setEditing(!editing)}
-            aria-expanded={editing}
+            onClick={() => (editor ? onEditor.cancel() : onEdit())}
+            aria-expanded={!!editor}
           >
             {task.title}
           </button>
-          {task.description && !editing && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
-          {(task.due || task.priority !== 'normal' || task.required || otherTeam) && (
+          {task.description && !editor && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
+          {(task.due || task.repeat || task.priority !== 'normal' || task.required || otherTeam) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {task.due && (
                 <span className={overdue ? 'font-medium text-danger' : 'text-fg-muted'}>
                   {fill(copy.panel.dueOn, { date: shortDay(task.due, locale) })}
+                </span>
+              )}
+              {task.repeat && (
+                <span className="inline-flex items-center gap-1 text-fg-muted">
+                  <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                  {copy.repeats[task.repeat]}
                 </span>
               )}
               {task.priority !== 'normal' && (
@@ -211,44 +233,23 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
                 className={MENU_ITEM}
                 onClick={() => {
                   close()
-                  setEditing(true)
+                  onEdit()
                 }}
               >
                 {copy.panel.edit}
               </button>
               {canMove && (
                 <>
-                  <button
-                    type="button"
-                    className={MENU_ITEM}
-                    onClick={() => {
-                      close()
-                      onMove(-1)
-                    }}
-                  >
+                  <button type="button" className={MENU_ITEM} onClick={keepingFocus(close, () => onMove(-1))}>
                     {copy.panel.moveUp}
                   </button>
-                  <button
-                    type="button"
-                    className={MENU_ITEM}
-                    onClick={() => {
-                      close()
-                      onMove(1)
-                    }}
-                  >
+                  <button type="button" className={MENU_ITEM} onClick={keepingFocus(close, () => onMove(1))}>
                     {copy.panel.moveDown}
                   </button>
                 </>
               )}
               {task.mayRemove && (
-                <button
-                  type="button"
-                  className={`${MENU_ITEM} text-danger`}
-                  onClick={() => {
-                    close()
-                    onRemove()
-                  }}
-                >
+                <button type="button" className={`${MENU_ITEM} text-danger`} onClick={keepingFocus(close, onRemove)}>
                   {copy.panel.deleteTask}
                 </button>
               )}
@@ -256,16 +257,15 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           )}
         </Menu>
       </div>
-      {editing && (
+      {editor && (
         <TaskEditor
-          task={task}
+          form={editor.form}
+          busy={editor.busy}
           projectTeam={projectTeam}
           copy={panel}
-          onCancel={() => setEditing(false)}
-          onSave={(fields) => {
-            setEditing(false)
-            if (Object.keys(fields).length) onPatch(fields)
-          }}
+          onChange={onEditor.change}
+          onSave={onEditor.save}
+          onCancel={onEditor.cancel}
         />
       )}
     </li>
@@ -275,6 +275,9 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
 function TasksTab({ project, copy, locale, today, me, members, membersById, run, change }) {
   const [draft, setDraft] = useState('')
   const [sort, setSort] = useState('manual')
+  // The open editor ({ taskId, start, form, busy }) lives here and not in its row, because a row remounts when its task
+  // moves between the open and the done list, and a live update can do that while someone types.
+  const [editor, setEditor] = useState(null)
   const sorted = [...project.tasks].sort(SORTS[sort])
   const open = sorted.filter((task) => !task.done)
   const done = sorted.filter((task) => task.done)
@@ -292,13 +295,34 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
     if (!saved) setDraft(title)
   }
   const patch = (task, fields) =>
-    run(
-      { action: 'updateTask', id: project.id, taskId: task.id, patch: fields },
-      change((current) => ({
-        ...current,
-        tasks: current.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields) : item)),
-      })),
-    )
+    run({ action: 'updateTask', id: project.id, taskId: task.id, patch: fields }, change((current) => patchedProject(current, task.id, fields, today)))
+  const edit = (task) => {
+    // Kept from the moment the editor opened: only what the member changes since then is saved.
+    const start = {
+      title: task.title,
+      description: task.description,
+      due: task.due,
+      priority: task.priority,
+      required: task.required,
+      team: task.team,
+      status: task.status,
+      repeat: task.repeat ?? '',
+    }
+    setEditor({ taskId: task.id, start, form: start, busy: false })
+  }
+  // Open until the answer, so a refused change keeps what was typed.
+  const editorActions = {
+    change: (form) => setEditor((current) => ({ ...current, form })),
+    cancel: () => setEditor(null),
+    save: async () => {
+      const task = project.tasks.find((item) => item.id === editor.taskId)
+      const fields = changedFields(editor.start, editor.form)
+      if (!task || !Object.keys(fields).length) return setEditor(null)
+      setEditor({ ...editor, busy: true })
+      const saved = await patch(task, fields)
+      setEditor((current) => (current?.taskId !== task.id ? current : saved ? null : { ...current, busy: false }))
+    },
+  }
   const remove = (task) =>
     run(
       { action: 'removeTask', id: project.id, taskId: task.id },
@@ -328,6 +352,9 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
       me={me}
       members={members}
       membersById={membersById}
+      editor={editor?.taskId === task.id ? editor : null}
+      onEdit={() => edit(task)}
+      onEditor={editorActions}
       onPatch={(fields) => patch(task, fields)}
       onRemove={() => remove(task)}
       onMove={(step) => move(list, task, step)}
@@ -336,7 +363,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 
   return (
-    <div>
+    <div data-focus-scope>
       <form onSubmit={add} className="flex gap-2">
         <label className="min-w-0 flex-1">
           <span className="sr-only">{copy.panel.addTaskLabel}</span>
@@ -388,8 +415,13 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
   )
 }
 
-function DetailsTab({ project, copy, locale, run, change }) {
+// The server trims what it stores, so a trailing space is no change to offer saving.
+const trimmed = (form) => ({ ...form, title: form.title.trim(), description: form.description.trim(), place: form.place.trim() })
+
+function DetailsTab({ project, copy, locale, run, eventPlace }) {
   const id = useId()
+  const [busy, setBusy] = useState(false)
+  const publicPlace = eventPlace ?? project.event?.location
   const ownEvent = project.type === 'event' && !project.event
   const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
   const [form, setForm] = useState(fields)
@@ -402,12 +434,16 @@ function DetailsTab({ project, copy, locale, run, change }) {
     setForm((current) => ({ ...next, ...changedFields(previous, current) }))
   }, [project.title, project.description, project.due, project.time, project.place])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
-  const patch = changedFields(fields(), form)
+  const patch = changedFields(fields(), trimmed(form))
   const changed = Object.keys(patch).length > 0
 
-  const save = (e) => {
+  // Without an optimistic change: the fields keep what was typed until the answer, and after a refusal too. The server
+  // copies title, description and deadline of a single task to its task (tasksStore.ts), and the answer brings both.
+  const save = async (e) => {
     e.preventDefault()
-    run({ action: 'update', id: project.id, patch }, change((current) => ({ ...current, ...patch })))
+    setBusy(true)
+    await run({ action: 'update', id: project.id, patch })
+    setBusy(false)
   }
 
   return (
@@ -451,7 +487,7 @@ function DetailsTab({ project, copy, locale, run, change }) {
         )}
         {changed && (
           <div className="flex gap-2">
-            <button type="submit" className={`${PRIMARY_BUTTON} h-9`}>
+            <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={busy}>
               {copy.panel.save}
             </button>
             <button type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => setForm(fields())}>
@@ -466,7 +502,7 @@ function DetailsTab({ project, copy, locale, run, change }) {
           <p className="font-medium">{project.event.title}</p>
           <p className="mt-1 text-fg-muted">
             {longDay(project.eventDay, locale)} · {berlinTime(project.event.startAt, locale)}
-            {project.event.location && ` · ${project.event.location}`}
+            {publicPlace && ` · ${publicPlace}`}
           </p>
           {project.event.url && (
             <a href={project.event.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-accent underline">
@@ -548,7 +584,7 @@ function ActivityTab({ project, copy, locale, membersById }) {
   )
 }
 
-export default function ProjectPanel({ project, copy, locale, today, me, members, membersById, run, onClose, onStatus }) {
+export default function ProjectPanel({ project, copy, locale, today, me, members, membersById, run, onClose, onStatus, eventPlace }) {
   const dialog = useRef(null)
   const closeButton = useRef(null)
   const templateDialog = useRef(null)
@@ -567,6 +603,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
     }
     if (!projectId && element.open) element.close()
     setTab('tasks')
+    setTemplateSaved(false)
   }, [projectId])
 
   // Applies fn to this project in the project list: the optimistic version of a change.
@@ -582,11 +619,14 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
       change((current) => ({ ...current, leads: applyMemberChange(current.leads, leads) })),
     )
   }
-  const archive = () =>
-    run({ action: 'archive', id: project.id, archived: !project.archived }, change((current) => ({ ...current, archived: !current.archived })))
-  const remove = async () => {
-    if (!window.confirm(fill(copy.panel.confirmDelete, { title: project.title }))) return
-    if (await run({ action: 'delete', id: project.id })) onClose()
+  // Sets the value it sends instead of flipping: replayed on a newer state that already has it, a flip would undo it.
+  const archive = () => {
+    const archived = !project.archived
+    run({ action: 'archive', id: project.id, archived }, change((current) => ({ ...current, archived })))
+  }
+  // The answer takes the project away, and that closes the panel. Closing it here as well would go back twice.
+  const remove = () => {
+    if (window.confirm(fill(copy.panel.confirmDelete, { title: project.title }))) run({ action: 'delete', id: project.id })
   }
   const saveTemplate = async (e) => {
     e.preventDefault()
@@ -766,6 +806,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
             <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} className="flex-1 overflow-y-auto p-4 sm:p-5">
               {tab === 'tasks' && (
                 <TasksTab
+                  key={project.id}
                   project={project}
                   copy={copy}
                   locale={locale}
@@ -777,7 +818,9 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   change={change}
                 />
               )}
-              {tab === 'details' && <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} change={change} />}
+              {tab === 'details' && (
+                <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} eventPlace={eventPlace} />
+              )}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>
           </div>

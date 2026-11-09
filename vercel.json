@@ -19,6 +19,14 @@
     {
       "path": "/api/cron/task-digest?slot=winter",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/task-digest?slot=retry",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/task-archive",
+      "schedule": "0 3 * * *"
     }
   ]
 }

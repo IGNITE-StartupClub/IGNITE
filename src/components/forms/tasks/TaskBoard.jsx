@@ -9,10 +9,10 @@
  * onMenu(task, x, y).
  */
 import React, { useState } from 'react'
-import { CalendarDays, GripVertical, Plus } from 'lucide-react'
+import { CalendarDays, GripVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, boardColumns, memberChange, MINE, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
-import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, STATUS_TONE } from './taskUi'
+import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, showRest, STATUS_TONE } from './taskUi'
 
 const DONE_SHOWN = 8
 const TAG = 'max-w-full truncate rounded-full bg-bg-subtle px-2.5 py-0.5 text-[14px]'
@@ -77,6 +77,7 @@ function TaskCard({ task, filter, copy, locale, me, members, membersById, onPatc
         </h3>
         <button
           type="button"
+          data-control="menu"
           aria-label={fill(copy.board.cardMenu, { title: task.title })}
           className={`${ICON_BUTTON} -mr-1.5 -mt-1.5`}
           onClick={(e) => {
@@ -107,6 +108,12 @@ function TaskCard({ task, filter, copy, locale, me, members, membersById, onPatc
                 <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
                 {shortDay(task.due, locale)}
               </>
+            )}
+            {task.repeat && (
+              <span className="inline-flex" title={copy.repeats[task.repeat]}>
+                <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                <span className="sr-only">{copy.repeats[task.repeat]}</span>
+              </span>
             )}
           </span>
           {!task.private && (
@@ -142,7 +149,7 @@ export default function TaskBoard({ tasks, filter, searching, copy, locale, me, 
         <p className="text-center text-sm text-fg-muted">{searching ? copy.list.noResults : filter === MINE ? copy.list.emptyMine : copy.list.empty}</p>
       )}
       {/* Phones scroll through the columns one by one; from lg on all three sit side by side. */}
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
+      <div data-focus-scope className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
         {TASK_STATUSES.map((status) => {
           const label = copy.taskStatuses[status]
           const addLabel = fill(text.addIn, { status: label })
@@ -193,7 +200,7 @@ export default function TaskBoard({ tasks, filter, searching, copy, locale, me, 
               )}
               <ul role="list" className="flex flex-1 flex-col gap-3">
                 {cards.map((task) => (
-                  <li key={task.id} className={dragging?.id === task.id ? 'opacity-50' : ''}>
+                  <li key={task.id} data-task-item={task.id} className={dragging?.id === task.id ? 'opacity-50' : ''}>
                     <TaskCard
                       task={task}
                       filter={filter}
@@ -227,7 +234,10 @@ export default function TaskBoard({ tasks, filter, searching, copy, locale, me, 
                 <button
                   type="button"
                   className="mt-3 border-0 bg-transparent p-0 text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
-                  onClick={() => setAllDone(true)}
+                  onClick={(e) => {
+                    const list = e.currentTarget.previousElementSibling
+                    showRest(() => setAllDone(true), () => list.children[DONE_SHOWN]?.querySelector('button'))
+                  }}
                 >
                   {fill(text.showAll, { count: columns[status].length })}
                 </button>

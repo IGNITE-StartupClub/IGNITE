@@ -1,10 +1,11 @@
 /**
  * The dialog of a private task: all its fields and deleting it. A private task has no project, so it opens here and not
- * in the project panel.
+ * in the project panel. Saving sends only the fields changed since the dialog opened, so an edit on another device stays.
  * Props: task (null = closed), copy (workspace copy), run, onClose.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { PRIORITIES, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { changedFields } from '../../../lib/liveUpdates'
+import { PRIORITIES, REPEATS, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { DANGER_BUTTON, fill, FormDialog } from '../memberUi'
 import { TeamSelect } from './taskUi'
 
@@ -13,19 +14,27 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
   const labels = copy.createDialog
   const dialog = useRef(null)
   const id = useId()
+  const [start, setStart] = useState(null)
   const [form, setForm] = useState(null)
 
   useEffect(() => {
     if (!task) return
-    const { title, description, due, priority, status, team } = task
-    setForm({ title, description, due, priority, status, team })
+    const { title, description, due, priority, status, team, repeat = '' } = task
+    setStart({ title, description, due, priority, status, team, repeat })
+    setForm({ title, description, due, priority, status, team, repeat })
     dialog.current.showModal()
   }, [task?.id])
+  // The task can go while the dialog is open: deleted on another device, or a restore was undone.
+  useEffect(() => {
+    if (!task && dialog.current.open) dialog.current.close()
+  }, [task])
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const save = async (e) => {
     e.preventDefault()
-    if (await run({ action: 'updatePrivate', taskId: task.id, patch: form })) dialog.current.close()
+    const patch = changedFields(start, form)
+    if (!Object.keys(patch).length) return dialog.current.close()
+    if (await run({ action: 'updatePrivate', taskId: task.id, patch })) dialog.current.close()
   }
   const remove = async () => {
     if (!window.confirm(fill(text.confirmRemove, { title: task.title }))) return
@@ -78,7 +87,7 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
             </div>
             <div className="field">
               <label htmlFor={`${id}-priority`} className="field-label">
-                {labels.priority}
+                {copy.panel.priority}
               </label>
               <select id={`${id}-priority`} className="input" value={form.priority} onChange={set('priority')}>
                 {PRIORITIES.map((priority) => (
@@ -88,6 +97,21 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
                 ))}
               </select>
             </div>
+          </div>
+          <div className="field">
+            <label htmlFor={`${id}-repeat`} className="field-label">
+              {copy.panel.repeat}
+            </label>
+            <select id={`${id}-repeat`} className="input" value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+              {REPEATS.map((repeat) => (
+                <option key={repeat} value={repeat}>
+                  {copy.repeats[repeat]}
+                </option>
+              ))}
+            </select>
+            <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+              {copy.panel.repeatHint}
+            </p>
           </div>
           <div className="form-actions">
             <button type="submit" className="form-submit" disabled={!form.title.trim()}>

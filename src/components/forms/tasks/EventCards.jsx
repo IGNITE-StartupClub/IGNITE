@@ -53,7 +53,13 @@ export function EventCard({ entry, project, twin, copy, locale, membersById, onS
   const text = copy.calendar
   const plannable = isEvent(entry)
   const tasks = project && progress(project.tasks)
-  const planning = !project ? copy.overview.noPlanning : tasks.total ? fill(copy.overview.planning, tasks) : copy.overview.planningEmpty
+  const planning = !project
+    ? copy.overview.noPlanning
+    : project.folded
+      ? copy.overview.planningArchived
+      : tasks.total
+        ? fill(copy.overview.planning, tasks)
+        : copy.overview.planningEmpty
   return (
     <article className="flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card">
       <Cover entry={entry} locale={locale} />

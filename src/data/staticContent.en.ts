@@ -29,6 +29,10 @@ export const pageMeta = {
     description: 'Workshops, networking and hackathons about founding a startup at Leuphana.',
   },
   news: { title: 'News' },
+  startupWeek: {
+    title: 'Your startup week',
+    description: "This week's startup events in Lüneburg and Hamburg, with a direct link to register.",
+  },
   materials: { title: 'Materials and resources' },
   notFound: { title: '404', description: 'Page not found' },
 }
@@ -369,6 +373,22 @@ export const eventsPage = {
   followCalendar: 'Subscribe to the Luma calendar',
 }
 
+// /en/startup-week, the link in the Instagram bio. The events come from src/content/startupWeek/.
+export const startupWeekPage = {
+  title: 'Your <em>startup week</em>',
+  lead: 'Events for founders in Lüneburg and Hamburg. New every week, with a direct link to register.',
+  register: 'Register',
+  past: 'Over',
+  empty: 'The next edition is coming soon. Follow us on Instagram so you do not miss it.',
+  together: {
+    heading: "Don't want to go alone?",
+    text: 'Tell us which event you like. We connect you with others from the IGNITE community, and we travel there together from Lüneburg.',
+    message: 'Message us on Instagram',
+    community: 'Join the WhatsApp community',
+  },
+  disclaimer: 'Put together by IGNITE. No guarantee for the details; the organiser has the final word and handles registration.',
+}
+
 export const subscribePage = {
   title: 'Stay in the <em>loop</em>',
   lead: 'Our newsletter runs on WhatsApp. Sign up and we will send you the invitation link to the community.',
@@ -606,6 +626,7 @@ export const memberArea = {
         hint: 'Only you can see this task. Admins and the board cannot.',
         remove: 'Delete',
         confirmRemove: 'Delete “{title}”?',
+        withPeople: 'A private task is yours alone. Take out {token} or switch off “Only for me”.',
       },
       archive: 'Archive',
       teamPrompt: {
@@ -629,6 +650,7 @@ export const memberArea = {
         legendEvent: 'Event',
         legendDeadline: 'Your deadline',
         moreOnDay: '+{count}',
+        showDay: 'Show everything on {date}',
         mine: 'My tasks',
         openCount: '{count} open',
         quickAdd: 'New task, for example: Print flyers by Wed',
@@ -638,6 +660,7 @@ export const memberArea = {
         time: '{time}',
         planning: 'In planning: {done} of {total} tasks done',
         planningEmpty: 'In planning, no tasks yet',
+        planningArchived: 'Planning archived',
         noPlanning: 'Not planned yet',
         openPlanning: 'Open planning',
         allProjects: 'All projects',
@@ -682,6 +705,7 @@ export const memberArea = {
       statuses: { planned: 'Planned', active: 'In progress', done: 'Done' },
       types: { event: 'Event', internal: 'Internal', task: 'Task' },
       priorities: { low: 'Low', normal: 'Normal', high: 'High' },
+      repeats: { '': 'Never', weekly: 'Every week', biweekly: 'Every 2 weeks', monthly: 'Every month' },
       board: {
         empty: 'No projects yet. Add the first one with “Project or event” or start planning an event.',
         noResults: 'There is no project here right now.',
@@ -692,7 +716,11 @@ export const memberArea = {
         moveTo: 'Move to',
         cardMenu: 'Actions for {title}',
         open: 'Open',
-        archivedHint: 'Archived projects stay searchable and can serve as a template.',
+        archivedHint:
+          'Archived projects stay searchable and can serve as a template. Finished single tasks move here by themselves after 30 days without changes.',
+        archiveLoading: 'Loading the archive …',
+        archiveFailed: 'The archive could not be loaded.',
+        retry: 'Try again',
       },
       people: { more: '+{count}', nobody: 'Nobody', assign: 'Assign', searchMembers: 'Search members', noMatch: 'No member found', me: 'Me' },
       panel: {
@@ -730,6 +758,8 @@ export const memberArea = {
         required: 'Required task',
         requiredHint: 'Closing the project asks first while it is open.',
         dueOn: 'due {date}',
+        repeat: 'Repeat',
+        repeatHint: 'Once it is done, it returns to the backlog with its next deadline.',
         save: 'Save',
         cancel: 'Cancel',
         archive: 'Archive',
@@ -765,6 +795,7 @@ export const memberArea = {
         leadRemoved: '{actor} took {member} off as responsible.',
         status: '{actor} moved the project to “{detail}”.',
         archived: '{actor} archived the project.',
+        autoArchived: '{actor} archived the finished task after {detail} days without changes.',
         restored: '{actor} restored the project from the archive.',
         taskAdded: '{actor} added “{detail}”.',
         taskEdited: '{actor} edited “{detail}”.',
@@ -806,6 +837,7 @@ export const memberArea = {
         template: 'Template',
         pastProject: 'Earlier project',
         noPast: 'There is no earlier project with tasks yet.',
+        pastLoading: 'Loading earlier projects …',
         previewTasks: '{count} tasks',
         previewHint: 'Choose the tasks to copy. They start open and unassigned; deadlines are recalculated from the new date.',
         relative: '{days} days before',
@@ -842,6 +874,7 @@ export const memberArea = {
         created: 'Created.',
         ok: 'Saved.',
         removed: 'Deleted.',
+        removedMany: '{count} tasks deleted.',
         restored: 'Restored.',
         merged: 'Merged.',
         invalid: 'Please check your input.',
@@ -853,6 +886,7 @@ export const memberArea = {
         crowded: 'At most 30 people can be listed here.',
         session: 'Your session has expired. Please sign in again.',
         error: 'That did not work, the change was undone. Please try again.',
+        repeated: 'Done. Next deadline: {date}',
       },
       undo: 'Undo',
     },

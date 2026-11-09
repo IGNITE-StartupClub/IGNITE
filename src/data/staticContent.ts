@@ -30,6 +30,10 @@ export const pageMeta = {
     description: 'Workshops, Austausch und Hackathons rund ums Gründen an der Leuphana.',
   },
   news: { title: 'Neuigkeiten' },
+  startupWeek: {
+    title: 'Deine Startup-Woche',
+    description: 'Die Startup-Events der Woche in Lüneburg und Hamburg, mit direktem Link zur Anmeldung.',
+  },
   materials: { title: 'Materialien und Ressourcen' },
   notFound: { title: '404', description: 'Seite nicht gefunden' },
 }
@@ -369,6 +373,22 @@ export const eventsPage = {
   followCalendar: 'Luma-Kalender abonnieren',
 }
 
+// /startup-woche, the link in the Instagram bio. The events come from src/content/startupWeek/.
+export const startupWeekPage = {
+  title: 'Deine <em>Startup-Woche</em>',
+  lead: 'Events für Gründer*innen in Lüneburg und Hamburg. Jede Woche neu, mit direktem Link zur Anmeldung.',
+  register: 'Zur Anmeldung',
+  past: 'Vorbei',
+  empty: 'Die nächste Ausgabe kommt bald. Folge uns auf Instagram, dann verpasst du sie nicht.',
+  together: {
+    heading: 'Keine Lust, allein hinzugehen?',
+    text: 'Schreib uns, welches Event dich reizt. Wir bringen dich mit anderen aus der IGNITE-Community zusammen, und von Lüneburg aus fahren wir gemeinsam hin.',
+    message: 'Auf Instagram schreiben',
+    community: 'Zur WhatsApp-Community',
+  },
+  disclaimer: 'Zusammengestellt von IGNITE. Alle Angaben ohne Gewähr, Details und Anmeldung beim Veranstalter.',
+}
+
 export const subscribePage = {
   title: 'Bleib auf dem <em>Laufenden</em>',
   lead: 'Unser Newsletter läuft über WhatsApp. Trag dich ein und wir schicken dir den Einladungslink zur Community.',
@@ -606,6 +626,7 @@ export const memberArea = {
         hint: 'Nur du siehst diese Aufgabe. Admins und Vorstand sehen sie nicht.',
         remove: 'Löschen',
         confirmRemove: '„{title}“ löschen?',
+        withPeople: 'Eine private Aufgabe gehört nur dir. Nimm {token} heraus oder schalte „Nur für mich“ aus.',
       },
       archive: 'Archiv',
       teamPrompt: {
@@ -629,6 +650,7 @@ export const memberArea = {
         legendEvent: 'Event',
         legendDeadline: 'Deine Frist',
         moreOnDay: '+{count}',
+        showDay: 'Alle Einträge am {date} zeigen',
         mine: 'Meine Aufgaben',
         openCount: '{count} offen',
         quickAdd: 'Neue Aufgabe, zum Beispiel: Flyer drucken bis Mi',
@@ -638,6 +660,7 @@ export const memberArea = {
         time: '{time} Uhr',
         planning: 'In Planung: {done} von {total} Aufgaben erledigt',
         planningEmpty: 'In Planung, noch ohne Aufgaben',
+        planningArchived: 'Planung archiviert',
         noPlanning: 'Noch ohne Planung',
         openPlanning: 'Planung öffnen',
         allProjects: 'Alle Projekte',
@@ -682,6 +705,7 @@ export const memberArea = {
       statuses: { planned: 'Geplant', active: 'In Arbeit', done: 'Erledigt' },
       types: { event: 'Event', internal: 'Intern', task: 'Aufgabe' },
       priorities: { low: 'Niedrig', normal: 'Normal', high: 'Hoch' },
+      repeats: { '': 'Nie', weekly: 'Jede Woche', biweekly: 'Alle 2 Wochen', monthly: 'Jeden Monat' },
       board: {
         empty: 'Noch keine Projekte. Leg das erste über „Projekt oder Event“ an oder starte die Planung eines Events.',
         noResults: 'Hier gibt es gerade kein Projekt.',
@@ -692,7 +716,11 @@ export const memberArea = {
         moveTo: 'Verschieben nach',
         cardMenu: 'Aktionen für {title}',
         open: 'Öffnen',
-        archivedHint: 'Archivierte Projekte bleiben durchsuchbar und können als Vorlage dienen.',
+        archivedHint:
+          'Archivierte Projekte bleiben durchsuchbar und können als Vorlage dienen. Erledigte Einzelaufgaben kommen nach 30 Tagen ohne Änderung von selbst hierher.',
+        archiveLoading: 'Archiv wird geladen …',
+        archiveFailed: 'Das Archiv ließ sich nicht laden.',
+        retry: 'Erneut versuchen',
       },
       people: { more: '+{count}', nobody: 'Niemand', assign: 'Zuweisen', searchMembers: 'Mitglied suchen', noMatch: 'Kein Mitglied gefunden', me: 'Ich' },
       panel: {
@@ -730,6 +758,8 @@ export const memberArea = {
         required: 'Pflichtaufgabe',
         requiredHint: 'Vor dem Abschluss des Projekts wird nachgefragt, wenn sie offen ist.',
         dueOn: 'fällig {date}',
+        repeat: 'Wiederholen',
+        repeatHint: 'Wenn sie erledigt ist, kommt sie mit der nächsten Deadline zurück ins Backlog.',
         save: 'Speichern',
         cancel: 'Abbrechen',
         archive: 'Archivieren',
@@ -765,6 +795,7 @@ export const memberArea = {
         leadRemoved: '{actor} hat {member} als verantwortlich ausgetragen.',
         status: '{actor} hat das Projekt nach „{detail}“ verschoben.',
         archived: '{actor} hat das Projekt archiviert.',
+        autoArchived: '{actor} hat die erledigte Aufgabe nach {detail} Tagen ohne Änderung archiviert.',
         restored: '{actor} hat das Projekt aus dem Archiv geholt.',
         taskAdded: '{actor} hat „{detail}“ hinzugefügt.',
         taskEdited: '{actor} hat „{detail}“ bearbeitet.',
@@ -806,6 +837,7 @@ export const memberArea = {
         template: 'Vorlage',
         pastProject: 'Früheres Projekt',
         noPast: 'Es gibt noch kein früheres Projekt mit Aufgaben.',
+        pastLoading: 'Frühere Projekte werden geladen …',
         previewTasks: '{count} Aufgaben',
         previewHint: 'Wähl aus, welche Aufgaben du übernimmst. Sie starten offen und ohne Zuständige; Deadlines werden relativ zum neuen Datum berechnet.',
         relative: '{days} Tage vorher',
@@ -842,6 +874,7 @@ export const memberArea = {
         created: 'Angelegt.',
         ok: 'Gespeichert.',
         removed: 'Gelöscht.',
+        removedMany: '{count} Aufgaben gelöscht.',
         restored: 'Wiederhergestellt.',
         merged: 'Zusammengeführt.',
         invalid: 'Bitte prüf deine Eingaben.',
@@ -853,6 +886,7 @@ export const memberArea = {
         crowded: 'Hier können höchstens 30 Personen eingetragen sein.',
         session: 'Deine Sitzung ist abgelaufen. Bitte melde dich neu an.',
         error: 'Das hat nicht geklappt, die Änderung ist zurückgenommen. Bitte versuch es noch einmal.',
+        repeated: 'Erledigt. Nächste Deadline: {date}',
       },
       undo: 'Rückgängig',
     },

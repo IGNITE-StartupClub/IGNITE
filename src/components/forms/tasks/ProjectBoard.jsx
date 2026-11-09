@@ -1,7 +1,8 @@
 /**
  * The kanban board of the tasks module: one column per project status with one card per project (subtasks never
  * become cards). Cards move by drag and drop or, for keyboards and touch screens, through "Verschieben nach" in their
- * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns.
+ * menu; both call onMove(id, status), which saves at once. The archive shows the same cards without columns, the latest
+ * first, because it only grows. A click anywhere on a card opens it.
  * Props: projects (already filtered), archived (archive view), showTeam (cards name their team), copy (workspace copy,
  * with teams), locale, today, membersById, onOpen(id), onMove(id, status).
  */
@@ -9,7 +10,9 @@ import React, { useState } from 'react'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { isOverdue, PROJECT_STATUSES, progress, projectAssignees, projectDay } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
-import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, STATUS_TONE, TYPE_TEXT } from './taskUi'
+import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, showRest, STATUS_TONE, TYPE_TEXT } from './taskUi'
+
+const ARCHIVE_SHOWN = 24
 
 function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOpen, onMove, draggable, onDragStart, onDragEnd }) {
   const done = progress(project.tasks)
@@ -22,8 +25,10 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`relative rounded-lg border border-border bg-bg p-4 shadow-sm transition-colors hover:border-border-strong ${
-        draggable ? 'cursor-grab active:cursor-grabbing' : ''
+      // Firefox starts no drag on a button, so the card opens from here and not from a stretched title button.
+      onClick={(e) => !e.target.closest('button, a, [popover]') && onOpen(project.id)}
+      className={`rounded-lg border border-border bg-bg p-4 shadow-sm transition-colors hover:border-border-strong ${
+        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -31,7 +36,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           {copy.types[project.type]}
           {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {copy.teams[project.team]}</span>}
         </p>
-        <div className="relative z-10 -mr-2 -mt-2">
+        <div className="-mr-2 -mt-2">
           <Menu
             label={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
             ariaLabel={fill(copy.board.cardMenu, { title: project.title })}
@@ -74,12 +79,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
         </div>
       </div>
       <h3 className="mt-1 text-[17px] font-semibold leading-snug">
-        {/* The ::after layer makes the whole card the click target; menu and avatars sit above it. */}
-        <button
-          type="button"
-          className="border-0 bg-transparent p-0 text-left after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-focus"
-          onClick={() => onOpen(project.id)}
-        >
+        <button type="button" className="border-0 bg-transparent p-0 text-left" onClick={() => onOpen(project.id)}>
           {project.title}
         </button>
       </h3>
@@ -112,9 +112,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
           ) : (
             <span />
           )}
-          <span className="relative z-10">
-            <AvatarStack ids={assignees} membersById={membersById} copy={copy.people} />
-          </span>
+          <AvatarStack ids={assignees} membersById={membersById} copy={copy.people} />
         </div>
       )}
     </article>
@@ -124,6 +122,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
 export default function ProjectBoard({ projects, archived, showTeam, copy, locale, today, membersById, onOpen, onMove }) {
   const [dragging, setDragging] = useState(null)
   const [over, setOver] = useState(null)
+  const [allArchived, setAllArchived] = useState(false)
   const card = (project, draggable) => (
     <ProjectCard
       project={project}
@@ -148,14 +147,27 @@ export default function ProjectBoard({ projects, archived, showTeam, copy, local
   )
 
   if (archived) {
+    const listed = allArchived ? projects : projects.slice(0, ARCHIVE_SHOWN)
     return (
       <>
         <p className="mb-3 text-sm text-fg-muted">{copy.board.archivedHint}</p>
         <ul role="list" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {listed.map((project) => (
             <li key={project.id}>{card(project, false)}</li>
           ))}
         </ul>
+        {listed.length < projects.length && (
+          <button
+            type="button"
+            className="mt-3 border-0 bg-transparent p-0 text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
+            onClick={(e) => {
+              const list = e.currentTarget.previousElementSibling
+              showRest(() => setAllArchived(true), () => list.children[ARCHIVE_SHOWN]?.querySelector('button'))
+            }}
+          >
+            {fill(copy.taskBoard.showAll, { count: projects.length })}
+          </button>
+        )}
       </>
     )
   }

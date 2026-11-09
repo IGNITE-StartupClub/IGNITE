@@ -135,9 +135,12 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
 
     <div class="flex items-center gap-1 sm:gap-2">
       {
+        // client:idle: the search sits on every member page, but nobody needs it in the first moment. Hydrating it at
+        // load put its 19 KB (brotli) and React's start on the critical path beside the page's own island, and on
+        // pages without one (Team, Partner, Ablage) loaded React at load for the search alone.
         member && (
           <MemberSearch
-            client:load
+            client:idle
             transition:persist="member-search"
             copy={memberArea.search}
             locale={locale}

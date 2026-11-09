@@ -8,7 +8,7 @@
  * onPatch(task, fields), onOpen(task), onMenu(task, x, y).
  */
 import React, { useState } from 'react'
-import { ChevronDown, MoreVertical, Plus } from 'lucide-react'
+import { ChevronDown, MoreVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, memberChange, MINE, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 import { ICON_BUTTON, MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
@@ -18,6 +18,7 @@ function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch
   const context = [task.projectType !== 'task' && task.projectTitle, team].filter(Boolean).join(' · ')
   return (
     <li
+      data-task-item={task.id}
       onContextMenu={(e) => {
         if (e.target.closest('[popover]')) return
         e.preventDefault()
@@ -37,6 +38,12 @@ function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch
         {task.private ? <PrivateBadge label={copy.private.badge} /> : context && <p className="mt-0.5 text-xs text-fg-muted">{context}</p>}
       </div>
       {task.priority === 'high' && !task.done && <span className="shrink-0 text-xs font-medium text-danger">{copy.priorities.high}</span>}
+      {task.repeat && (
+        <span className="inline-flex shrink-0 text-fg-muted" title={copy.repeats[task.repeat]}>
+          <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+          <span className="sr-only">{copy.repeats[task.repeat]}</span>
+        </span>
+      )}
       {task.due && (
         <span className={`shrink-0 text-xs tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
           {shortDay(task.due, locale)}
@@ -57,6 +64,7 @@ function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch
       )}
       <button
         type="button"
+        data-control="menu"
         aria-label={fill(copy.board.cardMenu, { title: task.title })}
         className={ICON_BUTTON}
         onClick={(e) => {
@@ -102,7 +110,7 @@ export default function TaskList({ tasks, filter, newTeam, searching, copy, loca
   )
 
   return (
-    <div className="flex flex-col gap-7">
+    <div data-focus-scope className="flex flex-col gap-7">
       <form
         onSubmit={add}
         className="flex flex-wrap items-center gap-x-3 rounded-lg border border-border bg-bg-subtle px-3 pb-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus sm:flex-nowrap sm:pb-0"
