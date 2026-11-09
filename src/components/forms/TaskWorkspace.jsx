@@ -29,6 +29,7 @@ import {
   filterScope,
   MINE,
   NAME_MAX,
+  nextTurn,
   patchedTask,
   projectDay,
   scopedPrivateTasks,
@@ -50,7 +51,7 @@ import ProjectPanel from './tasks/ProjectPanel'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
-import { FilterMenu, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
+import { FilterMenu, INPUT, LABEL, Segmented, shortDay, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
 
 const LAYOUT_KEY = 'ignite-tasks-layout'
@@ -223,7 +224,19 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     else if (data.changes) base.current = applyChanges(base.current, data.changes)
   }
 
+  // A repeating task that gets done jumps back to the backlog; the toast says so and names its next deadline.
+  const repeatNotice = (body) => {
+    if (body.action !== 'updateTask' && body.action !== 'updatePrivate') return null
+    const task =
+      body.action === 'updatePrivate'
+        ? state.privateTasks.find((item) => item.id === body.taskId)
+        : state.projects.find((project) => project.id === body.id)?.tasks.find((item) => item.id === body.taskId)
+    const turn = task && nextTurn(task, body.patch, today)
+    return turn?.repeated ? { code: 'repeated', values: { date: shortDay(turn.due, locale) } } : null
+  }
+
   const run = async (body, optimistic, key = 'projects') => {
+    const repeated = repeatNotice(body)
     const request = ++sent.current
     inFlight.current += 1
     const change = optimistic && ((current) => ({ ...current, [key]: optimistic(current[key]) }))
@@ -242,6 +255,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       if (res.ok) {
         const undo = UNDO_OF[body.action]
         if (undo) setNotice({ code: 'removed', undo: { action: undo, taskId: body.taskId }, at: Date.now() })
+        if (repeated) setNotice({ ...repeated, at: Date.now() })
         return data
       }
       if (res.status >= 500) console.error(data.message)
@@ -360,7 +374,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (data) setNotice({ code: 'created', at: Date.now() })
     return data
   }
-  const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields) : item))
+  const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields, today) : item))
   const patchTask = (task, fields) =>
     task.private
       ? run({ action: 'updatePrivate', taskId: task.id, patch: fields }, (list) => patched(list, task, fields), 'privateTasks')
@@ -614,7 +628,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
       >
         {notice && (
           <span className="flex items-center gap-4">
-            {copy.results[notice.code]}
+            {fill(copy.results[notice.code], notice.values ?? {})}
             {notice.undo && (
               <button type="button" className="border-0 bg-transparent p-0 text-sm font-medium text-accent underline underline-offset-2" onClick={undo}>
                 {copy.undo}

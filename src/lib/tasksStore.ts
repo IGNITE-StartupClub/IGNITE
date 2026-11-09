@@ -41,6 +41,7 @@ import {
   type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
+  type Repeat,
   type StoredStatus,
   type TaskFields,
   type TaskPatch,
@@ -48,7 +49,7 @@ import {
   type TeamChoice,
   type TemplateTask,
   mayRemoveTask,
-  nextStanding,
+  nextTurn,
   projectEdits,
   projectStatus,
   sameTitle,
@@ -59,10 +60,11 @@ import {
 
 const ACTIVITY_MAX = 300
 
-interface TaskDoc extends Omit<TaskFields, 'team' | 'status'> {
+interface TaskDoc extends Omit<TaskFields, 'team' | 'status' | 'repeat'> {
   id: string
   team?: TeamChoice
   status?: StoredStatus<TaskStatus>
+  repeat?: Repeat
   done: boolean
   doneBy: string | null
   doneAt: Date | null
@@ -278,6 +280,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         required: task.required,
         assignees: people(task.assignees),
         team: task.team ?? '',
+        repeat: task.repeat ?? '',
         mayRemove: mayRemoveTask(task, project, actor),
         createdBy: task.createdBy,
         createdAt: task.createdAt.toISOString(),
@@ -611,7 +614,7 @@ export async function addTask(actor: TaskActor, id: string, fields: TaskFields):
 /** Changes the given fields of one task, logs what matters and keeps the digest entries in step with the people. */
 export async function updateTask(actor: TaskActor, id: string, taskId: string, patch: TaskPatch): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { tasks: { $elemMatch: { id: taskId } } } })
+  const project = await projects.findOne({ _id: id, 'tasks.id': taskId }, { projection: { type: 1, due: 1, tasks: { $elemMatch: { id: taskId } } } })
   const task = project?.tasks[0]
   if (!task) return 'unknown'
   const { assignees: people, ...fields } = patch
@@ -619,20 +622,24 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   if (assignees.length > MAX_ASSIGNEES) return 'crowded'
   const now = new Date()
   const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now }
-  const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
+  const { done, status, due, repeated } = nextTurn({ done: task.done, status: taskStatus(task), due: task.due, repeat: task.repeat }, patch, berlinDay(now.getTime()))
   // Standing is only written when the patch moves the task: the values just read would undo a move made in between.
   const moved = patch.done !== undefined || patch.status !== undefined
-  for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }) })) set[`tasks.$[t].${key}`] = value
+  for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }), ...(repeated && { due }) })) set[`tasks.$[t].${key}`] = value
   const entries: Activity[] = []
   if (done !== task.done) {
     set['tasks.$[t].doneBy'] = done ? actor.id : null
     set['tasks.$[t].doneAt'] = done ? now : null
     entries.push(activity(actor, done ? 'taskDone' : 'taskReopened', task.title))
   }
+  // A repeating task is done for this round and open for the next: the log keeps the completion and the new deadline.
+  if (repeated) entries.push(activity(actor, 'taskDone', task.title), activity(actor, 'due', task.title))
+  // A single-task card shows its own date; it moves along when it was the task's deadline.
+  if (repeated && project.type === 'task' && project.due === task.due) set.due = due
   const { added, removed } = assigneeChanges(task.assignees, assignees)
   for (const member of added) entries.push(activity(actor, 'assigned', task.title, member))
   for (const member of removed) entries.push(activity(actor, 'unassigned', task.title, member))
-  if (patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
+  if (!repeated && patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
   const edited =
     (['title', 'description', 'priority', 'required'] as const).some((key) => patch[key] !== undefined && patch[key] !== task[key]) ||
     (patch.team !== undefined && patch.team !== (task.team ?? ''))
@@ -651,7 +658,7 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   if (!matchedCount) return 'unknown'
   if (removed.length) await unnotify(taskId, removed)
   // A finished task needs no "you were assigned" mail any more.
-  if (done) await unnotify(taskId)
+  if (done || repeated) await unnotify(taskId)
   else if (added.length && !task.done) await notify(id, taskId, added, actor)
   return 'ok'
 }

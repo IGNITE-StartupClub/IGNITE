@@ -8,7 +8,7 @@
  * onClose(), onStatus(project, status) (the board's move, which asks before "done").
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
 import {
   applyMemberChange,
   isOverdue,
@@ -19,6 +19,7 @@ import {
   progress,
   projectDay,
   projectStatus,
+  REPEATS,
   TASK_STATUSES,
   TEXT_MAX,
   TITLE_MAX,
@@ -62,6 +63,7 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
     required: task.required,
     team: task.team,
     status: task.status,
+    repeat: task.repeat ?? '',
   }))
   const [form, setForm] = useState(start)
   const id = useId()
@@ -133,6 +135,21 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
           />
         </div>
       </div>
+      <div>
+        <label htmlFor={`${id}-repeat`} className={LABEL}>
+          {copy.repeat}
+        </label>
+        <select id={`${id}-repeat`} className={`${SELECT} h-10 w-full`} value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+          {REPEATS.map((repeat) => (
+            <option key={repeat} value={repeat}>
+              {copy.repeats[repeat]}
+            </option>
+          ))}
+        </select>
+        <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+          {copy.repeatHint}
+        </p>
+      </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
         <span>
@@ -155,7 +172,7 @@ function TaskEditor({ task, projectTeam, copy, onSave, onCancel }) {
 function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, onPatch, onRemove, onMove, canMove }) {
   const [editing, setEditing] = useState(false)
   const overdue = isOverdue(task, today)
-  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
+  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses, repeats: copy.repeats }
   const otherTeam = task.team && task.team !== projectTeam
   return (
     <li className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
@@ -171,11 +188,17 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
             {task.title}
           </button>
           {task.description && !editing && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
-          {(task.due || task.priority !== 'normal' || task.required || otherTeam) && (
+          {(task.due || task.repeat || task.priority !== 'normal' || task.required || otherTeam) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {task.due && (
                 <span className={overdue ? 'font-medium text-danger' : 'text-fg-muted'}>
                   {fill(copy.panel.dueOn, { date: shortDay(task.due, locale) })}
+                </span>
+              )}
+              {task.repeat && (
+                <span className="inline-flex items-center gap-1 text-fg-muted">
+                  <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                  {copy.repeats[task.repeat]}
                 </span>
               )}
               {task.priority !== 'normal' && (
@@ -296,7 +319,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
       { action: 'updateTask', id: project.id, taskId: task.id, patch: fields },
       change((current) => ({
         ...current,
-        tasks: current.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields) : item)),
+        tasks: current.tasks.map((item) => (item.id === task.id ? patchedTask(item, fields, today) : item)),
       })),
     )
   const remove = (task) =>
