@@ -13,7 +13,7 @@ export interface BrandAsset {
   id: BrandAssetId
   /** Background of the preview tile: the logo colour decides whether it needs a light or a dark one. */
   tone: 'light' | 'dark'
-  /** Shown on the page; SVG where there is one, because it is the smallest file. */
+  /** Shown on the page: the SVG where there is one, otherwise the small WebP copy in DISPLAY_DIR. */
   preview: string
   files: { format: 'SVG' | 'PNG' | 'JPG'; file: string; detail?: string }[]
 }
@@ -31,11 +31,28 @@ const svgAndPng = (id: BrandAssetId, tone: BrandAsset['tone'], pngDetail: string
 const png = (id: BrandAssetId, tone: BrandAsset['tone'], detail: string): BrandAsset => ({
   id,
   tone,
-  preview: `ignite-${id}.png`,
+  preview: displayFile(`ignite-${id}.png`),
   files: [{ format: 'PNG', file: `ignite-${id}.png`, detail }],
 })
 
 export const BRAND_PATH = '/brand/'
+
+/**
+ * Folder below BRAND_PATH with small WebP copies of the PNG and JPG files, rendered by
+ * scripts/brand-display-assets.mjs. Pages show these; the full files are only downloads.
+ */
+export const DISPLAY_DIR = 'display'
+
+function displayFile(file: string): string {
+  return `${DISPLAY_DIR}/${file.replace(/\.(png|jpg)$/, '.webp')}`
+}
+
+export type TeamIcon = 'board' | 'community' | 'finance' | 'marketing' | 'organisation' | 'relations'
+
+/** URL of a team icon for showing beside a team name (192 px WebP instead of the 512 px PNG download). */
+export function teamIconPath(icon: TeamIcon): string {
+  return BRAND_PATH + displayFile(`ignite-team-${icon}.png`)
+}
 
 export const brandGroups: { id: 'logo' | 'mark' | 'social' | 'teams'; assets: BrandAsset[] }[] = [
   {
@@ -64,7 +81,7 @@ export const brandGroups: { id: 'logo' | 'mark' | 'social' | 'teams'; assets: Br
       {
         id: 'linkedin-banner',
         tone: 'dark',
-        preview: 'ignite-linkedin-banner.jpg',
+        preview: displayFile('ignite-linkedin-banner.jpg'),
         files: [{ format: 'JPG', file: 'ignite-linkedin-banner.jpg', detail: '2670 × 417 px' }],
       },
     ],

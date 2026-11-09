@@ -12,6 +12,7 @@
 import '../styles/global.css'
 import '../assets/scss/globals.scss'
 import { Seo } from 'astro-seo-meta'
+import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url'
 import SiteMeta from '../components/SiteMeta.astro'
 import Header from '../components/layout/Header.astro'
 import Footer from '../components/layout/Footer.astro'
@@ -105,6 +106,9 @@ const memberLocale = memberAreaLocale(Astro.url.pathname)
     <link rel="shortcut icon" href="/favicon.ico" />
     {memberLocale && (
       <>
+        {/* The body font, otherwise found only after global.css has loaded. The members area is often opened
+            directly (installed app, bookmark, login link) with a cold cache. Same hashed file as in global.css. */}
+        <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
         {/* Installable app of the members area. Public pages link no manifest, so visitors are not offered an app
             that opens on the members login. */}
         <link rel="manifest" href={memberLocale === 'en' ? '/en/site.webmanifest' : '/site.webmanifest'} />
