@@ -36,6 +36,7 @@ import {
   MINE,
   NAME_MAX,
   patchedProject,
+  nextTurn,
   patchedTask,
   projectDay,
   scopedPrivateTasks,
@@ -53,7 +54,7 @@ import ProjectBoard from './tasks/ProjectBoard'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
-import { FilterMenu, focusTask, INPUT, LABEL, Segmented, SURFACE, TaskContextMenu } from './tasks/taskUi'
+import { FilterMenu, focusTask, INPUT, LABEL, Segmented, shortDay, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
 
 // The dialogs, the project panel above all, were about a third of this island's code but show only after a click or a
@@ -315,7 +316,19 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (kept.length) base.current = withArchive(base.current, kept)
   }
 
+  // A repeating task that gets done jumps back to the backlog; the toast says so and names its next deadline.
+  const repeatNotice = (body) => {
+    if (body.action !== 'updateTask' && body.action !== 'updatePrivate') return null
+    const task =
+      body.action === 'updatePrivate'
+        ? state.privateTasks.find((item) => item.id === body.taskId)
+        : state.projects.find((project) => project.id === body.id)?.tasks.find((item) => item.id === body.taskId)
+    const turn = task && nextTurn(task, body.patch, today)
+    return turn?.repeated ? { code: 'repeated', values: { date: shortDay(turn.due, locale) } } : null
+  }
+
   const run = async (body, optimistic, key = 'projects') => {
+    const repeated = repeatNotice(body)
     const request = ++sent.current
     // Archiving an open project loads the archive, but its own answer may come first and would take the project away.
     const withArchived = holding.current || (body.action === 'archive' && body.archived)
@@ -343,6 +356,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
             return { code: steps.length > 1 ? 'removedMany' : 'removed', count: steps.length, undo: steps, at: Date.now() }
           })
         }
+        if (repeated) setNotice({ ...repeated, at: Date.now() })
         return data
       }
       if (res.status >= 500) console.error(data.message)
@@ -518,12 +532,12 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (data) setNotice({ code: 'created', at: Date.now() })
     return data
   }
-  const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields) : item))
+  const patched = (list, task, fields) => list.map((item) => (item.id === task.id ? patchedTask(item, fields, today) : item))
   const patchTask = (task, fields) =>
     task.private
       ? run({ action: 'updatePrivate', taskId: task.id, patch: fields }, (list) => patched(list, task, fields), 'privateTasks')
       : run({ action: 'updateTask', id: task.projectId, taskId: task.id, patch: fields }, (list) =>
-          list.map((project) => (project.id === task.projectId ? patchedProject(project, task.id, fields) : project)),
+          list.map((project) => (project.id === task.projectId ? patchedProject(project, task.id, fields, today) : project)),
         )
   const removeTask = (task) =>
     task.private
@@ -588,7 +602,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     >
       {notice && (
         <span className="flex items-center gap-4">
-          {fill(copy.results[notice.code], { count: notice.count })}
+          {fill(copy.results[notice.code], { count: notice.count, ...notice.values })}
           {notice.undo && (
             <button type="button" className="border-0 bg-transparent p-0 text-sm font-medium text-accent underline underline-offset-2" onClick={undo}>
               {copy.undo}

@@ -9,7 +9,7 @@
  * onMenu(task, x, y).
  */
 import React, { useState } from 'react'
-import { CalendarDays, GripVertical, Plus } from 'lucide-react'
+import { CalendarDays, GripVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, boardColumns, memberChange, MINE, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, showRest, STATUS_TONE } from './taskUi'
@@ -108,6 +108,12 @@ function TaskCard({ task, filter, copy, locale, me, members, membersById, onPatc
                 <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />
                 {shortDay(task.due, locale)}
               </>
+            )}
+            {task.repeat && (
+              <span className="inline-flex" title={copy.repeats[task.repeat]}>
+                <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                <span className="sr-only">{copy.repeats[task.repeat]}</span>
+              </span>
             )}
           </span>
           {!task.private && (

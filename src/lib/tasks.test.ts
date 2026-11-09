@@ -3,6 +3,10 @@ import assert from 'node:assert/strict'
 import { openTeams } from '../data/openTeams.ts'
 import {
   addDays,
+  addMonths,
+  daysBetween,
+  nextDue,
+  nextTurn,
   ALL_TEAMS,
   applyChanges,
   applyMemberChange,
@@ -139,6 +143,7 @@ test('parseTask defaults priority and required, rejects unknown priorities', () 
     assignees: [BEN],
     team: '',
     status: 'backlog',
+    repeat: '',
   })
   assert.equal(parseTask({ title: 'x', priority: 'urgent' }), null)
   assert.equal(parseTask({ title: 'x', team: 'podcast' }), null)
@@ -440,44 +445,110 @@ test('memberChange says who a picker added or removed, and applyMemberChange rep
 })
 
 test('patchedTask applies people as a step and leaves the rest of the task alone', () => {
-  const task = { done: false, status: 'doing' as const, assignees: [ME], title: 'A' }
-  assert.deepEqual(patchedTask(task, { assignees: { add: [BEN], remove: [] } }), { ...task, assignees: [ME, BEN] })
-  assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
+  const task = { done: false, status: 'doing' as const, due: '', assignees: [ME], title: 'A' }
+  assert.deepEqual(patchedTask(task, { assignees: { add: [BEN], remove: [] } }, '2026-11-09'), { ...task, assignees: [ME, BEN] })
+  assert.deepEqual(patchedTask(task, { title: 'B' }, '2026-11-09'), { ...task, title: 'B' })
 })
 
 test('patchedTask adds no people to a private task', () => {
-  const task = { done: false, status: 'doing' as const, title: 'A' }
-  assert.deepEqual(patchedTask(task, { title: 'B' }), { ...task, title: 'B' })
+  const task = { done: false, status: 'doing' as const, due: '', title: 'A' }
+  assert.deepEqual(patchedTask(task, { title: 'B' }, '2026-11-09'), { ...task, title: 'B' })
+})
+
+test('addMonths keeps the day or takes the last day of a shorter month', () => {
+  assert.equal(addMonths('2026-01-31', 1), '2026-02-28')
+  assert.equal(addMonths('2028-01-31', 1), '2028-02-29')
+  assert.equal(addMonths('2026-11-15', 2), '2027-01-15')
+})
+
+test('nextDue keeps the weekday whether the task is done early or late', () => {
+  // 2026-11-15 is a Sunday.
+  assert.equal(nextDue('2026-11-15', 'weekly', '2026-11-13'), '2026-11-22')
+  assert.equal(nextDue('2026-11-15', 'weekly', '2026-11-15'), '2026-11-22')
+  assert.equal(nextDue('2026-11-15', 'weekly', '2026-11-30'), '2026-12-06')
+  assert.equal(nextDue('2026-11-15', 'biweekly', '2026-11-16'), '2026-11-29')
+})
+
+test('nextDue jumps straight to the next step from a deadline long ago', () => {
+  assert.equal(nextDue('0001-01-01', 'weekly', '2026-11-09'), addDays('0001-01-01', (Math.floor(daysBetween('0001-01-01', '2026-11-09') / 7) + 1) * 7))
+  assert.equal(nextDue('0001-01-15', 'monthly', '2026-11-09'), '2026-11-15')
+  assert.equal(nextDue('0001-01-05', 'monthly', '2026-11-09'), '2026-12-05')
+  assert.equal(nextDue('2026-11-30', 'monthly', '2026-11-30'), '2026-12-30')
+  assert.equal(nextDue('2026-12-15', 'weekly', '2026-11-09'), '2026-12-22')
+})
+
+test('nextDue counts months from the first deadline, so short months do not shift later ones', () => {
+  assert.equal(nextDue('2026-01-31', 'monthly', '2026-02-01'), '2026-02-28')
+  assert.equal(nextDue('2026-01-31', 'monthly', '2026-03-01'), '2026-03-31')
+})
+
+test('nextTurn sends a repeating task back to the backlog with its next deadline', () => {
+  const task = { done: false, status: 'doing' as const, due: '2026-11-15', repeat: 'weekly' as const }
+  const back = { done: false, status: 'backlog', due: '2026-11-22', repeated: true }
+  assert.deepEqual(nextTurn(task, { done: true }, '2026-11-15'), back)
+  assert.deepEqual(nextTurn(task, { status: 'done' }, '2026-11-15'), back)
+})
+
+test('nextTurn starts the rhythm from today without a deadline and uses a rhythm set in the same change', () => {
+  const task = { done: false, status: 'backlog' as const, due: '' }
+  assert.deepEqual(nextTurn(task, { done: true, repeat: 'weekly' }, '2026-11-09'), { done: false, status: 'backlog', due: '2026-11-16', repeated: true })
+})
+
+test('nextTurn leaves tasks without a rhythm and other changes alone', () => {
+  const once = { done: false, status: 'doing' as const, due: '2026-11-15' }
+  assert.deepEqual(nextTurn(once, { done: true }, '2026-11-15'), { done: true, status: 'done', due: '2026-11-15', repeated: false })
+  const weekly = { ...once, repeat: 'weekly' as const }
+  assert.deepEqual(nextTurn(weekly, { status: 'backlog' }, '2026-11-15'), { done: false, status: 'backlog', due: '2026-11-15', repeated: false })
+  assert.deepEqual(nextTurn({ ...weekly, done: true, status: 'done' }, { done: true }, '2026-11-15'), { done: true, status: 'done', due: '2026-11-15', repeated: false })
+})
+
+test('patchedTask shows a finished repeating task back in the backlog at once', () => {
+  const task = { done: false, status: 'doing' as const, due: '2026-11-15', repeat: 'weekly' as const, title: 'Post' }
+  assert.deepEqual(patchedTask(task, { done: true }, '2026-11-14'), { ...task, status: 'backlog', due: '2026-11-22' })
+})
+
+test('parseTask and parseTaskPatch read the rhythm', () => {
+  assert.equal(parseTask({ title: 'A' })?.repeat, '')
+  assert.equal(parseTask({ title: 'A', repeat: 'weekly' })?.repeat, 'weekly')
+  assert.equal(parseTask({ title: 'A', repeat: 'daily' }), null)
+  assert.deepEqual(parseTaskPatch({ repeat: 'monthly' }), { repeat: 'monthly' })
+  assert.deepEqual(parseTaskPatch({ repeat: '' }), { repeat: '' })
 })
 
 test('patchedTask stamps a task it finishes, so the done column shows it on top', () => {
   const now = '2026-11-07T10:00:00.000Z'
-  const open = { done: false, status: 'doing' as const, doneAt: '' }
-  assert.deepEqual(patchedTask(open, { status: 'done' }, now), { done: true, status: 'done', doneAt: now })
-  assert.deepEqual(patchedTask(open, { done: true }, now), { done: true, status: 'done', doneAt: now })
-  const finished = { done: true, status: 'done' as const, doneAt: '2026-11-01T08:00:00.000Z' }
-  assert.deepEqual(patchedTask(finished, { done: false }, now), { done: false, status: 'backlog', doneAt: '' })
-  assert.deepEqual(patchedTask(finished, { title: 'B' }, now), { ...finished, title: 'B' })
+  const open = { done: false, status: 'doing' as const, due: '', doneAt: '' }
+  assert.deepEqual(patchedTask(open, { status: 'done' }, '2026-11-07', now), { done: true, status: 'done', due: '', doneAt: now })
+  assert.deepEqual(patchedTask(open, { done: true }, '2026-11-07', now), { done: true, status: 'done', due: '', doneAt: now })
+  const finished = { done: true, status: 'done' as const, due: '', doneAt: '2026-11-01T08:00:00.000Z' }
+  assert.deepEqual(patchedTask(finished, { done: false }, '2026-11-07', now), { done: false, status: 'backlog', due: '', doneAt: '' })
+  assert.deepEqual(patchedTask(finished, { title: 'B' }, '2026-11-07', now), { ...finished, title: 'B' })
   const columns = boardColumns([
     { ...task({ id: 'old', status: 'done', done: true }), doneAt: '2026-11-05T08:00:00.000Z' },
-    { ...patchedTask({ ...task({ id: 'new' }), doneAt: '' }, { status: 'done' }, now) },
+    { ...patchedTask({ ...task({ id: 'new' }), doneAt: '' }, { status: 'done' }, '2026-11-07', now) },
   ])
   assert.deepEqual(columns.done.map(({ id }) => id), ['new', 'old'])
 })
 
 test('a single task and its card keep title, description and deadline in step', () => {
   const single = project({ type: 'task', title: 'Flyer', due: '2026-11-20', tasks: [task({ id: 'x', title: 'Flyer', due: '2026-11-20' })] })
-  const renamed = patchedProject(single, 'x', { title: 'Plakat', priority: 'high' })
+  const renamed = patchedProject(single, 'x', { title: 'Plakat', priority: 'high' }, '2026-11-09')
   assert.equal(renamed.title, 'Plakat')
   assert.equal(renamed.tasks[0].title, 'Plakat')
   assert.equal(renamed.tasks[0].priority, 'high')
-  assert.equal(patchedProject(single, 'x', { due: '2026-11-22' }).due, '2026-11-22')
+  assert.equal(patchedProject(single, 'x', { due: '2026-11-22' }, '2026-11-09').due, '2026-11-22')
 
   // A card with more tasks, and every project, keeps its own title.
   const two = project({ type: 'task', title: 'Flyer', tasks: [task({ id: 'x' }), task({ id: 'y' })] })
-  assert.equal(patchedProject(two, 'x', { title: 'Plakat' }).title, 'Flyer')
+  assert.equal(patchedProject(two, 'x', { title: 'Plakat' }, '2026-11-09').title, 'Flyer')
   const internal = project({ tasks: [task({ id: 'x' })] })
-  assert.equal(patchedProject(internal, 'x', { title: 'Plakat' }).title, 'Projekt')
+  assert.equal(patchedProject(internal, 'x', { title: 'Plakat' }, '2026-11-09').title, 'Projekt')
+
+  // A repeating single task moves its card to the next deadline too.
+  const weekly = project({ type: 'task', due: '2026-11-15', tasks: [task({ id: 'x', due: '2026-11-15', repeat: 'weekly' })] })
+  const repeated = patchedProject(weekly, 'x', { done: true }, '2026-11-15')
+  assert.equal(repeated.tasks[0].due, '2026-11-22')
+  assert.equal(repeated.due, '2026-11-22')
 
   assert.equal(isSingleTask(single), true)
   assert.equal(isSingleTask(two), false)

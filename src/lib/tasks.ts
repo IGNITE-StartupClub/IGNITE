@@ -20,6 +20,10 @@ export type TaskStatus = (typeof TASK_STATUSES)[number]
 /** A fourth column of both boards until 2026-11. Records may still hold it; taskStatus and projectStatus read it as "doing". */
 export type StoredStatus<T> = T | 'review'
 
+/** How often a task comes back once it is done; '' means once. See nextTurn. */
+export const REPEATS = ['', 'weekly', 'biweekly', 'monthly'] as const
+export type Repeat = (typeof REPEATS)[number]
+
 export const PRIORITIES = ['low', 'normal', 'high'] as const
 export type Priority = (typeof PRIORITIES)[number]
 
@@ -64,6 +68,7 @@ export interface TaskFields {
   /** Only when the task belongs to another team than its project; see taskTeam. */
   team: TeamChoice
   status: TaskStatus
+  repeat: Repeat
 }
 
 /** What a template or an earlier project hands to a new project: no status, people or absolute dates. */
@@ -87,6 +92,8 @@ export interface TaskState {
   required: boolean
   assignees: string[]
   team: TeamChoice
+  /** Missing on tasks stored before repeating tasks existed; reads as ''. */
+  repeat?: Repeat
   /** Set by the server: whether this member may delete the task (mayRemoveTask). */
   mayRemove?: boolean
 }
@@ -102,6 +109,7 @@ export interface PrivateTaskState {
   due: string
   priority: Priority
   team: TeamChoice
+  repeat?: Repeat
 }
 
 export interface ProjectState {
@@ -227,6 +235,7 @@ export function parseTask(input: unknown): TaskFields | null {
     assignees: members(fields.assignees),
     team: team(fields.team),
     status: choice(fields.status, TASK_STATUSES, 'backlog'),
+    repeat: choice(fields.repeat, REPEATS, ''),
   })
 }
 
@@ -273,6 +282,7 @@ export const parseTaskPatch = (input: unknown): TaskPatch | null =>
     assignees: memberChangeOf,
     team,
     status: (value) => choice(value, TASK_STATUSES, 'backlog'),
+    repeat: (value) => choice(value, REPEATS, ''),
     done: flag,
   })
 
@@ -338,6 +348,16 @@ export function addDays(dayValue: string, days: number): string {
   return date.toISOString().slice(0, 10)
 }
 
+/** The same day `months` later, or the month's last day when it is shorter (31 January + 1 month = 28 February). */
+export function addMonths(dayValue: string, months: number): string {
+  const [year, month, dayOfMonth] = dayValue.split('-').map(Number)
+  // setUTCFullYear, because Date.UTC reads the years 0 to 99 as 1900 to 1999.
+  const date = new Date(0)
+  date.setUTCFullYear(year, month - 1 + months + 1, 0)
+  date.setUTCDate(Math.min(dayOfMonth, date.getUTCDate()))
+  return date.toISOString().slice(0, 10)
+}
+
 export const daysBetween = (from: string, to: string): number =>
   Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 
@@ -391,15 +411,54 @@ export function nextStanding(task: Standing, patch: TaskPatch): Standing {
   return { status: patch.done ? 'done' : 'backlog', done: patch.done }
 }
 
-/** A task with a change applied, for updates the UI shows before the server answers; `now` stamps a task it finishes. */
-export function patchedTask<T extends Standing & { assignees?: string[]; doneAt?: string }>(task: T, patch: TaskPatch, now = new Date().toISOString()): T {
+/**
+ * The next deadline of a repeating task finished on `today`: the first step of its rhythm after today, counted from its
+ * deadline, so it keeps its weekday (or day of the month) whether it was done early or late.
+ */
+export function nextDue(due: string, repeat: Exclude<Repeat, ''>, today: string): string {
+  if (repeat !== 'monthly') {
+    const interval = repeat === 'weekly' ? 7 : 14
+    return addDays(due, (Math.floor(Math.max(0, daysBetween(due, today)) / interval) + 1) * interval)
+  }
+  // Computed, not stepped through, so a deadline centuries ago costs no more than one last week.
+  const [dueYear, dueMonth] = due.split('-').map(Number)
+  const [todayYear, todayMonth] = today.split('-').map(Number)
+  const step = Math.max(1, (todayYear - dueYear) * 12 + todayMonth - dueMonth)
+  const next = addMonths(due, step)
+  return next > today ? next : addMonths(due, step + 1)
+}
+
+type Turn = Standing & { due: string }
+
+/**
+ * Where a task stands after a change, deadline included. A repeating task that gets done goes straight back to the
+ * backlog with its next deadline (`repeated`), so it shows up again on the board; the activity log keeps the completion.
+ * Without a deadline the rhythm starts from today.
+ */
+export function nextTurn(task: Turn & { repeat?: Repeat }, patch: TaskPatch, today: string): Turn & { repeated: boolean } {
   const standing = nextStanding(task, patch)
+  const due = patch.due ?? task.due
+  const repeat = patch.repeat ?? task.repeat ?? ''
+  if (repeat && standing.done && !task.done) return { done: false, status: 'backlog', due: nextDue(due || today, repeat, today), repeated: true }
+  return { ...standing, due, repeated: false }
+}
+
+/** A task with a change applied, for updates the UI shows before the server answers; `now` stamps a task it finishes. */
+export function patchedTask<T extends Turn & { assignees?: string[]; doneAt?: string; repeat?: Repeat }>(
+  task: T,
+  patch: TaskPatch,
+  today: string,
+  now = new Date().toISOString(),
+): T {
+  const { done, status, due } = nextTurn(task, patch, today)
   return {
     ...task,
     ...patch,
-    ...standing,
+    done,
+    status,
+    due,
     // The done column sorts by doneAt (boardColumns), so a finished card without one would drop out of its first rows.
-    ...(standing.done !== task.done && 'doneAt' in task && { doneAt: standing.done ? now : '' }),
+    ...(done !== task.done && 'doneAt' in task && { doneAt: done ? now : '' }),
     ...(patch.assignees && { assignees: applyMemberChange(task.assignees ?? [], patch.assignees) }),
   }
 }
@@ -421,18 +480,20 @@ export function mirroredFields(patch: MirroredFields): MirroredFields {
   return shared
 }
 
-/** A project with one of its tasks changed (patchedTask); the card of a single task follows its task. */
-export function patchedProject<P extends { type: ProjectType; tasks: T[] }, T extends Standing & { id: string; assignees?: string[]; doneAt?: string }>(
-  project: P,
-  taskId: string,
-  patch: TaskPatch,
-): P {
+/** A project with one of its tasks changed (patchedTask); the card of a single task follows its task, new deadline of a repeat included. */
+export function patchedProject<
+  P extends { type: ProjectType; tasks: T[] },
+  T extends Turn & { id: string; assignees?: string[]; doneAt?: string; repeat?: Repeat },
+>(project: P, taskId: string, patch: TaskPatch, today: string): P {
+  const tasks = project.tasks.map((task) => (task.id === taskId ? patchedTask(task, patch, today) : task))
+  const changed = tasks.find((task) => task.id === taskId)
   return {
     ...project,
-    ...(isSingleTask(project) && mirroredFields(patch)),
-    tasks: project.tasks.map((task) => (task.id === taskId ? patchedTask(task, patch) : task)),
+    ...(isSingleTask(project) && { ...mirroredFields(patch), ...(changed && { due: changed.due }) }),
+    tasks,
   }
 }
+
 
 export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
@@ -717,6 +778,7 @@ export function tasksFromTemplate(tasks: TemplateTask[], anchorDay: string): Tas
     assignees: [],
     team: '',
     status: 'backlog',
+    repeat: '',
     due: anchorDay && task.offsetDays !== null ? addDays(anchorDay, task.offsetDays) : '',
   }))
 }

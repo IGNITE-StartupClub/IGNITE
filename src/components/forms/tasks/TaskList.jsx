@@ -8,7 +8,7 @@
  * onPatch(task, fields), onOpen(task), onMenu(task, x, y).
  */
 import React, { useState } from 'react'
-import { ChevronDown, MoreVertical, Plus } from 'lucide-react'
+import { ChevronDown, MoreVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, memberChange, MINE, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 import { ICON_BUTTON, MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
@@ -38,6 +38,12 @@ function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch
         {task.private ? <PrivateBadge label={copy.private.badge} /> : context && <p className="mt-0.5 text-xs text-fg-muted">{context}</p>}
       </div>
       {task.priority === 'high' && !task.done && <span className="shrink-0 text-xs font-medium text-danger">{copy.priorities.high}</span>}
+      {task.repeat && (
+        <span className="inline-flex shrink-0 text-fg-muted" title={copy.repeats[task.repeat]}>
+          <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+          <span className="sr-only">{copy.repeats[task.repeat]}</span>
+        </span>
+      )}
       {task.due && (
         <span className={`shrink-0 text-xs tabular-nums ${task.group === 'overdue' ? 'font-medium text-danger' : 'text-fg-muted'}`}>
           {shortDay(task.due, locale)}

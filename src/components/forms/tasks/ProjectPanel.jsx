@@ -11,7 +11,7 @@
  * place in the page's language; the stored snapshot keeps the German one).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
 import {
   applyMemberChange,
   isOverdue,
@@ -22,6 +22,7 @@ import {
   progress,
   projectDay,
   projectStatus,
+  REPEATS,
   TASK_STATUSES,
   TEXT_MAX,
   TITLE_MAX,
@@ -126,6 +127,21 @@ function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel 
           />
         </div>
       </div>
+      <div>
+        <label htmlFor={`${id}-repeat`} className={LABEL}>
+          {copy.repeat}
+        </label>
+        <select id={`${id}-repeat`} className={`${SELECT} h-10 w-full`} value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+          {REPEATS.map((repeat) => (
+            <option key={repeat} value={repeat}>
+              {copy.repeats[repeat]}
+            </option>
+          ))}
+        </select>
+        <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+          {copy.repeatHint}
+        </p>
+      </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
         <span>
@@ -155,7 +171,7 @@ const keepingFocus = (close, action) => () => {
 
 function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersById, editor, onEdit, onEditor, onPatch, onRemove, onMove, canMove }) {
   const overdue = isOverdue(task, today)
-  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses }
+  const panel = { ...copy.panel, priorities: copy.priorities, teams: copy.teams, taskStatuses: copy.taskStatuses, repeats: copy.repeats }
   const otherTeam = task.team && task.team !== projectTeam
   return (
     <li data-task-item={task.id} className="rounded-lg px-2 py-2 hover:bg-bg-subtle">
@@ -171,11 +187,17 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
             {task.title}
           </button>
           {task.description && !editor && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{task.description}</p>}
-          {(task.due || task.priority !== 'normal' || task.required || otherTeam) && (
+          {(task.due || task.repeat || task.priority !== 'normal' || task.required || otherTeam) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {task.due && (
                 <span className={overdue ? 'font-medium text-danger' : 'text-fg-muted'}>
                   {fill(copy.panel.dueOn, { date: shortDay(task.due, locale) })}
+                </span>
+              )}
+              {task.repeat && (
+                <span className="inline-flex items-center gap-1 text-fg-muted">
+                  <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                  {copy.repeats[task.repeat]}
                 </span>
               )}
               {task.priority !== 'normal' && (
@@ -273,7 +295,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
     if (!saved) setDraft(title)
   }
   const patch = (task, fields) =>
-    run({ action: 'updateTask', id: project.id, taskId: task.id, patch: fields }, change((current) => patchedProject(current, task.id, fields)))
+    run({ action: 'updateTask', id: project.id, taskId: task.id, patch: fields }, change((current) => patchedProject(current, task.id, fields, today)))
   const edit = (task) => {
     // Kept from the moment the editor opened: only what the member changes since then is saved.
     const start = {
@@ -284,6 +306,7 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
       required: task.required,
       team: task.team,
       status: task.status,
+      repeat: task.repeat ?? '',
     }
     setEditor({ taskId: task.id, start, form: start, busy: false })
   }

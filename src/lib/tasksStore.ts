@@ -45,6 +45,7 @@ import {
   type ProjectPatch,
   type ProjectStatus,
   type ProjectType,
+  type Repeat,
   type StoredStatus,
   type TaskFields,
   type TaskPatch,
@@ -53,7 +54,7 @@ import {
   type TemplateTask,
   mayRemoveTask,
   mirroredFields,
-  nextStanding,
+  nextTurn,
   projectEdits,
   projectStatus,
   sameTitle,
@@ -64,10 +65,11 @@ import {
 
 const ACTIVITY_MAX = 300
 
-interface TaskDoc extends Omit<TaskFields, 'team' | 'status'> {
+interface TaskDoc extends Omit<TaskFields, 'team' | 'status' | 'repeat'> {
   id: string
   team?: TeamChoice
   status?: StoredStatus<TaskStatus>
+  repeat?: Repeat
   done: boolean
   doneBy: string | null
   doneAt: Date | null
@@ -283,6 +285,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
         required: task.required,
         assignees: people(task.assignees),
         team: task.team ?? '',
+        repeat: task.repeat ?? '',
         mayRemove: mayRemoveTask(task, project, actor),
       })),
     createdAt: project.createdAt.toISOString(),
@@ -753,20 +756,25 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   const now = new Date()
   const single = project.type === 'task' && project.taskCount === 1
   const set: Record<string, unknown> = { updatedAt: now, 'tasks.$[t].updatedAt': now, ...(single && mirroredFields(fields)) }
-  const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
+  const turn = { done: task.done, status: taskStatus(task), due: task.due, repeat: task.repeat }
+  const { done, status, due, repeated } = nextTurn(turn, patch, berlinDay(now.getTime()))
   // Standing is only written when the patch moves the task: the values just read would undo a move made in between.
   const moved = patch.done !== undefined || patch.status !== undefined
-  for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }) })) set[`tasks.$[t].${key}`] = value
+  for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }), ...(repeated && { due }) })) set[`tasks.$[t].${key}`] = value
   const entries: Activity[] = []
   if (done !== task.done) {
     set['tasks.$[t].doneBy'] = done ? actor.id : null
     set['tasks.$[t].doneAt'] = done ? now : null
     entries.push(activity(actor, done ? 'taskDone' : 'taskReopened', task.title))
   }
+  // A repeating task is done for this round and open for the next: the log keeps the completion and the new deadline.
+  if (repeated) entries.push(activity(actor, 'taskDone', task.title), activity(actor, 'due', task.title))
+  // The card of a single task shows the task's deadline (MIRRORED_FIELDS), so it moves along.
+  if (repeated && single) set.due = due
   const { added, removed } = assigneeChanges(task.assignees, assignees)
   for (const member of added) entries.push(activity(actor, 'assigned', task.title, member))
   for (const member of removed) entries.push(activity(actor, 'unassigned', task.title, member))
-  if (patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
+  if (!repeated && patch.due !== undefined && patch.due !== task.due) entries.push(activity(actor, 'due', task.title))
   const edited =
     (['title', 'description', 'priority', 'required'] as const).some((key) => patch[key] !== undefined && patch[key] !== task[key]) ||
     (patch.team !== undefined && patch.team !== (task.team ?? ''))
@@ -783,11 +791,11 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
     { arrayFilters: [{ 't.id': taskId }] },
   )
   if (!matchedCount) return 'unknown'
-  // A finished task needs no "you were assigned" mail any more; the digest skips done tasks anyway.
-  const finished = done && !task.done
+  // A finished task (or a finished round of a repeating one) needs no "you were assigned" mail any more; the digest skips done tasks anyway.
+  const finished = (done && !task.done) || repeated
   await Promise.all([
     finished ? unnotify(taskId) : removed.length ? unnotify(taskId, removed) : null,
-    !done && !task.done && added.length ? notify(id, taskId, added, actor) : null,
+    !finished && !done && !task.done && added.length ? notify(id, taskId, added, actor) : null,
   ])
   return 'ok'
 }

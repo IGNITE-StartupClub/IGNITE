@@ -8,12 +8,12 @@
 import { randomUUID } from 'node:crypto'
 import { fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
 import { database, setUpInBackground } from './members'
-import { MAX_TASKS, nextStanding, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
+import { MAX_TASKS, berlinDay, nextTurn, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
 import { putInTrash, takeFromTrash } from './taskTrash'
 
 const COLLECTION = 'private_tasks'
 const SEALED = ['title', 'description'] as const
-const PLAIN = ['due', 'priority', 'team'] as const
+const PLAIN = ['due', 'priority', 'team', 'repeat'] as const
 
 interface PrivateTaskDoc extends Omit<PrivateTaskState, 'id' | 'doneAt' | 'status'> {
   _id: string
@@ -53,6 +53,7 @@ export async function privateTasks(memberId: string): Promise<PrivateTaskState[]
     status: taskStatus(task),
     doneAt: task.doneAt?.toISOString() ?? '',
     due: task.due,
+    repeat: task.repeat ?? '',
     priority: task.priority,
     team: task.team,
   }))
@@ -75,6 +76,7 @@ export async function addPrivateTask(memberId: string, fields: TaskFields): Prom
     due: fields.due,
     priority: fields.priority,
     team: fields.team,
+    repeat: fields.repeat,
     createdAt: now,
     updatedAt: now,
   })
@@ -87,14 +89,16 @@ export async function updatePrivateTask(memberId: string, id: string, patch: Tas
   const set: Partial<PrivateTaskDoc> = { updatedAt: now }
   for (const key of SEALED) if (patch[key] !== undefined) set[key] = sealed(patch[key], memberId, id, key)
   for (const key of PLAIN) if (patch[key] !== undefined) Object.assign(set, { [key]: patch[key] })
-  // Standing is only written when the patch moves the task, as in updateTask: the values read here would undo a tick
+  // Standing (and the deadline of a repeat) is only written when the patch moves the task, as in updateTask: the values read here would undo a tick
   // made on another device in between.
   if (patch.done !== undefined || patch.status !== undefined) {
-    const task = await tasks.findOne({ _id: id, memberId }, { projection: { done: 1, status: 1 } })
+    const task = await tasks.findOne({ _id: id, memberId }, { projection: { done: 1, status: 1, due: 1, repeat: 1 } })
     if (!task) return 'unknown'
-    const { done, status } = nextStanding({ done: task.done, status: taskStatus(task) }, patch)
+    const turn = { done: task.done, status: taskStatus(task), due: task.due, repeat: task.repeat }
+    const { done, status, due, repeated } = nextTurn(turn, patch, berlinDay(now.getTime()))
     Object.assign(set, { done, status })
     if (done !== task.done) set.doneAt = done ? now : null
+    if (repeated) set.due = due
   }
   const { matchedCount } = await tasks.updateOne({ _id: id, memberId }, { $set: set })
   return matchedCount ? 'ok' : 'unknown'

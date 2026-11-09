@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { changedFields } from '../../../lib/liveUpdates'
-import { PRIORITIES, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { PRIORITIES, REPEATS, TASK_STATUSES, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { DANGER_BUTTON, fill, FormDialog } from '../memberUi'
 import { TeamSelect } from './taskUi'
 
@@ -19,9 +19,9 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
 
   useEffect(() => {
     if (!task) return
-    const { title, description, due, priority, status, team } = task
-    setStart({ title, description, due, priority, status, team })
-    setForm({ title, description, due, priority, status, team })
+    const { title, description, due, priority, status, team, repeat = '' } = task
+    setStart({ title, description, due, priority, status, team, repeat })
+    setForm({ title, description, due, priority, status, team, repeat })
     dialog.current.showModal()
   }, [task?.id])
   // The task can go while the dialog is open: deleted on another device, or a restore was undone.
@@ -97,6 +97,21 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
                 ))}
               </select>
             </div>
+          </div>
+          <div className="field">
+            <label htmlFor={`${id}-repeat`} className="field-label">
+              {copy.panel.repeat}
+            </label>
+            <select id={`${id}-repeat`} className="input" value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+              {REPEATS.map((repeat) => (
+                <option key={repeat} value={repeat}>
+                  {copy.repeats[repeat]}
+                </option>
+              ))}
+            </select>
+            <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+              {copy.panel.repeatHint}
+            </p>
           </div>
           <div className="form-actions">
             <button type="submit" className="form-submit" disabled={!form.title.trim()}>
