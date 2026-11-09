@@ -17,6 +17,7 @@ const englishSlugs = new Map([
   ['impressum', 'imprint'],
   ['datenschutz', 'privacy'],
   ['IGNITEWorkshops', 'workshops'],
+  ['startup-woche', 'startup-week'],
 ])
 const germanSlugs = new Map([...englishSlugs].map(([german, english]) => [english, german]))
 

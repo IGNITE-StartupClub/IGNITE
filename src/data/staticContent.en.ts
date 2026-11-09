@@ -29,6 +29,10 @@ export const pageMeta = {
     description: 'Workshops, networking and hackathons about founding a startup at Leuphana.',
   },
   news: { title: 'News' },
+  startupWeek: {
+    title: 'Your startup week',
+    description: "This week's startup events in Lüneburg and Hamburg, with a direct link to register.",
+  },
   materials: { title: 'Materials and resources' },
   notFound: { title: '404', description: 'Page not found' },
 }
@@ -367,6 +371,22 @@ export const eventsPage = {
   attended: 'attendees',
   pastHeading: 'Past events',
   followCalendar: 'Subscribe to the Luma calendar',
+}
+
+// /en/startup-week, the link in the Instagram bio. The events come from src/content/startupWeek/.
+export const startupWeekPage = {
+  title: 'Your <em>startup week</em>',
+  lead: 'Events for founders in Lüneburg and Hamburg. New every week, with a direct link to register.',
+  register: 'Register',
+  past: 'Over',
+  empty: 'The next edition is coming soon. Follow us on Instagram so you do not miss it.',
+  together: {
+    heading: "Don't want to go alone?",
+    text: 'Tell us which event you like. We connect you with others from the IGNITE community, and we travel there together from Lüneburg.',
+    message: 'Message us on Instagram',
+    community: 'Join the WhatsApp community',
+  },
+  disclaimer: 'Put together by IGNITE. No guarantee for the details; the organiser has the final word and handles registration.',
 }
 
 export const subscribePage = {

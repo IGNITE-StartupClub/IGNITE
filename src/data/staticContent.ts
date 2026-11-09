@@ -30,6 +30,10 @@ export const pageMeta = {
     description: 'Workshops, Austausch und Hackathons rund ums Gründen an der Leuphana.',
   },
   news: { title: 'Neuigkeiten' },
+  startupWeek: {
+    title: 'Deine Startup-Woche',
+    description: 'Die Startup-Events der Woche in Lüneburg und Hamburg, mit direktem Link zur Anmeldung.',
+  },
   materials: { title: 'Materialien und Ressourcen' },
   notFound: { title: '404', description: 'Seite nicht gefunden' },
 }
@@ -367,6 +371,22 @@ export const eventsPage = {
   attended: 'Teilnehmende',
   pastHeading: 'Vergangene Events',
   followCalendar: 'Luma-Kalender abonnieren',
+}
+
+// /startup-woche, the link in the Instagram bio. The events come from src/content/startupWeek/.
+export const startupWeekPage = {
+  title: 'Deine <em>Startup-Woche</em>',
+  lead: 'Events für Gründer*innen in Lüneburg und Hamburg. Jede Woche neu, mit direktem Link zur Anmeldung.',
+  register: 'Zur Anmeldung',
+  past: 'Vorbei',
+  empty: 'Die nächste Ausgabe kommt bald. Folge uns auf Instagram, dann verpasst du sie nicht.',
+  together: {
+    heading: 'Keine Lust, allein hinzugehen?',
+    text: 'Schreib uns, welches Event dich reizt. Wir bringen dich mit anderen aus der IGNITE-Community zusammen, und von Lüneburg aus fahren wir gemeinsam hin.',
+    message: 'Auf Instagram schreiben',
+    community: 'Zur WhatsApp-Community',
+  },
+  disclaimer: 'Zusammengestellt von IGNITE. Alle Angaben ohne Gewähr, Details und Anmeldung beim Veranstalter.',
 }
 
 export const subscribePage = {

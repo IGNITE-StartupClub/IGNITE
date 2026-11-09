@@ -1,0 +1,98 @@
+{
+  "start": "2026-11-09",
+  "events": [
+    {
+      "date": "2026-11-10",
+      "time": "18:30",
+      "emoji": "🤝",
+      "host": "FOUNDA MET",
+      "url": "https://startupcity.hamburg/news-events/events/founda-met-x-oyster-bay-curated-cofounder-dating-hamburg",
+      "de": {
+        "title": "Cofounder Dating",
+        "text": "Du hast eine Idee, aber kein Team? Oder willst bei einem Startup einsteigen? Hier pitchen Gründer*innen ihre Idee und du lernst gezielt potenzielle Mitgründer*innen kennen.",
+        "place": "Hamburg",
+        "note": "Nur noch 5 Plätze"
+      },
+      "en": {
+        "title": "Cofounder Dating",
+        "text": "You have an idea but no team? Or you want to join a startup? Founders pitch their ideas here, and you meet potential cofounders on purpose.",
+        "place": "Hamburg",
+        "note": "Only 5 spots left"
+      }
+    },
+    {
+      "date": "2026-11-11",
+      "time": "12:00",
+      "emoji": "💶",
+      "host": "Startup City Hamburg × IFB",
+      "url": "https://events.teams.microsoft.com/event/35ed0a5e-b4e0-47b9-86a4-f0d28178dc41@4449970e-9eb6-470a-ad67-e67178ce285a",
+      "de": {
+        "title": "Wie finanziere ich mein Startup?",
+        "text": "Online-Session mit der IFB Innovationsstarter, Hamburgs Förderbank für Startups. Du bekommst einen Überblick über Förderprogramme und Investoren und kannst deine Fragen direkt an die Expert*innen stellen.",
+        "place": "Online",
+        "note": "Kostenlos"
+      },
+      "en": {
+        "title": "How do I finance my startup?",
+        "text": "Online session with IFB Innovationsstarter, Hamburg's funding bank for startups. Get an overview of funding programmes and investors and ask the experts your questions directly. The session is in German.",
+        "place": "Online",
+        "note": "Free"
+      }
+    },
+    {
+      "date": "2026-11-11",
+      "time": "19:00",
+      "emoji": "🚚",
+      "host": "cargo.one × Levity AI",
+      "url": "https://www.logisticstechtalks.com",
+      "de": {
+        "title": "LogisticsTech Talks",
+        "text": "cargo.one und Levity AI erzählen, wie sie Logistik mit Software und KI umkrempeln, danach pitchen vier Startups. Mit Pizza und Drinks.",
+        "place": "Digital Hub Logistics, Hamburg",
+        "note": "Eintritt frei"
+      },
+      "en": {
+        "title": "LogisticsTech Talks",
+        "text": "cargo.one and Levity AI explain how they reshape logistics with software and AI, then four startups pitch. With pizza and drinks.",
+        "place": "Digital Hub Logistics, Hamburg",
+        "note": "Free entry"
+      }
+    },
+    {
+      "date": "2026-11-12",
+      "time": "18:00",
+      "emoji": "🔧",
+      "host": "Digital Hub Logistics",
+      "url": "https://luma.com/Afterwork-DTCC",
+      "de": {
+        "title": "Deep Tech Afterwork #3",
+        "text": "Kurze Talks von Gründer*innen aus Advanced Manufacturing, danach Drinks und Netzwerken mit Leuten, die Hardware und Deep Tech bauen.",
+        "place": "Digital Hub Logistics, Hamburg"
+      },
+      "en": {
+        "title": "Deep Tech Afterwork #3",
+        "text": "Short talks by founders from advanced manufacturing, then drinks and networking with people who build hardware and deep tech.",
+        "place": "Digital Hub Logistics, Hamburg"
+      }
+    },
+    {
+      "date": "2026-11-13",
+      "time": "16:00",
+      "emoji": "💻",
+      "host": "build fridays",
+      "url": "https://luma.com/ik20i4nx",
+      "de": {
+        "title": "Gemeinsam am Startup bauen",
+        "text": "Laptop mitbringen und mit anderen Gründer*innen am eigenen Projekt arbeiten, Fortschritte teilen und Feedback holen.",
+        "place": "Hamburg",
+        "note": "Kostenlos"
+      },
+      "en": {
+        "title": "Build your startup together",
+        "text": "Bring your laptop, work on your own project next to other founders, share progress and get feedback.",
+        "place": "Hamburg",
+        "note": "Free"
+      }
+    }
+  ]
+}
