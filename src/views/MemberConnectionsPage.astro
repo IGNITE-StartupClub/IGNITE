@@ -1,8 +1,9 @@
 ---
 /**
  * Connected apps and calendar subscription of a member, rendered on demand by pages/mitglieder/verbindungen.astro and
- * pages/en/members/connections.astro. A pilot for the addresses in CONNECTION_HASHES (initialAdmins.ts): the middleware
- * sends everyone else to the members home, and they find no link to this page. The ConnectionsPanel island does the work.
+ * pages/en/members/connections.astro. Open to everyone while the admin switch `connections`
+ * is on, else only to the pilot addresses in CONNECTION_HASHES (mayConnect in members.ts): the middleware sends everyone
+ * else to the members home, and they find no link to this page. The ConnectionsPanel island does the work.
  * Data source: memberArea.connections via getCopy(), connectionsStore.ts.
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'

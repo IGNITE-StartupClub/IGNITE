@@ -26,7 +26,6 @@ import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
 import { memberAreaLocale, memberHomePath, memberPagePath } from '../../lib/memberAuth'
-import { mayConnect } from '../../lib/members'
 
 interface Props {
   switchHref: string
@@ -192,7 +191,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
               <li style="--i: 4">
                 <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>
-              {mayConnect(member.email) && (
+              {member.mayConnect && (
                 <li style="--i: 5">
                   <a class="panel-link" href={memberPagePath('connections', locale)} aria-current={isCurrent(memberPagePath('connections', locale)) ? 'page' : undefined}>
                     {memberNav.connections}

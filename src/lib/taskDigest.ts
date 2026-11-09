@@ -8,7 +8,7 @@
  * every try, so a send that went out although the run failed afterwards is not repeated.
  * Entries whose task or project was finished, deleted or archived meanwhile, or whose task went to someone else, are
  * dropped unsent.
- * Admins can switch the digest off for everyone (setting `taskDigest` in `settings`, AdminSettings island); while it is
+ * Admins can switch the digest off for everyone (switch `taskDigest` in settings.ts, AdminSettings island); while it is
  * off, each run drops the pending entries, so switching it on again sends no backlog.
  */
 import { Resend } from 'resend'
@@ -17,6 +17,7 @@ import { globalConfig } from '../data/staticContent'
 import { getTaskDigestEmailHTML, getTaskDigestSubject, type DigestProject } from '../templates/emails/taskDigestEmail'
 import { memberPagePath } from './memberAuth'
 import { database, setUpInBackground } from './members'
+import { settingEnabled } from './settingsStore'
 import { assertSent } from './resend'
 import { berlinDay, berlinHour, projectStatus } from './tasks'
 import { dropNotifications, pendingNotifications, projectsForDigest, recipients, type NotificationDoc } from './tasksStore'
@@ -41,32 +42,7 @@ interface DigestDoc {
   error?: string
 }
 
-interface SettingDoc {
-  _id: 'taskDigest'
-  enabled: boolean
-  updatedAt: Date
-  updatedBy: string
-}
-
 const resend = new Resend(process.env.RESEND_API_KEY!)
-
-async function settings() {
-  return (await database()).collection<SettingDoc>('settings')
-}
-
-/** Whether the daily digest goes out; on until an admin switches it off. */
-export async function digestEnabled(): Promise<boolean> {
-  const setting = await (await settings()).findOne({ _id: 'taskDigest' })
-  return setting?.enabled ?? true
-}
-
-export async function setDigestEnabled(enabled: boolean, actor: string): Promise<void> {
-  await (await settings()).updateOne(
-    { _id: 'taskDigest' },
-    { $set: { enabled, updatedAt: new Date(), updatedBy: actor } },
-    { upsert: true },
-  )
-}
 
 let indexed = false
 
@@ -136,7 +112,7 @@ export interface DigestRun {
 export async function sendDigests(now: Date, origin: string): Promise<DigestRun> {
   if (berlinHour(now.getTime()) < DIGEST_HOUR) return { skipped: 'early', sent: 0, failed: 0, dropped: 0 }
   const pending = await pendingNotifications()
-  if (!(await digestEnabled())) {
+  if (!(await settingEnabled('taskDigest'))) {
     await dropNotifications(pending.map((entry) => entry._id))
     return { skipped: 'disabled', sent: 0, failed: 0, dropped: pending.length }
   }

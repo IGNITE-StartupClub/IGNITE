@@ -17,7 +17,7 @@ import {
   memberHomePath,
   SESSION_COOKIE,
 } from './lib/memberAuth'
-import { findSession, mayConnect } from './lib/members'
+import { findSession } from './lib/members'
 
 const SECURITY_HEADERS = {
   // Member pages and answers must never land in a shared cache.
@@ -57,7 +57,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (isAdminPath(pathname) && member.role !== 'admin') {
       return secure(context.redirect(memberHomePath(locale!), 303))
     }
-    if (isConnectionPath(pathname) && !mayConnect(member.email)) {
+    if (isConnectionPath(pathname) && !member.mayConnect) {
       return secure(context.redirect(refusedRequestUrl(context.url) ?? memberHomePath(locale!), 303))
     }
     context.locals.member = member

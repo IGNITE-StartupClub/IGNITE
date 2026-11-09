@@ -12,7 +12,6 @@ import {
   renewCalendarFeed,
 } from '../../../lib/connectionsStore'
 import { isJsonRequest } from '../../../lib/memberAuth'
-import { mayConnect } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
 
 const state = async (email: string) => ({
@@ -32,7 +31,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   try {
     const member = await currentMember(cookies)
     if (!member) return reply(401, { code: 'session', message: 'Nicht angemeldet.' })
-    if (!mayConnect(member.email)) return reply(403, { code: 'forbidden', message: 'Nicht freigeschaltet.' })
+    if (!member.mayConnect) return reply(403, { code: 'forbidden', message: 'Nicht freigeschaltet.' })
     let body: Record<string, unknown> = {}
     try {
       body = await request.json()

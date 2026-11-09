@@ -1234,11 +1234,20 @@ export const memberArea = {
     back: 'Back to the members area',
     settings: {
       heading: 'Settings',
-      taskDigest: 'Daily task mail',
-      taskDigestText:
-        'At 7 pm, members get one mail with the tasks newly assigned to them that day. Switched off, the tasks module sends no mail.',
-      savedOn: 'The task mail is switched on.',
-      savedOff: 'The task mail is switched off.',
+      switches: {
+        taskDigest: {
+          label: 'Daily task mail',
+          text: 'At 7 pm, members get one mail with the tasks newly assigned to them that day. Switched off, the tasks module sends no mail.',
+          savedOn: 'The task mail is switched on.',
+          savedOff: 'The task mail is switched off.',
+        },
+        connections: {
+          label: 'AI assistants and calendar subscription',
+          text: 'Every member can connect Claude or ChatGPT to the tasks module and subscribe to their tasks and events as a calendar. Switched off, only the pilot addresses can, and other members’ existing connections stop working.',
+          savedOn: 'Every member can now set up connections.',
+          savedOff: 'Connections are now limited to the pilot addresses.',
+        },
+      },
       error: 'That did not work. Please try again.',
     },
     manager: {

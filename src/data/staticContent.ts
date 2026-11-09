@@ -1234,11 +1234,20 @@ export const memberArea = {
     back: 'Zurück zum Mitgliederbereich',
     settings: {
       heading: 'Einstellungen',
-      taskDigest: 'Tägliche Aufgaben-Mail',
-      taskDigestText:
-        'Um 19 Uhr bekommen Mitglieder eine Mail mit den Aufgaben, die ihnen an dem Tag neu zugewiesen wurden. Ausgeschaltet verschickt das Aufgabenmodul keine Mails.',
-      savedOn: 'Die Aufgaben-Mail ist eingeschaltet.',
-      savedOff: 'Die Aufgaben-Mail ist ausgeschaltet.',
+      switches: {
+        taskDigest: {
+          label: 'Tägliche Aufgaben-Mail',
+          text: 'Um 19 Uhr bekommen Mitglieder eine Mail mit den Aufgaben, die ihnen an dem Tag neu zugewiesen wurden. Ausgeschaltet verschickt das Aufgabenmodul keine Mails.',
+          savedOn: 'Die Aufgaben-Mail ist eingeschaltet.',
+          savedOff: 'Die Aufgaben-Mail ist ausgeschaltet.',
+        },
+        connections: {
+          label: 'KI-Assistenten und Kalender-Abo',
+          text: 'Alle Mitglieder können Claude oder ChatGPT mit dem Aufgabenmodul verbinden und ihre Aufgaben und Events als Kalender abonnieren. Ausgeschaltet geht das nur für die Pilot-Adressen, und bestehende Verbindungen anderer Mitglieder hören auf zu funktionieren.',
+          savedOn: 'Alle Mitglieder können jetzt Verbindungen einrichten.',
+          savedOff: 'Verbindungen gibt es jetzt nur noch für die Pilot-Adressen.',
+        },
+      },
       error: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
     },
     manager: {

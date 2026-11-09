@@ -3,7 +3,7 @@
  * Member management, rendered on demand by pages/mitglieder/verwaltung.astro and pages/en/members/admin.astro.
  * src/middleware.ts lets only members with the admin role in; /api/members/admin checks the role again.
  * The list is rendered from the database and handed to the MemberAdmin island, which shows it as a table.
- * Above it, AdminSettings switches the daily task digest (taskDigest.ts) on or off for everyone.
+ * Above it, AdminSettings flips the switches of settings.ts (task digest, connections) for everyone.
  * Data source: memberArea via getCopy(), members with their signature photos via memberSummaries().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -16,12 +16,12 @@ import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 import { memberSummaries } from '../lib/members'
-import { digestEnabled } from '../lib/taskDigest'
+import { allSettings } from '../lib/settingsStore'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, openTeams } = getCopy(locale)
 const { admin } = memberArea
-const [members, taskDigest] = await Promise.all([memberSummaries(), digestEnabled()])
+const [members, settings] = await Promise.all([memberSummaries(), allSettings()])
 ---
 
 <DefaultLayout title={admin.pageTitle} alternatePath={memberPagePath('admin', locale === 'de' ? 'en' : 'de')} noindex>
@@ -30,7 +30,7 @@ const [members, taskDigest] = await Promise.all([memberSummaries(), digestEnable
   </PageHeader>
   <Section tone="subtle" spacing="xs" labelledby="page-title">
     <div class="mb-6">
-      <AdminSettings client:load copy={admin.settings} initialSettings={{ taskDigest }} />
+      <AdminSettings client:load copy={admin.settings} initialSettings={settings} />
     </div>
     <MemberAdmin
       client:load
