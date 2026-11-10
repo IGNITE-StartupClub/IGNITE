@@ -11,7 +11,7 @@
  * place in the page's language; the stored snapshot keeps the German one).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ExternalLink, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ExternalLink, FolderOpen, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
 import {
   applyMemberChange,
   isOverdue,
@@ -23,6 +23,7 @@ import {
   projectDay,
   projectStatus,
   REPEATS,
+  SHAREPOINT_PATTERN,
   TASK_STATUSES,
   TEXT_MAX,
   TITLE_MAX,
@@ -416,14 +417,27 @@ function TasksTab({ project, copy, locale, today, me, members, membersById, run,
 }
 
 // The server trims what it stores, so a trailing space is no change to offer saving.
-const trimmed = (form) => ({ ...form, title: form.title.trim(), description: form.description.trim(), place: form.place.trim() })
+const trimmed = (form) => ({
+  ...form,
+  title: form.title.trim(),
+  description: form.description.trim(),
+  place: form.place.trim(),
+  folderUrl: form.folderUrl.trim(),
+})
 
-function DetailsTab({ project, copy, locale, run, eventPlace }) {
+function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
   const id = useId()
   const [busy, setBusy] = useState(false)
   const publicPlace = eventPlace ?? project.event?.location
   const ownEvent = project.type === 'event' && !project.event
-  const fields = () => ({ title: project.title, description: project.description, due: project.due, time: project.time, place: project.place })
+  const fields = () => ({
+    title: project.title,
+    description: project.description,
+    due: project.due,
+    time: project.time,
+    place: project.place,
+    folderUrl: project.folderUrl,
+  })
   const [form, setForm] = useState(fields)
   const start = useRef(form)
   // A change from elsewhere fills the fields nobody touched here; what the member is typing stays.
@@ -432,7 +446,7 @@ function DetailsTab({ project, copy, locale, run, eventPlace }) {
     const previous = start.current
     start.current = next
     setForm((current) => ({ ...next, ...changedFields(previous, current) }))
-  }, [project.title, project.description, project.due, project.time, project.place])
+  }, [project.title, project.description, project.due, project.time, project.place, project.folderUrl])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const patch = changedFields(fields(), trimmed(form))
   const changed = Object.keys(patch).length > 0
@@ -485,6 +499,26 @@ function DetailsTab({ project, copy, locale, run, eventPlace }) {
             </div>
           </div>
         )}
+        <div>
+          <label htmlFor={`${id}-folder`} className={LABEL}>
+            {copy.panel.folderUrl}
+          </label>
+          <input
+            id={`${id}-folder`}
+            type="url"
+            className={INPUT}
+            inputMode="url"
+            pattern={SHAREPOINT_PATTERN}
+            placeholder="https://leuphanalg.sharepoint.com/…"
+            aria-describedby={`${id}-folder-hint`}
+            autoFocus={focusFolder}
+            value={form.folderUrl}
+            onChange={set('folderUrl')}
+          />
+          <p id={`${id}-folder-hint`} className="mt-1.5 text-caption text-fg-muted">
+            {copy.panel.folderHint}
+          </p>
+        </div>
         {changed && (
           <div className="flex gap-2">
             <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={busy}>
@@ -590,6 +624,8 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   const templateDialog = useRef(null)
   const id = useId()
   const [tab, setTab] = useState('tasks')
+  // Set by the header's "link a folder", so the details open with the folder field focused.
+  const [focusFolder, setFocusFolder] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateSaved, setTemplateSaved] = useState(false)
   const projectId = project?.id
@@ -603,6 +639,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
     }
     if (!projectId && element.open) element.close()
     setTab('tasks')
+    setFocusFolder(false)
     setTemplateSaved(false)
   }, [projectId])
 
@@ -769,6 +806,27 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
                   </a>
                 )}
+                {project.folderUrl ? (
+                  <a href={project.folderUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-accent underline">
+                    <FolderOpen aria-hidden="true" className="h-4 w-4" />
+                    {copy.panel.folder}
+                    <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                  </a>
+                ) : (
+                  !project.archived && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-accent underline"
+                      onClick={() => {
+                        setFocusFolder(true)
+                        setTab('details')
+                      }}
+                    >
+                      <FolderOpen aria-hidden="true" className="h-4 w-4" />
+                      {copy.panel.linkFolder}
+                    </button>
+                  )
+                )}
               </div>
               <div className="mt-3 flex items-center gap-3">
                 <ProgressBar percent={done.percent} tone={STATUS_TONE[project.status]} label={copy.board.progress} />
@@ -792,7 +850,10 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   id={`${id}-tab-${key}`}
                   aria-selected={tab === key}
                   aria-controls={`${id}-panel`}
-                  onClick={() => setTab(key)}
+                  onClick={() => {
+                    setFocusFolder(false)
+                    setTab(key)
+                  }}
                   className={`-mb-px rounded-none border-0 border-b-2 border-solid bg-transparent px-3 py-2.5 text-sm font-medium ${
                     tab === key ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg'
                   }`}
@@ -819,7 +880,15 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                 />
               )}
               {tab === 'details' && (
-                <DetailsTab key={project.id} project={project} copy={copy} locale={locale} run={run} eventPlace={eventPlace} />
+                <DetailsTab
+                  key={project.id}
+                  project={project}
+                  copy={copy}
+                  locale={locale}
+                  run={run}
+                  eventPlace={eventPlace}
+                  focusFolder={focusFolder}
+                />
               )}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>

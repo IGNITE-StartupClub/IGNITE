@@ -53,6 +53,8 @@ export interface ProjectFields {
   time: string
   /** Place of an own event. */
   place: string
+  /** The project's folder in the Leuphana SharePoint (parseFolderUrl), '' without one. */
+  folderUrl: string
   leads: string[]
   team: TeamChoice
 }
@@ -127,6 +129,7 @@ export interface ProjectState {
   event?: { id: string; missing: boolean; location: string | null } | null
   time?: string
   place?: string
+  folderUrl?: string
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   tasks: TaskState[]
@@ -154,6 +157,32 @@ export const isDay = (value: unknown): value is string => {
 function day(value: unknown): Parsed<string> {
   if (value === undefined || value === null || value === '') return ''
   return isDay(value) ? value : INVALID
+}
+
+/** Only folders in the Leuphana SharePoint: they open for members alone, and no other host can pass for it. */
+export const SHAREPOINT_HOST = 'leuphanalg.sharepoint.com'
+/** For the input's `pattern`, so the browser names the rule before the server refuses. */
+export const SHAREPOINT_PATTERN = 'https://leuphanalg\\.sharepoint\\.com/.*'
+const FOLDER_URL_MAX = 2000
+
+function folderUrl(value: unknown): Parsed<string> {
+  if (value === undefined || value === null || value === '') return ''
+  if (typeof value !== 'string' || value.length > FOLDER_URL_MAX) return INVALID
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    // Not a URL at all is a refused input like any other, not a failure.
+    return INVALID
+  }
+  const own = url.protocol === 'https:' && url.hostname === SHAREPOINT_HOST && !url.port && !url.username && !url.password
+  return own && url.href.length <= FOLDER_URL_MAX ? url.href : INVALID
+}
+
+/** A SharePoint folder link as stored, '' for none, or null when it points anywhere else. */
+export function parseFolderUrl(value: unknown): string | null {
+  const parsed = folderUrl(value)
+  return parsed === INVALID ? null : parsed
 }
 
 function clock(value: unknown): Parsed<string> {
@@ -218,6 +247,7 @@ export function parseProject(input: unknown): ProjectFields | null {
     due: day(fields.due),
     time: clock(fields.time),
     place: text(fields.place, TITLE_MAX),
+    folderUrl: folderUrl(fields.folderUrl),
     leads: members(fields.leads),
     team: team(fields.team),
   })
@@ -246,7 +276,9 @@ export interface MemberChange {
 }
 
 export type TaskPatch = Partial<Omit<TaskFields, 'assignees'>> & { done?: boolean; assignees?: MemberChange }
-export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'time' | 'place' | 'team'>> & { leads?: MemberChange }
+export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'time' | 'place' | 'folderUrl' | 'team'>> & {
+  leads?: MemberChange
+}
 
 // One direction only: MongoDB cannot add to and pull from an array in one update, and a picker click changes one person.
 function memberChangeOf(value: unknown): Parsed<MemberChange> {
@@ -293,6 +325,7 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     due: day,
     time: clock,
     place: (value) => text(value, TITLE_MAX),
+    folderUrl,
     team,
     leads: memberChangeOf,
   })
@@ -821,6 +854,8 @@ export type ProjectEditAction =
   | 'untimed'
   | 'placed'
   | 'unplaced'
+  | 'folderLinked'
+  | 'folderUnlinked'
   | 'teamed'
   | 'unteamed'
   | 'leadAdded'
@@ -838,17 +873,20 @@ export interface ProjectEdit {
  * the activity tab says what happened. A value someone else saved just before does not count as a change.
  */
 export function projectEdits(
-  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; team?: TeamChoice },
+  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; folderUrl?: string; team?: TeamChoice },
   patch: ProjectPatch,
 ): ProjectEdit[] {
   const edits: ProjectEdit[] = []
-  const changes = (key: 'title' | 'description' | 'due' | 'time' | 'place' | 'team') => patch[key] !== undefined && patch[key] !== (stored[key] ?? '')
+  const changes = (key: 'title' | 'description' | 'due' | 'time' | 'place' | 'folderUrl' | 'team') =>
+    patch[key] !== undefined && patch[key] !== (stored[key] ?? '')
   const setOrClear = (value: string, set: ProjectEditAction, clear: ProjectEditAction) => edits.push({ action: value ? set : clear, detail: value })
   if (changes('title')) edits.push({ action: 'renamed', detail: patch.title! })
   if (changes('description')) edits.push({ action: 'described', detail: '' })
   if (changes('due')) setOrClear(patch.due!, 'dated', 'undated')
   if (changes('time')) setOrClear(patch.time!, 'timed', 'untimed')
   if (changes('place')) setOrClear(patch.place!, 'placed', 'unplaced')
+  // The link itself stays out of the log: it says nothing a reader needs and would only lengthen every entry.
+  if (changes('folderUrl')) edits.push({ action: patch.folderUrl ? 'folderLinked' : 'folderUnlinked', detail: '' })
   if (changes('team')) setOrClear(patch.team!, 'teamed', 'unteamed')
   if (patch.leads) {
     const { added, removed } = assigneeChanges(stored.leads, applyMemberChange(stored.leads, patch.leads))
