@@ -3,25 +3,27 @@
  * Member management, rendered on demand by pages/mitglieder/verwaltung.astro and pages/en/members/admin.astro.
  * src/middleware.ts lets only members with the admin role in; /api/members/admin checks the role again.
  * The list is rendered from the database and handed to the MemberAdmin island, which shows it as a table.
- * Above it, AdminSettings flips the switches of settings.ts (task digest, connections) for everyone.
+ * Above it, AdminSettings flips the switches of settings.ts (task digest, connections) for everyone, and StorageSettings
+ * keeps the SharePoint links of the Ablage page (storageFolders.ts).
  * Data source: memberArea via getCopy(), members with their signature photos via memberSummaries().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
 import Section from '../components/ui/Section.astro'
 import AdminSettings from '../components/forms/AdminSettings.jsx'
+import StorageSettings from '../components/forms/StorageSettings.jsx'
 import MemberAdmin from '../components/forms/MemberAdmin.jsx'
 import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 import { memberSummaries } from '../lib/members'
-import { allSettings } from '../lib/settingsStore'
+import { allSettings, storageFolders } from '../lib/settingsStore'
 
 const locale = resolveLocale(Astro.currentLocale)
 const { memberArea, openTeams } = getCopy(locale)
 const { admin } = memberArea
-const [members, settings] = await Promise.all([memberSummaries(), allSettings()])
+const [members, settings, folders] = await Promise.all([memberSummaries(), allSettings(), storageFolders()])
 ---
 
 <DefaultLayout title={admin.pageTitle} alternatePath={memberPagePath('admin', locale === 'de' ? 'en' : 'de')} noindex>
@@ -31,6 +33,9 @@ const [members, settings] = await Promise.all([memberSummaries(), allSettings()]
   <Section tone="subtle" spacing="xs" labelledby="page-title">
     <div class="mb-6">
       <AdminSettings client:load copy={admin.settings} initialSettings={settings} />
+    </div>
+    <div id="ablage" class="mb-6 scroll-mt-28">
+      <StorageSettings client:visible copy={admin.storage} initialFolders={folders} teams={teamNames(openTeams)} />
     </div>
     <MemberAdmin
       client:load

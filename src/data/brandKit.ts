@@ -5,6 +5,7 @@
  * The files come from the IGNITE Figma file. The logo PNGs share one transparent source, recoloured, so all three
  * have the same shape and clear space as the SVGs.
  */
+import type { TeamId } from '../lib/tasks'
 import type { memberArea } from './staticContent'
 
 export type BrandAssetId = keyof (typeof memberArea)['branding']['assets'] & string
@@ -52,6 +53,15 @@ export type TeamIcon = 'board' | 'community' | 'finance' | 'marketing' | 'organi
 /** URL of a team icon for showing beside a team name (192 px WebP instead of the 512 px PNG download). */
 export function teamIconPath(icon: TeamIcon): string {
   return BRAND_PATH + displayFile(`ignite-team-${icon}.png`)
+}
+
+/** The icon of each team, wherever a team shows with its name. */
+export const TEAM_ICONS: Record<TeamId, TeamIcon> = {
+  'ignite-relations': 'relations',
+  'ignite-marketing': 'marketing',
+  'ignite-hr': 'community',
+  'ignite-finance-legal': 'finance',
+  'ignite-infrastructure': 'organisation',
 }
 
 export const brandGroups: { id: 'logo' | 'mark' | 'social' | 'teams'; assets: BrandAsset[] }[] = [

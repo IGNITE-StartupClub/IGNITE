@@ -11,11 +11,11 @@
  * onPast()), run, onCreated(id), onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { addDays, isEvent, projectDay, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
-const EMPTY = { title: '', description: '', due: '', time: '', place: '', team: '', leads: [] }
+const EMPTY = { title: '', description: '', due: '', time: '', place: '', folderUrl: '', team: '', leads: [] }
 
 function relative(offset, text) {
   if (offset === null) return text.noOffset
@@ -93,10 +93,20 @@ export default function CreateDialog({
 
   const submit = async (e) => {
     e.preventDefault()
-    const { title, description, due, time, place, team, leads } = form
+    const { title, description, due, time, place, folderUrl, team, leads } = form
     const body = {
       action: 'create',
-      project: { title, description, type: kind, due: request.event ? '' : due, time: ownEvent ? time : '', place: ownEvent ? place : '', leads, team },
+      project: {
+        title,
+        description,
+        type: kind,
+        due: request.event ? '' : due,
+        time: ownEvent ? time : '',
+        place: ownEvent ? place : '',
+        folderUrl: folderUrl.trim(),
+        leads,
+        team,
+      },
     }
     if (request.event) body.eventId = request.event.id
     if (source) body.template = { kind: start === 'template' ? 'template' : 'project', id: source.id, include }
@@ -180,6 +190,25 @@ export default function CreateDialog({
               </div>
             </div>
           )}
+          <div className="field">
+            <label htmlFor={`${id}-folder`} className="field-label">
+              {text.folderUrl}
+            </label>
+            <input
+              id={`${id}-folder`}
+              type="url"
+              className="input"
+              inputMode="url"
+              pattern={SHAREPOINT_PATTERN}
+              placeholder="https://leuphanalg.sharepoint.com/…"
+              aria-describedby={`${id}-folder-hint`}
+              value={form.folderUrl}
+              onChange={set('folderUrl')}
+            />
+            <p id={`${id}-folder-hint`} className="field-hint text-sm">
+              {text.folderHint}
+            </p>
+          </div>
           {sameDay.length > 0 && (
             <div className="rounded-lg border border-border-strong bg-bg-subtle p-3 text-sm">
               <p>{text.sameDay}</p>

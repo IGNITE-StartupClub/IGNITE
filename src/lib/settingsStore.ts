@@ -1,6 +1,10 @@
-/** The admin switches (settings.ts) in the `settings` collection: one document per switch, `_id` its id. */
+/**
+ * The admin switches (settings.ts) in the `settings` collection: one document per switch, `_id` its id. The Ablage links
+ * (storageFolders.ts) are one more document there, `_id` 'storageFolders'.
+ */
 import { database } from './members'
 import { SETTING_DEFAULTS, SETTING_IDS, type SettingId, type Settings } from './settings'
+import { storedFolders, type StorageFolders } from './storageFolders'
 
 interface SettingDoc {
   _id: SettingId
@@ -36,5 +40,28 @@ export async function saveSettings(change: Partial<Settings>, actor: string): Pr
         { upsert: true },
       ),
     ),
+  )
+}
+
+interface StorageDoc {
+  _id: 'storageFolders'
+  folders: StorageFolders
+  updatedAt: Date
+  updatedBy: string
+}
+
+const storageDocs = async () => (await database()).collection<StorageDoc>('settings')
+
+export async function storageFolders(): Promise<StorageFolders> {
+  const doc = await (await storageDocs()).findOne({ _id: 'storageFolders' })
+  return storedFolders(doc?.folders)
+}
+
+/** Replaces the whole set: the admin form always sends all of it. */
+export async function saveStorageFolders(folders: StorageFolders, actor: string): Promise<void> {
+  await (await storageDocs()).updateOne(
+    { _id: 'storageFolders' },
+    { $set: { folders, updatedAt: new Date(), updatedBy: actor } },
+    { upsert: true },
   )
 }

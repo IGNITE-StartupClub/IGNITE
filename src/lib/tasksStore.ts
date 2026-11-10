@@ -135,6 +135,8 @@ interface ProjectDoc {
   /** Start and place of an own event; projects saved before them have neither. */
   time?: string
   place?: string
+  /** Link to the project's SharePoint folder (parseFolderUrl); projects saved before it have none. */
+  folderUrl?: string
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   leads: string[]
@@ -268,6 +270,7 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
     due: project.due,
     time: project.time ?? '',
     place: project.place ?? '',
+    folderUrl: project.folderUrl ?? '',
     distinctFrom: project.distinctFrom ?? [],
     leads: people(project.leads),
     team: project.team ?? '',
@@ -419,6 +422,39 @@ export async function settleFinishedTasks(now: Date): Promise<number> {
     },
   )
   return modifiedCount
+}
+
+/** An open project or event as the Ablage page lists it. */
+export interface ProjectFolder {
+  id: string
+  title: string
+  type: ProjectType
+  team: TeamChoice
+  /** Event day or deadline, '' without one. */
+  day: string
+  /** '' while nobody has linked its SharePoint folder. */
+  folderUrl: string
+}
+
+/** Open projects and events with what the Ablage page shows of them, soonest first and those without a day last. */
+export async function projectFolders(): Promise<ProjectFolder[]> {
+  const { projects } = await collections()
+  const list = await projects
+    .find(
+      { archivedAt: null, status: { $ne: 'done' }, type: { $ne: 'task' } },
+      { projection: { title: 1, type: 1, team: 1, due: 1, 'event.startAt': 1, folderUrl: 1 } },
+    )
+    .toArray()
+  return list
+    .map(({ _id, title, type, team, due, event, folderUrl }) => ({
+      id: _id,
+      title,
+      type,
+      team: team ?? '',
+      day: event ? berlinDay(event.startAt.getTime()) : due,
+      folderUrl: folderUrl ?? '',
+    }))
+    .sort((a, b) => (a.day || '9999').localeCompare(b.day || '9999'))
 }
 
 /** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
@@ -642,7 +678,7 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   const { projects } = await collections()
   const project = await projects.findOne(
     { _id: id },
-    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, team: 1, 'tasks.id': 1 } },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, folderUrl: 1, team: 1, 'tasks.id': 1 } },
   )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch

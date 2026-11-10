@@ -31,6 +31,7 @@ import {
   openRequired,
   parseName,
   parseProject,
+  parseFolderUrl,
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
@@ -115,6 +116,7 @@ test('parseProject requires a title and accepts only known types, teams, real da
     due: '',
     time: '',
     place: '',
+    folderUrl: '',
     leads: [ME],
     team: MARKETING,
   })
@@ -129,6 +131,7 @@ test('parseProject requires a title and accepts only known types, teams, real da
     { title: 'x', time: '24:00' },
     { title: 'x', time: '8:30' },
     { title: 'x', place: 'p'.repeat(500) },
+    { title: 'x', folderUrl: 'https://example.com/folder' },
   ]) {
     assert.equal(parseProject(bad), null, JSON.stringify(bad))
   }
@@ -452,6 +455,32 @@ test('parseProjectPatch keeps the given fields and refuses type, empty titles an
   assert.equal(parseProjectPatch({ type: 'event' }), null)
   assert.equal(parseProjectPatch({ leads: [ME] }), null)
   assert.equal(parseProjectPatch({}), null)
+})
+
+test('parseFolderUrl takes only https links into the Leuphana SharePoint and stores them normalized', () => {
+  const folder = 'https://leuphanalg.sharepoint.com/sites/IGNITE_zg0pjl/Shared%20Documents/200%20%20Teamfahrt%20Berlin'
+  assert.equal(parseFolderUrl(` ${folder} `), folder)
+  assert.equal(parseFolderUrl('https://leuphanalg.sharepoint.com/:f:/s/IGNITE_zg0pjl/EkAbc?e=x1'), 'https://leuphanalg.sharepoint.com/:f:/s/IGNITE_zg0pjl/EkAbc?e=x1')
+  assert.equal(parseFolderUrl('https://LEUPHANALG.sharepoint.com/sites/IGNITE_zg0pjl'), 'https://leuphanalg.sharepoint.com/sites/IGNITE_zg0pjl')
+  assert.equal(parseFolderUrl(''), '')
+  assert.equal(parseFolderUrl(undefined), '')
+  for (const bad of [
+    'http://leuphanalg.sharepoint.com/sites/IGNITE_zg0pjl',
+    'https://leuphanalg.sharepoint.com.evil.example/sites/IGNITE_zg0pjl',
+    'https://evil.example/?u=https://leuphanalg.sharepoint.com',
+    'https://user@leuphanalg.sharepoint.com/sites/IGNITE_zg0pjl',
+    'https://leuphanalg.sharepoint.com:8443/sites/IGNITE_zg0pjl',
+    'javascript:alert(1)',
+    'leuphanalg.sharepoint.com/sites/IGNITE_zg0pjl',
+    `https://leuphanalg.sharepoint.com/${'a'.repeat(2000)}`,
+    42,
+  ]) {
+    assert.equal(parseFolderUrl(bad), null, String(bad))
+  }
+  const linked = parseProjectPatch({ folderUrl: folder })
+  assert.deepEqual(linked, { folderUrl: folder })
+  assert.deepEqual(parseProjectPatch({ folderUrl: '' }), { folderUrl: '' })
+  assert.equal(parseProjectPatch({ folderUrl: 'https://example.com' }), null)
 })
 
 test('memberChange says who a picker added or removed, and applyMemberChange replays it on a newer list', () => {
@@ -792,9 +821,10 @@ test('projectEdits names every changed field and each lead who joins or leaves',
       { action: 'leadAdded', detail: '', member: BEN },
     ],
   )
-  assert.deepEqual(projectEdits(stored, { description: 'Für die Teamseite', place: 'C.40.254', team: 'ignite-hr', leads: { add: [], remove: [ME] } }), [
+  assert.deepEqual(projectEdits(stored, { description: 'Für die Teamseite', place: 'C.40.254', folderUrl: 'https://leuphanalg.sharepoint.com/x', team: 'ignite-hr', leads: { add: [], remove: [ME] } }), [
     { action: 'described', detail: '' },
     { action: 'placed', detail: 'C.40.254' },
+    { action: 'folderLinked', detail: '' },
     { action: 'teamed', detail: 'ignite-hr' },
     { action: 'leadRemoved', detail: '', member: ME },
   ])
@@ -805,4 +835,5 @@ test('projectEdits ignores values that are already stored', () => {
   assert.deepEqual(projectEdits(stored, { title: 'Weekly', description: 'Agenda', due: '2026-11-10', time: '', place: '', team: '' }), [])
   assert.deepEqual(projectEdits(stored, { leads: { add: [ME], remove: [BEN] } }), [])
   assert.deepEqual(projectEdits(stored, { due: '2026-11-17' }), [{ action: 'dated', detail: '2026-11-17' }])
+  assert.deepEqual(projectEdits({ ...stored, folderUrl: 'https://leuphanalg.sharepoint.com/x' }, { folderUrl: '' }), [{ action: 'folderUnlinked', detail: '' }])
 })
