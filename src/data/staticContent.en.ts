@@ -613,8 +613,8 @@ export const memberArea = {
       layouts: { label: 'Layout', board: 'Board', list: 'List' },
       create: 'Project or event',
       createKinds: {
-        internal: { label: 'Project', text: 'A longer project with several tasks' },
-        event: { label: 'Event', text: 'Also without Luma, for example an internal team event' },
+        internal: { label: 'Project', text: 'Internal work with several tasks, for example recruiting or start-up visits' },
+        event: { label: 'Event', text: 'An occasion with a date, internal ones like a dinner too. Luma events are already under Events.' },
       },
       search: 'Search',
       filter: { label: 'Filter', mine: 'My tasks', myProjects: 'My projects', myTeam: 'My team ({team})' },
