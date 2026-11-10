@@ -46,6 +46,7 @@ import {
   workspaceState,
   type TemplateSource,
 } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 // Templates are not part of the changes, so these two answer with the whole state.
 const TEMPLATE_ACTIONS = ['saveTemplate', 'archiveTemplate']
@@ -72,7 +73,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const changes = await workspaceChanges(sessionActor(locals.member!), known, { revision, archived: url.searchParams.has('withArchive') })
     return reply(200, { changes })
   } catch (err) {
-    console.error('Tasks read failed:', err)
+    await logError('Tasks read failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
   }
 }
@@ -248,7 +249,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ...(typeof body.revision === 'string' && { changes: await workspaceChanges(actor, body.revision, { archived: body.withArchive === true }) }),
     })
   } catch (err) {
-    console.error('Tasks action failed:', err)
+    await logError('Tasks action failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
   }
 }

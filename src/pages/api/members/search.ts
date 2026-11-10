@@ -12,6 +12,7 @@ import { reply } from '../../../lib/memberSession'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { isEvent } from '../../../lib/tasks'
 import { sessionActor, workspaceState } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * The index of the header search: what this member may see, once per opening (see src/lib/memberSearch.ts). Events are
@@ -55,7 +56,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     )
     return reply(200, { items, teams: Object.entries(names).map(([id, name]) => ({ id, name })) })
   } catch (err) {
-    console.error('Search index failed:', err)
+    await logError('Search index failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei der Suche' })
   }
 }

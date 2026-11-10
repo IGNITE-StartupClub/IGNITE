@@ -20,7 +20,7 @@ const paths = (...pages: MemberPage[]) =>
 const layouts = [
   { layout: 'home', paths: `${memberHomePath('de')} ${memberHomePath('en')}` },
   { layout: 'tasks', paths: paths('tasks') },
-  { layout: 'table', paths: paths('crm', 'admin', 'connections') },
+  { layout: 'table', paths: paths('crm', 'admin', 'system', 'connections') },
   { layout: 'cards', paths: paths('alumni', 'team', 'partners', 'storage') },
   { layout: 'form', paths: paths('signature') },
 ]

@@ -172,11 +172,19 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                 <strong>{member.email}</strong>
               </li>
               {member.role === 'admin' && (
-                <li style="--i: 1">
-                  <a class="panel-link" href={memberPagePath('admin', locale)} aria-current={isCurrent(memberPagePath('admin', locale)) ? 'page' : undefined}>
-                    {memberNav.admin}
-                  </a>
-                </li>
+                <>
+                  <li style="--i: 1">
+                    {/* Not current on the system page, which sits below the admin path. */}
+                    <a class="panel-link" href={memberPagePath('admin', locale)} aria-current={currentPath === trim(memberPagePath('admin', locale)) ? 'page' : undefined}>
+                      {memberNav.admin}
+                    </a>
+                  </li>
+                  <li style="--i: 1">
+                    <a class="panel-link" href={memberPagePath('system', locale)} aria-current={isCurrent(memberPagePath('system', locale)) ? 'page' : undefined}>
+                      {memberNav.system}
+                    </a>
+                  </li>
+                </>
               )}
               {member.position !== 'board' && (
                 <li style="--i: 2">

@@ -166,11 +166,14 @@ test('isProtectedApiPath closes every member endpoint except the sign-in ones', 
   }
 })
 
-test('isAdminPath matches only the admin page in both languages', () => {
+test('isAdminPath matches only the admin and system pages in both languages', () => {
   assert.equal(isAdminPath('/mitglieder/verwaltung'), true)
   assert.equal(isAdminPath('/en/members/admin/'), true)
   assert.equal(isAdminPath('/mitglieder/'), false)
   assert.equal(isAdminPath('/mitglieder/verwaltung-alt'), false)
+  assert.equal(isAdminPath('/mitglieder/verwaltung/system'), true)
+  assert.equal(isAdminPath('/en/members/admin/system/'), true)
+  assert.equal(isAdminPath('/mitglieder/verwaltung/systemx'), false)
 })
 
 test('memberAreaLocale and memberPagePath map both languages', () => {

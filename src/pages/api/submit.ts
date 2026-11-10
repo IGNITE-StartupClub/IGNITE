@@ -17,6 +17,7 @@ import {
 } from '../../templates/emails/applicationConfirmationEmail'
 import { getErrorReportEmailHTML, getErrorReportSubject } from '../../templates/emails/errorReportEmail'
 import { assertSent } from '../../lib/resend'
+import { logError } from '../../lib/errorLog'
 import { globalConfig } from '../../data/staticContent'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
@@ -215,8 +216,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {
-    console.error('🔥 Unhandled error in POST handler:', error)
-    console.error('Error stack:', error.stack)
+    await logError('Application submit failed', error)
 
     // Determine error context
     let errorContext = 'Unknown error during application submission'

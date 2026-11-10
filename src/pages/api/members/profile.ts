@@ -5,6 +5,7 @@ import { isJsonRequest } from '../../../lib/memberAuth'
 import { parseProfile } from '../../../lib/memberHome'
 import { saveName, saveTeam } from '../../../lib/members'
 import { reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * Saves what the team choice on the start page asks for. Body: { firstName, lastName, team }. The middleware has read
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await Promise.all([saveName(email, profile.firstName, profile.lastName), saveTeam(email, profile.team)])
     return reply(200, { code: 'ok' })
   } catch (err) {
-    console.error('Fehler beim Speichern des Profils:', err)
+    await logError('Saving profile failed', err)
     return reply(500, { code: 'error', message: 'Fehler beim Speichern des Profils' })
   }
 }

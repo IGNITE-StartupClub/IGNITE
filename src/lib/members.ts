@@ -1,7 +1,7 @@
 /**
  * MongoDB access for the members area. Collections:
  * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, team?, position?, passwordHash?,
- *   lastLoginAt?, failedLogins?, lockedUntil?, signature? }). Its `_id` is the member id the tasks module refers to.
+ *   lastLoginAt?, failedLogins?, lockedUntil?, signature?, errorMails? }). Its `_id` is the member id the tasks module refers to.
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -49,6 +49,8 @@ export interface Member {
   lockedUntil?: Date
   /** Admins only: the signature under the invitations they send, stored when they copy it. */
   signature?: SavedSignature
+  /** Admins only: true when they want the daily report of server errors (errorReportMail.ts). Off without the field. */
+  errorMails?: boolean
   /** Entered by the member on the tasks page, so others can assign them by name. */
   firstName?: string
   lastName?: string
@@ -339,12 +341,30 @@ export async function saveSignature(email: string, signature: SavedSignature): P
   await members.updateOne({ email }, { $set: { signature } })
 }
 
-/** Changes the role; a former admin's saved signature goes, because only admins send invitations. */
+/**
+ * Changes the role; a former admin's saved signature and error report switch go, because only admins send invitations
+ * and get the report.
+ */
 export async function setRole(email: string, role: MemberRole): Promise<boolean> {
   const { members } = await collections()
-  const update = role === 'admin' ? { $set: { role } } : { $set: { role }, $unset: { signature: '' as const } }
+  const update =
+    role === 'admin' ? { $set: { role } } : { $set: { role }, $unset: { signature: '' as const, errorMails: '' as const } }
   const { matchedCount } = await members.updateOne({ email }, update)
   return matchedCount === 1
+}
+
+/** The admin's own switch for the daily error report; false when `email` is no admin. */
+export async function saveErrorMails(email: string, enabled: boolean): Promise<boolean> {
+  const { members } = await collections()
+  const { matchedCount } = await members.updateOne({ email, role: 'admin' }, { $set: { errorMails: enabled } })
+  return matchedCount === 1
+}
+
+/** Addresses of the admins who switched the error report on. */
+export async function errorMailRecipients(): Promise<string[]> {
+  const { members } = await collections()
+  const admins = await members.find({ role: 'admin', errorMails: true }, { projection: { _id: 0, email: 1 } }).toArray()
+  return admins.map((admin) => admin.email)
 }
 
 export async function logAdminAction(entry: Omit<AuditEntry, 'at'>): Promise<void> {
@@ -515,6 +535,8 @@ export interface SessionMember extends Pick<Member, 'email' | 'firstName' | 'las
   photoId: string | null
   /** mayConnect, read with the session so the header and the middleware need no query of their own. */
   mayConnect: boolean
+  /** The admin's own switch for the error report; false for everyone else. */
+  errorMails: boolean
 }
 
 /**
@@ -553,7 +575,7 @@ export async function findSession(token: string): Promise<SessionMember | null> 
         $project: {
           photo: 1,
           connections: 1,
-          member: { _id: 1, email: 1, role: 1, position: 1, firstName: 1, lastName: 1, team: 1, signature: 1 },
+          member: { _id: 1, email: 1, role: 1, position: 1, firstName: 1, lastName: 1, team: 1, signature: 1, errorMails: 1 },
         },
       },
     ])
@@ -571,6 +593,7 @@ export async function findSession(token: string): Promise<SessionMember | null> 
         signature: member.signature,
         photoId: session.photo[0]?._id ?? null,
         mayConnect: mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections),
+        errorMails: member.role === 'admin' && member.errorMails === true,
       }
     : null
 }

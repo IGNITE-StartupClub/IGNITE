@@ -14,6 +14,7 @@ import {
   getContactConfirmationEmailHTML,
   getContactConfirmationSubject,
 } from '../../templates/emails/contactConfirmationEmail'
+import { logError } from '../../lib/errorLog'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -63,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     return new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
   } catch (error: any) {
-    console.error('Fehler:', error)
+    await logError('Contact form failed', error)
     return new Response(JSON.stringify({ status: 'error', message: 'Fehler beim E-Mail-Versand' }), { status: 500 })
   }
 }

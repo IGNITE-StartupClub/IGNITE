@@ -14,6 +14,7 @@ import {
 } from '../../../lib/contactsStore'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 /** The island's regular check: the same revision comes back while nothing changed, otherwise the list. */
 export const GET: APIRoute = async ({ url, locals }) => {
@@ -22,7 +23,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     if (url.searchParams.get('revision') === revision) return reply(200, { revision })
     return reply(200, await contactState(locals.member!))
   } catch (err) {
-    console.error('CRM read failed:', err)
+    await logError('CRM read failed', err)
     return reply(500, { code: 'error', message: 'Fehler im CRM' })
   }
 }
@@ -80,7 +81,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (code === 'duplicate') status = 409
     return reply(status, { code, id: savedId, ...(await contactState(member)) })
   } catch (err) {
-    console.error('CRM action failed:', err)
+    await logError('CRM action failed', err)
     return reply(500, { code: 'error', message: 'Fehler im CRM' })
   }
 }
