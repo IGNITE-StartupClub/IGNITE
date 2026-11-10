@@ -664,6 +664,7 @@ export const memberArea = {
         noPlanning: 'Noch ohne Planung',
         openPlanning: 'Planung öffnen',
         allProjects: 'Alle Projekte',
+        noneLed: 'Du bist gerade für kein offenes Projekt verantwortlich.',
         noneMine: 'Dir ist gerade nichts zugewiesen.',
       },
       taskStatuses: { backlog: 'Backlog', doing: 'In Arbeit', done: 'Erledigt' },
