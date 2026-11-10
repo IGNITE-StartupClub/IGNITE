@@ -18,6 +18,7 @@ import {
   calendarEntries,
   eventTwin,
   filterProjects,
+  ledProjects,
   filterScope,
   isEvent,
   isRecordId,
@@ -336,6 +337,23 @@ test('filterProjects combines own projects, search and the archive; single tasks
   assert.deepEqual(ids({ onlyMine: true }), ['mine'])
   assert.deepEqual(ids({ query: 'speaker' }), ['event'])
   assert.deepEqual(ids({ archived: true }), ['old', 'oldSingle'])
+})
+
+test('ledProjects keeps the open projects the member leads, soonest first and those without a day last', () => {
+  const projects = [
+    project({ id: 'later', leads: [ME], due: '2026-12-31' }),
+    project({ id: 'undated', leads: [ME, BEN] }),
+    project({ id: 'event', type: 'event', leads: [ME], eventDay: '2026-11-24' }),
+    project({ id: 'assigned', tasks: [task({ assignees: [ME] })], due: '2026-11-20' }),
+    project({ id: 'others', leads: [BEN], due: '2026-11-20' }),
+    project({ id: 'done', leads: [ME], status: 'done', due: '2026-11-20' }),
+    project({ id: 'archived', leads: [ME], archived: true, due: '2026-11-20' }),
+    project({ id: 'single', type: 'task', leads: [ME], due: '2026-11-20' }),
+  ]
+  assert.deepEqual(
+    ledProjects(projects, ME).map((item) => item.id),
+    ['event', 'later', 'undated'],
+  )
 })
 
 test('openRequired counts open required tasks only', () => {

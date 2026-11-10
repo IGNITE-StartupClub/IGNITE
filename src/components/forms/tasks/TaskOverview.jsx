@@ -4,8 +4,8 @@
  * opens the event or the task; the events card shows what comes next.
  * The field in the tasks card reads the same short form as the search ("Flyer drucken bis Mi @Lena #Marketing"); without
  * a person the task is the member's own.
- * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects, soonest
- * first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
+ * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects the
+ * member leads, soonest first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
  * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
  * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate).
  */
@@ -305,7 +305,7 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
         </OverviewCard>
 
         <OverviewCard title={copy.views.projects} link={text.allProjects} onLink={() => onView('projects')}>
-          {!projects.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{copy.board.noResults}</p>}
+          {!projects.length && <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{text.noneLed}</p>}
           {projects.slice(0, PROJECTS_SHOWN).map((project) => (
             <ProjectRow key={project.id} project={project} copy={copy} locale={locale} membersById={membersById} onOpen={onOpen} />
           ))}

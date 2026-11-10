@@ -622,6 +622,12 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: S
 /** Day a project is about: the event start, else its own date. */
 export const projectDay = (project: Pick<ProjectState, 'eventDay' | 'due'>): string => project.eventDay || project.due
 
+/** The projects card on the hub: open projects the member leads, soonest first. The projects page still shows all. */
+export const ledProjects = <T extends ProjectState>(projects: T[], me: string): T[] =>
+  projects
+    .filter((project) => !project.archived && project.type !== 'task' && project.status !== 'done' && project.leads.includes(me))
+    .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
+
 /** One entry of the calendar: a public event (Luma, hand-listed) or an own event, which is a project without a public event. */
 export interface CalendarEvent {
   /** The public event's id, or the project's for own events. */

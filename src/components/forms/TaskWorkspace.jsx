@@ -33,12 +33,12 @@ import {
   calendarEntries,
   filterProjects,
   filterScope,
+  ledProjects,
   MINE,
   NAME_MAX,
   patchedProject,
   nextTurn,
   patchedTask,
-  projectDay,
   scopedPrivateTasks,
   scopedTasks,
   taskHash,
@@ -491,9 +491,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const newTeam = teamFiltered ? filter : myTeam
   const askTeam = hasName && !myTeam && !teamLater && !board
   const offerTeam = filter !== myTeam && !board
-  const openProjects = filterProjects(projects, { ...filterScope(ALL_TEAMS, myTeam, ''), archived: false }, me)
-    .filter((project) => project.status !== 'done')
-    .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
+  const ledOpen = ledProjects(projects, me)
 
   const myTeamOption = myTeam ? [{ value: myTeam, label: fill(copy.filter.myTeam, { team: copy.teams[myTeam] }) }] : []
   const otherTeams = TEAM_IDS.filter((team) => team !== myTeam).map((team) => ({ value: team, label: copy.teams[team] }))
@@ -660,7 +658,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           entries={entries}
           complete={eventsComplete}
           planOf={planOf}
-          projects={openProjects}
+          projects={ledOpen}
           mine={mine}
           today={today}
           copy={copy}

@@ -613,8 +613,8 @@ export const memberArea = {
       layouts: { label: 'Darstellung', board: 'Board', list: 'Liste' },
       create: 'Projekt oder Event',
       createKinds: {
-        internal: { label: 'Projekt', text: 'Längeres Vorhaben mit mehreren Aufgaben' },
-        event: { label: 'Event', text: 'Auch ohne Luma, zum Beispiel ein internes Teamevent' },
+        internal: { label: 'Projekt', text: 'Internes Vorhaben mit mehreren Aufgaben, zum Beispiel Recruiting oder Start-up-Visits' },
+        event: { label: 'Event', text: 'Veranstaltung mit Datum, auch interne wie ein Dinner. Luma-Events stehen schon unter Events.' },
       },
       search: 'Suchen',
       filter: { label: 'Filter', mine: 'Meine Aufgaben', myProjects: 'Meine Projekte', myTeam: 'Mein Team ({team})' },
@@ -664,6 +664,7 @@ export const memberArea = {
         noPlanning: 'Noch ohne Planung',
         openPlanning: 'Planung öffnen',
         allProjects: 'Alle Projekte',
+        noneLed: 'Du bist gerade für kein offenes Projekt verantwortlich.',
         noneMine: 'Dir ist gerade nichts zugewiesen.',
       },
       taskStatuses: { backlog: 'Backlog', doing: 'In Arbeit', done: 'Erledigt' },
