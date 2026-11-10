@@ -33,6 +33,7 @@ import {
   SESSION_TTL_SECONDS,
 } from './memberAuth'
 import { CONNECTION_HASHES, INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
+import { SETTING_DEFAULTS } from './settings'
 import { formerPhotoIds, photoPath, type SavedSignature } from './emailSignature'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
@@ -179,8 +180,11 @@ async function listMembers(): Promise<Member[]> {
 /** Owners (OWNER_HASHES) are admins no other admin can demote or remove; only the code or the database changes them. */
 export const isOwner = (email: string): boolean => isListedAddress(email, OWNER_HASHES)
 
-/** Whether the member may connect apps and subscribe to the calendar (connectionsStore.ts). */
-export const mayConnect = (email: string): boolean => isListedAddress(email, CONNECTION_HASHES)
+/**
+ * Whether the member may connect apps and subscribe to the calendar (connectionsStore.ts): everyone while the admin
+ * switch `connections` (settings.ts) is on, else only the pilot addresses on CONNECTION_HASHES.
+ */
+export const mayConnect = (email: string, open: boolean): boolean => open || isListedAddress(email, CONNECTION_HASHES)
 
 /** The name the member entered, else the one in their signature, else ''. */
 export const enteredName = (member: Pick<Member, 'firstName' | 'lastName' | 'signature'>): string =>
@@ -509,17 +513,19 @@ export interface SessionMember extends Pick<Member, 'email' | 'firstName' | 'las
   role: MemberRole
   position: MemberPosition
   photoId: string | null
+  /** mayConnect, read with the session so the header and the middleware need no query of their own. */
+  mayConnect: boolean
 }
 
 /**
  * The member behind a session token, or null when the session is unknown, expired, or its member was removed.
  * Role and position are read fresh on every request, so a change applies at once. One aggregation also brings the
- * photo for the header, because every sequential query costs a round trip on every page.
+ * photo for the header and the `connections` switch, because every sequential query costs a round trip on every page.
  */
 export async function findSession(token: string): Promise<SessionMember | null> {
   const { sessions } = await collections()
   const [session] = await sessions
-    .aggregate<{ member: (Member & { _id: ObjectId })[]; photo: { _id: string }[] }>([
+    .aggregate<{ member: (Member & { _id: ObjectId })[]; photo: { _id: string }[]; connections: { enabled: boolean }[] }>([
       { $match: { tokenHash: hashToken(token), expiresAt: { $gt: new Date() } } },
       { $limit: 1 },
       { $lookup: { from: 'members', localField: 'email', foreignField: 'email', as: 'member' } },
@@ -537,8 +543,16 @@ export async function findSession(token: string): Promise<SessionMember | null> 
         },
       },
       {
+        $lookup: {
+          from: 'settings',
+          pipeline: [{ $match: { _id: 'connections' } }, { $project: { _id: 0, enabled: 1 } }],
+          as: 'connections',
+        },
+      },
+      {
         $project: {
           photo: 1,
+          connections: 1,
           member: { _id: 1, email: 1, role: 1, position: 1, firstName: 1, lastName: 1, team: 1, signature: 1 },
         },
       },
@@ -556,6 +570,7 @@ export async function findSession(token: string): Promise<SessionMember | null> 
         team: member.team,
         signature: member.signature,
         photoId: session.photo[0]?._id ?? null,
+        mayConnect: mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections),
       }
     : null
 }

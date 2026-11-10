@@ -9,6 +9,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { database, findMember, mayConnect, setUpInBackground, type SessionMember } from './members'
+import { settingEnabled } from './settingsStore'
 import { connectionKey, hashToken, newToken } from './memberAuth'
 import {
   ACCESS_TTL_SECONDS,
@@ -97,11 +98,12 @@ export function refusedRequestUrl(url: URL): string | null {
 export type ConnectedMember = Pick<SessionMember, 'id' | 'email' | 'role' | 'firstName' | 'lastName' | 'team'>
 
 /**
- * The member behind an access right, or null when they were removed or are not on the list (any more). It carries all
+ * The member behind an access right, or null when they were removed or may not connect (any more, see mayConnect). It carries all
  * the routes need, so they read the member only this once.
  */
 async function allowedMember(email: string): Promise<ConnectedMember | null> {
-  const member = mayConnect(email) ? await findMember(email) : null
+  const [found, open] = await Promise.all([findMember(email), settingEnabled('connections')])
+  const member = found && mayConnect(email, open) ? found : null
   return (
     member && {
       id: member._id.toHexString(),

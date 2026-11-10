@@ -5,6 +5,20 @@
  */
 import { addDays } from './tasks.ts'
 
+/**
+ * Headers of a delivered feed. Vercel's CDN keeps it for 30 minutes per link and region, so a calendar on several devices
+ * or polling every few minutes costs one function call per half hour (CDN hits invoke no function). The price: new
+ * tasks, and a link that was replaced, switched off or belongs to a removed member, reach the calendar up to that late.
+ * stale-if-error serves the last feed for a day while the route fails or Luma is down (503), because a feed without the
+ * events would delete them from the subscribed calendar. Cache-Control carries no private or no-store, because Vercel
+ * does not cache those; max-age=0 keeps browsers and other caches from reusing the answer without asking.
+ */
+export const FEED_HEADERS = {
+  'Content-Type': 'text/calendar; charset=utf-8',
+  'Cache-Control': 'max-age=0, must-revalidate',
+  'Vercel-CDN-Cache-Control': 'max-age=1800, stale-if-error=86400',
+}
+
 const UID_DOMAIN = 'ignite-startupclub.de'
 const LINE_OCTETS = 75
 

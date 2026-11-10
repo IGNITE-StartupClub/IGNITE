@@ -991,7 +991,7 @@ export const memberArea = {
       failed: 'Das hat nicht geklappt. Versuch es noch einmal.',
       assistant: {
         title: 'KI-Assistent',
-        text: 'Füge diese Adresse in Claude oder ChatGPT als eigenen Connector hinzu und melde dich mit deinem Mitgliedskonto an. Danach fragst du dort nach deinen Aufgaben, legst neue an und änderst sie. Löschen kann die App nichts.',
+        text: 'Füge diese Adresse in Claude oder ChatGPT als eigenen Connector hinzu und melde dich mit deinem Mitgliedskonto an. Danach fragst du dort nach deinen Aufgaben, legst neue an, auch wiederkehrende oder für andere Mitglieder, und änderst sie. Löschen kann die App nichts.',
         address: 'Adresse des Connectors',
         connected: 'Verbundene Apps',
         none: 'Noch keine App verbunden.',
@@ -1009,7 +1009,7 @@ export const memberArea = {
         once: 'Dieser Link erscheint nur jetzt. Wer ihn kennt, sieht deine Termine, also behalte ihn für dich.',
         open: 'Im Kalender abonnieren',
         address: 'Abo-Link',
-        renewNote: 'Ein neuer Link schaltet den alten ab.',
+        renewNote: 'Ein neuer Link schaltet den alten ab, spätestens nach 30 Minuten.',
       },
     },
     consent: {
@@ -1017,9 +1017,12 @@ export const memberArea = {
       title: '{app} mit deinem Konto verbinden?',
       account: 'Angemeldet als {email}',
       can: 'Die App darf',
-      canItems: ['deine Aufgaben, die Projekte und die Events lesen', 'Aufgaben anlegen und ändern'],
+      canItems: [
+        'deine Aufgaben, die Projekte, die Events und die Namen der Mitglieder lesen',
+        'Aufgaben anlegen und ändern, auf deinen Wunsch auch für andere Mitglieder',
+      ],
       cannot: 'Die App darf nicht',
-      cannotItems: ['Projekte oder Aufgaben löschen', 'Aufgaben anderen Mitgliedern zuweisen', 'CRM, Alumni oder Adressen sehen'],
+      cannotItems: ['Projekte oder Aufgaben löschen', 'deine privaten Aufgaben sehen', 'CRM, Alumni oder Adressen sehen'],
       note: 'Was die App abruft, geht an ihren Anbieter. Dazu gehören auch Aufgaben und Namen anderer Mitglieder aus den Projekten. Unter „Verbindungen“ im Profilmenü trennst du die App jederzeit.',
       approve: 'Verbinden',
       deny: 'Abbrechen',
@@ -1234,11 +1237,20 @@ export const memberArea = {
     back: 'Zurück zum Mitgliederbereich',
     settings: {
       heading: 'Einstellungen',
-      taskDigest: 'Tägliche Aufgaben-Mail',
-      taskDigestText:
-        'Um 19 Uhr bekommen Mitglieder eine Mail mit den Aufgaben, die ihnen an dem Tag neu zugewiesen wurden. Ausgeschaltet verschickt das Aufgabenmodul keine Mails.',
-      savedOn: 'Die Aufgaben-Mail ist eingeschaltet.',
-      savedOff: 'Die Aufgaben-Mail ist ausgeschaltet.',
+      switches: {
+        taskDigest: {
+          label: 'Tägliche Aufgaben-Mail',
+          text: 'Um 19 Uhr bekommen Mitglieder eine Mail mit den Aufgaben, die ihnen an dem Tag neu zugewiesen wurden. Ausgeschaltet verschickt das Aufgabenmodul keine Mails.',
+          savedOn: 'Die Aufgaben-Mail ist eingeschaltet.',
+          savedOff: 'Die Aufgaben-Mail ist ausgeschaltet.',
+        },
+        connections: {
+          label: 'KI-Assistenten und Kalender-Abo',
+          text: 'Alle Mitglieder können Claude oder ChatGPT mit dem Aufgabenmodul verbinden und ihre Aufgaben und Events als Kalender abonnieren. Ausgeschaltet geht das nur für die Pilot-Adressen, und bestehende Verbindungen anderer Mitglieder hören auf zu funktionieren.',
+          savedOn: 'Alle Mitglieder können jetzt Verbindungen einrichten.',
+          savedOff: 'Verbindungen gibt es jetzt nur noch für die Pilot-Adressen.',
+        },
+      },
       error: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
     },
     manager: {

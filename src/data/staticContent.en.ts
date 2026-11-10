@@ -991,7 +991,7 @@ export const memberArea = {
       failed: 'That did not work. Please try again.',
       assistant: {
         title: 'AI assistant',
-        text: 'Add this address to Claude or ChatGPT as a custom connector and sign in with your member account. You can then ask about your tasks there, add new ones and change them. The app cannot delete anything.',
+        text: 'Add this address to Claude or ChatGPT as a custom connector and sign in with your member account. You can then ask about your tasks there, add new ones, including repeating ones or ones for other members, and change them. The app cannot delete anything.',
         address: 'Connector address',
         connected: 'Connected apps',
         none: 'No app connected yet.',
@@ -1009,7 +1009,7 @@ export const memberArea = {
         once: 'This link only appears now. Anyone who has it can see your dates, so keep it to yourself.',
         open: 'Subscribe in calendar',
         address: 'Subscription link',
-        renewNote: 'A new link turns the old one off.',
+        renewNote: 'A new link turns the old one off within 30 minutes.',
       },
     },
     consent: {
@@ -1017,9 +1017,12 @@ export const memberArea = {
       title: 'Connect {app} to your account?',
       account: 'Signed in as {email}',
       can: 'The app may',
-      canItems: ['read your tasks, the projects and the events', 'add and change tasks'],
+      canItems: [
+        'read your tasks, the projects, the events and the names of members',
+        'add and change tasks, also for other members when you ask for it',
+      ],
       cannot: 'The app may not',
-      cannotItems: ['delete projects or tasks', 'assign tasks to other members', 'see the CRM, alumni or addresses'],
+      cannotItems: ['delete projects or tasks', 'see your private tasks', 'see the CRM, alumni or addresses'],
       note: 'What the app fetches goes to its provider. That includes tasks and names of other members from the projects. You can disconnect the app at any time under “Connections” in the profile menu.',
       approve: 'Connect',
       deny: 'Cancel',
@@ -1234,11 +1237,20 @@ export const memberArea = {
     back: 'Back to the members area',
     settings: {
       heading: 'Settings',
-      taskDigest: 'Daily task mail',
-      taskDigestText:
-        'At 7 pm, members get one mail with the tasks newly assigned to them that day. Switched off, the tasks module sends no mail.',
-      savedOn: 'The task mail is switched on.',
-      savedOff: 'The task mail is switched off.',
+      switches: {
+        taskDigest: {
+          label: 'Daily task mail',
+          text: 'At 7 pm, members get one mail with the tasks newly assigned to them that day. Switched off, the tasks module sends no mail.',
+          savedOn: 'The task mail is switched on.',
+          savedOff: 'The task mail is switched off.',
+        },
+        connections: {
+          label: 'AI assistants and calendar subscription',
+          text: 'Every member can connect Claude or ChatGPT to the tasks module and subscribe to their tasks and events as a calendar. Switched off, only the pilot addresses can, and other members’ existing connections stop working.',
+          savedOn: 'Every member can now set up connections.',
+          savedOff: 'Connections are now limited to the pilot addresses.',
+        },
+      },
       error: 'That did not work. Please try again.',
     },
     manager: {
