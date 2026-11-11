@@ -1,12 +1,14 @@
 /**
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
  * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. The Weekly shows in the grid and on its day, never among the upcoming events, and has nothing to plan. Each card
- * either starts the planning project of its event or opens it. A click on a title in the grid opens that event.
+ * either starts the planning project of its event or opens it. A click on a title in the grid opens that event. A selected
+ * day from today on offers to add an entry or a task for that day.
  * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
- * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event).
+ * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event),
+ * onAddOnDay(kind, day) with kind event or task.
  */
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react'
 import { addDays, isEvent, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
@@ -79,7 +81,7 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   )
 }
 
-export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent }) {
+export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent, onAddOnDay }) {
   const text = copy.calendar
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
@@ -230,6 +232,16 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
               />
             ))}
             {!listed.length && <p className="text-sm text-fg-muted">{selected ? text.noEvents : text.noUpcoming}</p>}
+            {selected && selected >= today && (
+              <div className="flex flex-wrap gap-2">
+                {['event', 'task'].map((kind) => (
+                  <button key={kind} type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => onAddOnDay(kind, selected)}>
+                    <Plus aria-hidden="true" className="h-4 w-4" />
+                    {text.addKinds[kind].label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

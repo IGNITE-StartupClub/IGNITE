@@ -64,12 +64,14 @@ const DIALOG_CHUNKS = {
   ProjectPanel: () => import('./tasks/ProjectPanel'),
   CreateDialog: () => import('./tasks/CreateDialog'),
   CompleteDialog: () => import('./tasks/CompleteDialog'),
+  DayTaskDialog: () => import('./tasks/DayTaskDialog'),
   EventDialog: () => import('./tasks/EventDialog'),
   PrivateTaskDialog: () => import('./tasks/PrivateTaskDialog'),
 }
 const ProjectPanel = lazy(DIALOG_CHUNKS.ProjectPanel)
 const CreateDialog = lazy(DIALOG_CHUNKS.CreateDialog)
 const CompleteDialog = lazy(DIALOG_CHUNKS.CompleteDialog)
+const DayTaskDialog = lazy(DIALOG_CHUNKS.DayTaskDialog)
 const EventDialog = lazy(DIALOG_CHUNKS.EventDialog)
 const PrivateTaskDialog = lazy(DIALOG_CHUNKS.PrivateTaskDialog)
 
@@ -202,6 +204,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const [query, setQuery] = useState('')
   const [openPrivateId, setOpenPrivateId] = useState(null)
   const [createRequest, setCreateRequest] = useState(null)
+  const [dayTask, setDayTask] = useState(null)
   const [shownEvent, setShownEvent] = useState(null)
   const [completing, setCompleting] = useState(null)
   const [taskMenu, setTaskMenu] = useState(null)
@@ -440,9 +443,10 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (status === 'done') return setCompleting(project)
     run({ action: 'status', id, status }, (list) => list.map((item) => (item.id === id ? { ...item, status } : item)))
   }
-  const created = (id) => {
+  // An entry added from a day of a calendar stays in the calendar, where it now shows.
+  const created = (id, stay) => {
     setNotice({ code: 'created', at: Date.now() })
-    open(id)
+    if (!stay) open(id)
   }
   const merge = async (project, event) => {
     if (await run({ action: 'linkEvent', id: project.id, eventId: event.id })) setNotice({ code: 'merged', at: Date.now() })
@@ -547,6 +551,8 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         )
   const openTask = (task) => (task.private ? setOpenPrivateId(task.id) : open(task.projectId))
   const startPlanning = (event) => setCreateRequest({ kind: 'event', event, team: newTeam })
+  const addOnDay = (kind, day) => (kind === 'task' ? setDayTask({ day }) : setCreateRequest({ kind: 'event', team: newTeam, due: day, stay: true }))
+  const addDayTask = ({ title, due }, isPrivate) => quickAdd({ title, due, assignees: [{ id: me }], team: newTeam }, isPrivate)
   const taskProps = {
     tasks,
     filter: taskFilter,
@@ -672,6 +678,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onPatch={patchTask}
           onCapture={capture}
           onQuickAdd={quickAdd}
+          onAddOnDay={addOnDay}
         />
       )}
 
@@ -738,6 +745,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onStart={startPlanning}
           onOpen={open}
           onOpenEvent={openEvent}
+          onAddOnDay={addOnDay}
         />
       )}
 
@@ -797,6 +805,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
             else startPlanning(entry)
           }}
         />
+      </Deferred>
+      <Deferred open={dayTask}>
+        <DayTaskDialog request={dayTask} copy={copy} onAdd={addDayTask} onClose={() => setDayTask(null)} />
       </Deferred>
       <Deferred open={shownEvent}>
         <EventDialog entry={shownEvent} copy={copy} locale={locale} membersById={membersById} onStart={startPlanning} onClose={() => setShownEvent(null)} />

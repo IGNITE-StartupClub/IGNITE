@@ -13,7 +13,7 @@ import { projectOfLumaEvent } from '../../../lib/tasksStore'
  * Every member may create events, so every member may import; the middleware lets no one without a session in.
  * Body: { url }. Answers { code: 'ok', event } with an ImportedEvent, plus `existing` ({ id, title }) when an own event
  * was imported from it already and `listed` ({ id, title }) when it is in the IGNITE calendar and so needs a planning
- * instead. Saving goes through /api/members/tasks as before, so an event without a link works as it always did.
+ * instead. Saving goes through /api/members/tasks, which takes an own event only with the Luma event it came from.
  * One Luma request per click, never per keystroke: each is a function invocation (see "Vercel budget" in CLAUDE.md).
  */
 export const POST: APIRoute = async ({ request }) => {
@@ -39,6 +39,6 @@ export const POST: APIRoute = async ({ request }) => {
     })
   } catch (err) {
     console.error('Luma import failed:', err)
-    return reply(502, { code: 'error', message: 'Event konnte nicht gelesen werden – bitte manuell ausfüllen.' })
+    return reply(502, { code: 'error', message: 'Luma hat nicht geantwortet. Bitte versuch es gleich noch einmal.' })
   }
 }

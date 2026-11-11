@@ -1,25 +1,31 @@
 /**
- * The dialog that creates a project: an internal project or an event, either an own one, which needs a date, or the
- * planning of a calendar event. An own event on a day that already has entries names them first, so nobody enters
- * twice what is in the calendar already. Projects start empty, from a standard template or from an earlier project; the
- * preview lists the tasks to take over, each with a checkbox, its relative deadline and, for earlier projects, whether
- * it was done back then. Only titles, descriptions, priorities and relative deadlines carry over (tasksFromTemplate on
- * the server).
- * An own event can start from a Luma link, public or private (/api/members/luma-import): the import only fills in the
- * fields, which all stay editable, and marks what Luma shows to guests alone. Without a link the form works as before.
- * Props: request ({ kind, team, event? } or null = closed; team is preselected), copy (workspace copy), locale, me,
- * members, membersById, templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
+ * The dialog that creates a project. It has three shapes:
+ * - an internal project: title and an optional deadline;
+ * - an event, which is always a Luma event: the member pastes its link, public or private
+ *   (/api/members/luma-import), and the dialog shows what Luma says. Without a Luma event it is a project;
+ * - the planning of an event of the IGNITE calendar, which is about its tasks, so the template shows at once and comes
+ *   preselected.
+ * Everything else sits under "Mehr Optionen": description, team, leads, SharePoint folder, the template and, for an
+ * imported event, the fields the import filled, which stay editable there. What Luma shows to guests alone (the
+ * address until sign-up) is asked for right below the preview.
+ * Projects start empty, from a standard template or from an earlier project; the preview lists the tasks to take over,
+ * each with a checkbox, its relative deadline and, for earlier projects, whether it was done back then. Only titles,
+ * descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server).
+ * Props: request ({ kind, team, event?, due?, stay? } or null = closed; team and due are preselected, stay keeps the
+ * calendar on screen instead of opening the new project), copy (workspace copy), locale, me, members, membersById,
+ * templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
  * archive (none, loading, loaded or failed: most earlier projects are archived, so choosing one loads it through
- * onPast()), run, onCreated(id), onUseEntry(entry).
+ * onPast()), run, onCreated(id, stay), onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
-import { addDays, isEvent, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
+import { ChevronRight, ExternalLink, MapPin } from 'lucide-react'
+import { addDays, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
-import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
+import { dayPart, eventDayLabel, longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
 const EMPTY = { title: '', description: '', due: '', time: '', endDue: '', endTime: '', place: '', coverUrl: '', luma: null, folderUrl: '', team: '', leads: [] }
 const NO_IMPORT = { status: 'idle', error: '', hidden: [], existing: null, listed: null }
+const QUIET_LINK = 'border-0 bg-transparent p-0 text-accent underline'
 
 /** The form after an import: what Luma has replaces the field, what it leaves empty keeps what was typed. */
 const withImport = (form, event) => ({
@@ -42,6 +48,48 @@ function relative(offset, text) {
   return fill(offset < 0 ? text.relative : text.relativeAfter, { days: Math.abs(offset) })
 }
 
+/** What Luma says about the imported event, so the member sees it is the right one before adding it. */
+function LumaPreview({ form, text, timeText, locale, onUnlink }) {
+  const hours = form.time && (form.endTime ? `${form.time}–${form.endTime}` : form.time)
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="surface-brand flex items-center gap-3 p-3">
+        {form.coverUrl ? (
+          <img src={form.coverUrl} alt={text.luma.cover} className="h-14 w-14 shrink-0 rounded-md object-cover" />
+        ) : (
+          <div aria-hidden="true" className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-bg text-fg">
+            <span className="text-2xs font-medium uppercase">{dayPart(form.due, locale, { month: 'short' }).replace('.', '')}</span>
+            <span className="text-[20px] font-semibold leading-tight">{dayPart(form.due, locale, { day: 'numeric' }).replace('.', '')}</span>
+          </div>
+        )}
+        <p className="min-w-0 text-[18px] font-semibold leading-snug">{form.title}</p>
+      </div>
+      <div className="flex flex-col gap-1 p-3 text-sm">
+        <p>
+          {eventDayLabel(form.due, locale)}
+          {form.endDue && ` – ${eventDayLabel(form.endDue, locale)}`}
+          {hours && ` · ${fill(timeText, { time: hours })}`}
+        </p>
+        {form.place && (
+          <p className="flex items-center gap-1 text-fg-muted">
+            <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{form.place}</span>
+          </p>
+        )}
+        <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <a href={form.luma.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">
+            {text.luma.linked}
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+          </a>
+          <button type="button" className="border-0 bg-transparent p-0 text-fg-muted underline hover:text-fg" onClick={onUnlink}>
+            {text.luma.unlink}
+          </button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function CreateDialog({
   request,
   copy,
@@ -62,12 +110,14 @@ export default function CreateDialog({
 }) {
   const text = copy.createDialog
   const dialog = useRef(null)
+  const first = useRef(null)
   const id = useId()
   const [form, setForm] = useState(EMPTY)
   const [start, setStart] = useState('none')
   const [sourceId, setSourceId] = useState('')
   const [include, setInclude] = useState([])
   const [busy, setBusy] = useState(false)
+  const [more, setMore] = useState(false)
   const [lumaLink, setLumaLink] = useState('')
   const [lumaImport, setLumaImport] = useState(NO_IMPORT)
 
@@ -86,17 +136,20 @@ export default function CreateDialog({
   const anchor = request?.event?.day || form.due
   const kind = request?.kind
   const ownEvent = kind === 'event' && !request?.event
-  const sameDay = ownEvent && form.due ? entries.filter((entry) => isEvent(entry) && entry.day <= form.due && form.due <= entry.endDay) : []
+  const imported = ownEvent && !!form.luma
 
   useEffect(() => {
     if (!request) return
-    setForm({ ...EMPTY, title: request.event?.title ?? '', team: request.team, leads: [me] })
+    setForm({ ...EMPTY, title: request.event?.title ?? '', due: request.due ?? '', team: request.team, leads: [me] })
+    setMore(false)
     setLumaLink('')
     setLumaImport(NO_IMPORT)
-    const useTemplate = request.kind === 'event' && templates.length > 0
+    const useTemplate = !!request.event && templates.length > 0
     setStart(useTemplate ? 'template' : 'none')
     setSourceId(useTemplate ? templates[0].id : '')
     if (!dialog.current.open) dialog.current.showModal()
+    // showModal focuses the first control, the close button; the planning of a calendar event has nothing to type first.
+    first.current?.focus()
   }, [request])
   // Each request starts with every task ticked, also when it picks the same source as the one before.
   useEffect(() => setInclude(preview.map((_, index) => index)), [request, start, sourceId])
@@ -133,6 +186,10 @@ export default function CreateDialog({
       setLumaImport({ ...NO_IMPORT, status: 'failed', error: luma.errors.error })
     }
   }
+  const unlinkLuma = () => {
+    setForm({ ...EMPTY, team: form.team, leads: form.leads, folderUrl: form.folderUrl })
+    setLumaImport(NO_IMPORT)
+  }
   const listedEntry = lumaImport.listed && entries.find((entry) => entry.id === lumaImport.listed.id)
   // The place field takes the meeting link of an online event too, so both hints land there.
   const placeHint = ['place', 'online']
@@ -167,7 +224,7 @@ export default function CreateDialog({
     setBusy(false)
     if (data) {
       dialog.current.close()
-      onCreated(data.id)
+      onCreated(data.id, !!request.stay)
     }
   }
   const archiveTemplate = async () => {
@@ -175,334 +232,333 @@ export default function CreateDialog({
     await run({ action: 'archiveTemplate', templateId: source.id })
   }
 
+  const lumaField = (
+    <div className="field">
+      <label htmlFor={`${id}-luma`} className="field-label">
+        {text.luma.label}
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <input
+          ref={first}
+          id={`${id}-luma`}
+          type="url"
+          inputMode="url"
+          className="input min-w-0 flex-1 basis-56"
+          placeholder="https://luma.com/…"
+          aria-describedby={`${id}-luma-hint ${id}-luma-status`}
+          value={lumaLink}
+          onChange={(e) => setLumaLink(e.target.value)}
+          // Enter reads the link; the form has nothing to save before that.
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            if (lumaLink.trim()) importLuma()
+          }}
+        />
+        <button type="button" className={`${TOOL_BUTTON} h-11`} disabled={!lumaLink.trim() || lumaImport.status === 'loading'} onClick={importLuma}>
+          {lumaImport.status === 'loading' ? text.luma.importing : text.luma.import}
+        </button>
+      </div>
+      <p id={`${id}-luma-hint`} className="field-hint text-sm">
+        {text.luma.hint}
+      </p>
+    </div>
+  )
+  const lumaStatus = (
+    <div id={`${id}-luma-status`} aria-live="polite" className="flex flex-col gap-2 text-sm empty:hidden">
+      {lumaImport.status === 'failed' && <p className="text-danger">{lumaImport.error}</p>}
+      {lumaImport.existing && (
+        <p>
+          {fill(text.luma.existing, { title: lumaImport.existing.title })}{' '}
+          <button
+            type="button"
+            className={QUIET_LINK}
+            onClick={() => {
+              dialog.current.close()
+              onCreated(lumaImport.existing.id, false)
+            }}
+          >
+            {text.luma.openExisting}
+          </button>
+        </p>
+      )}
+      {listedEntry && (
+        <p>
+          {text.luma.listed}{' '}
+          <button type="button" className={QUIET_LINK} onClick={() => onUseEntry(listedEntry)}>
+            {planOf(listedEntry) ? text.openExisting : text.luma.usePlanning}
+          </button>
+        </p>
+      )}
+    </div>
+  )
+  const placeField = (
+    <div className="field">
+      <label htmlFor={`${id}-place`} className="field-label">
+        {text.place}
+      </label>
+      <input
+        id={`${id}-place`}
+        className="input"
+        maxLength={TITLE_MAX}
+        placeholder={placeHint ? text.luma.manual : undefined}
+        aria-describedby={placeHint ? `${id}-place-hint` : undefined}
+        value={form.place}
+        onChange={set('place')}
+      />
+      {placeHint && (
+        <p id={`${id}-place-hint`} className="field-hint text-sm text-accent">
+          {placeHint}
+        </p>
+      )}
+    </div>
+  )
+  const titleField = (focus) => (
+    <div className="field">
+      <label htmlFor={`${id}-title`} className="field-label">
+        {text.title}
+      </label>
+      <input ref={focus ? first : undefined} id={`${id}-title`} className="input" required maxLength={TITLE_MAX} value={form.title} onChange={set('title')} />
+    </div>
+  )
+  const dueField = (
+    <div className="field">
+      <label htmlFor={`${id}-due`} className="field-label">
+        {kind === 'event' ? text.eventDate : text.due}
+      </label>
+      <input id={`${id}-due`} type="date" className="input" required={ownEvent} value={form.due} onChange={set('due')} />
+    </div>
+  )
+  // What the import filled stays editable, for the case that Luma is wrong or says too little.
+  const importedFields = (
+    <>
+      {titleField(false)}
+      {dueField}
+      <div className="form-row">
+        <div className="field">
+          <label htmlFor={`${id}-time`} className="field-label">
+            {text.time}
+          </label>
+          <input id={`${id}-time`} type="time" className="input" value={form.time} onChange={set('time')} />
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-end-time`} className="field-label">
+            {text.endTime}
+          </label>
+          <input id={`${id}-end-time`} type="time" className="input" value={form.endTime} onChange={set('endTime')} />
+        </div>
+      </div>
+      {/* Only an event over several days brings an end day. */}
+      {form.endDue && (
+        <div className="field">
+          <label htmlFor={`${id}-end-due`} className="field-label">
+            {text.endDue}
+          </label>
+          <input id={`${id}-end-due`} type="date" className="input" min={form.due} value={form.endDue} onChange={set('endDue')} />
+        </div>
+      )}
+      {!placeHint && placeField}
+    </>
+  )
+  const templateChoice = request && (
+    <fieldset className="fieldset">
+      <legend className="field-label mb-2">{text.start}</legend>
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
+        {['none', 'template', 'past'].map((option) => (
+          <label key={option} className="choice">
+            <input type="radio" name={`${id}-start`} checked={start === option} onChange={() => choose(option)} />
+            {text[`start${option[0].toUpperCase()}${option.slice(1)}`]}
+          </label>
+        ))}
+      </div>
+
+      {start !== 'none' && (
+        <div className="mt-2 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-4">
+          {start === 'past' && archive === 'loading' && (
+            <p role="status" className="text-sm text-fg-muted">
+              {text.pastLoading}
+            </p>
+          )}
+          {start === 'past' && archive === 'failed' && (
+            <p className="text-sm text-fg-muted">
+              {copy.board.archiveFailed}{' '}
+              <button type="button" className={QUIET_LINK} onClick={onPast}>
+                {copy.board.retry}
+              </button>
+            </p>
+          )}
+          {choices.length ? (
+            <>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="field min-w-0 flex-1">
+                  <label htmlFor={`${id}-source`} className="field-label">
+                    {start === 'template' ? text.template : text.pastProject}
+                  </label>
+                  <select id={`${id}-source`} className="input" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
+                    {choices.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {start === 'template' ? item.name : `${item.title}${projectDay(item) ? ` · ${shortDay(projectDay(item), locale)}` : ''}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {admin && start === 'template' && source && (
+                  <button type="button" className={`${TOOL_BUTTON} h-11`} onClick={archiveTemplate}>
+                    {text.archiveTemplate}
+                  </button>
+                )}
+              </div>
+              {start === 'template' && source?.description && <p className="text-sm text-fg-muted">{source.description}</p>}
+              {start === 'past' && source && projectDay(source) && (
+                <p className="text-sm text-fg-muted">{fill(text.originalDate, { date: longDay(projectDay(source), locale) })}</p>
+              )}
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">{fill(text.previewTasks, { count: `${include.length}/${preview.length}` })}</p>
+                <span className="flex gap-3 text-sm">
+                  <button type="button" className={QUIET_LINK} onClick={() => setInclude(preview.map((_, index) => index))}>
+                    {text.selectAll}
+                  </button>
+                  <button type="button" className={QUIET_LINK} onClick={() => setInclude([])}>
+                    {text.selectNone}
+                  </button>
+                </span>
+              </div>
+              <p className="text-xs text-fg-muted">{text.previewHint}</p>
+              <ul role="list" className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                {preview.map((task, index) => (
+                  <li key={index}>
+                    <label className="choice rounded-md px-1 py-1 hover:bg-bg">
+                      <input type="checkbox" checked={include.includes(index)} onChange={() => toggle(index)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block">{task.title}</span>
+                        <span className="block text-xs text-fg-muted">
+                          {relative(task.offsetDays, text)}
+                          {anchor && task.offsetDays !== null && ` · ${shortDay(addDays(anchor, task.offsetDays), locale)}`}
+                          {'done' in task && ` · ${task.done ? text.doneThen : text.openThen}`}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            archive !== 'loading' && <p className="text-sm text-fg-muted">{text.noPast}</p>
+          )}
+        </div>
+      )}
+    </fieldset>
+  )
+
   const heading = request?.event ? fill(text.eventHeading, { title: request.event.title }) : kind ? text.headings[kind] : ''
+  // An event exists only with its Luma event, so there is nothing to add before the import.
+  const incomplete = request?.event ? false : ownEvent ? !imported || !form.title.trim() || !form.due : !form.title.trim()
 
   return (
     <FormDialog dialogRef={dialog} id={`${id}-heading`} heading={heading} closeLabel={copy.panel.close} onClose={() => setBusy(false)} onSubmit={submit}>
       {request && (
         <>
-          {ownEvent && (
-            <div className="rounded-lg border border-border bg-bg-subtle p-3">
-              <label htmlFor={`${id}-luma`} className="field-label">
-                {text.luma.label}
-              </label>
-              <div className="mt-1 flex flex-wrap gap-2">
-                <input
-                  id={`${id}-luma`}
-                  type="url"
-                  inputMode="url"
-                  className="input min-w-0 flex-1 basis-56"
-                  placeholder="https://luma.com/…"
-                  aria-describedby={`${id}-luma-hint ${id}-luma-status`}
-                  value={lumaLink}
-                  onChange={(e) => setLumaLink(e.target.value)}
-                  // Enter reads the link instead of saving the event with the half-filled form.
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return
-                    e.preventDefault()
-                    if (lumaLink.trim()) importLuma()
-                  }}
-                />
-                <button type="button" className={`${TOOL_BUTTON} h-11`} disabled={!lumaLink.trim() || lumaImport.status === 'loading'} onClick={importLuma}>
-                  {lumaImport.status === 'loading' ? text.luma.importing : text.luma.import}
-                </button>
-              </div>
-              <p id={`${id}-luma-hint`} className="field-hint text-sm">
-                {text.luma.hint}
-              </p>
-              <div id={`${id}-luma-status`} aria-live="polite" className="text-sm">
-                {lumaImport.status === 'failed' && <p className="mt-2 text-danger">{lumaImport.error}</p>}
-                {lumaImport.status === 'done' && <p className="mt-2 text-fg-muted">{text.luma.imported}</p>}
-                {lumaImport.existing && (
-                  <p className="mt-2">
-                    {fill(text.luma.existing, { title: lumaImport.existing.title })}{' '}
-                    <button
-                      type="button"
-                      className="border-0 bg-transparent p-0 text-accent underline"
-                      onClick={() => {
-                        dialog.current.close()
-                        onCreated(lumaImport.existing.id)
-                      }}
-                    >
-                      {text.luma.openExisting}
-                    </button>
-                  </p>
-                )}
-                {listedEntry && (
-                  <p className="mt-2">
-                    {text.luma.listed}{' '}
-                    <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={() => onUseEntry(listedEntry)}>
-                      {planOf(listedEntry) ? text.openExisting : text.luma.usePlanning}
-                    </button>
-                  </p>
-                )}
-              </div>
-              {form.luma && (
-                <div className="mt-3 flex items-center gap-3 border-0 border-t border-solid border-border pt-3 text-sm">
-                  {form.coverUrl && <img src={form.coverUrl} alt={text.luma.cover} className="h-12 w-12 shrink-0 rounded-md object-cover" />}
-                  <a href={form.luma.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center gap-1 text-accent underline">
-                    <span className="truncate">{text.luma.linked}</span>
-                    <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                  </a>
-                  <button
-                    type="button"
-                    className="ml-auto shrink-0 border-0 bg-transparent p-0 text-fg-muted underline hover:text-fg"
-                    onClick={() => {
-                      setForm({ ...form, luma: null, coverUrl: '' })
-                      setLumaImport(NO_IMPORT)
-                    }}
-                  >
-                    {text.luma.unlink}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          {request.event ? (
+          {request.event && (
             <p className="text-sm text-fg-muted">
               {text.linkedEvent}: {longDay(request.event.day, locale)}
               {request.event.location && ` · ${request.event.location}`}
             </p>
-          ) : (
-            <div className="field">
-              <label htmlFor={`${id}-title`} className="field-label">
-                {text.title}
-              </label>
-              <input id={`${id}-title`} className="input" required maxLength={TITLE_MAX} value={form.title} onChange={set('title')} />
-            </div>
           )}
-          <div className="field">
-            <label htmlFor={`${id}-description`} className="field-label">
-              {text.description}
-            </label>
-            <textarea
-              id={`${id}-description`}
-              className="input min-h-20"
-              maxLength={TEXT_MAX}
-              aria-describedby={`${id}-description-hint`}
-              value={form.description}
-              onChange={set('description')}
-            />
-            <p id={`${id}-description-hint`} className="field-hint text-sm">
-              {text.descriptionHint}
-            </p>
-          </div>
-          <div className="form-row">
-            <div className="field">
-              <label htmlFor={`${id}-team`} className="field-label">
-                {text.team}
-              </label>
-              <TeamSelect
-                id={`${id}-team`}
-                className="input"
-                value={form.team}
-                onChange={set('team')}
-                teams={copy.teams}
-                empty={copy.teamTabs.none}
-                all={copy.teamTabs.all}
-              />
-            </div>
-            {!request.event && (
-              <div className="field">
-                <label htmlFor={`${id}-due`} className="field-label">
-                  {kind === 'event' ? text.eventDate : text.due}
-                </label>
-                <input id={`${id}-due`} type="date" className="input" required={ownEvent} value={form.due} onChange={set('due')} />
-              </div>
-            )}
-          </div>
-          {ownEvent && (
-            <div className="form-row">
-              <div className="field">
-                <label htmlFor={`${id}-time`} className="field-label">
-                  {text.time}
-                </label>
-                <input id={`${id}-time`} type="time" className="input" value={form.time} onChange={set('time')} />
-              </div>
-              <div className="field">
-                <label htmlFor={`${id}-end-time`} className="field-label">
-                  {text.endTime}
-                </label>
-                <input id={`${id}-end-time`} type="time" className="input" value={form.endTime} onChange={set('endTime')} />
-              </div>
-            </div>
+          {kind === 'internal' && (
+            <>
+              {titleField(true)}
+              {dueField}
+            </>
           )}
-          {/* Only an import of an event over several days brings an end day; by hand an event ends on its day. */}
-          {ownEvent && form.endDue && (
-            <div className="field">
-              <label htmlFor={`${id}-end-due`} className="field-label">
-                {text.endDue}
-              </label>
-              <input id={`${id}-end-due`} type="date" className="input" min={form.due} value={form.endDue} onChange={set('endDue')} />
-            </div>
-          )}
-          {ownEvent && (
-            <div className="field">
-              <label htmlFor={`${id}-place`} className="field-label">
-                {text.place}
-              </label>
-              <input
-                id={`${id}-place`}
-                className="input"
-                maxLength={TITLE_MAX}
-                placeholder={placeHint ? text.luma.manual : undefined}
-                aria-describedby={placeHint ? `${id}-place-hint` : undefined}
-                value={form.place}
-                onChange={set('place')}
-              />
-              {placeHint && (
-                <p id={`${id}-place-hint`} className="field-hint text-sm text-accent">
-                  {placeHint}
-                </p>
-              )}
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor={`${id}-folder`} className="field-label">
-              {text.folderUrl}
-            </label>
-            <input
-              id={`${id}-folder`}
-              type="url"
-              className="input"
-              inputMode="url"
-              pattern={SHAREPOINT_PATTERN}
-              placeholder="https://leuphanalg.sharepoint.com/…"
-              aria-describedby={`${id}-folder-hint`}
-              value={form.folderUrl}
-              onChange={set('folderUrl')}
-            />
-            <p id={`${id}-folder-hint`} className="field-hint text-sm">
-              {text.folderHint}
-            </p>
-          </div>
-          {sameDay.length > 0 && (
-            <div className="rounded-lg border border-border-strong bg-bg-subtle p-3 text-sm">
-              <p>{text.sameDay}</p>
-              <ul role="list" className="mt-2 flex flex-col gap-1.5">
-                {sameDay.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate font-medium">{entry.title}</span>
-                    <button
-                      type="button"
-                      className="shrink-0 border-0 bg-transparent p-0 text-accent underline"
-                      onClick={() => {
-                        if (planOf(entry)) dialog.current.close()
-                        onUseEntry(entry)
-                      }}
-                    >
-                      {planOf(entry) ? text.openExisting : text.useExisting}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="field">
-            <span className="field-label">{text.leads}</span>
-            <MemberPicker
-              members={members}
-              membersById={membersById}
-              selected={form.leads}
-              team={form.team}
-              onChange={(leads) => setForm({ ...form, leads })}
-              copy={copy.people}
-              me={me}
-              label={text.leads}
-            />
-          </div>
+          {ownEvent && !imported && lumaField}
+          {ownEvent && lumaStatus}
+          {imported && <LumaPreview form={form} text={text} timeText={copy.overview.time} locale={locale} onUnlink={unlinkLuma} />}
+          {imported && placeHint && placeField}
+          {request.event && templateChoice}
 
-          <fieldset className="fieldset">
-            <legend className="field-label mb-2">{text.start}</legend>
-            <div className="flex flex-wrap gap-x-5 gap-y-2">
-              {['none', 'template', 'past'].map((option) => (
-                <label key={option} className="choice">
-                  <input type="radio" name={`${id}-start`} checked={start === option} onChange={() => choose(option)} />
-                  {text[`start${option[0].toUpperCase()}${option.slice(1)}`]}
-                </label>
-              ))}
-            </div>
-
-            {start !== 'none' && (
-              <div className="mt-2 flex flex-col gap-3 rounded-lg border border-border bg-bg-subtle p-4">
-                {start === 'past' && archive === 'loading' && (
-                  <p role="status" className="text-sm text-fg-muted">
-                    {text.pastLoading}
+          {(!ownEvent || imported) && (
+            <details className="group" open={more} onToggle={(e) => setMore(e.currentTarget.open)}>
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 border-0 border-t border-solid border-border pt-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
+                <ChevronRight aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-90" />
+                {text.more}
+                <span className="ml-auto text-xs font-normal text-fg-muted">{request.event ? text.moreHintPlanning : text.moreHint}</span>
+              </summary>
+              {/* The reset inherits box-sizing, and the browser's ::details-content box in between starts it over as
+                  content-box, which made the fields wider than the dialog. */}
+              <div className="mt-4 box-border flex flex-col gap-5">
+                {imported && importedFields}
+                <div className="field">
+                  <label htmlFor={`${id}-description`} className="field-label">
+                    {text.description}
+                  </label>
+                  <textarea
+                    id={`${id}-description`}
+                    className="input min-h-20"
+                    maxLength={TEXT_MAX}
+                    aria-describedby={`${id}-description-hint`}
+                    value={form.description}
+                    onChange={set('description')}
+                  />
+                  <p id={`${id}-description-hint`} className="field-hint text-sm">
+                    {text.descriptionHint}
                   </p>
-                )}
-                {start === 'past' && archive === 'failed' && (
-                  <p className="text-sm text-fg-muted">
-                    {copy.board.archiveFailed}{' '}
-                    <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={onPast}>
-                      {copy.board.retry}
-                    </button>
+                </div>
+                <div className="field">
+                  <label htmlFor={`${id}-team`} className="field-label">
+                    {text.team}
+                  </label>
+                  <TeamSelect
+                    id={`${id}-team`}
+                    className="input"
+                    value={form.team}
+                    onChange={set('team')}
+                    teams={copy.teams}
+                    empty={copy.teamTabs.none}
+                    all={copy.teamTabs.all}
+                  />
+                </div>
+                <div className="field">
+                  <span className="field-label">{text.leads}</span>
+                  <MemberPicker
+                    members={members}
+                    membersById={membersById}
+                    selected={form.leads}
+                    team={form.team}
+                    onChange={(leads) => setForm({ ...form, leads })}
+                    copy={copy.people}
+                    me={me}
+                    label={text.leads}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`${id}-folder`} className="field-label">
+                    {text.folderUrl}
+                  </label>
+                  <input
+                    id={`${id}-folder`}
+                    type="url"
+                    className="input"
+                    inputMode="url"
+                    pattern={SHAREPOINT_PATTERN}
+                    placeholder="https://leuphanalg.sharepoint.com/…"
+                    aria-describedby={`${id}-folder-hint`}
+                    value={form.folderUrl}
+                    onChange={set('folderUrl')}
+                    // A refused address inside the closed options would leave the submit button without any effect.
+                    onInvalid={() => setMore(true)}
+                  />
+                  <p id={`${id}-folder-hint`} className="field-hint text-sm">
+                    {text.folderHint}
                   </p>
-                )}
-                {choices.length ? (
-                  <>
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div className="field min-w-0 flex-1">
-                        <label htmlFor={`${id}-source`} className="field-label">
-                          {start === 'template' ? text.template : text.pastProject}
-                        </label>
-                        <select id={`${id}-source`} className="input" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
-                          {choices.map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {start === 'template' ? item.name : `${item.title}${projectDay(item) ? ` · ${shortDay(projectDay(item), locale)}` : ''}`}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {admin && start === 'template' && source && (
-                        <button type="button" className={`${TOOL_BUTTON} h-11`} onClick={archiveTemplate}>
-                          {text.archiveTemplate}
-                        </button>
-                      )}
-                    </div>
-                    {start === 'template' && source?.description && <p className="text-sm text-fg-muted">{source.description}</p>}
-                    {start === 'past' && source && projectDay(source) && (
-                      <p className="text-sm text-fg-muted">{fill(text.originalDate, { date: longDay(projectDay(source), locale) })}</p>
-                    )}
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">{fill(text.previewTasks, { count: `${include.length}/${preview.length}` })}</p>
-                      <span className="flex gap-3 text-sm">
-                        <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={() => setInclude(preview.map((_, index) => index))}>
-                          {text.selectAll}
-                        </button>
-                        <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={() => setInclude([])}>
-                          {text.selectNone}
-                        </button>
-                      </span>
-                    </div>
-                    <p className="text-xs text-fg-muted">{text.previewHint}</p>
-                    <ul role="list" className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-                      {preview.map((task, index) => (
-                        <li key={index}>
-                          <label className="choice rounded-md px-1 py-1 hover:bg-bg">
-                            <input type="checkbox" checked={include.includes(index)} onChange={() => toggle(index)} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block">{task.title}</span>
-                              <span className="block text-xs text-fg-muted">
-                                {relative(task.offsetDays, text)}
-                                {anchor && task.offsetDays !== null && ` · ${shortDay(addDays(anchor, task.offsetDays), locale)}`}
-                                {'done' in task && ` · ${task.done ? text.doneThen : text.openThen}`}
-                              </span>
-                            </span>
-                          </label>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  archive !== 'loading' && <p className="text-sm text-fg-muted">{text.noPast}</p>
-                )}
+                </div>
+                {!request.event && templateChoice}
               </div>
-            )}
-          </fieldset>
+            </details>
+          )}
 
           <div className="form-actions">
-            <button type="submit" className="form-submit" disabled={busy || (!request.event && !form.title.trim()) || (ownEvent && !form.due)}>
-              {text.submit}
+            <button type="submit" className="form-submit" disabled={busy || incomplete}>
+              {ownEvent ? text.submitEvent : text.submit}
             </button>
             <button type="button" className="form-secondary" onClick={() => dialog.current.close()}>
               {text.cancel}

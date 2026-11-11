@@ -1,18 +1,20 @@
 /**
  * The page the tasks module opens on: the next 14 days as a calendar with the events and the member's own deadlines,
  * then one card each for their tasks, the events and the projects, each leading on to its page. A click in the calendar
- * opens the event or the task; the events card shows what comes next.
+ * opens the event or the task, a click on the day itself offers to add an entry or a task for that day; the events card
+ * shows what comes next.
  * The field in the tasks card reads the same short form as the search ("Flyer drucken bis Mi @Lena #Marketing"); without
  * a person the task is the member's own.
  * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects the
  * member leads, soonest first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
  * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
- * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate).
+ * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate), onAddOnDay(kind, day) with kind event or
+ * task.
  */
 import React, { useId, useState } from 'react'
-import { Lock } from 'lucide-react'
+import { Lock, Plus } from 'lucide-react'
 import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
-import { fill, TOOL_BUTTON } from '../memberUi'
+import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
 import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, showRest, TaskCheck } from './taskUi'
 
 const CALENDAR_DAYS = 14
@@ -23,9 +25,9 @@ const CARD = 'rounded-card border border-border bg-card'
 const HEADING = 'text-[22px] font-semibold tracking-tight'
 const LEAD_ON = 'flex items-center justify-between gap-2 border-0 bg-transparent p-0 text-sm font-medium text-accent hover:underline'
 const ROW_LINE = 'border-0 border-t border-solid border-border'
-const CHIP = 'block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
+const CHIP = 'relative block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
 
-function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask }) {
+function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask, onAdd }) {
   const [all, setAll] = useState(false)
   const chips = [
     ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onOpenEvent(entry) })),
@@ -38,9 +40,36 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
     showRest(() => setAll(true), () => cell.querySelectorAll(':scope > button')[shown])
   }
   return (
-    <li className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'}`}>
+    <li
+      className={`group relative flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 transition-colors hover:border-border-strong ${
+        active ? 'border-accent' : 'border-border'
+      }`}
+    >
+      {/* The day is a layer behind its entries, because a button cannot hold the buttons of its events. */}
+      <Menu
+        ariaLabel={fill(copy.calendar.addOn, { date: label })}
+        className="absolute inset-0 flex items-end justify-end rounded-lg border-0 bg-transparent p-2 text-fg-muted"
+        label={<Plus aria-hidden="true" className="h-4 w-4 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" />}
+      >
+        {(close) =>
+          ['event', 'task'].map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              className={`${MENU_ITEM} whitespace-normal`}
+              onClick={() => {
+                close()
+                onAdd(kind, day)
+              }}
+            >
+              <span className="block font-medium">{copy.calendar.addKinds[kind].label}</span>
+              <span className="block text-xs text-fg-muted">{copy.calendar.addKinds[kind].text}</span>
+            </button>
+          ))
+        }
+      </Menu>
       {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
-      <p className="mb-0.5 flex items-center justify-between gap-1">
+      <p className="pointer-events-none relative mb-0.5 flex items-center justify-between gap-1">
         <span className="sr-only">{label}</span>
         <span aria-hidden="true" className="text-caption text-fg-muted">
           {dayPart(day, locale, { weekday: 'short' }).replace('.', '')}
@@ -61,7 +90,7 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
         <button
           type="button"
           aria-label={fill(copy.overview.showDay, { date: label })}
-          className="w-fit border-0 bg-transparent px-1.5 py-0 text-xs text-fg-muted hover:text-fg hover:underline"
+          className="relative w-fit border-0 bg-transparent px-1.5 py-0 text-xs text-fg-muted hover:text-fg hover:underline"
           onClick={showAll}
         >
           {fill(copy.overview.moreOnDay, { count: chips.length - shown })}
@@ -71,7 +100,7 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
   )
 }
 
-function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEvent, onOpenTask }) {
+function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEvent, onOpenTask, onAdd }) {
   const text = copy.overview
   const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(today, index))
   return (
@@ -106,6 +135,7 @@ function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEv
               locale={locale}
               onOpenEvent={onOpenEvent}
               onOpenTask={onOpenTask}
+              onAdd={onAdd}
             />
           ))}
         </ul>
@@ -226,7 +256,7 @@ function ProjectRow({ project, copy, locale, membersById, onOpen }) {
   )
 }
 
-export default function TaskOverview({ entries, complete, planOf, projects, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenEvent, onOpenTask, onPatch, onCapture, onQuickAdd }) {
+export default function TaskOverview({ entries, complete, planOf, projects, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenEvent, onOpenTask, onPatch, onCapture, onQuickAdd, onAddOnDay }) {
   const text = copy.overview
   // A task checked off here stays until the page changes, so a slip can be undone and the list does not jump.
   const [checked, setChecked] = useState([])
@@ -251,6 +281,7 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
         locale={locale}
         onOpenEvent={onOpenEvent}
         onOpenTask={onOpenTask}
+        onAdd={onAddOnDay}
       />
 
       <OverviewCard title={text.mine} aside={fill(text.openCount, { count: open.length })} link={text.toBoard} onLink={() => onView('tasks')}>
