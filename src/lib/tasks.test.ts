@@ -31,6 +31,7 @@ import {
   nextStanding,
   openRequired,
   parseName,
+  parseLumaEvent,
   parseProject,
   parseFolderUrl,
   parseProjectPatch,
@@ -454,6 +455,18 @@ test('fitsItsKind takes an event only with its Luma event', () => {
   assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24' }), false), true)
   assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', luma }), false), false)
   assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', endTime: '22:00' }), false), false)
+})
+
+test('parseLumaEvent takes what a project needs from its Luma event to become one', () => {
+  const luma = { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' }
+  const imported = { luma, due: '2026-11-24', time: '18:00', endTime: '22:00', place: 'Utopia Lüneburg' }
+  assert.deepEqual(parseLumaEvent(imported), { ...imported, endDue: '', coverUrl: '' })
+  assert.equal(parseLumaEvent({ ...imported, luma: null }), null, 'without its Luma event a project stays a project')
+  assert.equal(parseLumaEvent({ ...imported, due: '' }), null, 'an own event needs its day')
+  assert.equal(parseLumaEvent({ ...imported, endDue: '2026-11-23' }), null, 'it cannot end before it starts')
+  assert.equal(parseLumaEvent({ ...imported, coverUrl: 'https://example.com/cover.png' }), null, 'covers come from Luma only')
+  assert.equal(parseLumaEvent({ ...imported, luma: { ...luma, url: 'https://example.com/ubmm9b6x' } }), null)
+  assert.equal(parseLumaEvent('2026-11-24'), null)
 })
 
 test('openRequired counts open required tasks only', () => {

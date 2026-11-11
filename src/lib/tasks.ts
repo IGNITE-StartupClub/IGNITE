@@ -295,6 +295,34 @@ export function parseProject(input: unknown): ProjectFields | null {
   return project && endsInOrder(project) ? project : null
 }
 
+/** What an internal project takes over from its Luma event when it becomes an own event (makeEvent in tasksStore.ts). */
+export interface LumaEventFields {
+  luma: LumaRef
+  due: string
+  time: string
+  endDue: string
+  endTime: string
+  place: string
+  coverUrl: string
+}
+
+/** The fields of a Luma import for makeEvent; null without the Luma event or its day, or when anything is invalid. */
+export function parseLumaEvent(input: unknown): LumaEventFields | null {
+  const fields = fieldsOf(input)
+  if (!fields) return null
+  const parsed = parse<Omit<LumaEventFields, 'luma'> & { luma: LumaRef | null }>({
+    luma: lumaRef(fields.luma),
+    due: day(fields.due),
+    time: clock(fields.time),
+    endDue: day(fields.endDue),
+    endTime: clock(fields.endTime),
+    place: text(fields.place, TITLE_MAX),
+    coverUrl: cover(fields.coverUrl),
+  })
+  if (!parsed?.luma || !parsed.due || !endsInOrder(parsed)) return null
+  return { ...parsed, luma: parsed.luma }
+}
+
 /** An event cannot end before it starts; without a start day the end day has nothing to follow. */
 const endsInOrder = ({ due, endDue }: { due?: string; endDue?: string }) => !endDue || (!!due && endDue >= due)
 

@@ -13,6 +13,7 @@ import {
   MAX_TASKS,
   parseName,
   parseProject,
+  parseLumaEvent,
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
@@ -29,6 +30,7 @@ import {
   deleteProject,
   keepEventApart,
   linkEvent,
+  makeEvent,
   projectActivity,
   removeTask,
   reorderTasks,
@@ -84,7 +86,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order),
  * 'saveTemplate' (id, name), 'archiveTemplate' (templateId), 'linkEvent' (id, eventId), 'keepEventApart' (id, eventId),
- * 'unlinkEvent' (id), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
+ * 'unlinkEvent' (id), 'makeEvent' (id, luma or eventId), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
  * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes }
  * for the island's `revision`, and a refused action with the whole { state } instead, which is the island's rollback;
  * `withArchive` says the island holds the archive, so the state brings it too. Both carry the member's own private
@@ -188,6 +190,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!id) return invalid()
         code = await unlinkEvent(actor, id)
         break
+      case 'makeEvent': {
+        if (!id) return invalid()
+        if (body.eventId !== undefined) {
+          const event = await publicEvent(body.eventId)
+          if (!event) return reply(404, { code: 'unknown', ...(await rollback()) })
+          code = await makeEvent(actor, id, { event })
+          break
+        }
+        const luma = parseLumaEvent(body.luma)
+        if (!luma) return invalid()
+        code = await makeEvent(actor, id, { luma })
+        break
+      }
       case 'reorder':
         if (!id || !Array.isArray(body.order) || body.order.length > MAX_TASKS || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
