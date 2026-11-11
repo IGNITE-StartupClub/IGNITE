@@ -7,6 +7,7 @@ import { reply } from '../../../lib/memberSession'
 import { addPrivateTask, removePrivateTask, restorePrivateTask, updatePrivateTask } from '../../../lib/privateTasksStore'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import {
+  fitsItsKind,
   isEvent,
   isRecordId,
   MAX_TASKS,
@@ -111,7 +112,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       case 'create': {
         const fields = parseProject(body.project)
         if (!fields || (body.status !== undefined && !status)) return invalid()
-        if (fields.type === 'event' && body.eventId === undefined && !fields.due) return invalid()
+        if (!fitsItsKind(fields, body.eventId !== undefined)) return invalid()
         const template = parseTemplateSource(body.template)
         if (template === undefined) return invalid()
         const task = fields.type === 'task' ? parseTask({ ...(body.task as object), title: fields.title }) : null

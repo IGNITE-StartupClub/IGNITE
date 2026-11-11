@@ -10,7 +10,7 @@ import React, { useState } from 'react'
 import { AlertTriangle, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { isOverdue, PROJECT_STATUSES, progress, projectAssignees, projectDay } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM } from '../memberUi'
-import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, showRest, STATUS_TONE, TYPE_TEXT } from './taskUi'
+import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, ProgressBar, showRest, STATUS_TONE, teamName, TYPE_TEXT } from './taskUi'
 
 const ARCHIVE_SHOWN = 24
 
@@ -34,7 +34,7 @@ function ProjectCard({ project, showTeam, copy, locale, today, membersById, onOp
       <div className="flex items-start justify-between gap-2">
         <p className={`text-2xs font-semibold uppercase tracking-wider ${TYPE_TEXT[project.type]}`}>
           {copy.types[project.type]}
-          {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {copy.teams[project.team]}</span>}
+          {showTeam && project.team && <span className="font-medium normal-case tracking-normal text-fg-muted"> · {teamName(copy, project.team)}</span>}
         </p>
         <div className="-mr-2 -mt-2">
           <Menu

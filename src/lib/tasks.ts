@@ -1,10 +1,12 @@
 /**
  * Rules of the tasks module ("Aufgaben" in the members area), shared by the API, the store, the daily digest and the
  * TaskWorkspace island: allowed values, input parsing, teams, progress, the deadline groups of the task list, filters
- * and copying a task list from a template or an earlier project. Free of local imports, so node --test runs it.
+ * and copying a task list from a template or an earlier project. Local imports carry their extension, so node --test runs it.
  * Days are YYYY-MM-DD in Europe/Berlin throughout, like the CRM; members are referenced by the hex id of their
  * `members` document, never by email, so no address reaches the browser.
  */
+
+import { isLumaCover, isLumaEventId, parseLumaUrl } from './lumaLink.ts'
 
 export const PROJECT_TYPES = ['event', 'internal', 'task'] as const
 export type ProjectType = (typeof PROJECT_TYPES)[number]
@@ -32,8 +34,10 @@ export const TEAM_IDS = ['ignite-relations', 'ignite-marketing', 'ignite-hr', 'i
 export type TeamId = (typeof TEAM_IDS)[number]
 /** '' is no team: a member who has not chosen one, a project nobody sorted in, a task that follows its project. */
 export type TeamChoice = TeamId | ''
-/** The tab that shows every team. */
+/** The tab that shows every team, and the team of a project that concerns all of them (an event like a club dinner). */
 export const ALL_TEAMS = 'all'
+/** A project shows on every team's tab with ALL_TEAMS; members and tasks have one team or none. */
+export type ProjectTeam = TeamChoice | typeof ALL_TEAMS
 
 export const TITLE_MAX = 200
 export const TEXT_MAX = 4000
@@ -53,10 +57,22 @@ export interface ProjectFields {
   time: string
   /** Place of an own event. */
   place: string
+  /** End of an own event, '' when open; `endDue` is '' when it ends on its own day. */
+  endDue: string
+  endTime: string
+  /** Cover of an own event taken over from Luma (isLumaCover), '' without one. */
+  coverUrl: string
+  /** The Luma event an own event was imported from, null for events entered by hand. Its id is unique. */
+  luma: LumaRef | null
   /** The project's folder in the Leuphana SharePoint (parseFolderUrl), '' without one. */
   folderUrl: string
   leads: string[]
-  team: TeamChoice
+  team: ProjectTeam
+}
+
+export interface LumaRef {
+  id: string
+  url: string
 }
 
 export interface TaskFields {
@@ -121,7 +137,7 @@ export interface ProjectState {
   status: ProjectStatus
   due: string
   leads: string[]
-  team: TeamChoice
+  team: ProjectTeam
   archived: boolean
   /** Start day of the linked public event, '' without one. */
   eventDay: string
@@ -129,6 +145,10 @@ export interface ProjectState {
   event?: { id: string; missing: boolean; location: string | null } | null
   time?: string
   place?: string
+  endDue?: string
+  endTime?: string
+  coverUrl?: string
+  luma?: LumaRef | null
   folderUrl?: string
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
@@ -190,6 +210,19 @@ function clock(value: unknown): Parsed<string> {
   return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : INVALID
 }
 
+function cover(value: unknown): Parsed<string> {
+  if (value === undefined || value === null || value === '') return ''
+  return isLumaCover(value) ? value : INVALID
+}
+
+// The id comes from the form, which took it from the import; it is only ever used to refuse a second import of it.
+function lumaRef(value: unknown): Parsed<LumaRef | null> {
+  if (value === undefined || value === null) return null
+  const fields = fieldsOf(value)
+  const link = fields && parseLumaUrl(fields.url)
+  return link && isLumaEventId(fields.id) ? { id: fields.id, url: link.url } : INVALID
+}
+
 function choice<T extends string>(value: unknown, allowed: readonly T[], fallback: T): Parsed<T> {
   if (value === undefined) return fallback
   return allowed.includes(value as T) ? (value as T) : INVALID
@@ -218,6 +251,10 @@ function team(value: unknown): Parsed<TeamChoice> {
   return TEAM_IDS.includes(value as TeamId) ? (value as TeamId) : INVALID
 }
 
+function projectTeam(value: unknown): Parsed<ProjectTeam> {
+  return value === ALL_TEAMS ? ALL_TEAMS : team(value)
+}
+
 /** A team id or '' for no team; null when it is neither. */
 export function parseTeam(value: unknown): TeamChoice | null {
   const parsed = team(value)
@@ -240,18 +277,26 @@ function parse<T>(values: { [K in keyof T]: Parsed<T[K]> }): T | null {
 export function parseProject(input: unknown): ProjectFields | null {
   const fields = fieldsOf(input)
   if (!fields) return null
-  return parse<ProjectFields>({
+  const project = parse<ProjectFields>({
     title: text(fields.title, TITLE_MAX, true),
     description: text(fields.description, TEXT_MAX),
     type: choice(fields.type, PROJECT_TYPES, 'internal'),
     due: day(fields.due),
     time: clock(fields.time),
     place: text(fields.place, TITLE_MAX),
+    endDue: day(fields.endDue),
+    endTime: clock(fields.endTime),
+    coverUrl: cover(fields.coverUrl),
+    luma: lumaRef(fields.luma),
     folderUrl: folderUrl(fields.folderUrl),
     leads: members(fields.leads),
-    team: team(fields.team),
+    team: projectTeam(fields.team),
   })
+  return project && endsInOrder(project) ? project : null
 }
+
+/** An event cannot end before it starts; without a start day the end day has nothing to follow. */
+const endsInOrder = ({ due, endDue }: { due?: string; endDue?: string }) => !endDue || (!!due && endDue >= due)
 
 export function parseTask(input: unknown): TaskFields | null {
   const fields = fieldsOf(input)
@@ -276,7 +321,7 @@ export interface MemberChange {
 }
 
 export type TaskPatch = Partial<Omit<TaskFields, 'assignees'>> & { done?: boolean; assignees?: MemberChange }
-export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'time' | 'place' | 'folderUrl' | 'team'>> & {
+export type ProjectPatch = Partial<Pick<ProjectFields, 'title' | 'description' | 'due' | 'time' | 'place' | 'endDue' | 'endTime' | 'folderUrl' | 'team'>> & {
   leads?: MemberChange
 }
 
@@ -325,8 +370,10 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     due: day,
     time: clock,
     place: (value) => text(value, TITLE_MAX),
+    endDue: day,
+    endTime: clock,
     folderUrl,
-    team,
+    team: projectTeam,
     leads: memberChangeOf,
   })
 
@@ -399,6 +446,9 @@ export function weekEnd(today: string): string {
   const weekday = new Date(`${today}T00:00:00Z`).getUTCDay() // 0 = Sunday
   return addDays(today, weekday === 0 ? 0 : 7 - weekday)
 }
+
+/** Monday of the week (Monday to Sunday) that contains `today`. */
+export const weekStart = (today: string): string => addDays(weekEnd(today), -6)
 
 /** Done tasks against all tasks; `percent` is null without tasks, so an empty project shows no made-up value. */
 export function progress(tasks: Pick<TaskState, 'done'>[]): { done: number; total: number; percent: number | null } {
@@ -550,9 +600,11 @@ export interface Scope {
 }
 
 /** The team a task counts for: its own, else the one of its project. */
-export const taskTeam = (task: Pick<TaskState, 'team'>, project: Pick<ProjectState, 'team'>): TeamChoice => task.team || project.team
+export const taskTeam = (task: Pick<TaskState, 'team'>, project: Pick<ProjectState, 'team'>): ProjectTeam => task.team || project.team
 
-export interface ListTask extends TaskState {
+export interface ListTask extends Omit<TaskState, 'team'> {
+  /** The team it counts for (taskTeam), ALL_TEAMS for a task of a project of all teams. */
+  team: ProjectTeam
   projectId: string
   projectTitle: string
   projectType: ProjectType
@@ -583,7 +635,7 @@ export function scopedTasks(projects: ProjectState[], scope: Scope, me: string, 
         }))
         .filter((task) => {
           const assigned = task.assignees.includes(me)
-          const inTab = scope.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
+          const inTab = scope.team === ALL_TEAMS || task.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
           return inTab && (!scope.onlyMine || assigned) && (!query || contains(task.title, query) || contains(task.projectTitle, query))
         }),
     )
@@ -639,6 +691,7 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: S
   const query = filters.query.trim().toLowerCase()
   const inTab = (project: T) =>
     filters.team === ALL_TEAMS ||
+    project.team === ALL_TEAMS ||
     project.team === filters.team ||
     project.tasks.some((task) => task.team === filters.team) ||
     (filters.team === filters.myTeam && involves(project, me))
@@ -660,6 +713,23 @@ export const ledProjects = <T extends ProjectState>(projects: T[], me: string): 
   projects
     .filter((project) => !project.archived && project.type !== 'task' && project.status !== 'done' && project.leads.includes(me))
     .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
+
+/**
+ * The projects whose deadline shows in the calendars: open internal ones. An event shows as itself, and a single task
+ * through its task, for those it is assigned to.
+ */
+export const projectDeadlines = <T extends ProjectState>(projects: T[]): T[] =>
+  projects.filter((project) => project.type === 'internal' && !project.archived && project.status !== 'done' && !!project.due)
+
+/**
+ * Whether a new project fits its kind. An event is always a Luma event: the planning of an event of the IGNITE calendar
+ * (`planning`), or an own event with the Luma event it was imported from, which brings its day. Without a Luma event it
+ * is a project. End, cover and Luma link belong to own events alone; a planning takes them from its public event.
+ */
+export function fitsItsKind(fields: ProjectFields, planning: boolean): boolean {
+  if (fields.type === 'event' && !planning) return !!fields.luma && !!fields.due
+  return !fields.luma && !fields.coverUrl && !fields.endDue && !fields.endTime
+}
 
 /** One entry of the calendar: a public event (Luma, hand-listed) or an own event, which is a project without a public event. */
 export interface CalendarEvent {
@@ -743,11 +813,11 @@ export function calendarEntries<E extends CalendarEvent>(events: E[], projects: 
       id: project.id,
       title: project.title,
       day,
-      endDay: day,
+      endDay: project.endDue && project.endDue > day ? project.endDue : day,
       time: project.time ?? '',
       location: project.place || project.event?.location || null,
-      url: '',
-      coverUrl: null,
+      url: project.luma?.url ?? '',
+      coverUrl: project.coverUrl || null,
       source: 'own',
     })
     const twin = project.event ? null : eventTwin(project, open)
@@ -873,7 +943,7 @@ export interface ProjectEdit {
  * the activity tab says what happened. A value someone else saved just before does not count as a change.
  */
 export function projectEdits(
-  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; folderUrl?: string; team?: TeamChoice },
+  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; folderUrl?: string; team?: ProjectTeam },
   patch: ProjectPatch,
 ): ProjectEdit[] {
   const edits: ProjectEdit[] = []

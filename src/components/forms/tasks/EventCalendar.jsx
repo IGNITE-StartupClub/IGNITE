@@ -1,12 +1,16 @@
 /**
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
  * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. The Weekly shows in the grid and on its day, never among the upcoming events, and has nothing to plan. Each card
- * either starts the planning project of its event or opens it. A click on a title in the grid opens that event.
- * Props: events (calendarEntries), planOf(event) → its project or undefined, complete (false when the calendar could not
- * be loaded), today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event).
+ * either starts the planning project of its event or opens it. A click on a title in the grid opens that event. The
+ * grid also shows the deadlines of the open projects, outlined, and a selected day lists them below its events. A
+ * selected day from today on offers to add a project, a task or an event; a task shows on the hub and the board, the
+ * grid has no tasks.
+ * Props: events (calendarEntries), deadlines (projectDeadlines), planOf(event) → its project or undefined, complete
+ * (false when the calendar could not be loaded), today, copy (workspace copy), locale, membersById, onStart(event),
+ * onOpen(projectId), onOpenEvent(event), onAddOnDay(kind, day) with kind internal, task or event.
  */
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react'
 import { addDays, isEvent, progress, projectAssignees } from '../../../lib/tasks'
 import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
@@ -79,7 +83,7 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   )
 }
 
-export default function EventCalendar({ events, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent }) {
+export default function EventCalendar({ events, deadlines, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent, onAddOnDay }) {
   const text = copy.calendar
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
@@ -95,6 +99,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
       : new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(
           new Date(`${monthStart(cursor)}T00:00:00Z`),
         )
+  const selectedProjects = selected ? deadlines.filter((project) => project.due === selected) : []
   const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => isEvent(event) && event.day >= today).slice(0, UPCOMING_MAX)
 
   return (
@@ -134,6 +139,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
           <ul role="list" className="mt-1 grid grid-cols-7 gap-1">
             {days.map((day) => {
               const dayEvents = byDay.get(day) ?? []
+              const dayProjects = deadlines.filter((project) => project.due === day)
               const outside = mode === 'month' && day.slice(0, 7) !== monthStart(cursor).slice(0, 7)
               const isToday = day === today
               const isSelected = day === selected
@@ -148,7 +154,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    aria-label={`${longDay(day, locale)}${dayEvents.length ? `: ${dayEvents.map((event) => event.title).join(', ')}` : ''}`}
+                    aria-label={`${longDay(day, locale)}${dayEvents.length + dayProjects.length ? `: ${[...dayEvents, ...dayProjects].map((item) => item.title).join(', ')}` : ''}`}
                     onClick={() => setSelected(isSelected ? null : day)}
                     className="absolute inset-0 rounded-md border-0 bg-transparent p-0"
                   />
@@ -159,7 +165,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
                   >
                     {Number(day.slice(8))}
                   </span>
-                  {dayEvents.length > 0 && (
+                  {dayEvents.length + dayProjects.length > 0 && (
                     <>
                       {/* Phones only get dots: titles do not fit into a seventh of the screen. */}
                       <span className={`pointer-events-none relative flex justify-center gap-0.5 ${mode === 'week' ? 'hidden' : 'sm:hidden'}`}>
@@ -168,6 +174,9 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
                             key={event.id}
                             className={`h-1.5 w-1.5 rounded-full ${planOf(event) ? 'bg-brand-bright' : 'bg-accent'}`}
                           />
+                        ))}
+                        {dayProjects.map((project) => (
+                          <span key={project.id} className="h-1.5 w-1.5 rounded-full border border-solid border-fg-muted" />
                         ))}
                       </span>
                       <span className={`relative flex-col gap-0.5 ${mode === 'week' ? 'flex' : 'hidden sm:flex'}`}>
@@ -186,6 +195,17 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
                             {event.title}
                           </button>
                         ))}
+                        {dayProjects.map((project) => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            title={project.title}
+                            onClick={() => onOpen(project.id)}
+                            className="block w-full truncate rounded border border-solid border-border-strong bg-transparent px-1 py-0.5 text-left text-2xs leading-tight text-fg"
+                          >
+                            {project.title}
+                          </button>
+                        ))}
                       </span>
                     </>
                   )}
@@ -193,7 +213,7 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
               )
             })}
           </ul>
-          <p className="mt-2 flex items-center gap-3 text-xs text-fg-muted">
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
             <span className="inline-flex items-center gap-1">
               <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-bright" />
               {text.planned}
@@ -201,6 +221,10 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
             <span className="inline-flex items-center gap-1">
               <span aria-hidden="true" className="h-2 w-2 rounded-full bg-accent" />
               {text.notPlanned}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full border border-solid border-fg-muted" />
+              {copy.overview.legendProject}
             </span>
           </p>
         </div>
@@ -229,7 +253,28 @@ export default function EventCalendar({ events, planOf, complete, today, copy, l
                 onOpen={onOpen}
               />
             ))}
-            {!listed.length && <p className="text-sm text-fg-muted">{selected ? text.noEvents : text.noUpcoming}</p>}
+            {!listed.length && !selectedProjects.length && <p className="text-sm text-fg-muted">{selected ? text.noEvents : text.noUpcoming}</p>}
+            {selectedProjects.map((project) => (
+              <button
+                key={project.id}
+                type="button"
+                className="rounded-lg border border-solid border-border-strong bg-transparent p-3 text-left text-fg hover:bg-bg-subtle"
+                onClick={() => onOpen(project.id)}
+              >
+                <span className="block text-xs text-fg-muted">{copy.overview.legendProject}</span>
+                <span className="block text-sm font-medium">{project.title}</span>
+              </button>
+            ))}
+            {selected && selected >= today && (
+              <div className="flex flex-wrap gap-2">
+                {['internal', 'task', 'event'].map((kind) => (
+                  <button key={kind} type="button" className={`${TOOL_BUTTON} h-9`} onClick={() => onAddOnDay(kind, selected)}>
+                    <Plus aria-hidden="true" className="h-4 w-4" />
+                    {text.addKinds[kind].label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

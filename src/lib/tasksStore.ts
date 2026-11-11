@@ -39,11 +39,13 @@ import {
   isSingleTask,
   MAX_ASSIGNEES,
   MAX_TASKS,
+  type LumaRef,
   type MemberChange,
   type ProjectFields,
   type ProjectEditAction,
   type ProjectPatch,
   type ProjectStatus,
+  type ProjectTeam,
   type ProjectType,
   type Repeat,
   type StoredStatus,
@@ -135,12 +137,17 @@ interface ProjectDoc {
   /** Start and place of an own event; projects saved before them have neither. */
   time?: string
   place?: string
+  /** End, cover and Luma event of an own event; projects saved before the Luma import have none of them. */
+  endDue?: string
+  endTime?: string
+  coverUrl?: string
+  luma?: LumaRef | null
   /** Link to the project's SharePoint folder (parseFolderUrl); projects saved before it have none. */
   folderUrl?: string
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   leads: string[]
-  team?: TeamChoice
+  team?: ProjectTeam
   tasks: TaskDoc[]
   activity: Activity[]
   createdBy: string
@@ -192,6 +199,8 @@ async function collections() {
     setUpInBackground('tasks', () =>
       Promise.all([
         projects.createIndex({ 'event.id': 1 }, { unique: true, partialFilterExpression: { 'event.id': { $type: 'string' } } }),
+        // One own event per Luma event; events entered by hand carry no id and never collide.
+        projects.createIndex({ 'luma.id': 1 }, { unique: true, partialFilterExpression: { 'luma.id': { $type: 'string' } } }),
         projects.createIndex({ 'tasks.id': 1 }),
         projects.createIndex({ updatedAt: -1 }),
         notifications.createIndex({ taskId: 1 }),
@@ -270,6 +279,10 @@ function projectSummary(project: Omit<ProjectDoc, 'activity'>, actor: TaskActor,
     due: project.due,
     time: project.time ?? '',
     place: project.place ?? '',
+    endDue: project.endDue ?? '',
+    endTime: project.endTime ?? '',
+    coverUrl: project.coverUrl ?? '',
+    luma: project.luma ?? null,
     folderUrl: project.folderUrl ?? '',
     distinctFrom: project.distinctFrom ?? [],
     leads: people(project.leads),
@@ -429,7 +442,7 @@ export interface ProjectFolder {
   id: string
   title: string
   type: ProjectType
-  team: TeamChoice
+  team: ProjectTeam
   /** Event day or deadline, '' without one. */
   day: string
   /** '' while nobody has linked its SharePoint folder. */
@@ -626,6 +639,13 @@ interface NewProject {
  * that name stands on that day. The second check reads first, so two members saving the same second both get through.
  * That costs a double entry, never data, and one of them can archive it.
  */
+/** The own event imported from this Luma event, archived or not; the form names it before a second import. */
+export async function projectOfLumaEvent(lumaId: string): Promise<{ id: string; title: string } | null> {
+  const { projects } = await collections()
+  const project = await projects.findOne({ 'luma.id': lumaId }, { projection: { title: 1 } })
+  return project && { id: project._id, title: project.title }
+}
+
 export async function createProject(actor: TaskActor, input: NewProject): Promise<{ id: string } | 'duplicate'> {
   const { projects } = await collections()
   if (input.fields.type === 'event' && !input.event) {
@@ -678,12 +698,20 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   const { projects } = await collections()
   const project = await projects.findOne(
     { _id: id },
-    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, folderUrl: 1, team: 1, 'tasks.id': 1 } },
+    { projection: { createdBy: 1, leads: 1, type: 1, event: 1, title: 1, description: 1, due: 1, time: 1, place: 1, endDue: 1, folderUrl: 1, team: 1, 'tasks.id': 1 } },
   )
   if (!project) return 'unknown'
   const { leads, ...fields } = patch
   // Its date is all that places an own event in the calendar.
   if (fields.due === '' && project.type === 'event' && !project.event) return 'invalid'
+  // An end day before the start is refused when set, and dropped when the start moves past it: the event then ends on
+  // its own day, so moving an event never fails over its end.
+  const due = fields.due ?? project.due
+  const endDue = fields.endDue ?? project.endDue ?? ''
+  if (endDue && endDue < due) {
+    if (fields.endDue) return 'invalid'
+    fields.endDue = ''
+  }
   if (leads && !mayArchive(project, actor)) return 'forbidden'
   if (leads && applyMemberChange(project.leads, leads).length > MAX_ASSIGNEES) return 'crowded'
   // A lead's right comes from the list itself, so losing the role in between makes the update miss.

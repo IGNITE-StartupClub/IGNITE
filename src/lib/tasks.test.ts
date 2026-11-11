@@ -18,6 +18,7 @@ import {
   calendarEntries,
   eventTwin,
   filterProjects,
+  fitsItsKind,
   ledProjects,
   filterScope,
   isEvent,
@@ -40,6 +41,7 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
+  projectDeadlines,
   projectEdits,
   projectAssignees,
   projectStatus,
@@ -57,6 +59,7 @@ import {
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
+  weekStart,
   withArchive,
   type PrivateTaskState,
   type ProjectState,
@@ -116,6 +119,10 @@ test('parseProject requires a title and accepts only known types, teams, real da
     due: '',
     time: '',
     place: '',
+    endDue: '',
+    endTime: '',
+    coverUrl: '',
+    luma: null,
     folderUrl: '',
     leads: [ME],
     team: MARKETING,
@@ -134,6 +141,37 @@ test('parseProject requires a title and accepts only known types, teams, real da
     { title: 'x', folderUrl: 'https://example.com/folder' },
   ]) {
     assert.equal(parseProject(bad), null, JSON.stringify(bad))
+  }
+})
+
+test('parseProject takes an own event by hand, without any Luma field', () => {
+  const event = parseProject({ title: 'Utopia-Dinner', type: 'event', due: '2026-11-24', time: '18:00', place: 'Utopia' })
+  assert.equal(event?.luma, null)
+  assert.deepEqual([event?.endDue, event?.endTime, event?.coverUrl], ['', '', ''])
+})
+
+test('parseProject takes the Luma fields of an import and refuses foreign ones', () => {
+  const imported = parseProject({
+    title: 'Utopia-Dinner',
+    type: 'event',
+    due: '2026-11-24',
+    endDue: '2026-11-24',
+    endTime: '22:00',
+    coverUrl: 'https://images.lumacdn.com/uploads/s6/cover.png',
+    luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://lu.ma/ubmm9b6x?tk=abc' },
+  })
+  assert.deepEqual(imported?.luma, { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' })
+  assert.equal(imported?.endTime, '22:00')
+  for (const bad of [
+    { coverUrl: 'https://evil.example/cover.png' },
+    { luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://evil.example/ubmm9b6x' } },
+    { luma: { id: 'cal-123456', url: 'https://luma.com/ubmm9b6x' } },
+    { luma: 'https://luma.com/ubmm9b6x' },
+    { endDue: '2026-11-23' },
+    { due: '', endDue: '2026-11-24' },
+    { endTime: '25:00' },
+  ]) {
+    assert.equal(parseProject({ title: 'x', type: 'event', due: '2026-11-24', ...bad }), null, JSON.stringify(bad))
   }
 })
 
@@ -202,6 +240,13 @@ test('berlinDay and berlinHour follow summer and winter time', () => {
   assert.equal(berlinHour(Date.parse('2026-07-01T17:30:00Z')), 19)
   assert.equal(berlinHour(Date.parse('2026-12-01T17:30:00Z')), 18)
   assert.equal(berlinDay(Date.parse('2026-12-31T23:30:00Z')), '2027-01-01')
+})
+
+test('weekStart is the Monday of the current week', () => {
+  assert.equal(weekStart('2026-11-11'), '2026-11-09') // Wednesday
+  assert.equal(weekStart('2026-11-09'), '2026-11-09') // Monday
+  assert.equal(weekStart('2026-11-15'), '2026-11-09') // Sunday
+  assert.equal(weekStart('2026-03-01'), '2026-02-23') // Sunday after a short February
 })
 
 test('weekEnd is the Sunday of the current week', () => {
@@ -326,6 +371,26 @@ test('filterProjects shows a project to its team, to teams with a task in it and
   assert.deepEqual(ids({}), ['own', 'shared', 'other', 'free'])
 })
 
+test('a project of all teams shows on every team tab, and so do its tasks', () => {
+  const projects = [
+    project({ id: 'dinner', type: 'event', team: ALL_TEAMS, tasks: [task({ id: 'tables' }), task({ id: 'ads', team: MARKETING })] }),
+    project({ id: 'mine', team: MARKETING }),
+  ]
+  const cards = (overrides: Partial<Scope>) => filterProjects(projects, { ...scope(overrides), archived: false }, ME).map((item) => item.id)
+  assert.deepEqual(cards({ team: RELATIONS }), ['dinner'])
+  assert.deepEqual(cards({ team: MARKETING }), ['dinner', 'mine'])
+  const tasks = (overrides: Partial<Scope>) => scopedTasks(projects, scope(overrides), ME, '2026-10-28').map((item) => [item.id, item.team])
+  assert.deepEqual(tasks({ team: RELATIONS }), [['tables', ALL_TEAMS]])
+  assert.deepEqual(tasks({ team: MARKETING }), [['tables', ALL_TEAMS], ['ads', MARKETING]])
+})
+
+test('only projects take all teams; members and tasks keep one team or none', () => {
+  assert.equal(parseProject({ title: 'Utopia-Dinner', team: ALL_TEAMS })?.team, ALL_TEAMS)
+  assert.deepEqual(parseProjectPatch({ team: ALL_TEAMS }), { team: ALL_TEAMS })
+  assert.equal(parseTeam(ALL_TEAMS), null)
+  assert.equal(parseTask({ title: 'Tische', team: ALL_TEAMS }), null)
+})
+
 test('filterProjects combines own projects, search and the archive; single tasks only show there', () => {
   const projects = [
     project({ id: 'event', type: 'event', tasks: [task({ title: 'Speaker kontaktieren', assignees: [BEN] })] }),
@@ -357,6 +422,38 @@ test('ledProjects keeps the open projects the member leads, soonest first and th
     ledProjects(projects, ME).map((item) => item.id),
     ['event', 'later', 'undated'],
   )
+})
+
+test('projectDeadlines keeps the open internal projects with a deadline', () => {
+  const projects = [
+    project({ id: 'dated', due: '2026-11-20' }),
+    project({ id: 'undated' }),
+    project({ id: 'event', type: 'event', due: '2026-11-24' }),
+    project({ id: 'single', type: 'task', due: '2026-11-20' }),
+    project({ id: 'done', status: 'done', due: '2026-11-20' }),
+    project({ id: 'archived', archived: true, due: '2026-11-20' }),
+  ]
+  assert.deepEqual(
+    projectDeadlines(projects).map((item) => item.id),
+    ['dated'],
+  )
+})
+
+test('fitsItsKind takes an event only with its Luma event', () => {
+  const luma = { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' }
+  const fields = (input: Record<string, unknown>) => {
+    const parsed = parseProject({ title: 'Utopia-Dinner', ...input })
+    assert.ok(parsed, JSON.stringify(input))
+    return parsed
+  }
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24', luma }), false), true)
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24' }), false), false, 'an event by hand is a project')
+  assert.equal(fitsItsKind(fields({ type: 'event', luma }), false), false, 'an own event needs its day')
+  assert.equal(fitsItsKind(fields({ type: 'event' }), true), true, 'a planning takes day and link from its public event')
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24', luma }), true), false)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24' }), false), true)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', luma }), false), false)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', endTime: '22:00' }), false), false)
 })
 
 test('openRequired counts open required tasks only', () => {
@@ -741,6 +838,18 @@ test('calendarEntries shows own events and never the same event twice', () => {
     [{ id: 'own-1', source: 'own', time: '19:00', location: 'Café' }],
   )
   assert.equal(twins.get('own-1')?.id, 'evt-1')
+})
+
+test('calendarEntries shows the Luma link, cover and end day of an imported own event', () => {
+  const imported = ownEvent({
+    luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' },
+    coverUrl: 'https://images.lumacdn.com/uploads/s6/cover.png',
+    endDue: '2026-11-21',
+  })
+  const [entry] = calendarEntries([], [imported]).entries
+  assert.deepEqual([entry.url, entry.coverUrl, entry.endDay], ['https://luma.com/ubmm9b6x', 'https://images.lumacdn.com/uploads/s6/cover.png', '2026-11-21'])
+  const [byHand] = calendarEntries([], [ownEvent()]).entries
+  assert.deepEqual([byHand.url, byHand.coverUrl, byHand.endDay], ['', null, '2026-11-20'])
 })
 
 test('calendarEntries keeps an uncertain twin visible and asks', () => {

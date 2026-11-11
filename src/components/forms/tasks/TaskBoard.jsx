@@ -12,7 +12,7 @@ import React, { useState } from 'react'
 import { CalendarDays, GripVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, boardColumns, memberChange, MINE, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
-import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, showRest, STATUS_TONE } from './taskUi'
+import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, showRest, STATUS_TONE, teamName } from './taskUi'
 
 const DONE_SHOWN = 8
 const TAG = 'max-w-full truncate rounded-full bg-bg-subtle px-2.5 py-0.5 text-[14px]'
@@ -48,7 +48,7 @@ function AddCard({ label, privateLabel, onAdd, onClose }) {
 
 function TaskCard({ task, filter, copy, locale, me, members, membersById, onPatch, onOpen, onMenu, onDragStart, onDragEnd }) {
   const finished = task.status === 'done'
-  const team = task.team ? task.team !== filter && copy.teams[task.team] : filter === ALL_TEAMS && copy.teamTabs.none
+  const team = task.team ? task.team !== filter && teamName(copy, task.team) : filter === ALL_TEAMS && copy.teamTabs.none
   return (
     <article
       draggable
