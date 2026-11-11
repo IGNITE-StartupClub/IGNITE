@@ -435,6 +435,7 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
     description: project.description,
     due: project.due,
     time: project.time,
+    endTime: project.endTime ?? '',
     place: project.place,
     folderUrl: project.folderUrl,
   })
@@ -446,7 +447,7 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
     const previous = start.current
     start.current = next
     setForm((current) => ({ ...next, ...changedFields(previous, current) }))
-  }, [project.title, project.description, project.due, project.time, project.place, project.folderUrl])
+  }, [project.title, project.description, project.due, project.time, project.endTime, project.place, project.folderUrl])
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const patch = changedFields(fields(), trimmed(form))
   const changed = Object.keys(patch).length > 0
@@ -491,6 +492,12 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
               </label>
               <input id={`${id}-time`} type="time" className={INPUT} value={form.time} onChange={set('time')} />
             </div>
+            <div className="w-36">
+              <label htmlFor={`${id}-end-time`} className={LABEL}>
+                {copy.panel.endTime}
+              </label>
+              <input id={`${id}-end-time`} type="time" className={INPUT} value={form.endTime} onChange={set('endTime')} />
+            </div>
             <div className="min-w-48 flex-1">
               <label htmlFor={`${id}-place`} className={LABEL}>
                 {copy.panel.place}
@@ -498,6 +505,12 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
               <input id={`${id}-place`} className={INPUT} maxLength={TITLE_MAX} value={form.place} onChange={set('place')} />
             </div>
           </div>
+        )}
+        {ownEvent && project.luma && (
+          <a href={project.luma.url} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1 text-sm text-accent underline">
+            {copy.panel.lumaEvent}
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+          </a>
         )}
         <div>
           <label htmlFor={`${id}-folder`} className={LABEL}>

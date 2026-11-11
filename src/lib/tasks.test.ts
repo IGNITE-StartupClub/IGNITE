@@ -116,6 +116,10 @@ test('parseProject requires a title and accepts only known types, teams, real da
     due: '',
     time: '',
     place: '',
+    endDue: '',
+    endTime: '',
+    coverUrl: '',
+    luma: null,
     folderUrl: '',
     leads: [ME],
     team: MARKETING,
@@ -134,6 +138,37 @@ test('parseProject requires a title and accepts only known types, teams, real da
     { title: 'x', folderUrl: 'https://example.com/folder' },
   ]) {
     assert.equal(parseProject(bad), null, JSON.stringify(bad))
+  }
+})
+
+test('parseProject takes an own event by hand, without any Luma field', () => {
+  const event = parseProject({ title: 'Utopia-Dinner', type: 'event', due: '2026-11-24', time: '18:00', place: 'Utopia' })
+  assert.equal(event?.luma, null)
+  assert.deepEqual([event?.endDue, event?.endTime, event?.coverUrl], ['', '', ''])
+})
+
+test('parseProject takes the Luma fields of an import and refuses foreign ones', () => {
+  const imported = parseProject({
+    title: 'Utopia-Dinner',
+    type: 'event',
+    due: '2026-11-24',
+    endDue: '2026-11-24',
+    endTime: '22:00',
+    coverUrl: 'https://images.lumacdn.com/uploads/s6/cover.png',
+    luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://lu.ma/ubmm9b6x?tk=abc' },
+  })
+  assert.deepEqual(imported?.luma, { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' })
+  assert.equal(imported?.endTime, '22:00')
+  for (const bad of [
+    { coverUrl: 'https://evil.example/cover.png' },
+    { luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://evil.example/ubmm9b6x' } },
+    { luma: { id: 'cal-123456', url: 'https://luma.com/ubmm9b6x' } },
+    { luma: 'https://luma.com/ubmm9b6x' },
+    { endDue: '2026-11-23' },
+    { due: '', endDue: '2026-11-24' },
+    { endTime: '25:00' },
+  ]) {
+    assert.equal(parseProject({ title: 'x', type: 'event', due: '2026-11-24', ...bad }), null, JSON.stringify(bad))
   }
 })
 
@@ -741,6 +776,18 @@ test('calendarEntries shows own events and never the same event twice', () => {
     [{ id: 'own-1', source: 'own', time: '19:00', location: 'Café' }],
   )
   assert.equal(twins.get('own-1')?.id, 'evt-1')
+})
+
+test('calendarEntries shows the Luma link, cover and end day of an imported own event', () => {
+  const imported = ownEvent({
+    luma: { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' },
+    coverUrl: 'https://images.lumacdn.com/uploads/s6/cover.png',
+    endDue: '2026-11-21',
+  })
+  const [entry] = calendarEntries([], [imported]).entries
+  assert.deepEqual([entry.url, entry.coverUrl, entry.endDay], ['https://luma.com/ubmm9b6x', 'https://images.lumacdn.com/uploads/s6/cover.png', '2026-11-21'])
+  const [byHand] = calendarEntries([], [ownEvent()]).entries
+  assert.deepEqual([byHand.url, byHand.coverUrl, byHand.endDay], ['', null, '2026-11-20'])
 })
 
 test('calendarEntries keeps an uncertain twin visible and asks', () => {

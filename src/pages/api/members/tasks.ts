@@ -112,6 +112,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const fields = parseProject(body.project)
         if (!fields || (body.status !== undefined && !status)) return invalid()
         if (fields.type === 'event' && body.eventId === undefined && !fields.due) return invalid()
+        // End, cover and Luma link belong to own events; a planning takes them from its public event.
+        const ownEventOnly = fields.luma || fields.coverUrl || fields.endDue || fields.endTime
+        if (ownEventOnly && (fields.type !== 'event' || body.eventId !== undefined)) return invalid()
         const template = parseTemplateSource(body.template)
         if (template === undefined) return invalid()
         const task = fields.type === 'task' ? parseTask({ ...(body.task as object), title: fields.title }) : null

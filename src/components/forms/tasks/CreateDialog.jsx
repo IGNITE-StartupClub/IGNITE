@@ -5,17 +5,36 @@
  * preview lists the tasks to take over, each with a checkbox, its relative deadline and, for earlier projects, whether
  * it was done back then. Only titles, descriptions, priorities and relative deadlines carry over (tasksFromTemplate on
  * the server).
+ * An own event can start from a Luma link, public or private (/api/members/luma-import): the import only fills in the
+ * fields, which all stay editable, and marks what Luma shows to guests alone. Without a link the form works as before.
  * Props: request ({ kind, team, event? } or null = closed; team is preselected), copy (workspace copy), locale, me,
  * members, membersById, templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
  * archive (none, loading, loaded or failed: most earlier projects are archived, so choosing one loads it through
  * onPast()), run, onCreated(id), onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { addDays, isEvent, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
 
-const EMPTY = { title: '', description: '', due: '', time: '', place: '', folderUrl: '', team: '', leads: [] }
+const EMPTY = { title: '', description: '', due: '', time: '', endDue: '', endTime: '', place: '', coverUrl: '', luma: null, folderUrl: '', team: '', leads: [] }
+const NO_IMPORT = { status: 'idle', error: '', hidden: [], existing: null, listed: null }
+
+/** The form after an import: what Luma has replaces the field, what it leaves empty keeps what was typed. */
+const withImport = (form, event) => ({
+  ...form,
+  title: event.title || form.title,
+  description: event.description || form.description,
+  due: event.due,
+  time: event.time,
+  // An end on the same day needs no end day of its own.
+  endDue: event.endDue && event.endDue !== event.due ? event.endDue : '',
+  endTime: event.endTime,
+  place: event.place || form.place,
+  coverUrl: event.coverUrl,
+  luma: { id: event.lumaEventId, url: event.lumaUrl },
+})
 
 function relative(offset, text) {
   if (offset === null) return text.noOffset
@@ -49,6 +68,8 @@ export default function CreateDialog({
   const [sourceId, setSourceId] = useState('')
   const [include, setInclude] = useState([])
   const [busy, setBusy] = useState(false)
+  const [lumaLink, setLumaLink] = useState('')
+  const [lumaImport, setLumaImport] = useState(NO_IMPORT)
 
   const past = projects
     .filter((project) => project.type !== 'task' && project.tasks.length)
@@ -70,6 +91,8 @@ export default function CreateDialog({
   useEffect(() => {
     if (!request) return
     setForm({ ...EMPTY, title: request.event?.title ?? '', team: request.team, leads: [me] })
+    setLumaLink('')
+    setLumaImport(NO_IMPORT)
     const useTemplate = request.kind === 'event' && templates.length > 0
     setStart(useTemplate ? 'template' : 'none')
     setSourceId(useTemplate ? templates[0].id : '')
@@ -89,11 +112,39 @@ export default function CreateDialog({
     setSourceId(next === 'none' ? '' : (sources[next][0]?.id ?? ''))
     if (next === 'past') onPast()
   }
+  const importLuma = async () => {
+    const luma = text.luma
+    setLumaImport({ ...NO_IMPORT, status: 'loading' })
+    try {
+      const res = await fetch('/api/members/luma-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: lumaLink }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLumaImport({ ...NO_IMPORT, status: 'failed', error: luma.errors[data.code] ?? luma.errors.error })
+        return
+      }
+      setForm((current) => withImport(current, data.event))
+      setLumaImport({ status: 'done', error: '', hidden: data.event.hidden, existing: data.existing ?? null, listed: data.listed ?? null })
+    } catch (err) {
+      console.error('Luma import failed:', err)
+      setLumaImport({ ...NO_IMPORT, status: 'failed', error: luma.errors.error })
+    }
+  }
+  const listedEntry = lumaImport.listed && entries.find((entry) => entry.id === lumaImport.listed.id)
+  // The place field takes the meeting link of an online event too, so both hints land there.
+  const placeHint = ['place', 'online']
+    .filter((field) => lumaImport.hidden.includes(field))
+    .map((field) => `${text.luma.hidden[field]} ${text.luma.manual}.`)
+    .join(' ')
+
   const toggle = (index) => setInclude(include.includes(index) ? include.filter((item) => item !== index) : [...include, index])
 
   const submit = async (e) => {
     e.preventDefault()
-    const { title, description, due, time, place, folderUrl, team, leads } = form
+    const { title, description, due, time, endDue, endTime, place, coverUrl, luma, folderUrl, team, leads } = form
     const body = {
       action: 'create',
       project: {
@@ -103,6 +154,7 @@ export default function CreateDialog({
         due: request.event ? '' : due,
         time: ownEvent ? time : '',
         place: ownEvent ? place : '',
+        ...(ownEvent && { endDue, endTime, coverUrl, luma }),
         folderUrl: folderUrl.trim(),
         leads,
         team,
@@ -129,6 +181,83 @@ export default function CreateDialog({
     <FormDialog dialogRef={dialog} id={`${id}-heading`} heading={heading} closeLabel={copy.panel.close} onClose={() => setBusy(false)} onSubmit={submit}>
       {request && (
         <>
+          {ownEvent && (
+            <div className="rounded-lg border border-border bg-bg-subtle p-3">
+              <label htmlFor={`${id}-luma`} className="field-label">
+                {text.luma.label}
+              </label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <input
+                  id={`${id}-luma`}
+                  type="url"
+                  inputMode="url"
+                  className="input min-w-0 flex-1 basis-56"
+                  placeholder="https://luma.com/…"
+                  aria-describedby={`${id}-luma-hint ${id}-luma-status`}
+                  value={lumaLink}
+                  onChange={(e) => setLumaLink(e.target.value)}
+                  // Enter reads the link instead of saving the event with the half-filled form.
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    e.preventDefault()
+                    if (lumaLink.trim()) importLuma()
+                  }}
+                />
+                <button type="button" className={`${TOOL_BUTTON} h-11`} disabled={!lumaLink.trim() || lumaImport.status === 'loading'} onClick={importLuma}>
+                  {lumaImport.status === 'loading' ? text.luma.importing : text.luma.import}
+                </button>
+              </div>
+              <p id={`${id}-luma-hint`} className="field-hint text-sm">
+                {text.luma.hint}
+              </p>
+              <div id={`${id}-luma-status`} aria-live="polite" className="text-sm">
+                {lumaImport.status === 'failed' && <p className="mt-2 text-danger">{lumaImport.error}</p>}
+                {lumaImport.status === 'done' && <p className="mt-2 text-fg-muted">{text.luma.imported}</p>}
+                {lumaImport.existing && (
+                  <p className="mt-2">
+                    {fill(text.luma.existing, { title: lumaImport.existing.title })}{' '}
+                    <button
+                      type="button"
+                      className="border-0 bg-transparent p-0 text-accent underline"
+                      onClick={() => {
+                        dialog.current.close()
+                        onCreated(lumaImport.existing.id)
+                      }}
+                    >
+                      {text.luma.openExisting}
+                    </button>
+                  </p>
+                )}
+                {listedEntry && (
+                  <p className="mt-2">
+                    {text.luma.listed}{' '}
+                    <button type="button" className="border-0 bg-transparent p-0 text-accent underline" onClick={() => onUseEntry(listedEntry)}>
+                      {planOf(listedEntry) ? text.openExisting : text.luma.usePlanning}
+                    </button>
+                  </p>
+                )}
+              </div>
+              {form.luma && (
+                <div className="mt-3 flex items-center gap-3 border-0 border-t border-solid border-border pt-3 text-sm">
+                  {form.coverUrl && <img src={form.coverUrl} alt={text.luma.cover} className="h-12 w-12 shrink-0 rounded-md object-cover" />}
+                  <a href={form.luma.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center gap-1 text-accent underline">
+                    <span className="truncate">{text.luma.linked}</span>
+                    <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                  </a>
+                  <button
+                    type="button"
+                    className="ml-auto shrink-0 border-0 bg-transparent p-0 text-fg-muted underline hover:text-fg"
+                    onClick={() => {
+                      setForm({ ...form, luma: null, coverUrl: '' })
+                      setLumaImport(NO_IMPORT)
+                    }}
+                  >
+                    {text.luma.unlink}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {request.event ? (
             <p className="text-sm text-fg-muted">
               {text.linkedEvent}: {longDay(request.event.day, locale)}
@@ -183,11 +312,41 @@ export default function CreateDialog({
                 <input id={`${id}-time`} type="time" className="input" value={form.time} onChange={set('time')} />
               </div>
               <div className="field">
-                <label htmlFor={`${id}-place`} className="field-label">
-                  {text.place}
+                <label htmlFor={`${id}-end-time`} className="field-label">
+                  {text.endTime}
                 </label>
-                <input id={`${id}-place`} className="input" maxLength={TITLE_MAX} value={form.place} onChange={set('place')} />
+                <input id={`${id}-end-time`} type="time" className="input" value={form.endTime} onChange={set('endTime')} />
               </div>
+            </div>
+          )}
+          {/* Only an import of an event over several days brings an end day; by hand an event ends on its day. */}
+          {ownEvent && form.endDue && (
+            <div className="field">
+              <label htmlFor={`${id}-end-due`} className="field-label">
+                {text.endDue}
+              </label>
+              <input id={`${id}-end-due`} type="date" className="input" min={form.due} value={form.endDue} onChange={set('endDue')} />
+            </div>
+          )}
+          {ownEvent && (
+            <div className="field">
+              <label htmlFor={`${id}-place`} className="field-label">
+                {text.place}
+              </label>
+              <input
+                id={`${id}-place`}
+                className="input"
+                maxLength={TITLE_MAX}
+                placeholder={placeHint ? text.luma.manual : undefined}
+                aria-describedby={placeHint ? `${id}-place-hint` : undefined}
+                value={form.place}
+                onChange={set('place')}
+              />
+              {placeHint && (
+                <p id={`${id}-place-hint`} className="field-hint text-sm text-accent">
+                  {placeHint}
+                </p>
+              )}
             </div>
           )}
           <div className="field">
