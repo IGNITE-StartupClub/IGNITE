@@ -714,6 +714,23 @@ export const ledProjects = <T extends ProjectState>(projects: T[], me: string): 
     .filter((project) => !project.archived && project.type !== 'task' && project.status !== 'done' && project.leads.includes(me))
     .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
 
+/**
+ * The projects whose deadline shows in the calendars: open internal ones. An event shows as itself, and a single task
+ * through its task, for those it is assigned to.
+ */
+export const projectDeadlines = <T extends ProjectState>(projects: T[]): T[] =>
+  projects.filter((project) => project.type === 'internal' && !project.archived && project.status !== 'done' && !!project.due)
+
+/**
+ * Whether a new project fits its kind. An event is always a Luma event: the planning of an event of the IGNITE calendar
+ * (`planning`), or an own event with the Luma event it was imported from, which brings its day. Without a Luma event it
+ * is a project. End, cover and Luma link belong to own events alone; a planning takes them from its public event.
+ */
+export function fitsItsKind(fields: ProjectFields, planning: boolean): boolean {
+  if (fields.type === 'event' && !planning) return !!fields.luma && !!fields.due
+  return !fields.luma && !fields.coverUrl && !fields.endDue && !fields.endTime
+}
+
 /** One entry of the calendar: a public event (Luma, hand-listed) or an own event, which is a project without a public event. */
 export interface CalendarEvent {
   /** The public event's id, or the project's for own events. */

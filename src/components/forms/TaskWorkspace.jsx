@@ -34,6 +34,7 @@ import {
   filterProjects,
   filterScope,
   ledProjects,
+  projectDeadlines,
   MINE,
   NAME_MAX,
   patchedProject,
@@ -496,6 +497,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const askTeam = hasName && !myTeam && !teamLater && !board
   const offerTeam = filter !== myTeam && !board
   const ledOpen = ledProjects(projects, me)
+  const deadlines = useMemo(() => projectDeadlines(projects), [projects])
 
   const myTeamOption = myTeam ? [{ value: myTeam, label: fill(copy.filter.myTeam, { team: copy.teams[myTeam] }) }] : []
   const otherTeams = TEAM_IDS.filter((team) => team !== myTeam).map((team) => ({ value: team, label: copy.teams[team] }))
@@ -551,7 +553,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         )
   const openTask = (task) => (task.private ? setOpenPrivateId(task.id) : open(task.projectId))
   const startPlanning = (event) => setCreateRequest({ kind: 'event', event, team: newTeam })
-  const addOnDay = (kind, day) => (kind === 'task' ? setDayTask({ day }) : setCreateRequest({ kind: 'event', team: newTeam, due: day, stay: true }))
+  // A project gets the day as its deadline; an event brings its day from Luma. Both stay in the calendar afterwards.
+  const addOnDay = (kind, day) =>
+    kind === 'task' ? setDayTask({ day }) : setCreateRequest({ kind, team: newTeam, due: kind === 'internal' ? day : '', stay: true })
   const addDayTask = ({ title, due }, isPrivate) => quickAdd({ title, due, assignees: [{ id: me }], team: newTeam }, isPrivate)
   const taskProps = {
     tasks,
@@ -594,6 +598,13 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         ))
       }
     </Menu>
+  )
+  // The projects page only adds projects and the events page only events, so neither needs the menu.
+  const createButton = (kind, label) => (
+    <button type="button" className={`${PRIMARY_BUTTON} shrink-0`} onClick={() => setCreateRequest({ kind, team: newTeam })}>
+      <Plus aria-hidden="true" className="h-4 w-4" />
+      {label}
+    </button>
   )
   const toastElement = (
     <div
@@ -640,7 +651,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
             <Chip pressed={archived} onClick={() => setArchived(!archived)}>
               {copy.archive}
             </Chip>
-            {createMenu}
+            {createButton('internal', copy.createKinds.internal.label)}
           </>
         )}
         {view === 'events' && (
@@ -651,7 +662,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
               value={eventLayout}
               onChange={setEventLayout}
             />
-            {createMenu}
+            {createButton('event', copy.createDialog.headings.event)}
           </>
         )}
       </PageHead>
@@ -678,6 +689,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onPatch={patchTask}
           onCapture={capture}
           onQuickAdd={quickAdd}
+          deadlines={deadlines}
           onAddOnDay={addOnDay}
         />
       )}
@@ -745,6 +757,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onStart={startPlanning}
           onOpen={open}
           onOpenEvent={openEvent}
+          deadlines={deadlines}
           onAddOnDay={addOnDay}
         />
       )}

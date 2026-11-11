@@ -18,6 +18,7 @@ import {
   calendarEntries,
   eventTwin,
   filterProjects,
+  fitsItsKind,
   ledProjects,
   filterScope,
   isEvent,
@@ -40,6 +41,7 @@ import {
   parseTeam,
   parseTemplateTasks,
   progress,
+  projectDeadlines,
   projectEdits,
   projectAssignees,
   projectStatus,
@@ -420,6 +422,38 @@ test('ledProjects keeps the open projects the member leads, soonest first and th
     ledProjects(projects, ME).map((item) => item.id),
     ['event', 'later', 'undated'],
   )
+})
+
+test('projectDeadlines keeps the open internal projects with a deadline', () => {
+  const projects = [
+    project({ id: 'dated', due: '2026-11-20' }),
+    project({ id: 'undated' }),
+    project({ id: 'event', type: 'event', due: '2026-11-24' }),
+    project({ id: 'single', type: 'task', due: '2026-11-20' }),
+    project({ id: 'done', status: 'done', due: '2026-11-20' }),
+    project({ id: 'archived', archived: true, due: '2026-11-20' }),
+  ]
+  assert.deepEqual(
+    projectDeadlines(projects).map((item) => item.id),
+    ['dated'],
+  )
+})
+
+test('fitsItsKind takes an event only with its Luma event', () => {
+  const luma = { id: 'evt-uxwE4KqRRWSUgds', url: 'https://luma.com/ubmm9b6x' }
+  const fields = (input: Record<string, unknown>) => {
+    const parsed = parseProject({ title: 'Utopia-Dinner', ...input })
+    assert.ok(parsed, JSON.stringify(input))
+    return parsed
+  }
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24', luma }), false), true)
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24' }), false), false, 'an event by hand is a project')
+  assert.equal(fitsItsKind(fields({ type: 'event', luma }), false), false, 'an own event needs its day')
+  assert.equal(fitsItsKind(fields({ type: 'event' }), true), true, 'a planning takes day and link from its public event')
+  assert.equal(fitsItsKind(fields({ type: 'event', due: '2026-11-24', luma }), true), false)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24' }), false), true)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', luma }), false), false)
+  assert.equal(fitsItsKind(fields({ type: 'internal', due: '2026-11-24', endTime: '22:00' }), false), false)
 })
 
 test('openRequired counts open required tasks only', () => {
