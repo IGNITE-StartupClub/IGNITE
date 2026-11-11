@@ -8,7 +8,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
+import { ALL_TEAMS, TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
 
 /** Dot and progress colour per board column of projects and tasks. */
@@ -255,11 +255,18 @@ export function PrivateToggle({ pressed, onChange, label }) {
   )
 }
 
-/** A select of all teams; `empty` names the option for no team. Other props go to the select. */
-export function TeamSelect({ teams, empty, ...props }) {
+/** The name of a team; a project of all teams (ALL_TEAMS) reads as the tab that shows them all. */
+export const teamName = (copy, team) => (team === ALL_TEAMS ? copy.teamTabs.all : copy.teams[team])
+
+/**
+ * A select of all teams; `empty` names the option for no team, and `all`, given only for projects, the option for a
+ * project of every team. Other props go to the select.
+ */
+export function TeamSelect({ teams, empty, all, ...props }) {
   return (
     <select {...props}>
       <option value="">{empty}</option>
+      {all && <option value={ALL_TEAMS}>{all}</option>}
       {TEAM_IDS.map((team) => (
         <option key={team} value={team}>
           {teams[team]}

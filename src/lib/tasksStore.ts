@@ -45,6 +45,7 @@ import {
   type ProjectEditAction,
   type ProjectPatch,
   type ProjectStatus,
+  type ProjectTeam,
   type ProjectType,
   type Repeat,
   type StoredStatus,
@@ -146,7 +147,7 @@ interface ProjectDoc {
   /** Public events members declared to be another event than this own one. */
   distinctFrom?: string[]
   leads: string[]
-  team?: TeamChoice
+  team?: ProjectTeam
   tasks: TaskDoc[]
   activity: Activity[]
   createdBy: string
@@ -441,7 +442,7 @@ export interface ProjectFolder {
   id: string
   title: string
   type: ProjectType
-  team: TeamChoice
+  team: ProjectTeam
   /** Event day or deadline, '' without one. */
   day: string
   /** '' while nobody has linked its SharePoint folder. */

@@ -292,7 +292,15 @@ export default function CreateDialog({
               <label htmlFor={`${id}-team`} className="field-label">
                 {text.team}
               </label>
-              <TeamSelect id={`${id}-team`} className="input" value={form.team} onChange={set('team')} teams={copy.teams} empty={copy.teamTabs.none} />
+              <TeamSelect
+                id={`${id}-team`}
+                className="input"
+                value={form.team}
+                onChange={set('team')}
+                teams={copy.teams}
+                empty={copy.teamTabs.none}
+                all={copy.teamTabs.all}
+              />
             </div>
             {!request.event && (
               <div className="field">

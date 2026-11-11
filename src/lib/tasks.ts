@@ -34,8 +34,10 @@ export const TEAM_IDS = ['ignite-relations', 'ignite-marketing', 'ignite-hr', 'i
 export type TeamId = (typeof TEAM_IDS)[number]
 /** '' is no team: a member who has not chosen one, a project nobody sorted in, a task that follows its project. */
 export type TeamChoice = TeamId | ''
-/** The tab that shows every team. */
+/** The tab that shows every team, and the team of a project that concerns all of them (an event like a club dinner). */
 export const ALL_TEAMS = 'all'
+/** A project shows on every team's tab with ALL_TEAMS; members and tasks have one team or none. */
+export type ProjectTeam = TeamChoice | typeof ALL_TEAMS
 
 export const TITLE_MAX = 200
 export const TEXT_MAX = 4000
@@ -65,7 +67,7 @@ export interface ProjectFields {
   /** The project's folder in the Leuphana SharePoint (parseFolderUrl), '' without one. */
   folderUrl: string
   leads: string[]
-  team: TeamChoice
+  team: ProjectTeam
 }
 
 export interface LumaRef {
@@ -135,7 +137,7 @@ export interface ProjectState {
   status: ProjectStatus
   due: string
   leads: string[]
-  team: TeamChoice
+  team: ProjectTeam
   archived: boolean
   /** Start day of the linked public event, '' without one. */
   eventDay: string
@@ -249,6 +251,10 @@ function team(value: unknown): Parsed<TeamChoice> {
   return TEAM_IDS.includes(value as TeamId) ? (value as TeamId) : INVALID
 }
 
+function projectTeam(value: unknown): Parsed<ProjectTeam> {
+  return value === ALL_TEAMS ? ALL_TEAMS : team(value)
+}
+
 /** A team id or '' for no team; null when it is neither. */
 export function parseTeam(value: unknown): TeamChoice | null {
   const parsed = team(value)
@@ -284,7 +290,7 @@ export function parseProject(input: unknown): ProjectFields | null {
     luma: lumaRef(fields.luma),
     folderUrl: folderUrl(fields.folderUrl),
     leads: members(fields.leads),
-    team: team(fields.team),
+    team: projectTeam(fields.team),
   })
   return project && endsInOrder(project) ? project : null
 }
@@ -367,7 +373,7 @@ export const parseProjectPatch = (input: unknown): ProjectPatch | null =>
     endDue: day,
     endTime: clock,
     folderUrl,
-    team,
+    team: projectTeam,
     leads: memberChangeOf,
   })
 
@@ -591,9 +597,11 @@ export interface Scope {
 }
 
 /** The team a task counts for: its own, else the one of its project. */
-export const taskTeam = (task: Pick<TaskState, 'team'>, project: Pick<ProjectState, 'team'>): TeamChoice => task.team || project.team
+export const taskTeam = (task: Pick<TaskState, 'team'>, project: Pick<ProjectState, 'team'>): ProjectTeam => task.team || project.team
 
-export interface ListTask extends TaskState {
+export interface ListTask extends Omit<TaskState, 'team'> {
+  /** The team it counts for (taskTeam), ALL_TEAMS for a task of a project of all teams. */
+  team: ProjectTeam
   projectId: string
   projectTitle: string
   projectType: ProjectType
@@ -624,7 +632,7 @@ export function scopedTasks(projects: ProjectState[], scope: Scope, me: string, 
         }))
         .filter((task) => {
           const assigned = task.assignees.includes(me)
-          const inTab = scope.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
+          const inTab = scope.team === ALL_TEAMS || task.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
           return inTab && (!scope.onlyMine || assigned) && (!query || contains(task.title, query) || contains(task.projectTitle, query))
         }),
     )
@@ -680,6 +688,7 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: S
   const query = filters.query.trim().toLowerCase()
   const inTab = (project: T) =>
     filters.team === ALL_TEAMS ||
+    project.team === ALL_TEAMS ||
     project.team === filters.team ||
     project.tasks.some((task) => task.team === filters.team) ||
     (filters.team === filters.myTeam && involves(project, me))
@@ -914,7 +923,7 @@ export interface ProjectEdit {
  * the activity tab says what happened. A value someone else saved just before does not count as a change.
  */
 export function projectEdits(
-  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; folderUrl?: string; team?: TeamChoice },
+  stored: Pick<ProjectFields, 'title' | 'description' | 'due' | 'leads'> & { time?: string; place?: string; folderUrl?: string; team?: ProjectTeam },
   patch: ProjectPatch,
 ): ProjectEdit[] {
   const edits: ProjectEdit[] = []

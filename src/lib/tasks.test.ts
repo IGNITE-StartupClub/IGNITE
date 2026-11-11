@@ -361,6 +361,26 @@ test('filterProjects shows a project to its team, to teams with a task in it and
   assert.deepEqual(ids({}), ['own', 'shared', 'other', 'free'])
 })
 
+test('a project of all teams shows on every team tab, and so do its tasks', () => {
+  const projects = [
+    project({ id: 'dinner', type: 'event', team: ALL_TEAMS, tasks: [task({ id: 'tables' }), task({ id: 'ads', team: MARKETING })] }),
+    project({ id: 'mine', team: MARKETING }),
+  ]
+  const cards = (overrides: Partial<Scope>) => filterProjects(projects, { ...scope(overrides), archived: false }, ME).map((item) => item.id)
+  assert.deepEqual(cards({ team: RELATIONS }), ['dinner'])
+  assert.deepEqual(cards({ team: MARKETING }), ['dinner', 'mine'])
+  const tasks = (overrides: Partial<Scope>) => scopedTasks(projects, scope(overrides), ME, '2026-10-28').map((item) => [item.id, item.team])
+  assert.deepEqual(tasks({ team: RELATIONS }), [['tables', ALL_TEAMS]])
+  assert.deepEqual(tasks({ team: MARKETING }), [['tables', ALL_TEAMS], ['ads', MARKETING]])
+})
+
+test('only projects take all teams; members and tasks keep one team or none', () => {
+  assert.equal(parseProject({ title: 'Utopia-Dinner', team: ALL_TEAMS })?.team, ALL_TEAMS)
+  assert.deepEqual(parseProjectPatch({ team: ALL_TEAMS }), { team: ALL_TEAMS })
+  assert.equal(parseTeam(ALL_TEAMS), null)
+  assert.equal(parseTask({ title: 'Tische', team: ALL_TEAMS }), null)
+})
+
 test('filterProjects combines own projects, search and the archive; single tasks only show there', () => {
   const projects = [
     project({ id: 'event', type: 'event', tasks: [task({ title: 'Speaker kontaktieren', assignees: [BEN] })] }),

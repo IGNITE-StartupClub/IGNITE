@@ -11,10 +11,10 @@ import React, { useState } from 'react'
 import { ChevronDown, MoreVertical, Plus, Repeat } from 'lucide-react'
 import { ALL_TEAMS, memberChange, MINE, sortTasks, TASK_GROUPS, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
-import { ICON_BUTTON, MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck } from './taskUi'
+import { ICON_BUTTON, MemberPicker, PrivateBadge, PrivateToggle, shortDay, TaskCheck, teamName } from './taskUi'
 
 function TaskRow({ task, filter, copy, locale, me, members, membersById, onPatch, onOpen, onMenu }) {
-  const team = task.team ? task.team !== filter && copy.teams[task.team] : filter === ALL_TEAMS && copy.teamTabs.none
+  const team = task.team ? task.team !== filter && teamName(copy, task.team) : filter === ALL_TEAMS && copy.teamTabs.none
   const context = [task.projectType !== 'task' && task.projectTitle, team].filter(Boolean).join(' · ')
   return (
     <li

@@ -47,6 +47,7 @@ import {
   STATUS_TONE,
   TaskCheck,
   TeamSelect,
+  teamName,
   TYPE_TEXT,
 } from './taskUi'
 
@@ -124,7 +125,7 @@ function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel 
             value={form.team}
             onChange={set('team')}
             teams={copy.teams}
-            empty={projectTeam ? `${copy.followsProject} (${copy.teams[projectTeam]})` : copy.followsProject}
+            empty={projectTeam ? `${copy.followsProject} (${teamName(copy, projectTeam)})` : copy.followsProject}
           />
         </div>
       </div>
@@ -602,7 +603,7 @@ function ActivityTab({ project, copy, locale, membersById }) {
   const details = {
     status: (status) => copy.statuses[projectStatus(status)] ?? status,
     dated: (day) => longDay(day, locale),
-    teamed: (team) => copy.teams[team] ?? team,
+    teamed: (team) => teamName(copy, team) ?? team,
   }
   if (failed) return <p className="text-sm text-fg-muted">{copy.results.error}</p>
   if (!entries) return <p className="text-sm text-fg-muted">{copy.panel.loadingActivity}</p>
@@ -791,6 +792,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     onChange={(e) => setTeam(e.target.value)}
                     teams={copy.teams}
                     empty={copy.teamTabs.none}
+                    all={copy.teamTabs.all}
                   />
                 </label>
                 <span className="inline-flex items-center gap-2">
