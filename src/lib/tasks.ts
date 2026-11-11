@@ -400,6 +400,9 @@ export function weekEnd(today: string): string {
   return addDays(today, weekday === 0 ? 0 : 7 - weekday)
 }
 
+/** Monday of the week (Monday to Sunday) that contains `today`. */
+export const weekStart = (today: string): string => addDays(weekEnd(today), -6)
+
 /** Done tasks against all tasks; `percent` is null without tasks, so an empty project shows no made-up value. */
 export function progress(tasks: Pick<TaskState, 'done'>[]): { done: number; total: number; percent: number | null } {
   const done = tasks.filter((task) => task.done).length

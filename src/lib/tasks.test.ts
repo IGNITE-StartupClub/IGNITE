@@ -57,6 +57,7 @@ import {
   tasksFromTemplate,
   templateFromTasks,
   weekEnd,
+  weekStart,
   withArchive,
   type PrivateTaskState,
   type ProjectState,
@@ -202,6 +203,13 @@ test('berlinDay and berlinHour follow summer and winter time', () => {
   assert.equal(berlinHour(Date.parse('2026-07-01T17:30:00Z')), 19)
   assert.equal(berlinHour(Date.parse('2026-12-01T17:30:00Z')), 18)
   assert.equal(berlinDay(Date.parse('2026-12-31T23:30:00Z')), '2027-01-01')
+})
+
+test('weekStart is the Monday of the current week', () => {
+  assert.equal(weekStart('2026-11-11'), '2026-11-09') // Wednesday
+  assert.equal(weekStart('2026-11-09'), '2026-11-09') // Monday
+  assert.equal(weekStart('2026-11-15'), '2026-11-09') // Sunday
+  assert.equal(weekStart('2026-03-01'), '2026-02-23') // Sunday after a short February
 })
 
 test('weekEnd is the Sunday of the current week', () => {

@@ -646,7 +646,7 @@ export const memberArea = {
         showUnsorted: 'Show',
       },
       overview: {
-        days: 'The next 14 days',
+        days: 'This week and next',
         legendEvent: 'Event',
         legendDeadline: 'Your deadline',
         moreOnDay: '+{count}',

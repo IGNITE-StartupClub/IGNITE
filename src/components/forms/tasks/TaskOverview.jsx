@@ -1,5 +1,5 @@
 /**
- * The page the tasks module opens on: the next 14 days as a calendar with the events and the member's own deadlines,
+ * The page the tasks module opens on: this week and the next from Monday as a calendar with the events and the member's own deadlines,
  * then one card each for their tasks, the events and the projects, each leading on to its page. A click in the calendar
  * opens the event or the task; the events card shows what comes next.
  * The field in the tasks card reads the same short form as the search ("Flyer drucken bis Mi @Lena #Marketing"); without
@@ -11,10 +11,11 @@
  */
 import React, { useId, useState } from 'react'
 import { Lock } from 'lucide-react'
-import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX, weekStart } from '../../../lib/tasks'
 import { fill, TOOL_BUTTON } from '../memberUi'
 import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, showRest, TaskCheck } from './taskUi'
 
+// Two whole weeks from this week's Monday, so every row starts on Monday as in the events calendar.
 const CALENDAR_DAYS = 14
 const CHIPS_SHOWN = 3
 const PROJECTS_SHOWN = 3
@@ -38,7 +39,9 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
     showRest(() => setAll(true), () => cell.querySelectorAll(':scope > button')[shown])
   }
   return (
-    <li className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'}`}>
+    <li
+      className={`flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 ${active ? 'border-accent' : 'border-border'} ${day < today ? 'bg-bg-subtle opacity-60' : ''}`}
+    >
       {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
       <p className="mb-0.5 flex items-center justify-between gap-1">
         <span className="sr-only">{label}</span>
@@ -73,7 +76,8 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
 
 function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEvent, onOpenTask }) {
   const text = copy.overview
-  const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(today, index))
+  const monday = weekStart(today)
+  const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(monday, index))
   return (
     <section aria-labelledby="task-calendar" className={`${CARD} px-5 pb-5 pt-5 sm:px-6`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -243,7 +247,7 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
   return (
     <div className="flex flex-col gap-6">
       <Calendar
-        entries={upcoming}
+        entries={entries}
         deadlines={open}
         activeDay={activeDay}
         today={today}
