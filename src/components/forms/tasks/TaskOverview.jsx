@@ -1,73 +1,86 @@
 /**
- * The page the tasks module opens on: the next 14 days as a calendar with the events and the member's own deadlines,
- * then one card each for their tasks, the events and the projects, each leading on to its page. A click in the calendar
- * opens the event or the task, a click on the day itself offers to add an entry or a task for that day; the events card
- * shows what comes next.
+ * The page the tasks module opens on: this week and the next from Monday as a calendar with the events, the deadlines
+ * of the open projects and the member's own deadlines, then one card each for their tasks, the events and the projects,
+ * each leading on to its page. A click in the calendar opens the event, the project or the task, a click on a day from
+ * today on offers to add a project, a task or an event; the events card shows what comes next.
  * The field in the tasks card reads the same short form as the search ("Flyer drucken bis Mi @Lena #Marketing"); without
  * a person the task is the member's own.
  * Props: entries (calendarEntries), complete, planOf(entry) → its project or undefined, projects (open projects the
- * member leads, soonest first), mine (the member's tasks with their private ones), today, copy (workspace copy), locale, membersById,
+ * member leads, soonest first), deadlines (projectDeadlines), mine (the member's tasks with their private ones), today,
+ * copy (workspace copy), locale, membersById,
  * onView(view), onStart(event), onOpen(projectId), onOpenEvent(entry), onOpenTask(task), onPatch(task, fields),
- * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate), onAddOnDay(kind, day) with kind event or
- * task.
+ * onCapture(text, isPrivate) → captureTask, onQuickAdd(captured, isPrivate), onAddOnDay(kind, day) with kind internal,
+ * task or event.
  */
 import React, { useId, useState } from 'react'
 import { Lock, Plus } from 'lucide-react'
-import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX } from '../../../lib/tasks'
+import { addDays, isEvent, progress, projectDay, sortTasks, TITLE_MAX, weekStart } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
 import { dayPart, INPUT, LeadLine, PrivateToggle, ProgressBar, shortDay, showRest, TaskCheck } from './taskUi'
 
+// Two whole weeks from this week's Monday, so every row starts on Monday as in the events calendar.
 const CALENDAR_DAYS = 14
 const CHIPS_SHOWN = 3
 const PROJECTS_SHOWN = 3
 const TASKS_SHOWN = 5
+const ADD_KINDS = ['internal', 'task', 'event']
 const CARD = 'rounded-card border border-border bg-card'
 const HEADING = 'text-[22px] font-semibold tracking-tight'
 const LEAD_ON = 'flex items-center justify-between gap-2 border-0 bg-transparent p-0 text-sm font-medium text-accent hover:underline'
 const ROW_LINE = 'border-0 border-t border-solid border-border'
-const CHIP = 'relative block w-full truncate rounded-md border-0 px-1.5 py-0.5 text-left text-xs'
+const CHIP = 'relative block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs'
+const CHIP_TONE = {
+  event: 'border-0 bg-brand-bright text-white',
+  project: 'border border-solid border-border-strong bg-transparent text-fg',
+  task: 'border-0 bg-bg-subtle text-fg',
+}
 
-function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onOpenEvent, onOpenTask, onAdd }) {
+function CalendarDay({ day, today, active, entries, projects, tasks, copy, locale, onOpenEvent, onOpen, onOpenTask, onAdd }) {
   const [all, setAll] = useState(false)
   const chips = [
-    ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: 'bg-brand-bright text-white', onClick: () => onOpenEvent(entry) })),
-    ...deadlines.map((task) => ({ id: task.id, title: task.title, tone: 'bg-bg-subtle text-fg', onClick: () => onOpenTask(task) })),
+    ...entries.map((entry) => ({ id: entry.id, title: entry.title, tone: CHIP_TONE.event, onClick: () => onOpenEvent(entry) })),
+    ...projects.map((project) => ({ id: project.id, title: project.title, tone: CHIP_TONE.project, onClick: () => onOpen(project.id) })),
+    ...tasks.map((task) => ({ id: task.id, title: task.title, tone: CHIP_TONE.task, onClick: () => onOpenTask(task) })),
   ]
   const shown = all || chips.length <= CHIPS_SHOWN ? chips.length : CHIPS_SHOWN - 1
   const label = dayPart(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })
   const showAll = (e) => {
     const cell = e.currentTarget.parentElement
-    showRest(() => setAll(true), () => cell.querySelectorAll(':scope > button')[shown])
+    showRest(() => setAll(true), () => cell.querySelectorAll('[data-chip]')[shown])
   }
+  const past = day < today
   return (
     <li
-      className={`group relative flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 transition-colors hover:border-border-strong ${
+      className={`group relative flex min-h-32 min-w-0 flex-col gap-1 rounded-lg border p-2 transition-colors ${
         active ? 'border-accent' : 'border-border'
-      }`}
+      } ${past ? 'bg-bg-subtle opacity-60' : 'hover:border-border-strong'}`}
     >
-      {/* The day is a layer behind its entries, because a button cannot hold the buttons of its events. */}
-      <Menu
-        ariaLabel={fill(copy.calendar.addOn, { date: label })}
-        className="absolute inset-0 flex items-end justify-end rounded-lg border-0 bg-transparent p-2 text-fg-muted"
-        label={<Plus aria-hidden="true" className="h-4 w-4 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" />}
-      >
-        {(close) =>
-          ['event', 'task'].map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              className={`${MENU_ITEM} whitespace-normal`}
-              onClick={() => {
-                close()
-                onAdd(kind, day)
-              }}
-            >
-              <span className="block font-medium">{copy.calendar.addKinds[kind].label}</span>
-              <span className="block text-xs text-fg-muted">{copy.calendar.addKinds[kind].text}</span>
-            </button>
-          ))
-        }
-      </Menu>
+      {/* The day is a layer behind its entries, because a button cannot hold the buttons of its events. Nothing is
+          added to a day that is over. */}
+      {!past && (
+        <Menu
+          ariaLabel={fill(copy.calendar.addOn, { date: label })}
+          className="absolute inset-0 flex items-end justify-end rounded-lg border-0 bg-transparent p-2 text-fg-muted"
+          label={<Plus aria-hidden="true" className="h-4 w-4 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" />}
+        >
+          {(close) =>
+            ADD_KINDS.map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                className={`${MENU_ITEM} whitespace-normal`}
+                onClick={() => {
+                  close()
+                  onAdd(kind, day)
+                }}
+              >
+                <span className="block font-medium">{copy.calendar.addKinds[kind].label}</span>
+                <span className="block text-xs text-fg-muted">{copy.calendar.addKinds[kind].text}</span>
+              </button>
+            ))
+          }
+        </Menu>
+      )}
       {/* A paragraph takes no aria-label, so screen readers get the long date as text instead of the short parts. */}
       <p className="pointer-events-none relative mb-0.5 flex items-center justify-between gap-1">
         <span className="sr-only">{label}</span>
@@ -82,7 +95,7 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
         </span>
       </p>
       {chips.slice(0, shown).map((chip) => (
-        <button key={chip.id} type="button" title={chip.title} className={`${CHIP} ${chip.tone}`} onClick={chip.onClick}>
+        <button key={chip.id} type="button" data-chip title={chip.title} className={`${CHIP} ${chip.tone}`} onClick={chip.onClick}>
           {chip.title}
         </button>
       ))}
@@ -100,19 +113,24 @@ function CalendarDay({ day, today, active, entries, deadlines, copy, locale, onO
   )
 }
 
-function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEvent, onOpenTask, onAdd }) {
+function Calendar({ entries, projects, tasks, activeDay, today, copy, locale, onOpenEvent, onOpen, onOpenTask, onAdd }) {
   const text = copy.overview
-  const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(today, index))
+  const monday = weekStart(today)
+  const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(monday, index))
   return (
     <section aria-labelledby="task-calendar" className={`${CARD} px-5 pb-5 pt-5 sm:px-6`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h2 id="task-calendar" className={HEADING}>
           {text.days}
         </h2>
-        <p className="flex items-center gap-4 text-caption text-fg-muted">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-fg-muted">
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-brand-bright" />
             {text.legendEvent}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm border border-solid border-border-strong" />
+            {text.legendProject}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-fg-subtle" />
@@ -130,10 +148,12 @@ function Calendar({ entries, deadlines, activeDay, today, copy, locale, onOpenEv
               today={today}
               active={day === activeDay}
               entries={entries.filter((entry) => entry.day <= day && day <= entry.endDay)}
-              deadlines={deadlines.filter((task) => task.due === day)}
+              projects={projects.filter((project) => project.due === day)}
+              tasks={tasks.filter((task) => task.due === day)}
               copy={copy}
               locale={locale}
               onOpenEvent={onOpenEvent}
+              onOpen={onOpen}
               onOpenTask={onOpenTask}
               onAdd={onAdd}
             />
@@ -256,7 +276,7 @@ function ProjectRow({ project, copy, locale, membersById, onOpen }) {
   )
 }
 
-export default function TaskOverview({ entries, complete, planOf, projects, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenEvent, onOpenTask, onPatch, onCapture, onQuickAdd, onAddOnDay }) {
+export default function TaskOverview({ entries, complete, planOf, projects, deadlines, mine, today, copy, locale, membersById, onView, onStart, onOpen, onOpenEvent, onOpenTask, onPatch, onCapture, onQuickAdd, onAddOnDay }) {
   const text = copy.overview
   // A task checked off here stays until the page changes, so a slip can be undone and the list does not jump.
   const [checked, setChecked] = useState([])
@@ -273,13 +293,15 @@ export default function TaskOverview({ entries, complete, planOf, projects, mine
   return (
     <div className="flex flex-col gap-6">
       <Calendar
-        entries={upcoming}
-        deadlines={open}
+        entries={entries}
+        projects={deadlines}
+        tasks={open}
         activeDay={activeDay}
         today={today}
         copy={copy}
         locale={locale}
         onOpenEvent={onOpenEvent}
+        onOpen={onOpen}
         onOpenTask={onOpenTask}
         onAdd={onAddOnDay}
       />
