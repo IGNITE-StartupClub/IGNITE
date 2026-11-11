@@ -3,6 +3,7 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { rejectCron } from '../../../lib/cron'
 import { settleFinishedTasks } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -17,7 +18,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     return json(200, { status: 'ok', archived: await settleFinishedTasks(new Date()) })
   } catch (err) {
-    console.error('Task archive run failed:', err)
+    await logError('Task archive run failed', err)
     return json(500, { status: 'error', message: 'Archivieren fehlgeschlagen' })
   }
 }

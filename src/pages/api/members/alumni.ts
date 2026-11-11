@@ -5,6 +5,7 @@ import { parseAlumni, parseAlumniPatch, type AlumniFields } from '../../../lib/c
 import { alumniRevision, alumniState, createAlumni, deleteAlumni, updateAlumni } from '../../../lib/contactsStore'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 /** The island's regular check: the same revision comes back while nothing changed, otherwise the list. */
 export const GET: APIRoute = async ({ url, locals }) => {
@@ -13,7 +14,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     if (url.searchParams.get('revision') === revision) return reply(200, { revision })
     return reply(200, await alumniState(locals.member!))
   } catch (err) {
-    console.error('Alumni read failed:', err)
+    await logError('Alumni read failed', err)
     return reply(500, { code: 'error', message: 'Fehler im Alumni-Netzwerk' })
   }
 }
@@ -57,7 +58,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const status = code === 'unknown' ? 404 : code === 'forbidden' ? 403 : 200
     return reply(status, { code, ...(await alumniState(member)) })
   } catch (err) {
-    console.error('Alumni action failed:', err)
+    await logError('Alumni action failed', err)
     return reply(500, { code: 'error', message: 'Fehler im Alumni-Netzwerk' })
   }
 }

@@ -5,6 +5,7 @@ import { parseSignature } from '../../../lib/emailSignature'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { saveSignature } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * Stores the signed-in admin's signature (SignatureGenerator, on copy), which then closes the invitations they send.
@@ -31,7 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     await saveSignature(member.email, signature)
     return reply(200, {})
   } catch (err) {
-    console.error('Saving signature failed:', err)
+    await logError('Saving signature failed', err)
     return reply(500, { message: 'Fehler beim Speichern der Signatur' })
   }
 }

@@ -13,6 +13,7 @@ import {
   MAX_TASKS,
   parseName,
   parseProject,
+  parseLumaEvent,
   parseProjectPatch,
   parseTask,
   parseTaskPatch,
@@ -29,6 +30,7 @@ import {
   deleteProject,
   keepEventApart,
   linkEvent,
+  makeEvent,
   projectActivity,
   removeTask,
   reorderTasks,
@@ -46,6 +48,7 @@ import {
   workspaceState,
   type TemplateSource,
 } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 // Templates are not part of the changes, so these two answer with the whole state.
 const TEMPLATE_ACTIONS = ['saveTemplate', 'archiveTemplate']
@@ -72,7 +75,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const changes = await workspaceChanges(sessionActor(locals.member!), known, { revision, archived: url.searchParams.has('withArchive') })
     return reply(200, { changes })
   } catch (err) {
-    console.error('Tasks read failed:', err)
+    await logError('Tasks read failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
   }
 }
@@ -83,7 +86,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
  * 'archive' (id, archived), 'delete' (id), 'addTask' (id, task), 'updateTask' (id, taskId, patch),
  * 'removeTask' (id, taskId), 'restoreTask' (taskId), 'reorder' (id, order),
  * 'saveTemplate' (id, name), 'archiveTemplate' (templateId), 'linkEvent' (id, eventId), 'keepEventApart' (id, eventId),
- * 'unlinkEvent' (id), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
+ * 'unlinkEvent' (id), 'makeEvent' (id, luma or eventId), 'name' (firstName, lastName), 'team' (team, the member's own), 'addPrivate' (task),
  * 'updatePrivate' (taskId, patch), 'removePrivate' (taskId) or 'restorePrivate' (taskId). Answers with { code, id?, changes }
  * for the island's `revision`, and a refused action with the whole { state } instead, which is the island's rollback;
  * `withArchive` says the island holds the archive, so the state brings it too. Both carry the member's own private
@@ -187,6 +190,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!id) return invalid()
         code = await unlinkEvent(actor, id)
         break
+      case 'makeEvent': {
+        if (!id) return invalid()
+        if (body.eventId !== undefined) {
+          const event = await publicEvent(body.eventId)
+          if (!event) return reply(404, { code: 'unknown', ...(await rollback()) })
+          code = await makeEvent(actor, id, { event })
+          break
+        }
+        const luma = parseLumaEvent(body.luma)
+        if (!luma) return invalid()
+        code = await makeEvent(actor, id, { luma })
+        break
+      }
       case 'reorder':
         if (!id || !Array.isArray(body.order) || body.order.length > MAX_TASKS || !body.order.every(isRecordId)) return invalid()
         code = await reorderTasks(id, body.order)
@@ -248,7 +264,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ...(typeof body.revision === 'string' && { changes: await workspaceChanges(actor, body.revision, { archived: body.withArchive === true }) }),
     })
   } catch (err) {
-    console.error('Tasks action failed:', err)
+    await logError('Tasks action failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Aufgaben' })
   }
 }

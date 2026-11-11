@@ -177,6 +177,8 @@ const PAGES = {
   login: { de: 'login', en: 'login' },
   signature: { de: 'signatur', en: 'signature' },
   admin: { de: 'verwaltung', en: 'admin' },
+  // Errors and server state, below the member management because only admins see it too.
+  system: { de: 'verwaltung/system', en: 'admin/system' },
   // The Netzwerk section opens on its CRM tab.
   crm: { de: 'netzwerk', en: 'network' },
   tasks: { de: 'aufgaben', en: 'tasks' },
@@ -223,7 +225,7 @@ export function isProtectedApiPath(pathname: string): boolean {
 }
 
 /** Pages only admins may open. */
-export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin'])
+export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin', 'system'])
 
 /** Pages only members on the connection list may open. */
 export const isConnectionPath = (pathname: string): boolean => isPage(pathname, ['connect', 'connections'])

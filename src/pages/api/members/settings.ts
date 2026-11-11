@@ -3,13 +3,16 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
-import { parseSettingsChange } from '../../../lib/settings'
+import { logError } from '../../../lib/errorLog'
+import { saveErrorMails } from '../../../lib/members'
+import { parsePersonalChange, parseSettingsChange } from '../../../lib/settings'
 import { allSettings, saveSettings } from '../../../lib/settingsStore'
 
 /**
- * Settings of the members area for admins (AdminSettings island on the member management page).
- * Body: the switches to flip (settings.ts), e.g. { connections: true }; each applies to everyone. Answers { code, settings }
- * with all switches.
+ * Settings of the members area for admins. Body: the switches to flip (settings.ts), e.g. { connections: true }, each
+ * for everyone (AdminSettings island on the member management page), answered with { code, settings }; or the admin's
+ * own ones, e.g. { errorMails: true } (ErrorBoard island on the page "Systemzustand"), answered with { code, personal }.
+ * One request never mixes both.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isJsonRequest(request.headers.get('content-type'))) {
@@ -26,6 +29,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     } catch {
       // Unparsable JSON ends as the invalid request below.
     }
+    const personal = parsePersonalChange(body)
+    if (personal) {
+      const errorMails = personal.errorMails!
+      await saveErrorMails(admin.email, errorMails)
+      return reply(200, { code: 'saved', personal: { errorMails } })
+    }
     const change = parseSettingsChange(body)
     if (!change) {
       return reply(400, { code: 'invalid', message: 'Ungültige Anfrage.' })
@@ -33,7 +42,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     await saveSettings(change, admin.email)
     return reply(200, { code: 'saved', settings: await allSettings() })
   } catch (err) {
-    console.error('Settings update failed:', err)
+    await logError('Settings update failed', err)
     return reply(500, { code: 'error', message: 'Fehler bei den Einstellungen' })
   }
 }

@@ -39,6 +39,7 @@ import {
   isSingleTask,
   MAX_ASSIGNEES,
   MAX_TASKS,
+  type LumaEventFields,
   type LumaRef,
   type MemberChange,
   type ProjectFields,
@@ -109,6 +110,7 @@ export type ActivityAction =
   | 'taskRestored'
   | 'eventLinked'
   | 'eventUnlinked'
+  | 'madeEvent'
   | 'assigned'
   | 'unassigned'
   | 'due'
@@ -935,6 +937,33 @@ export async function linkEvent(actor: TaskActor, id: string, event: TaskEvent):
   const project = await projects.findOne({ _id: id }, { projection: { 'event.id': 1 } })
   if (!project) return 'unknown'
   return project.event?.id === event.id ? 'ok' : 'duplicate'
+}
+
+/**
+ * Turns an internal project into an event once its Luma event exists, because planning often starts before it: an own
+ * event with what Luma says, or the planning of that event when it is in the IGNITE calendar. Tasks, people, status,
+ * title, description and log stay. Only those who may archive do it, because the project then shows as an event. The
+ * unique indexes on `luma.id` and `event.id` refuse a Luma event that has its project already.
+ */
+export async function makeEvent(
+  actor: TaskActor,
+  id: string,
+  source: { luma: LumaEventFields } | { event: TaskEvent },
+): Promise<Outcome | 'duplicate'> {
+  const { projects } = await collections()
+  const target: Filter<ProjectDoc> = { _id: id, type: 'internal', archivedAt: null }
+  const fields = 'event' in source ? { event: eventSnapshot(source.event) } : { event: null, ...source.luma }
+  try {
+    const { matchedCount } = await projects.updateOne(
+      { ...target, ...archiveRight(actor) },
+      { $set: { type: 'event', ...fields, updatedAt: new Date() }, $push: pushActivity([activity(actor, 'madeEvent')]) },
+    )
+    if (matchedCount) return 'ok'
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return 'duplicate'
+    throw err
+  }
+  return missed(target)
 }
 
 /** Remembers that an own event and a public event only look alike, so the question does not come back. */

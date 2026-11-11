@@ -1,0 +1,63 @@
+---
+/**
+ * The page "Systemzustand" for admins, rendered on demand by pages/mitglieder/verwaltung/system.astro and
+ * pages/en/members/admin/system.astro. src/middleware.ts lets only admins in (isAdminPath); /api/members/errors checks
+ * the role again. Reads the error log, a database ping and the last report run in one wave after the session and hands
+ * them to the ErrorBoard island.
+ * Data source: memberArea.system via getCopy(), errorLog.ts, Vercel's system environment variables.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import ErrorBoard from '../components/forms/ErrorBoard.jsx'
+import { getCopy } from '../data/copy'
+import { databaseLatency, errorBoard, lastReportRun } from '../lib/errorLog'
+import { errorPeriod } from '../lib/errorReport'
+import { resolveLocale } from '../lib/i18n'
+import { memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { system } = getCopy(locale).memberArea
+const now = new Date()
+const period = errorPeriod(Astro.url.searchParams.get('tage'))
+
+const [board, latency, lastReportAt] = await Promise.all([errorBoard(period, now), databaseLatency(), lastReportRun()])
+
+const iso = (date: Date | null) => date?.toISOString() ?? null
+const { VERCEL_REGION, VERCEL_GIT_COMMIT_SHA, VERCEL_GIT_REPO_OWNER, VERCEL_GIT_REPO_SLUG } = process.env
+const server = {
+  region: VERCEL_REGION ?? '',
+  version: VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? '',
+  versionUrl:
+    VERCEL_GIT_COMMIT_SHA && VERCEL_GIT_REPO_OWNER && VERCEL_GIT_REPO_SLUG
+      ? `https://github.com/${VERCEL_GIT_REPO_OWNER}/${VERCEL_GIT_REPO_SLUG}/commit/${VERCEL_GIT_COMMIT_SHA}`
+      : '',
+  lastReportAt: iso(lastReportAt),
+}
+---
+
+<DefaultLayout title={system.pageTitle} alternatePath={memberPagePath('system', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader compact title={system.title} lead={system.lead}>
+    <p class="form-note"><a href={memberPagePath('admin', locale)}>{system.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
+    <ErrorBoard
+      client:load
+      copy={system.board}
+      locale={locale}
+      now={now.getTime()}
+      period={period}
+      groups={board.groups.map((group) => ({
+        ...group,
+        first: group.first.toISOString(),
+        last: group.last.toISOString(),
+        resolvedAt: iso(group.resolvedAt),
+      }))}
+      counts={board.counts}
+      lastAt={iso(board.lastAt)}
+      latency={latency}
+      server={server}
+      errorMails={Astro.locals.member!.errorMails}
+    />
+  </Section>
+</DefaultLayout>

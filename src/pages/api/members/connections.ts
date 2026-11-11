@@ -13,6 +13,7 @@ import {
 } from '../../../lib/connectionsStore'
 import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 const state = async (email: string) => ({
   connections: await connectionList(email),
@@ -66,7 +67,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
         return invalid()
     }
   } catch (err) {
-    console.error('Member connections request failed:', err)
+    await logError('Member connections request failed', err)
     return reply(500, { message: 'Fehler beim Speichern' })
   }
 }

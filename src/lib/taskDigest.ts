@@ -16,6 +16,7 @@ import 'dotenv/config'
 import { globalConfig } from '../data/staticContent'
 import { getTaskDigestEmailHTML, getTaskDigestSubject, type DigestProject } from '../templates/emails/taskDigestEmail'
 import { memberPagePath } from './memberAuth'
+import { logError } from './errorLog'
 import { database, setUpInBackground } from './members'
 import { settingEnabled } from './settingsStore'
 import { assertSent } from './resend'
@@ -166,7 +167,7 @@ export async function sendDigests(now: Date, origin: string): Promise<DigestRun>
       run.dropped += entries.length - taskIds.length
     } catch (err) {
       // The entries stay, so a later run or the next day sends them.
-      console.error(`Task digest ${id} failed:`, err)
+      await logError('Task digest mail failed', err)
       await collection.updateOne({ _id: id }, { $set: { status: 'failed', error: String(err).slice(0, 500) } })
       run.failed += 1
     }

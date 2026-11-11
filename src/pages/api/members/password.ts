@@ -4,6 +4,7 @@ import type { APIRoute } from 'astro'
 import { afterLoginPath, hashPassword, isJsonRequest, normalizeCode, normalizeEmail, passwordProblem } from '../../../lib/memberAuth'
 import { passwordPepper, redeemCode, setPassword } from '../../../lib/members'
 import { reply, startSession } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 // Sets a password with the code from /api/members/code: stores the new password, ends all other sessions and signs
 // the member in. Unknown address, wrong, used up and expired code all get the same answer.
@@ -32,7 +33,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     await startSession(cookies, email)
     return reply(200, { redirect: afterLoginPath(next, locale === 'en' ? 'en' : 'de') })
   } catch (err) {
-    console.error('Setting member password failed:', err)
+    await logError('Setting member password failed', err)
     return reply(500, { message: 'Fehler beim Speichern des Passworts' })
   }
 }

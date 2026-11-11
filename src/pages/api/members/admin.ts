@@ -6,6 +6,7 @@ import { addMember, findMember, isOwner, logAdminAction, memberSummaries, remove
 import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 import { parseTeam, type TeamChoice } from '../../../lib/tasks'
+import { logError } from '../../../lib/errorLog'
 
 const ACTIONS = ['add', 'remove', 'role', 'invite', 'team', 'position'] as const
 type Action = (typeof ACTIONS)[number]
@@ -49,7 +50,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     const members = await memberSummaries()
     return reply(code === 'unknown' || code === 'exists' ? 409 : 200, { code, members })
   } catch (err) {
-    console.error('Member admin action failed:', err)
+    await logError('Member admin action failed', err)
     return reply(500, { code: 'error', message: 'Fehler in der Mitgliederverwaltung' })
   }
 }
@@ -103,7 +104,7 @@ async function invite(email: string, actor: string, locale: 'de' | 'en', origin:
     await sendInvite(email, locale, origin, actor)
     return true
   } catch (err) {
-    console.error('Member invitation mail failed:', err)
+    await logError('Member invitation mail failed', err)
     return false
   }
 }

@@ -3,6 +3,7 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { isClientId } from '../../../lib/connections'
 import { clientKey, redeemAuthCode, refreshConnection } from '../../../lib/connectionsStore'
+import { logError } from '../../../lib/errorLog'
 
 const answer = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (tokens === 'unsupported') return answer(400, { error: 'unsupported_grant_type' })
     return tokens ? answer(200, tokens) : answer(400, { error: 'invalid_grant' })
   } catch (err) {
-    console.error('OAuth token request failed:', err)
+    await logError('OAuth token request failed', err)
     return answer(500, { error: 'server_error' })
   }
 }

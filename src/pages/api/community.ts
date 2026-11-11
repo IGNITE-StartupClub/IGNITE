@@ -7,6 +7,7 @@ import 'dotenv/config'
 import { assertSent } from '../../lib/resend'
 import { globalConfig } from '../../data/staticContent'
 import { getCommunityInviteEmailHTML, getCommunityInviteSubject } from '../../templates/emails/communityInviteEmail'
+import { logError } from '../../lib/errorLog'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -75,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     return reply(200, 'Einladungslink gesendet')
   } catch (err) {
-    console.error('Community invite failed:', err)
+    await logError('Community invite failed', err)
     return reply(500, 'Fehler beim E-Mail-Versand')
   }
 }

@@ -4,7 +4,7 @@
  * src/middleware.ts lets only members with the admin role in; /api/members/admin checks the role again.
  * The list is rendered from the database and handed to the MemberAdmin island, which shows it as a table.
  * Above it, AdminSettings flips the switches of settings.ts (task digest, connections) for everyone, and StorageSettings
- * keeps the SharePoint links of the Ablage page (storageFolders.ts).
+ * keeps the SharePoint links of the Ablage page (storageFolders.ts). The header links to the page "Systemzustand".
  * Data source: memberArea via getCopy(), members with their signature photos via memberSummaries().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
@@ -28,7 +28,9 @@ const [members, settings, folders] = await Promise.all([memberSummaries(), allSe
 
 <DefaultLayout title={admin.pageTitle} alternatePath={memberPagePath('admin', locale === 'de' ? 'en' : 'de')} noindex>
   <PageHeader compact title={admin.title} lead={admin.lead}>
-    <p class="form-note"><a href={memberHomePath(locale)}>{admin.back}</a></p>
+    <p class="form-note">
+      <a href={memberHomePath(locale)}>{admin.back}</a> · <a href={memberPagePath('system', locale)}>{memberArea.nav.system}</a>
+    </p>
   </PageHeader>
   <Section tone="subtle" spacing="xs" labelledby="page-title">
     <div class="mb-6">

@@ -7,6 +7,7 @@ import { isJsonRequest } from '../../../lib/memberAuth'
 import { reply } from '../../../lib/memberSession'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { projectOfLumaEvent } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * Reads a Luma event by its link for the form of own events (CreateDialog in the tasks module), public or private.
@@ -38,7 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
       ...(listed && { listed: { id: listed.id, title: listed.title } }),
     })
   } catch (err) {
-    console.error('Luma import failed:', err)
+    await logError('Luma import failed', err)
     return reply(502, { code: 'error', message: 'Luma hat nicht geantwortet. Bitte versuch es gleich noch einmal.' })
   }
 }

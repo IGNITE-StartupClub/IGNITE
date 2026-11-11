@@ -8,6 +8,7 @@ import { openTasks } from '../../../lib/memberHome'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { berlinDay } from '../../../lib/tasks'
 import { assignedProjects, sessionActor } from '../../../lib/tasksStore'
+import { logError } from '../../../lib/errorLog'
 
 // Refusals and failures stay out of every cache: a cached 404 would keep refusing a link for half an hour after an
 // admin switches connections on again.
@@ -39,7 +40,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       headers: FEED_HEADERS,
     })
   } catch (err) {
-    console.error('Calendar feed failed:', err)
+    await logError('Calendar feed failed', err)
     return text(500, 'Calendar feed failed')
   }
 }

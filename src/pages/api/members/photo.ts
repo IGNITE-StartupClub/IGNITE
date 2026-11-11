@@ -5,6 +5,7 @@ import { photoPath } from '../../../lib/emailSignature'
 import { decodePhoto, isJsonRequest } from '../../../lib/memberAuth'
 import { deletePhotos, savePhoto } from '../../../lib/members'
 import { currentMember, reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 // PHOTO_MAX_BYTES as base64 plus the JSON around it; larger bodies are refused before parsing.
 const MAX_BODY_CHARS = 220_000
@@ -37,7 +38,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
     return reply(200, { path: photoPath(await savePhoto(member.email, image)) })
   } catch (err) {
-    console.error('Saving signature photo failed:', err)
+    await logError('Saving signature photo failed', err)
     return reply(500, { message: 'Fehler beim Speichern des Fotos' })
   }
 }
@@ -51,7 +52,7 @@ export const DELETE: APIRoute = async ({ cookies }) => {
     await deletePhotos(member.email)
     return reply(200, { path: '' })
   } catch (err) {
-    console.error('Deleting signature photo failed:', err)
+    await logError('Deleting signature photo failed', err)
     return reply(500, { message: 'Fehler beim Löschen des Fotos' })
   }
 }

@@ -10,6 +10,7 @@ import {
   reserveLoginAttempt,
 } from '../../../lib/members'
 import { reply, startSession } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 // One message for unknown address, wrong password and lock, so the form does not reveal who is a member.
 const REJECTED = 'E-Mail-Adresse oder Passwort stimmt nicht, oder die Anmeldung ist nach mehreren Fehlversuchen kurz gesperrt.'
@@ -44,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     await startSession(cookies, email)
     return reply(200, { redirect: afterLoginPath(next, locale === 'en' ? 'en' : 'de') })
   } catch (err) {
-    console.error('Member login failed:', err)
+    await logError('Member login failed', err)
     return reply(500, { message: 'Fehler bei der Anmeldung' })
   }
 }

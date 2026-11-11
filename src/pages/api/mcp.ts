@@ -8,6 +8,7 @@ import { isJsonRequest } from '../../lib/memberAuth'
 import { loadTaskEvents } from '../../lib/taskEvents'
 import { addTask, createProject, sessionActor, sharedWorkspace, updateTask, type TaskActor } from '../../lib/tasksStore'
 import { taskTools, type TaskToolStore } from '../../lib/taskTools'
+import { logError } from '../../lib/errorLog'
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -63,7 +64,7 @@ export const ALL: APIRoute = async ({ request, url }) => {
     const answer = await handleMessage(message, taskTools(actor.id, toolStore(actor, member.team ?? '')))
     return answer ? json(200, answer) : new Response(null, { status: 202 })
   } catch (err) {
-    console.error('MCP request failed:', err)
+    await logError('MCP request failed', err)
     return rpcError(500, -32603, 'Internal error', (message as { id?: unknown } | null)?.id ?? null)
   }
 }

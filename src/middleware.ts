@@ -3,9 +3,13 @@
  * session cookie go to the login page, endpoints answer 401; valid requests get `locals.member`. Admin pages send
  * members without the admin role to the members home. Every response of the area gets SECURITY_HEADERS.
  * Every other path passes through untouched, which keeps the prerendered pages free of cookie access at build time.
+ * An error no route caught (a page that fails to render, the session lookup) goes to the error log (errorLog.ts) before
+ * Astro answers 500.
  */
+import type { APIContext, MiddlewareNext } from 'astro'
 import { defineMiddleware } from 'astro:middleware'
 import { refusedRequestUrl } from './lib/connectionsStore'
+import { logError } from './lib/errorLog'
 import {
   isAdminPath,
   isConnectionPath,
@@ -30,6 +34,16 @@ const SECURITY_HEADERS = {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  try {
+    return await guard(context, next)
+  } catch (err) {
+    // The route pattern, not the path: paths like /api/calendar/<token>.ics carry secrets.
+    await logError(`${context.request.method} ${context.routePattern}`, err)
+    throw err
+  }
+})
+
+async function guard(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname, search, origin } = context.url
   if (isCrossSiteForm(context.request, pathname, origin)) {
     return new Response('Cross-site form submissions are forbidden', { status: 403 })
@@ -64,7 +78,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   return secure(await next())
-})
+}
 
 function secure(response: Response): Response {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {

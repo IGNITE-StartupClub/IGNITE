@@ -5,6 +5,7 @@ import { isJsonRequest } from '../../../lib/memberAuth'
 import { currentMember, reply } from '../../../lib/memberSession'
 import { saveStorageFolders, storageFolders } from '../../../lib/settingsStore'
 import { parseStorageFolders } from '../../../lib/storageFolders'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * The SharePoint links of the Ablage page, kept by admins (StorageSettings island on the member management page).
@@ -32,7 +33,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     await saveStorageFolders(folders, admin.email)
     return reply(200, { code: 'saved', folders: await storageFolders() })
   } catch (err) {
-    console.error('Storage folders update failed:', err)
+    await logError('Storage folders update failed', err)
     return reply(500, { code: 'error', message: 'Fehler beim Speichern der Ablage' })
   }
 }

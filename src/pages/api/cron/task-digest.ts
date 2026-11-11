@@ -3,6 +3,7 @@ export const prerender = false
 import type { APIRoute } from 'astro'
 import { rejectCron } from '../../../lib/cron'
 import { sendDigests } from '../../../lib/taskDigest'
+import { logError } from '../../../lib/errorLog'
 
 /**
  * Daily digest of new task assignments (taskDigest.ts). vercel.json calls it at 17:00, 18:00 and 19:00 UTC; on Hobby
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ request }) => {
     const run = await sendDigests(new Date(), origin)
     return new Response(JSON.stringify({ status: 'ok', ...run }), { headers: { 'Content-Type': 'application/json' } })
   } catch (err) {
-    console.error('Task digest run failed:', err)
+    await logError('Task digest run failed', err)
     return new Response(JSON.stringify({ status: 'error', message: 'Digest fehlgeschlagen' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

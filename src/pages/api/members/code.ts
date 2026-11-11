@@ -5,6 +5,7 @@ import { isJsonRequest, normalizeEmail } from '../../../lib/memberAuth'
 import { countCodes, ensureInitialAdmin, findMember } from '../../../lib/members'
 import { sendCode } from '../../../lib/memberMail'
 import { reply } from '../../../lib/memberSession'
+import { logError } from '../../../lib/errorLog'
 
 // Resend's free plan allows 100 mails a day, shared with the application, contact and community mails.
 // Together with CODE_MAX_ATTEMPTS the per-address limit also caps guessing at 25 entries per address and hour.
@@ -46,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     return accepted(started)
   } catch (err) {
-    console.error('Member code failed:', err)
+    await logError('Member code failed', err)
     return reply(500, { message: 'Fehler beim E-Mail-Versand' })
   }
 }

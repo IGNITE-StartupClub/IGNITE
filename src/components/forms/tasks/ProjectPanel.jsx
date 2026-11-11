@@ -29,6 +29,7 @@ import {
   TITLE_MAX,
 } from '../../../lib/tasks'
 import { changedFields } from '../../../lib/liveUpdates'
+import MakeEventDialog from './MakeEventDialog'
 import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import {
   Avatar,
@@ -426,7 +427,7 @@ const trimmed = (form) => ({
   folderUrl: form.folderUrl.trim(),
 })
 
-function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
+function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder, onMakeEvent }) {
   const id = useId()
   const [busy, setBusy] = useState(false)
   const publicPlace = eventPlace ?? project.event?.location
@@ -545,6 +546,15 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder }) {
         )}
       </form>
 
+      {onMakeEvent && (
+        <div className="rounded-lg border border-border bg-bg-subtle p-4 text-sm">
+          <p>{copy.panel.makeEventHint}</p>
+          <button type="button" className={`${TOOL_BUTTON} mt-3 h-9`} onClick={onMakeEvent}>
+            {copy.panel.makeEventButton}
+          </button>
+        </div>
+      )}
+
       {project.event && (
         <div className="rounded-lg border border-border bg-bg-subtle p-4 text-sm">
           <p className="font-medium">{project.event.title}</p>
@@ -642,7 +652,10 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   const [focusFolder, setFocusFolder] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateSaved, setTemplateSaved] = useState(false)
+  const [makingEvent, setMakingEvent] = useState(false)
   const projectId = project?.id
+  // The server repeats this check (makeEvent in tasksStore.ts).
+  const canMakeEvent = project?.type === 'internal' && project.mayArchive && !project.archived
 
   useEffect(() => {
     const element = dialog.current
@@ -739,6 +752,18 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                           }}
                         >
                           {copy.panel.saveTemplate}
+                        </button>
+                      )}
+                      {canMakeEvent && (
+                        <button
+                          type="button"
+                          className={MENU_ITEM}
+                          onClick={() => {
+                            close()
+                            setMakingEvent(true)
+                          }}
+                        >
+                          {copy.panel.makeEventButton}
                         </button>
                       )}
                       {project.mayArchive && (
@@ -903,6 +928,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   run={run}
                   eventPlace={eventPlace}
                   focusFolder={focusFolder}
+                  onMakeEvent={canMakeEvent ? () => setMakingEvent(true) : null}
                 />
               )}
               {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
@@ -936,6 +962,10 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
           {copy.panel.save}
         </button>
       </FormDialog>
+
+      {project && (
+        <MakeEventDialog project={project} open={makingEvent} copy={copy} locale={locale} run={run} onClose={() => setMakingEvent(false)} />
+      )}
     </>
   )
 }
