@@ -11,6 +11,7 @@
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
+import FirstSteps from '../components/ui/FirstSteps.astro'
 import MemberDashboard from '../components/forms/MemberDashboard.jsx'
 import TeamChoice from '../components/forms/TeamChoice.jsx'
 import { TEAM_ICONS, teamIconPath } from '../data/brandKit'
@@ -120,5 +121,6 @@ const tasksUrl = memberPagePath('tasks', locale)
         />
       )
     }
+    {!choosing && <FirstSteps />}
   </Section>
 </DefaultLayout>

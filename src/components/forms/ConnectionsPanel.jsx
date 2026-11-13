@@ -5,42 +5,11 @@
  * Props: copy (memberArea.connections.panel), appNames (memberArea.connections.apps), locale, mcpUrl, initialConnections,
  * initialCalendarSince (date of the current link, '' without one).
  */
-import React, { useId, useState } from 'react'
+import React, { useState } from 'react'
 import { formatDateTime } from '../../lib/memberTable'
-import { DANGER_BUTTON, fill, PRIMARY_BUTTON, TOOL_BUTTON } from './memberUi'
+import { CopyField, DANGER_BUTTON, fill, PRIMARY_BUTTON, TOOL_BUTTON } from './memberUi'
 
 const CARD = 'rounded-card border border-border bg-bg p-5 sm:p-6'
-
-function CopyField({ label, value, copy }) {
-  const id = useId()
-  const [copied, setCopied] = useState(false)
-
-  const copyValue = async () => {
-    await navigator.clipboard.writeText(value)
-    setCopied(true)
-  }
-
-  return (
-    <div className="mt-4">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <div className="mt-1.5 flex gap-2">
-        <input
-          id={id}
-          type="text"
-          readOnly
-          value={value}
-          onFocus={(e) => e.target.select()}
-          className="h-10 min-w-0 flex-1 rounded-lg border border-border-strong bg-bg-subtle px-3 text-sm text-fg"
-        />
-        <button type="button" className={TOOL_BUTTON} onClick={copyValue}>
-          {copied ? copy.copied : copy.copy}
-        </button>
-      </div>
-    </div>
-  )
-}
 
 export default function ConnectionsPanel({ copy, appNames, locale, mcpUrl, initialConnections, initialCalendarSince }) {
   const [connections, setConnections] = useState(initialConnections)

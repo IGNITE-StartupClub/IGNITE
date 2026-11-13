@@ -1,11 +1,13 @@
 ---
 /**
- * Mounts the help dialogs (HelpDialogs island: website feedback) in the member header. Everything it needs comes from
- * the copy and the paths of the members area, so it costs no query.
+ * Mounts the help dialogs (HelpDialogs island: website feedback and the onboarding "Erste Schritte") in the member
+ * header. The onboarding state comes with the session (findSession), the rest from the copy and the paths of the
+ * members area, so it costs no query.
  * Props: none; Header.astro renders it only for signed-in members.
  */
 import HelpDialogs from '../forms/HelpDialogs.jsx'
 import { getCopy } from '../../data/copy'
+import { mcpResource } from '../../lib/connections'
 import { resolveLocale } from '../../lib/i18n'
 import { memberHomePath, memberPagePath } from '../../lib/memberAuth'
 
@@ -18,7 +20,22 @@ const areaPaths = {
   storage: memberPagePath('storage', locale),
   signature: memberPagePath('signature', locale),
 }
+const copy = {
+  feedback: memberArea.feedback,
+  onboarding: memberArea.onboarding,
+  connections: memberArea.connections.panel,
+  apps: memberArea.connections.apps,
+  menuBadge: memberArea.nav.firstStepsOpen,
+}
+const links = { mcp: mcpResource(Astro.url.origin), connections: memberPagePath('connections', locale) }
 ---
 
 {/* client:idle like the search: nothing here is needed in the first moment of a page. */}
-<HelpDialogs client:idle copy={{ feedback: memberArea.feedback }} areaPaths={areaPaths} />
+<HelpDialogs
+  client:idle
+  copy={copy}
+  areaPaths={areaPaths}
+  onboarding={Astro.locals.member!.onboarding}
+  links={links}
+  locale={locale}
+/>

@@ -499,6 +499,9 @@ export const memberArea = {
     settings: 'Einstellungen',
     password: 'Passwort ändern',
     connections: 'Verbindungen',
+    firstSteps: 'Erste Schritte',
+    // {count} is replaced with the number of open steps (onboarding.ts menuBadge).
+    firstStepsOpen: '{count} offen',
     feedback: 'Feedback zur Website',
     website: 'Zur Website',
     logout: 'Abmelden',
@@ -523,6 +526,16 @@ export const memberArea = {
     empty: 'Nichts gefunden.',
     makeTask: '„{text}“ als Aufgabe anlegen',
     feedback: { text: 'Fehlt dir hier etwas? Sag uns, was du gesucht hast.', action: 'Feedback geben' },
+    // The coach mark at the search icon (SearchHint.jsx). {example} and {shortcut} are replaced.
+    coach: {
+      kicker: 'Neu',
+      title: 'Die Suche legt auch Aufgaben an',
+      text: 'Tipp ein + und schreib los, zum Beispiel {example}.',
+      example: '+ Flyer drucken bis Mi @Paul',
+      shortcut: '{shortcut} öffnet die Suche auf jeder Seite.',
+      try: 'Ausprobieren',
+      dismiss: 'Verstanden',
+    },
     private: 'Nur für mich',
     task: {
       titleEmpty: 'Was steht an?',
@@ -587,6 +600,135 @@ export const memberArea = {
       again: 'Noch etwas senden',
       close: 'Schließen',
     },
+  },
+  // The onboarding dialog (OnboardingDialog.jsx, opened by HelpDialogs.jsx). Calendar and assistant only appear for
+  // members who may connect; the texts it shares with the connections page come from connections.panel.
+  // {placeholders} are filled by the island.
+  onboarding: {
+    kicker: 'Neu im Mitgliederbereich',
+    title: 'Erste Schritte',
+    stepsLabel: 'Schritte',
+    duration: 'Dauert etwa drei Minuten. Du findest alles später im Profilmenü unter „Erste Schritte“.',
+    progress: 'Schritt {step} von {total}',
+    close: 'Schließen',
+    later: 'Später',
+    back: 'Zurück',
+    next: 'Weiter',
+    finish: 'Fertig',
+    steps: {
+      search: { label: 'Aufgaben über die Suche', open: 'Noch nicht ausprobiert', done: 'Ausprobiert' },
+      calendar: { label: 'Termine im Kalender', open: 'Noch kein Abo', done: 'Abo läuft' },
+      assistant: { label: 'Claude oder ChatGPT', open: 'Noch nicht verbunden', done: 'Verbunden' },
+      feedback: { label: 'Feedback zur Website', open: 'Jederzeit, auch anonym', done: 'Jederzeit, auch anonym' },
+    },
+    search: {
+      title: 'Aufgaben in einer Zeile anlegen',
+      lead: 'Die Suche oben im Menü legt auch Aufgaben an. Du öffnest sie mit der Lupe oder auf jeder Seite mit ⌘ K, unter Windows mit Strg K.',
+      // The example as { token, text } pairs, so the island can mark the tokens. `due` is the weekday after „bis“; the
+      // island shows the date the search reads from it. {line} and {due} are replaced.
+      example: {
+        line: [
+          { token: '+', text: ' Flyer drucken ' },
+          { token: 'bis Mi', text: ' ' },
+          { token: '@Paul', text: ' ' },
+          { token: '#Marketing', text: '' },
+        ],
+        due: 'Mi',
+        label: 'Beispiel: Aus „{line}“ wird eine Aufgabe mit Deadline {due}, für Paul, im Team Marketing.',
+        kind: 'Neue Aufgabe',
+        chips: { due: 'Fällig {due}', person: 'Für Paul', team: 'Team Marketing' },
+        create: 'Anlegen',
+      },
+      legend: [
+        { token: '+', text: 'am Anfang macht aus der Suche eine neue Aufgabe.' },
+        { token: 'bis Mi', text: 'setzt die Deadline. Auch „bis 20.11.“ oder „bis morgen“.' },
+        { token: '@Paul', text: 'gibt die Aufgabe Paul. Ohne @ ist sie deine.' },
+        { token: '#Marketing', text: 'ordnet sie einem Team zu. Ohne # gilt das Team der ersten Person.' },
+      ],
+      try: 'Jetzt ausprobieren',
+      tryNote: 'Öffnet die Suche mit einem + vorne.',
+      note: 'Ohne + sucht das Feld in Aufgaben, Events, Guide und im Netzwerk. Mit @ findest du Menschen.',
+    },
+    calendar: {
+      title: 'Termine im eigenen Kalender',
+      lead: 'Abonniere die Events des Clubs und deine offenen Aufgaben mit Deadline. Sie stehen dann in Apple Kalender, Google Kalender oder Outlook neben deinen anderen Terminen.',
+      includes: ['Die Events des Clubs', 'Deine offenen Aufgaben mit Deadline'],
+      excludes: 'Private Aufgaben bleiben draußen',
+      createNote: 'Das Abo zeigt die Termine nur an. Ändern kannst du sie weiter hier im Mitgliederbereich.',
+      link: 'Dein Abo-Link',
+      existing: 'Du hast schon einen Abo-Link. Wir zeigen ihn nur direkt nach dem Erstellen. Brauchst du ihn noch einmal, erstell einen neuen.',
+      manage: 'Verbindungen verwalten',
+      apps: {
+        apple: {
+          name: 'Apple Kalender',
+          text: 'Der Knopf öffnet das Abo direkt auf iPhone und Mac. Von Hand geht es in der Kalender-App über „Kalender“, „Hinzufügen“ und „Kalenderabonnement hinzufügen“, am Mac über „Datei“ und „Neues Kalenderabonnement“.',
+        },
+        google: {
+          name: 'Google Kalender',
+          text: 'Link kopieren, dann am Computer links neben „Weitere Kalender“ auf das Plus und „Per URL“. Link einfügen und „Kalender hinzufügen“. In der App lässt sich kein Abo anlegen.',
+        },
+        outlook: {
+          name: 'Outlook',
+          text: 'Link kopieren, dann im Kalender „Kalender hinzufügen“ und „Vom Web abonnieren“, Link einfügen und „Importieren“. So geht es in Outlook im Web und im neuen Outlook für Windows. Im klassischen Outlook fügst du den Link als Internetkalender hinzu.',
+        },
+      },
+      delay: 'Dein Kalender holt Änderungen in eigenen Abständen ab. Das kann einige Stunden dauern, bei Outlook auch länger als einen Tag.',
+    },
+    assistant: {
+      title: 'Claude oder ChatGPT verbinden',
+      lead: 'Dann fragst du im Chat nach deinen Aufgaben oder lässt neue anlegen, auch für andere Mitglieder. Löschen kann der Assistent nichts.',
+      appsLabel: 'Assistent',
+      copyAddress: 'Adresse kopieren',
+      claude: {
+        add: 'In Claude unter „Customize“ und „Connectors“ auf „Add“ und dann „Add custom connector“ klicken. IGNITE als Namen und die Adresse eintragen, mit „Continue“ weiter, die als „Detected“ markierten Einstellungen lassen und „Add“ klicken.',
+        connect: 'Bei IGNITE auf „Connect“ klicken, mit deinem Mitgliedskonto anmelden und auf der IGNITE-Seite „Verbinden“ bestätigen.',
+        ask: 'Frag zum Beispiel: „Was steht diese Woche bei mir an?“',
+      },
+      chatgpt: {
+        add: 'Auf chatgpt.com/plugins auf das Plus und „Add custom MCP server“ klicken. IGNITE als Namen und die Adresse eintragen, den Hinweis mit „I understand and want to continue“ bestätigen und „Create as a plugin“ wählen.',
+        connect: 'Das Plugin installieren. Wenn ChatGPT nach der Anmeldung fragt, mit deinem Mitgliedskonto anmelden und auf der IGNITE-Seite „Verbinden“ bestätigen.',
+        ask: 'In einem neuen Chat @ tippen, IGNITE wählen und fragen, zum Beispiel: „Was steht diese Woche bei mir an?“',
+      },
+      labels: 'Die Menüs heißen hier wie in der englischen Oberfläche und ändern sich öfter. Im kostenlosen Claude-Tarif ist ein eigener Connector möglich, in Team- und Enterprise-Arbeitsbereichen fügt ihn ein Owner hinzu. Ob ChatGPT eigene Server erlaubt, hängt von Tarif und Arbeitsbereich ab.',
+      none: 'Noch keine App verbunden. Der Schritt hakt sich ab, sobald die Verbindung steht.',
+      // {apps} is replaced with the names of the connected apps.
+      connected: 'Verbunden: {apps}. Du kannst loslegen.',
+      privacy: 'Was der Assistent abruft, geht an seinen Anbieter, auch Aufgaben und Namen anderer Mitglieder aus den Projekten. Private Aufgaben, Adressen, CRM und Alumni bleiben draußen.',
+    },
+    feedback: {
+      title: 'Fehlt dir etwas?',
+      lead: 'Wenn dir auf der Website etwas fehlt, etwas nervt oder nicht funktioniert, sag es uns. Das geht auch anonym. Es geht dabei nur um die Website, nicht um den Club.',
+      cardTitle: 'Feedback zur Website',
+      cardText: 'Liegt im Profilmenü und in der Suche, wenn sie nichts findet.',
+      action: 'Feedback geben',
+      laterTitle: 'Was noch offen ist, wartet auf der Startseite',
+      laterText: 'Die Karte „Erste Schritte“ zeigt, was du noch nicht eingerichtet hast. Sie verschwindet, wenn alles erledigt ist oder du sie ausblendest.',
+    },
+  },
+  // The card "Erste Schritte" on the start page (FirstStepsCard.jsx). {placeholders} are filled by the island.
+  firstSteps: {
+    title: 'Erste Schritte',
+    progress: '{done} von {total} erledigt',
+    hide: 'Ausblenden',
+    hideFailed: 'Ausblenden hat nicht geklappt. Bitte versuch es noch einmal.',
+    // Read before each title by screen readers.
+    open: 'Offen:',
+    done: 'Erledigt:',
+    items: {
+      calendar: {
+        open: { title: 'Kalender abonnieren', text: 'Die Events des Clubs und deine Deadlines neben deinen anderen Terminen.', action: 'Einrichten' },
+        done: { title: 'Kalender-Abo erstellt', text: 'Über deinen Abo-Link kommen die Events und deine Deadlines in deinen Kalender.', action: 'Verwalten' },
+      },
+      search: {
+        open: { title: 'Aufgabe über die Suche anlegen', text: 'Tipp + in die Suche, zum Beispiel „+ Flyer drucken bis Mi @Paul“.', action: 'Ausprobieren' },
+        done: { title: 'Aufgabe über die Suche angelegt', text: 'Mit + in der Suche legst du jederzeit die nächste an.', action: 'Noch eine anlegen' },
+      },
+      assistant: {
+        open: { title: 'Claude oder ChatGPT verbinden', text: 'Frag im Chat, was diese Woche bei dir ansteht, oder leg Aufgaben per Nachricht an.', action: 'Einrichten' },
+        done: { title: 'Claude oder ChatGPT verbunden', text: 'Frag im Chat, was diese Woche bei dir ansteht, oder leg Aufgaben per Nachricht an.', action: 'Verwalten' },
+      },
+    },
+    feedback: { text: 'Fehlt dir etwas auf der Website?', action: 'Sag es uns, auch anonym' },
   },
   home: {
     welcome: 'Willkommen',

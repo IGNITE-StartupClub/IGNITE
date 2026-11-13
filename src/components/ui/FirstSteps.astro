@@ -1,0 +1,29 @@
+---
+/**
+ * The onboarding on the members start page (MembersPage.astro, below the dashboard): the card "Erste Schritte"
+ * (FirstStepsCard island) while it shows, and the marker that lets HelpDialogs open the onboarding dialog by itself
+ * until the member has seen it. Both come from the session (Astro.locals.member.onboarding), so they cost no query.
+ * Props: none.
+ */
+import FirstStepsCard from '../forms/FirstStepsCard.jsx'
+import { getCopy } from '../../data/copy'
+import { resolveLocale } from '../../lib/i18n'
+import { memberPagePath } from '../../lib/memberAuth'
+import { opensIntro, showsChecklist } from '../../lib/onboarding'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const { onboarding } = Astro.locals.member!
+---
+
+{opensIntro(onboarding) && <span hidden data-onboarding-autostart />}
+{
+  showsChecklist(onboarding) && (
+    <FirstStepsCard
+      client:load
+      copy={memberArea.firstSteps}
+      state={onboarding}
+      connectionsUrl={memberPagePath('connections', locale)}
+    />
+  )
+}

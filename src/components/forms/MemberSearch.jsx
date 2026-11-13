@@ -3,8 +3,11 @@
  * everything the member may see, `@` only people and `+` captures a task (rules in src/lib/memberSearch.ts). The index
  * loads when the field opens and stays for a minute, so typing costs no requests. Cmd/Ctrl+K opens it on every page.
  * Lives in a persisted island: the header swaps on every navigation, this component does not. When a search finds
- * nothing, it offers the website feedback with the searched text (memberHelp.js event, HelpDialogs.jsx).
- * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl, logo (slot: the mark shown in the bar).
+ * nothing, it offers the website feedback with the searched text (memberHelp.js event, HelpDialogs.jsx). Other islands
+ * open it with a text through SEARCH_EVENT. The coach mark (SearchHint.jsx) hangs below the icon while `hint`; the
+ * first task made here stores the mark `searchTask` (onboarding.ts).
+ * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl, hint (showsSearchHint), searchTask
+ * (the mark is stored already), logo (slot: the mark shown in the bar).
  */
 import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { navigate } from 'astro:transitions/client'
@@ -34,7 +37,8 @@ import {
 } from '../../lib/memberSearch'
 import { berlinDay } from '../../lib/tasks'
 import { fill, Initials } from './memberUi'
-import { emit, FEEDBACK_EVENT } from './memberHelp'
+import { emit, FEEDBACK_EVENT, saveMark, SEARCH_EVENT } from './memberHelp'
+import SearchHint from './SearchHint.jsx'
 
 const INDEX_TTL_MS = 60_000
 const KIND_ICONS = {
@@ -154,11 +158,15 @@ function Chip({ label, value, set }) {
   )
 }
 
-export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo }) {
+export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint, searchTask, logo }) {
   const dialog = useRef(null)
   const input = useRef(null)
   const created = useRef(false)
+  const anchor = useRef(null)
+  const taskMarked = useRef(false)
   const uid = useId()
+  const [opened, setOpened] = useState(false)
+  const [hintGone, setHintGone] = useState(false)
   const [text, setText] = useState('')
   const [index, setIndex] = useState(null)
   const [failed, setFailed] = useState(false)
@@ -178,6 +186,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
   const open = () => {
     if (dialog.current.open) return
     dialog.current.showModal()
+    setOpened(true)
     input.current.focus()
     load()
   }
@@ -202,9 +211,26 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
     input.current.focus()
   }
 
+  // Again with each locale, because open() loads the index of the current one.
+  useEffect(() => {
+    const onSearch = (e) => {
+      open()
+      change(e.detail.text)
+    }
+    window.addEventListener(SEARCH_EVENT, onSearch)
+    return () => window.removeEventListener(SEARCH_EVENT, onSearch)
+  }, [locale])
+
+  // Gone at once; a failed save only brings the hint back with the next full page load.
+  const dismissHint = () => {
+    setHintGone(true)
+    saveMark('searchHint').catch(console.error)
+  }
+
   const pagesWithTasks = [homeUrl, tasksUrl]
 
   const onClose = () => {
+    setOpened(false)
     setText('')
     setSaved(null)
     setSaveFailed(false)
@@ -263,6 +289,14 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
       cachedIndex = null
       load()
       created.current = true
+      setHintGone(true)
+      if (!searchTask && !taskMarked.current) {
+        taskMarked.current = true
+        saveMark('searchTask').catch((err) => {
+          taskMarked.current = false
+          console.error(err)
+        })
+      }
       setSaved({ title, url: `${tasksUrl}#${encodeURIComponent(id)}` })
       setText('')
       setActive(0)
@@ -316,17 +350,37 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
   const assigneeNames = capture?.assignees.map(({ id, name }) => (id === me ? copy.task.me : name)).join(', ')
   let position = -1
 
+  const showsHint = hint && !hintGone && !opened
+  const hintId = `${uid}-hint`
+
   return (
     <>
-      <button
-        type="button"
-        onClick={open}
-        aria-label={copy.label}
-        title={`${copy.open} ${shortcut}`.trim()}
-        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-button border-0 bg-transparent p-0 text-fg transition-colors hover:bg-bg-subtle"
-      >
-        <Search aria-hidden="true" className="h-[22px] w-[22px]" />
-      </button>
+      <span ref={anchor} className="relative inline-flex shrink-0">
+        <button
+          type="button"
+          onClick={open}
+          aria-label={copy.label}
+          aria-describedby={showsHint ? hintId : undefined}
+          title={`${copy.open} ${shortcut}`.trim()}
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-button border-0 bg-transparent p-0 text-fg transition-colors hover:bg-bg-subtle"
+        >
+          <Search aria-hidden="true" className="h-[22px] w-[22px]" />
+        </button>
+        {showsHint && (
+          <SearchHint
+            copy={copy.coach}
+            shortcut={shortcut}
+            anchor={anchor}
+            id={hintId}
+            onTry={() => {
+              dismissHint()
+              open()
+              change('+ ')
+            }}
+            onDismiss={dismissHint}
+          />
+        )}
+      </span>
 
       <dialog
         ref={dialog}

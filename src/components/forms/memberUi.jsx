@@ -1,8 +1,8 @@
 /**
  * Building blocks shared by the members area islands (MemberAdmin, CrmBoard, AlumniDirectory): button and badge
  * classes, placeholder filling, the search field, toggle chips, initials avatars, form fields, the modal form dialog
- * the popover menu (browser popover API: Escape, outside clicks and focus order come for free) and the labelled on/off
- * switch of the settings (AdminSettings, ErrorBoard).
+ * the popover menu (browser popover API: Escape, outside clicks and focus order come for free), the copy field for
+ * links (ConnectionsPanel, OnboardingDialog) and the labelled on/off switch of the settings (AdminSettings, ErrorBoard).
  * Styles: ./forms.css plus Tailwind utilities.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
@@ -183,6 +183,38 @@ export function Menu({ label, ariaLabel, className, children }) {
         {children(() => panel.current.hidePopover())}
       </div>
     </>
+  )
+}
+
+/** A read-only text, such as a link shown once, with a copy button; `copy` is { copy, copied }. */
+export function CopyField({ label, value, copy, className = 'mt-4' }) {
+  const id = useId()
+  const [copied, setCopied] = useState(false)
+
+  const copyValue = async () => {
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+  }
+
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="mt-1.5 flex gap-2">
+        <input
+          id={id}
+          type="text"
+          readOnly
+          value={value}
+          onFocus={(e) => e.target.select()}
+          className="h-10 min-w-0 flex-1 rounded-lg border border-border-strong bg-bg-subtle px-3 text-sm text-fg"
+        />
+        <button type="button" className={TOOL_BUTTON} onClick={copyValue}>
+          {copied ? copy.copied : copy.copy}
+        </button>
+      </div>
+    </div>
   )
 }
 

@@ -1,7 +1,8 @@
 /**
  * MongoDB access for the members area. Collections:
  * - `members`: one document per member ({ email, role, addedAt, firstName?, lastName?, team?, position?, passwordHash?,
- *   lastLoginAt?, failedLogins?, lockedUntil?, signature?, errorMails? }). Its `_id` is the member id the tasks module refers to.
+ *   lastLoginAt?, failedLogins?, lockedUntil?, signature?, errorMails?, onboarding? }). Its `_id` is the member id the tasks
+ *   module refers to.
  *   Admins maintain it on the admin page; the first admin comes from scripts/members.mjs.
  * - `member_codes`: one-time codes to set a password (first password or reset), stored as keyed hashes. Each stays an
  *   hour after it was sent, so it still counts for the rate limit; it is valid for CODE_TTL_SECONDS only.
@@ -35,6 +36,7 @@ import {
 import { CONNECTION_HASHES, INITIAL_ADMIN_HASHES, OWNER_HASHES } from './initialAdmins'
 import { SETTING_DEFAULTS } from './settings'
 import { formerPhotoIds, photoPath, type SavedSignature } from './emailSignature'
+import { MARK_FIELDS, onboardingMarks, type OnboardingDates, type OnboardingMark, type OnboardingState } from './onboarding'
 import { nameFromEmail, type TeamChoice, type TeamId } from './tasks'
 
 export interface Member {
@@ -58,6 +60,8 @@ export interface Member {
   team?: TeamId
   /** Set by an admin, 'member' without one. The board works across all teams and has no `team`. */
   position?: MemberPosition
+  /** When the member first saw or did each step of the onboarding (onboarding.ts); a missing field has not happened. */
+  onboarding?: OnboardingDates
 }
 
 interface PasswordCode {
@@ -341,6 +345,12 @@ export async function savePosition(email: string, position: MemberPosition): Pro
   await members.updateOne({ email }, position === 'board' ? { $set: { position }, $unset: { team: '' } } : { $set: { position } })
 }
 
+/** Stores when an onboarding mark first happened; a later call keeps that first time. */
+export async function saveOnboardingMark(email: string, mark: OnboardingMark): Promise<void> {
+  const { members } = await collections()
+  await members.updateOne({ email }, { $min: { [`onboarding.${MARK_FIELDS[mark]}`]: new Date() } })
+}
+
 export async function saveSignature(email: string, signature: SavedSignature): Promise<void> {
   const { members } = await collections()
   await members.updateOne({ email }, { $set: { signature } })
@@ -542,17 +552,26 @@ export interface SessionMember extends Pick<Member, 'email' | 'firstName' | 'las
   mayConnect: boolean
   /** The admin's own switch for the error report; false for everyone else. */
   errorMails: boolean
+  /** Marks, calendar link and connected apps for the onboarding card, menu badge, dialog and search hint. */
+  onboarding: OnboardingState
 }
 
 /**
  * The member behind a session token, or null when the session is unknown, expired, or its member was removed.
  * Role and position are read fresh on every request, so a change applies at once. One aggregation also brings the
- * photo for the header and the `connections` switch, because every sequential query costs a round trip on every page.
+ * photo for the header, the `connections` switch and, for the onboarding, whether the member has a calendar link and
+ * which apps are connected, because every sequential query costs a round trip on every page.
  */
 export async function findSession(token: string): Promise<SessionMember | null> {
   const { sessions } = await collections()
   const [session] = await sessions
-    .aggregate<{ member: (Member & { _id: ObjectId })[]; photo: { _id: string }[]; connections: { enabled: boolean }[] }>([
+    .aggregate<{
+      member: (Member & { _id: ObjectId })[]
+      photo: { _id: string }[]
+      connections: { enabled: boolean }[]
+      calendar: boolean
+      apps: string[]
+    }>([
       { $match: { tokenHash: hashToken(token), expiresAt: { $gt: new Date() } } },
       { $limit: 1 },
       { $lookup: { from: 'members', localField: 'email', foreignField: 'email', as: 'member' } },
@@ -576,31 +595,55 @@ export async function findSession(token: string): Promise<SessionMember | null> 
           as: 'connections',
         },
       },
+      // Both by index: the feed's _id is the address, connections have an index on email (connectionsStore.ts).
+      { $lookup: { from: 'member_calendar_feeds', localField: 'email', foreignField: '_id', as: 'feed' } },
+      { $lookup: { from: 'member_connections', localField: 'email', foreignField: 'email', as: 'connected' } },
       {
         $project: {
           photo: 1,
           connections: 1,
-          member: { _id: 1, email: 1, role: 1, position: 1, firstName: 1, lastName: 1, team: 1, signature: 1, errorMails: 1 },
+          // Only these two leave the database, never a token hash.
+          calendar: { $gt: [{ $size: '$feed' }, 0] },
+          apps: '$connected.app',
+          member: {
+            _id: 1,
+            email: 1,
+            role: 1,
+            position: 1,
+            firstName: 1,
+            lastName: 1,
+            team: 1,
+            signature: 1,
+            errorMails: 1,
+            onboarding: 1,
+          },
         },
       },
     ])
     .toArray()
   const member = session?.member[0]
-  return member
-    ? {
-        id: member._id.toHexString(),
-        email: member.email,
-        role: member.role ?? 'member',
-        position: member.position ?? 'member',
-        firstName: member.firstName,
-        lastName: member.lastName,
-        team: member.team,
-        signature: member.signature,
-        photoId: session.photo[0]?._id ?? null,
-        mayConnect: mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections),
-        errorMails: member.role === 'admin' && member.errorMails === true,
-      }
-    : null
+  if (!member) return null
+  const connects = mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections)
+  return {
+    id: member._id.toHexString(),
+    email: member.email,
+    role: member.role ?? 'member',
+    position: member.position ?? 'member',
+    firstName: member.firstName,
+    lastName: member.lastName,
+    team: member.team,
+    signature: member.signature,
+    photoId: session.photo[0]?._id ?? null,
+    mayConnect: connects,
+    errorMails: member.role === 'admin' && member.errorMails === true,
+    onboarding: {
+      marks: onboardingMarks(member.onboarding),
+      calendar: session.calendar,
+      // The same app can be connected more than once, for example after adding the connector again.
+      apps: [...new Set(session.apps)],
+      mayConnect: connects,
+    },
+  }
 }
 
 export async function deleteSession(token: string): Promise<void> {
