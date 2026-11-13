@@ -1,15 +1,15 @@
 /**
  * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
  * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, the filter
- * menu, the menu of a task, keyboard focus around changing lists, status and type styles and date formatting. Members are
- * { id, name, photo, team }.
+ * menu, the menu of a task, setting a deadline in place, keyboard focus around changing lists, status and type styles
+ * and date formatting. Members are { id, name, photo, team }.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { ALL_TEAMS, BOARD_STATUSES, TEAM_IDS } from '../../../lib/tasks'
-import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
+import { ALL_TEAMS, BOARD_STATUSES, memberChange, TEAM_IDS } from '../../../lib/tasks'
+import { fill, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 
 /** Dot and progress colour per board column of projects and tasks. */
 export const STATUS_TONE = {
@@ -18,6 +18,7 @@ export const STATUS_TONE = {
   active: 'bg-brand-bright',
   doing: 'bg-brand-bright',
   done: 'bg-success',
+  dropped: 'bg-fg-subtle',
 }
 export const TYPE_TEXT = { event: 'text-accent', internal: 'text-fg-muted', task: 'text-[#f2b35a]' }
 
@@ -255,6 +256,12 @@ export function PrivateToggle({ pressed, onChange, label }) {
   )
 }
 
+/** "Lena Meyer" → "Lena M.", so several people fit in a line. */
+export const shortName = (name) => {
+  const words = name.trim().split(/\s+/)
+  return words.length > 1 ? `${words[0]} ${words[words.length - 1][0]}.` : name
+}
+
 /** The name of a team; a project of all teams (ALL_TEAMS) reads as the tab that shows them all. */
 export const teamName = (copy, team) => (team === ALL_TEAMS ? copy.teamTabs.all : copy.teams[team])
 
@@ -404,9 +411,9 @@ export function showRest(show, firstNew) {
  * toast offers to undo it. `menu` is { task, x, y } or null. The popover is manual: on a Mac the right click opens it
  * while the button is still down, and the browser's own dismissal would close it again on release. So it closes itself
  * on outside clicks, Escape, scrolling and focus moving elsewhere; Escape and every action give keyboard focus back to
- * the card it came from (keepFocus).
+ * the card it came from (keepFocus). A shared task can be taken or handed back here, and any task dropped.
  */
-export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove }) {
+export function TaskContextMenu({ menu, copy, me, onClose, onOpen, onPatch, onRemove }) {
   const panel = useRef(null)
   const invoker = useRef(null)
   const restore = useRef(() => {})
@@ -469,6 +476,24 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
               {copy.taskStatuses[status]}
             </button>
           ))}
+          <div className="my-1 border-0 border-t border-solid border-border" />
+          {!task.private && (
+            <button
+              type="button"
+              className={MENU_ITEM}
+              onClick={item(() => {
+                const mine = task.assignees.includes(me)
+                onPatch(task, { assignees: memberChange(task.assignees, mine ? task.assignees.filter((id) => id !== me) : [...task.assignees, me]) })
+              })}
+            >
+              {task.assignees.includes(me) ? copy.board.giveBack : copy.board.take}
+            </button>
+          )}
+          {task.status !== 'dropped' && (
+            <button type="button" className={MENU_ITEM} onClick={item(() => onPatch(task, { status: 'dropped' }))}>
+              {copy.taskStatuses.dropped}
+            </button>
+          )}
           {(task.private || task.mayRemove) && (
             <button type="button" className={`${MENU_ITEM} mt-1 text-danger`} onClick={item(() => onRemove(task))}>
               {copy.taskBoard.delete}
@@ -477,6 +502,35 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * "Datum setzen" in a row: a menu with a date field, so a deadline is one step away without opening the task.
+ * onSet(day) gets YYYY-MM-DD.
+ */
+export function DueSetter({ label, saveLabel, onSet, className = '' }) {
+  const [day, setDay] = useState('')
+  return (
+    <Menu label={label} className={`${TOOL_BUTTON} h-8 shrink-0 px-2.5 text-xs ${className}`}>
+      {(close) => (
+        <form
+          className="flex items-center gap-2 p-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!day) return
+            close()
+            onSet(day)
+            setDay('')
+          }}
+        >
+          <input type="date" aria-label={label} className={`${INPUT} h-9 w-40`} value={day} onChange={(e) => setDay(e.target.value)} />
+          <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={!day}>
+            {saveLabel}
+          </button>
+        </form>
+      )}
+    </Menu>
   )
 }
 

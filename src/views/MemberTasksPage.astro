@@ -54,6 +54,7 @@ const now = Date.now()
       named={actor.named}
       admin={actor.role === 'admin'}
       board={Astro.locals.member!.position === 'board'}
+      teamlead={Astro.locals.member!.position === 'teamlead'}
       locale={locale}
       today={berlinDay(now)}
     />
