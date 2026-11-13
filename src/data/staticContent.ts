@@ -876,6 +876,17 @@ export const memberArea = {
         noActivity: 'Noch nichts im Verlauf.',
         loadingActivity: 'Verlauf wird geladen …',
       },
+      // The dialog of a single task (TaskDialog.jsx).
+      taskDialog: {
+        who: 'Wer',
+        addPerson: 'Person',
+        removePerson: '{name} entfernen',
+        promoteHint: 'Braucht das mehrere Schritte? Dann wird daraus ein Projekt, mit dieser Aufgabe als erstem Schritt.',
+        promote: 'Zum Projekt machen',
+        remove: 'Löschen',
+        changed: 'Geändert: {fields}',
+        archivedNote: 'Diese Aufgabe ist archiviert.',
+      },
       // Asked before unsaved changes in a dialog are thrown away (DiscardDialog).
       discard: {
         question: 'Änderungen verwerfen?',

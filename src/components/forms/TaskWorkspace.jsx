@@ -35,6 +35,7 @@ import {
   calendarEntries,
   filterProjects,
   filterScope,
+  isSingleTask,
   projectDeadlines,
   MINE,
   myProjects,
@@ -75,6 +76,7 @@ const DIALOG_CHUNKS = {
   DayTaskDialog: () => import('./tasks/DayTaskDialog'),
   EventDialog: () => import('./tasks/EventDialog'),
   PrivateTaskDialog: () => import('./tasks/PrivateTaskDialog'),
+  TaskDialog: () => import('./tasks/TaskDialog'),
 }
 const ProjectPanel = lazy(DIALOG_CHUNKS.ProjectPanel)
 const CreateDialog = lazy(DIALOG_CHUNKS.CreateDialog)
@@ -82,6 +84,7 @@ const CompleteDialog = lazy(DIALOG_CHUNKS.CompleteDialog)
 const DayTaskDialog = lazy(DIALOG_CHUNKS.DayTaskDialog)
 const EventDialog = lazy(DIALOG_CHUNKS.EventDialog)
 const PrivateTaskDialog = lazy(DIALOG_CHUNKS.PrivateTaskDialog)
+const TaskDialog = lazy(DIALOG_CHUNKS.TaskDialog)
 
 function loadDialogs() {
   for (const load of Object.values(DIALOG_CHUNKS)) {
@@ -372,6 +375,11 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     if (window.history.state?.panel) window.history.back()
     else go(view, null, { replace: true })
   }
+  // A card made a project closes the task dialog and stays open, now in the panel.
+  const closeTaskDialog = () => {
+    const card = projects.find((project) => project.id === projectId)
+    if (!card || isSingleTask(card)) closePanel()
+  }
   // Every page starts at its top, also when the tab bar or a link sits further down on a phone.
   const goTo = (next) => {
     go(next, null)
@@ -508,6 +516,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const found = projectId ? projects.find((project) => project.id === projectId) : null
   // A folded project lacks its tasks, so the panel waits for the archive.
   const openProject = found && !found.folded ? found : null
+  // A single task opens in its own dialog, everything else in the panel.
+  const openSingle = openProject && isSingleTask(openProject) ? openProject : null
+  const openPanel = openProject && !openSingle ? openProject : null
   const openEventPlace = openProject?.event ? events.find((event) => event.id === openProject.event.id)?.location : undefined
   const openPrivateTask = privateTasks.find((task) => task.id === openPrivateId) ?? null
   const { entries, twins } = useMemo(() => calendarEntries(events, projects), [events, projects])
@@ -957,9 +968,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         </div>
       )}
 
-      <Deferred open={openProject}>
+      <Deferred open={openPanel}>
         <ProjectPanel
-          project={openProject}
+          project={openPanel}
           copy={copy}
           locale={locale}
           today={today}
@@ -970,6 +981,18 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onClose={closePanel}
           onStatus={(project, status) => move(project.id, status)}
           eventPlace={openEventPlace}
+        />
+      </Deferred>
+      <Deferred open={openSingle}>
+        <TaskDialog
+          project={openSingle}
+          copy={copy}
+          locale={locale}
+          me={me}
+          members={members}
+          membersById={membersById}
+          run={run}
+          onClose={closeTaskDialog}
         />
       </Deferred>
       <Deferred open={createRequest}>

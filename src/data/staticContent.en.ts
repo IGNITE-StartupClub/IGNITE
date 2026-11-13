@@ -876,6 +876,17 @@ export const memberArea = {
         noActivity: 'Nothing in the history yet.',
         loadingActivity: 'Loading the history …',
       },
+      // The dialog of a single task (TaskDialog.jsx).
+      taskDialog: {
+        who: 'Who',
+        addPerson: 'Person',
+        removePerson: 'Remove {name}',
+        promoteHint: 'Does this take several steps? Then it becomes a project, with this task as its first step.',
+        promote: 'Make it a project',
+        remove: 'Delete',
+        changed: 'Changed: {fields}',
+        archivedNote: 'This task is archived.',
+      },
       // Asked before unsaved changes in a dialog are thrown away (DiscardDialog).
       discard: {
         question: 'Discard changes?',

@@ -4,8 +4,10 @@
  * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
  * Every change goes through `run` (TaskWorkspace), which shows most of them at once and rolls them back on failure; the
- * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Rows carry
- * data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus).
+ * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Closing the panel
+ * or switching its tab while something typed is unsaved asks first (DiscardDialog). Rows carry data-task-item and their
+ * checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus). Single tasks open in
+ * TaskDialog instead.
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
  * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
  * place in the page's language; the stored snapshot keeps the German one).

@@ -124,9 +124,10 @@ export function AvatarStack({ ids, membersById, copy, max = 3, size = 'sm' }) {
  * A button that opens a searchable member list with checkboxes; every toggle calls onChange with the new id list.
  * The popover is placed under its button and closes on Escape and outside clicks (browser popover API). Members of
  * `team`, the team the work belongs to, come right after the member themselves. The list exists only while it is open:
- * every card and row has a picker, and their closed lists made up most of the page's elements.
+ * every card and row has a picker, and their closed lists made up most of the page's elements. With `addLabel` the
+ * button always reads "+ addLabel", for forms that list the chosen people themselves.
  */
-export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false }) {
+export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false, addLabel }) {
   const id = useId()
   const button = useRef(null)
   const panel = useRef(null)
@@ -159,17 +160,17 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
         ref={button}
         type="button"
         popoverTarget={id}
-        aria-label={`${label}: ${selected.map((memberId) => membersById.get(memberId)?.name).filter(Boolean).join(', ') || copy.nobody}`}
-        className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dashed border-border-strong bg-transparent px-1.5 py-0.5 text-xs text-fg-muted hover:border-fg-muted hover:text-fg ${
-          selected.length ? 'border-solid border-transparent' : ''
-        }`}
+        aria-label={addLabel ? undefined : `${label}: ${selected.map((memberId) => membersById.get(memberId)?.name).filter(Boolean).join(', ') || copy.nobody}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border border-dashed border-border-strong bg-transparent py-0.5 text-fg-muted hover:border-fg-muted hover:text-fg ${
+          addLabel ? 'min-h-9 px-3 text-sm' : 'min-h-8 px-1.5 text-xs'
+        } ${selected.length && !addLabel ? 'border-solid border-transparent' : ''}`}
       >
-        {selected.length ? (
+        {selected.length && !addLabel ? (
           <AvatarStack ids={selected} membersById={membersById} copy={copy} max={compact ? 2 : 4} />
         ) : (
           <>
             <UserPlus aria-hidden="true" className="h-4 w-4" />
-            {!compact && copy.assign}
+            {addLabel ?? (!compact && copy.assign)}
           </>
         )}
       </button>
