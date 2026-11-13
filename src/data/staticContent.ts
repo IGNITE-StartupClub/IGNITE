@@ -1204,7 +1204,7 @@ export const memberArea = {
       },
       calendar: {
         title: 'Kalender',
-        text: 'Abonniere die Events des Clubs und deine offenen Aufgaben mit Frist, zum Beispiel in Apple Kalender. Das Abo zeigt die Termine nur an. Dein Kalender holt Änderungen in eigenen Abständen ab, das kann einige Stunden dauern.',
+        text: 'Abonniere die Events des Clubs und deine offenen Aufgaben mit Deadline, zum Beispiel in Apple Kalender. Das Abo zeigt die Termine nur an. Dein Kalender holt Änderungen in eigenen Abständen ab, das kann einige Stunden dauern.',
         create: 'Abo-Link erstellen',
         renew: 'Neuen Link erstellen',
         off: 'Abo beenden',
