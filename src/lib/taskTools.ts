@@ -8,6 +8,7 @@
  * load this module.
  */
 import { ToolError, type McpTool } from './mcp.ts'
+import { isOver, withOwnEvents, type PublicEvent } from './ownEvents.ts'
 import {
   ALL_TEAMS,
   berlinDay,
@@ -36,21 +37,11 @@ type ToolProject = Omit<ProjectState, 'tasks'> & {
   tasks: (TaskState & { description: string })[]
 }
 
-interface ToolEvent {
-  id: string
-  title: string
-  startAt: Date
-  endAt: Date
-  location: string | null
-  url: string
-  source: string
-}
-
 export interface TaskToolStore {
   /** The member's own team, which a task without a project joins. */
   team: string
   workspace(): Promise<{ projects: ToolProject[]; members: { id: string; name: string; team: string }[] }>
-  events(): Promise<{ events: ToolEvent[]; complete: boolean }>
+  events(): Promise<{ events: PublicEvent[]; complete: boolean }>
   addTask(projectId: string, task: TaskFields): Promise<string>
   updateTask(projectId: string, taskId: string, patch: TaskPatch): Promise<string>
   /** A task without a project is a card of its own on the board; returns the card's id. */
@@ -236,7 +227,7 @@ export function taskTools(me: string, store: TaskToolStore, now: () => number = 
       name: 'upcoming_events',
       title: 'Kommende Events',
       description:
-        'Die kommenden Events des Clubs, das nächste zuerst. project_id ist das Planungsprojekt, falls es eines gibt.',
+        'Die kommenden Events des Clubs, das nächste zuerst, auch die eigenen Events aus den Aufgaben (own). project_id ist das Planungsprojekt, falls es eines gibt, bei einem eigenen Event das Event selbst. Ohne Uhrzeit sind start und end Tage (YYYY-MM-DD), ohne feste Endzeit ist end null.',
       inputSchema: schema({}),
       annotations: READ,
       run: async () => {
@@ -244,15 +235,16 @@ export function taskTools(me: string, store: TaskToolStore, now: () => number = 
         if (!complete)
           throw new ToolError('Der Eventkalender ist gerade nicht erreichbar. Versuche es später noch einmal.')
         return {
-          events: events
-            .filter((event) => isEvent(event) && event.endAt.getTime() >= now())
+          events: withOwnEvents(events, projects)
+            .filter((event) => isEvent(event) && !isOver(event, now()))
             .map((event) => ({
               title: event.title,
-              start: event.startAt.toISOString(),
-              end: event.endAt.toISOString(),
+              start: event.startAt?.toISOString() ?? event.day,
+              end: event.startAt ? (event.endAt?.toISOString() ?? null) : event.endDay,
               location: event.location,
               url: event.url,
-              project_id: projects.find((project) => project.event?.id === event.id)?.id ?? null,
+              project_id: event.projectId,
+              ...(event.source === 'own' ? { own: true } : {}),
             })),
         }
       },

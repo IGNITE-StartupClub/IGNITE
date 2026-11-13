@@ -25,6 +25,7 @@ import { randomUUID } from 'node:crypto'
 import { ObjectId, type Filter } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
+import type { EventProject } from './ownEvents'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
 import { changedSince, collectionRevision, listRevision, markUnsettled } from './liveUpdates'
@@ -480,38 +481,97 @@ export async function projectFolders(): Promise<ProjectFolder[]> {
     .sort((a, b) => (a.day || '9999').localeCompare(b.day || '9999'))
 }
 
-/** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
+/**
+ * The open projects with a task of this member or led by them, all the start page and the calendar feed need of the
+ * workspace: the member's tasks, and for a lead the tasks nobody has taken yet (unassignedCount).
+ */
 export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
   const { projects } = await collections()
   const list = await projects
     .find(
-      { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
+      { archivedAt: null, status: { $ne: 'done' }, $or: [{ 'tasks.assignees': actor.id }, { leads: actor.id }] },
       {
-        // Only what openTasks reads: descriptions can be long, and the calendar feed asks this on every poll.
+        // Only what openTasks and unassignedCount read: descriptions can be long, and the calendar feed asks this on
+        // every poll.
         projection: {
           title: 1,
           type: 1,
           status: 1,
-          'event.id': 1,
+          leads: 1,
           'tasks.id': 1,
           'tasks.title': 1,
           'tasks.due': 1,
           'tasks.done': 1,
           'tasks.assignees': 1,
+          'tasks.repeat': 1,
           'tasks.position': 1,
         },
         sort: { updatedAt: -1 },
       },
     )
     .toArray()
-  return list.map(({ _id, title, type, status, event, tasks }) => ({
+  return list.map(({ _id, title, type, status, leads, tasks }) => ({
     id: _id,
     title,
     type,
     status: projectStatus(status),
     archived: false,
-    event: event ?? null,
+    leads,
     tasks: [...tasks].sort((a, b) => a.position - b.position),
+  }))
+}
+
+/**
+ * The event projects that are not archived, own events and the plannings of public events, with what withOwnEvents
+ * (ownEvents.ts) and progress() read: the start page and the calendar feed list own events beside the public ones,
+ * and the start page shows how far the next event's planning is.
+ */
+export async function eventProjects(): Promise<EventProject[]> {
+  const { projects } = await collections()
+  const list = await projects
+    .find(
+      { type: 'event', archivedAt: null },
+      {
+        projection: {
+          title: 1,
+          type: 1,
+          status: 1,
+          due: 1,
+          time: 1,
+          place: 1,
+          endDue: 1,
+          endTime: 1,
+          luma: 1,
+          distinctFrom: 1,
+          leads: 1,
+          team: 1,
+          'event.id': 1,
+          'event.startAt': 1,
+          'event.location': 1,
+          'event.missing': 1,
+          'tasks.done': 1,
+        },
+      },
+    )
+    .toArray()
+  return list.map((project) => ({
+    id: project._id,
+    title: project.title,
+    type: project.type,
+    status: projectStatus(project.status),
+    due: project.due,
+    time: project.time ?? '',
+    place: project.place ?? '',
+    endDue: project.endDue ?? '',
+    endTime: project.endTime ?? '',
+    luma: project.luma ?? null,
+    distinctFrom: project.distinctFrom ?? [],
+    leads: project.leads,
+    team: project.team ?? '',
+    archived: false,
+    eventDay: project.event ? berlinDay(project.event.startAt.getTime()) : '',
+    event: project.event && { id: project.event.id, missing: project.event.missing, location: project.event.location },
+    tasks: project.tasks,
   }))
 }
 

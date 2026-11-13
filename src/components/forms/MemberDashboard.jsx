@@ -1,14 +1,18 @@
 /**
- * Dashboard of the members start page: greeting with team and key figures, the next open tasks and the next event.
- * Ticking a task posts to /api/members/tasks; the row stays struck through until the next load and the figures follow.
+ * Dashboard of the members start page: greeting with team and key figures, the next open tasks, what a lead still has
+ * to hand out and the next event with its planning. Ticking a task posts to /api/members/tasks; the row stays struck
+ * through until the next load and the figures follow. A repeating task names its next deadline instead and cannot be
+ * unticked here, because the server has already moved it on.
  * Props: copy (memberArea.home.dashboard), welcome, name (greeting), team ({ name, icon }), tasks (the member's open
- * tasks from openTasks(), each with a dueLabel), today, event ({ id, title, month, day, when } or null), eventsComplete,
- * links ({ team, mine, tasks, events, project }; team is '' for the board, which has nothing to change, and project is
- * the task page, a project id goes behind its #).
+ * tasks from openTasks(), each with a dueLabel and nextDueLabel), unassigned (unassignedCount()), today, event
+ * ({ title, month, day, when, planning: the id and progress() of the project that plans it, or null } or null),
+ * eventsComplete, links ({ team, mine, week, overdue, tasks, unassigned, calendar, project }; team is '' for the board,
+ * which has nothing to change, and project is the task page, whose hash opens a project or private task).
  */
 import React, { useState } from 'react'
-import { ArrowRight, Check, ChevronDown } from 'lucide-react'
-import { eventTaskCount, homeFigures } from '../../lib/memberHome'
+import { ArrowRight, Check, ChevronDown, UserPlus } from 'lucide-react'
+import { afterTicks, eventTaskCount, homeFigures } from '../../lib/memberHome'
+import { taskHash } from '../../lib/tasks'
 import { fill } from './memberUi'
 
 const NEXT_TASKS = 4
@@ -30,12 +34,16 @@ function Figure({ value, label, url, alert }) {
 function TaskRow({ task, done, today, copy, projectUrl, onToggle }) {
   const late = task.group === 'overdue' && !done
   const dueToday = task.due === today && !done
+  const repeated = done && !!task.nextDue
   return (
     <li className={`${ROW} flex min-h-[76px] items-center gap-1.5 border-t border-border py-2 pl-3 pr-6`}>
-      <label className="relative inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center">
+      <label
+        className={`relative inline-flex h-12 w-12 shrink-0 items-center justify-center ${repeated ? '' : 'cursor-pointer'}`}
+      >
         <input
           type="checkbox"
           checked={done}
+          disabled={repeated}
           onChange={(e) => onToggle(task, e.target.checked)}
           aria-label={fill(copy.done, { title: task.title })}
           className="peer sr-only"
@@ -68,13 +76,25 @@ function TaskRow({ task, done, today, copy, projectUrl, onToggle }) {
       <span
         className={`shrink-0 text-caption ${late ? 'font-semibold text-danger' : dueToday ? 'font-semibold text-accent' : 'text-fg-muted'}`}
       >
-        {task.dueLabel}
+        {repeated ? fill(copy.repeated, { date: task.nextDueLabel }) : task.dueLabel}
       </span>
     </li>
   )
 }
 
-function EventCard({ copy, event, eventsComplete, openCount, url }) {
+function Planning({ copy, planning, url }) {
+  return (
+    <p className="text-sm text-fg-muted">
+      {planning.total > 0 && `${fill(copy.planning, planning)} · `}
+      <a href={url} className="inline-flex items-center gap-1 font-medium text-accent no-underline hover:underline">
+        {copy.openPlanning}
+        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+      </a>
+    </p>
+  )
+}
+
+function EventCard({ copy, event, eventsComplete, openCount, url, projectUrl }) {
   const line = openCount === 0 ? copy.none : openCount === 1 ? copy.one : fill(copy.many, { count: openCount })
   return (
     <section aria-labelledby="next-event" className="flex min-w-0 flex-[1_1_380px] flex-col gap-5 rounded-card border border-border bg-card p-6">
@@ -91,6 +111,13 @@ function EventCard({ copy, event, eventsComplete, openCount, url }) {
             <div className="min-w-0">
               <p className="text-lg font-semibold leading-tight tracking-tight">{event.title}</p>
               <p className="text-sm text-fg-muted">{event.when}</p>
+              {event.planning && (
+                <Planning
+                  copy={copy}
+                  planning={event.planning}
+                  url={`${projectUrl}${taskHash('events', event.planning.id)}`}
+                />
+              )}
             </div>
           </div>
           <p className="text-sm text-fg-muted">{line}</p>
@@ -108,7 +135,18 @@ function EventCard({ copy, event, eventsComplete, openCount, url }) {
   )
 }
 
-export default function MemberDashboard({ copy, welcome, name, team, tasks, today, event, eventsComplete, links }) {
+export default function MemberDashboard({
+  copy,
+  welcome,
+  name,
+  team,
+  tasks,
+  unassigned,
+  today,
+  event,
+  eventsComplete,
+  links,
+}) {
   const [doneIds, setDoneIds] = useState(() => new Set())
   const [failed, setFailed] = useState(false)
 
@@ -141,7 +179,7 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
     }
   }
 
-  const open = tasks.filter((task) => !doneIds.has(task.id))
+  const open = afterTicks(tasks, doneIds, today)
   const figures = homeFigures(open)
 
   return (
@@ -170,8 +208,13 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
         </div>
         <ul className="relative grid min-w-0 flex-[0_1_620px] grid-cols-3 gap-[clamp(8px,1vw,14px)]">
           <Figure value={figures.open} label={copy.figures.open} url={links.mine} />
-          <Figure value={figures.week} label={copy.figures.week} url={links.mine} />
-          <Figure value={figures.overdue} label={copy.figures.overdue} url={links.mine} alert={figures.overdue > 0} />
+          <Figure value={figures.week} label={copy.figures.week} url={links.week} />
+          <Figure
+            value={figures.overdue}
+            label={copy.figures.overdue}
+            url={links.overdue}
+            alert={figures.overdue > 0}
+          />
         </ul>
       </section>
 
@@ -189,7 +232,7 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
                   done={doneIds.has(task.id)}
                   today={today}
                   copy={copy.next}
-                  projectUrl={task.private ? links.tasks : `${links.project}#${task.projectId}`}
+                  projectUrl={`${links.project}#${task.private ? task.id : task.projectId}`}
                   onToggle={toggle}
                 />
               ))}
@@ -202,6 +245,15 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
               {copy.next.error}
             </p>
           )}
+          {unassigned > 0 && (
+            <a href={links.unassigned} className={`${ROW} flex min-h-[60px] items-center justify-between border-t border-border px-6 text-sm font-medium text-accent no-underline`}>
+              <span className="inline-flex items-center gap-2">
+                <UserPlus aria-hidden="true" className="h-4 w-4" />
+                {fill(copy.next.unassigned, { count: unassigned })}
+              </span>
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </a>
+          )}
           <a href={links.tasks} className={`${ROW} flex min-h-[60px] items-center justify-between border-t border-border px-6 text-sm font-medium text-accent no-underline`}>
             {copy.next.all}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -212,8 +264,9 @@ export default function MemberDashboard({ copy, welcome, name, team, tasks, toda
           copy={copy.event}
           event={event}
           eventsComplete={eventsComplete}
-          openCount={event ? eventTaskCount(open, event.id) : 0}
-          url={links.events}
+          openCount={eventTaskCount(open, event?.planning?.id ?? null)}
+          url={links.calendar}
+          projectUrl={links.project}
         />
       </div>
     </div>
