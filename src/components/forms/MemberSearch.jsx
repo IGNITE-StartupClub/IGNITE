@@ -2,7 +2,8 @@
  * The search field of the member header: an icon in the pill that opens a modal bar over the whole pill. Typing searches
  * everything the member may see, `@` only people and `+` captures a task (rules in src/lib/memberSearch.ts). The index
  * loads when the field opens and stays for a minute, so typing costs no requests. Cmd/Ctrl+K opens it on every page.
- * Lives in a persisted island: the header swaps on every navigation, this component does not.
+ * Lives in a persisted island: the header swaps on every navigation, this component does not. When a search finds
+ * nothing, it offers the website feedback with the searched text (memberHelp.js event, HelpDialogs.jsx).
  * Props: copy (memberArea.search), locale, me (the member's id), tasksUrl, homeUrl, logo (slot: the mark shown in the bar).
  */
 import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
@@ -16,6 +17,7 @@ import {
   CircleCheck,
   FolderKanban,
   GraduationCap,
+  MessageCircle,
   Search,
   X,
 } from 'lucide-react'
@@ -32,6 +34,7 @@ import {
 } from '../../lib/memberSearch'
 import { berlinDay } from '../../lib/tasks'
 import { fill, Initials } from './memberUi'
+import { emit, FEEDBACK_EVENT } from './memberHelp'
 
 const INDEX_TTL_MS = 60_000
 const KIND_ICONS = {
@@ -208,6 +211,12 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
     // The start page and the task page show tasks, so the new one has to reach them.
     if (created.current && pagesWithTasks.includes(window.location.pathname)) refresh()
     created.current = false
+  }
+
+  const giveFeedback = () => {
+    const searched = text.trim()
+    dialog.current.close()
+    emit(FEEDBACK_EVENT, { area: 'search', text: searched })
   }
 
   const leaveFor = (url) => {
@@ -522,6 +531,25 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, logo
               </>
             )}
           </div>
+
+          {index && !groups.length && (mode === 'search' || mode === 'people') && (
+            <div className="mx-5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5 border-t border-border py-3.5">
+              <span
+                aria-hidden="true"
+                className="surface-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </span>
+              <p className="min-w-0 flex-[1_1_15rem] text-fg-muted">{copy.feedback.text}</p>
+              <button
+                type="button"
+                onClick={giveFeedback}
+                className="min-h-10 rounded-button border border-accent bg-transparent px-3.5 font-semibold text-accent"
+              >
+                {copy.feedback.action}
+              </button>
+            </div>
+          )}
 
           {!index && mode !== 'empty' && !failed && <p className="px-5 py-3.5 text-fg-muted">{copy.loading}</p>}
           {failed && (

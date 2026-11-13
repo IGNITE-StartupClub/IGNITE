@@ -95,6 +95,9 @@ export const passwordKey = (secret: string): Buffer => deriveKey(secret, 'ignite
 /** Key that signs the OAuth client ids (connections.ts), derived like codeKey but for this purpose only. */
 export const connectionKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-connection')
 
+/** Key of the daily feedback counters (feedbackStore.ts), derived like codeKey but for this purpose only. */
+export const feedbackKey = (secret: string): Buffer => deriveKey(secret, 'ignite-member-feedback')
+
 // A code has only a million values, so a plain hash would fall to brute force once the database leaks. The keyed
 // HMAC needs the server secret as well, and binding the address keeps a code from working for another member.
 export const hashCode = (code: string, email: string, key: Buffer): string =>
@@ -103,6 +106,13 @@ export const hashCode = (code: string, email: string, key: Buffer): string =>
 /** Pseudonym of a client address for the login limit, so the database holds no plain IP addresses. */
 export const hashClientAddress = (address: string, key: Buffer): string =>
   createHmac('sha256', key).update(`client\n${address}`).digest('hex')
+
+/**
+ * Id of the counter that limits a member's feedback per Berlin day. Keyed, so the database alone does not tell whose
+ * counter it is, and it points to no entry, so it does not tell which entries a member sent either.
+ */
+export const feedbackQuotaId = (memberId: string, day: string, key: Buffer): string =>
+  createHmac('sha256', key).update(`feedback\n${memberId}\n${day}`).digest('hex')
 
 /** Constant-time comparison of two hex digests. */
 export const sameDigest = (a: string, b: string): boolean =>
@@ -179,6 +189,8 @@ const PAGES = {
   admin: { de: 'verwaltung', en: 'admin' },
   // Errors and server state, below the member management because only admins see it too.
   system: { de: 'verwaltung/system', en: 'admin/system' },
+  // Website feedback of the members, below the member management for the same reason.
+  feedback: { de: 'verwaltung/feedback', en: 'admin/feedback' },
   // The Netzwerk section opens on its CRM tab.
   crm: { de: 'netzwerk', en: 'network' },
   tasks: { de: 'aufgaben', en: 'tasks' },
@@ -225,7 +237,7 @@ export function isProtectedApiPath(pathname: string): boolean {
 }
 
 /** Pages only admins may open. */
-export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin', 'system'])
+export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin', 'system', 'feedback'])
 
 /** Pages only members on the connection list may open. */
 export const isConnectionPath = (pathname: string): boolean => isPage(pathname, ['connect', 'connections'])

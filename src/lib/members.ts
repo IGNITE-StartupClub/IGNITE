@@ -162,6 +162,8 @@ async function collections() {
     // Their documents and all other access live in connectionsStore.ts.
     connections: db.collection<{ email: string }>('member_connections'),
     feeds: db.collection<{ _id: string }>('member_calendar_feeds'),
+    // Its documents and all other access live in feedbackStore.ts.
+    feedback: db.collection<{ _id: string; memberId?: string }>('feedback'),
   }
 }
 
@@ -265,10 +267,12 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
 
 /**
  * Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once,
- * and with their private tasks and digest data.
+ * and with their private tasks and digest data. Their named website feedback loses the name and stays like an
+ * anonymous entry until it expires.
  */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos, privateTasks, taskTrash, taskNotifications, taskDigests, connections, feeds } = await collections()
+  const { members, sessions, codes, photos, privateTasks, taskTrash, taskNotifications, taskDigests, connections, feeds, feedback } =
+    await collections()
   const member = await members.findOneAndDelete({ email })
   const memberId = member?._id.toHexString()
   await Promise.all([
@@ -281,6 +285,7 @@ export async function removeMember(email: string): Promise<boolean> {
           taskTrash.deleteMany({ deletedBy: memberId }),
           taskNotifications.deleteMany({ memberId }),
           taskDigests.deleteMany({ memberId }),
+          feedback.updateMany({ memberId }, { $unset: { memberId: '' } }),
         ]
       : []),
     connections.deleteMany({ email }),

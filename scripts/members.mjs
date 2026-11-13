@@ -10,7 +10,7 @@
  *
  * `add` sends no invitation: the member requests a code on the login page ("Neu im Team?" → "Code anfordern").
  * `remove` also ends the open sessions and codes of that address and deletes the member's private tasks, their undo
- * entries, pending digest entries and sent digests.
+ * entries, pending digest entries and sent digests. Their named website feedback loses the name, like on the admin page.
  */
 
 import { MongoClient } from 'mongodb'
@@ -90,6 +90,7 @@ try {
           db.collection('task_trash').deleteMany({ deletedBy: memberId }),
           db.collection('task_notifications').deleteMany({ memberId }),
           db.collection('task_digests').deleteMany({ memberId }),
+          db.collection('feedback').updateMany({ memberId }, { $unset: { memberId: '' } }),
         ])
       }
       console.log(member ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)

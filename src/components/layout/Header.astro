@@ -5,7 +5,8 @@
  * Inside the members area (signed in; the login page has no header) the pill switches: "IGNITE Member" logo linking to
  * the members home (below sm only the mark, so the pill fits on phones), the member navigation (memberArea.nav) and a
  * profile menu with photo instead of the members link and "Mitmachen". The menu also carries the legal links, because
- * the members area has no footer. The search field (MemberSearch) sits right of the links.
+ * the members area has no footer, and opens the website feedback of MemberHelp. The search field (MemberSearch) sits
+ * right of the links.
  * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
@@ -22,6 +23,7 @@ import MemberLink from '../ui/MemberLink.astro'
 import ExitDoor from '../ui/ExitDoor.astro'
 import MobileNav from './MobileNav.astro'
 import MemberSearch from '../forms/MemberSearch.jsx'
+import MemberHelp from './MemberHelp.astro'
 import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
@@ -151,6 +153,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
           </MemberSearch>
         )
       }
+      {member && <MemberHelp />}
       <div class="hidden items-center gap-1 lg:flex">
         <LanguageToggle href={switchHref} />
         <ThemeToggle />
@@ -184,6 +187,11 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                       {memberNav.system}
                     </a>
                   </li>
+                  <li style="--i: 1">
+                    <a class="panel-link" href={memberPagePath('feedback', locale)} aria-current={isCurrent(memberPagePath('feedback', locale)) ? 'page' : undefined}>
+                      {memberNav.feedbackAdmin}
+                    </a>
+                  </li>
                 </>
               )}
               {member.position !== 'board' && (
@@ -206,6 +214,10 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                   </a>
                 </li>
               )}
+              <li style="--i: 5">
+                {/* Opened by the HelpDialogs island (MemberHelp.astro). */}
+                <button type="button" class="panel-link panel-button" data-member-help="feedback">{memberNav.feedback}</button>
+              </li>
               <li style="--i: 6">
                 <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
               </li>
@@ -724,7 +736,8 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     color: var(--color-fg);
   }
   /* The site's base styles give every button a border, padding and line-height 1. */
-  .logout {
+  .logout,
+  .panel-button {
     width: 100%;
     font: inherit;
     font-size: var(--text-sm);

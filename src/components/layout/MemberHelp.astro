@@ -1,0 +1,24 @@
+---
+/**
+ * Mounts the help dialogs (HelpDialogs island: website feedback) in the member header. Everything it needs comes from
+ * the copy and the paths of the members area, so it costs no query.
+ * Props: none; Header.astro renders it only for signed-in members.
+ */
+import HelpDialogs from '../forms/HelpDialogs.jsx'
+import { getCopy } from '../../data/copy'
+import { resolveLocale } from '../../lib/i18n'
+import { memberHomePath, memberPagePath } from '../../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea } = getCopy(locale)
+const areaPaths = {
+  home: memberHomePath(locale),
+  tasks: memberPagePath('tasks', locale),
+  network: memberPagePath('crm', locale),
+  storage: memberPagePath('storage', locale),
+  signature: memberPagePath('signature', locale),
+}
+---
+
+{/* client:idle like the search: nothing here is needed in the first moment of a page. */}
+<HelpDialogs client:idle copy={{ feedback: memberArea.feedback }} areaPaths={areaPaths} />

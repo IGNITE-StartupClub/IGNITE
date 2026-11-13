@@ -7,6 +7,8 @@ import {
   codeKey,
   connectionKey,
   decodePhoto,
+  feedbackKey,
+  feedbackQuotaId,
   hashCode,
   hashPassword,
   hashToken,
@@ -166,7 +168,7 @@ test('isProtectedApiPath closes every member endpoint except the sign-in ones', 
   }
 })
 
-test('isAdminPath matches only the admin and system pages in both languages', () => {
+test('isAdminPath matches only the admin, system and feedback pages in both languages', () => {
   assert.equal(isAdminPath('/mitglieder/verwaltung'), true)
   assert.equal(isAdminPath('/en/members/admin/'), true)
   assert.equal(isAdminPath('/mitglieder/'), false)
@@ -174,6 +176,8 @@ test('isAdminPath matches only the admin and system pages in both languages', ()
   assert.equal(isAdminPath('/mitglieder/verwaltung/system'), true)
   assert.equal(isAdminPath('/en/members/admin/system/'), true)
   assert.equal(isAdminPath('/mitglieder/verwaltung/systemx'), false)
+  assert.equal(isAdminPath('/mitglieder/verwaltung/feedback'), true)
+  assert.equal(isAdminPath('/en/members/admin/feedback/'), true)
 })
 
 test('memberAreaLocale and memberPagePath map both languages', () => {
@@ -280,4 +284,16 @@ test('derives its own key for the client ids', () => {
   const secret = 'a'.repeat(64)
   assert.notDeepEqual(connectionKey(secret), codeKey(secret))
   assert.deepEqual(connectionKey(secret), connectionKey(secret))
+})
+
+test('feedbackQuotaId is one keyed counter per member and day', () => {
+  const key = feedbackKey('a'.repeat(64))
+  const id = feedbackQuotaId('65f0c0ffee0000000000abcd', '2026-11-13', key)
+  assert.match(id, /^[0-9a-f]{64}$/)
+  assert.equal(feedbackQuotaId('65f0c0ffee0000000000abcd', '2026-11-13', key), id)
+  assert.notEqual(feedbackQuotaId('65f0c0ffee0000000000abce', '2026-11-13', key), id)
+  assert.notEqual(feedbackQuotaId('65f0c0ffee0000000000abcd', '2026-11-14', key), id)
+  // Without the server secret nobody can recompute it from the member id.
+  assert.notEqual(feedbackQuotaId('65f0c0ffee0000000000abcd', '2026-11-13', feedbackKey('b'.repeat(64))), id)
+  assert.notDeepEqual(feedbackKey('a'.repeat(64)), codeKey('a'.repeat(64)))
 })
