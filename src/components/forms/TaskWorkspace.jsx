@@ -611,6 +611,11 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const ledOpen = myProjects(projects, me)
   const projectCount = projects.filter((project) => !project.archived && project.type !== 'task').length
   const deadlines = useMemo(() => projectDeadlines(projects), [projects])
+  const calendarShown = view === 'events' && eventLayout === 'calendar'
+  const myDeadlines = useMemo(
+    () => (calendarShown ? withPrivate(filterScope(MINE, myTeam, '')).filter((task) => task.due && !task.done) : []),
+    [calendarShown, projects, privateTasks, myTeam, me, today],
+  )
 
   const myTeamOption = myTeam ? [{ value: myTeam, label: fill(copy.filter.myTeam, { team: copy.teams[myTeam] }) }] : []
   const otherTeams = TEAM_IDS.filter((team) => team !== myTeam).map((team) => ({ value: team, label: copy.teams[team] }))
@@ -945,7 +950,9 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           onStart={startPlanning}
           onOpen={open}
           onOpenEvent={openEvent}
+          onOpenTask={openTask}
           deadlines={deadlines}
+          tasks={myDeadlines}
           onAddOnDay={addOnDay}
         />
       )}
