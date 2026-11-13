@@ -9,7 +9,7 @@
 import { randomUUID } from 'node:crypto'
 import { fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
 import { database, setUpInBackground } from './members'
-import { MAX_TASKS, berlinDay, nextTurn, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
+import { MAX_TASKS, berlinDay, isClosed, nextTurn, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
 import { putInTrash, takeFromTrash } from './taskTrash'
 
 const COLLECTION = 'private_tasks'
@@ -87,7 +87,7 @@ export async function addPrivateTask(memberId: string, fields: TaskFields): Prom
   if ((await tasks.countDocuments({ memberId })) >= MAX_TASKS) return 'privateFull'
   const id = randomUUID()
   const now = new Date()
-  const done = fields.status === 'done' || fields.status === 'dropped'
+  const done = isClosed(fields.status)
   await tasks.insertOne({
     _id: id,
     memberId,

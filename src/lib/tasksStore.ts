@@ -55,6 +55,7 @@ import {
   type TaskStatus,
   type TeamChoice,
   type TemplateTask,
+  isClosed,
   mayRemoveTask,
   mirroredFields,
   nextTurn,
@@ -581,7 +582,7 @@ async function unnotify(taskId: string, memberIds?: string[]) {
 }
 
 function newTask(fields: TaskFields, position: number, actor: TaskActor, now: Date): TaskDoc {
-  const done = fields.status === 'done'
+  const done = isClosed(fields.status)
   return {
     ...fields,
     id: randomUUID(),

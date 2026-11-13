@@ -33,6 +33,7 @@ import {
   nameFromEmail,
   memberChange,
   mirroredFields,
+  isClosed,
   nextStanding,
   openRequired,
   parseName,
@@ -56,6 +57,7 @@ import {
   sameTitle,
   similarTitles,
   sortTasks,
+  TASK_STATUSES,
   TEAM_IDS,
   taskGroup,
   taskHash,
@@ -550,6 +552,13 @@ test('taskStatus reads tasks stored before the board from their done flag', () =
   assert.equal(taskStatus({ done: false }), 'backlog')
   assert.equal(taskStatus({ done: false, status: 'doing' }), 'doing')
   assert.equal(taskStatus({ done: false, status: 'review' }), 'doing')
+})
+
+test('isClosed counts done and dropped tasks as closed', () => {
+  assert.deepEqual(
+    TASK_STATUSES.filter((status) => isClosed(status)),
+    ['done', 'dropped'],
+  )
 })
 
 test('nextStanding keeps status and done in step', () => {

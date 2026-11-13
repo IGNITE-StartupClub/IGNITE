@@ -524,12 +524,15 @@ export const mayRemoveTask = (
 
 type Standing = Pick<TaskState, 'done' | 'status'>
 
+/** A done or dropped task is closed: it counts as done and leaves the open lists. */
+export const isClosed = (status: TaskStatus): boolean => status === 'done' || status === 'dropped'
+
 /**
  * Where a task stands after a change. The board moves the status and checkboxes set done, so both always agree: the
  * last column and "dropped" are done, and a task checked open again returns to the backlog.
  */
 export function nextStanding(task: Standing, patch: TaskPatch): Standing {
-  if (patch.status) return { status: patch.status, done: patch.status === 'done' || patch.status === 'dropped' }
+  if (patch.status) return { status: patch.status, done: isClosed(patch.status) }
   if (patch.done === undefined || patch.done === task.done) return { status: task.status, done: task.done }
   return { status: patch.done ? 'done' : 'backlog', done: patch.done }
 }
