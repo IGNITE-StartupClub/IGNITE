@@ -100,7 +100,7 @@ export default function FeedbackDialog({ copy, area: firstArea, here, text: firs
               type="button"
               onClick={close}
               aria-label={copy.close}
-              className="-mr-2 -mt-1 rounded-md border-0 bg-transparent p-2 text-fg-muted hover:text-fg"
+              className="-mr-2 -mt-1 shrink-0 rounded-md border-0 bg-transparent p-2 text-fg-muted hover:text-fg"
             >
               <X aria-hidden="true" className="h-5 w-5" />
             </button>
