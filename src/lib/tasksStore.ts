@@ -25,6 +25,7 @@ import { randomUUID } from 'node:crypto'
 import { ObjectId, type Filter } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
+import type { EventProject } from './ownEvents'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
 import { changedSince, collectionRevision, listRevision, markUnsettled } from './liveUpdates'
@@ -504,6 +505,60 @@ export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]>
     archived: false,
     event: event ?? null,
     tasks: [...tasks].sort((a, b) => a.position - b.position),
+  }))
+}
+
+/**
+ * The event projects that are not archived, own events and the plannings of public events, with what withOwnEvents
+ * (ownEvents.ts) and progress() read: the start page and the calendar feed list own events beside the public ones,
+ * and the start page shows how far the next event's planning is.
+ */
+export async function eventProjects(): Promise<EventProject[]> {
+  const { projects } = await collections()
+  const list = await projects
+    .find(
+      { type: 'event', archivedAt: null },
+      {
+        projection: {
+          title: 1,
+          type: 1,
+          status: 1,
+          due: 1,
+          time: 1,
+          place: 1,
+          endDue: 1,
+          endTime: 1,
+          luma: 1,
+          distinctFrom: 1,
+          leads: 1,
+          team: 1,
+          'event.id': 1,
+          'event.startAt': 1,
+          'event.location': 1,
+          'event.missing': 1,
+          'tasks.done': 1,
+        },
+      },
+    )
+    .toArray()
+  return list.map((project) => ({
+    id: project._id,
+    title: project.title,
+    type: project.type,
+    status: projectStatus(project.status),
+    due: project.due,
+    time: project.time ?? '',
+    place: project.place ?? '',
+    endDue: project.endDue ?? '',
+    endTime: project.endTime ?? '',
+    luma: project.luma ?? null,
+    distinctFrom: project.distinctFrom ?? [],
+    leads: project.leads,
+    team: project.team ?? '',
+    archived: false,
+    eventDay: project.event ? berlinDay(project.event.startAt.getTime()) : '',
+    event: project.event && { id: project.event.id, missing: project.event.missing, location: project.event.location },
+    tasks: project.tasks,
   }))
 }
 

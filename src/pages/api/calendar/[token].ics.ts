@@ -5,9 +5,10 @@ import { calendarFeed, FEED_HEADERS } from '../../../lib/calendarFeed'
 import { calendarFeedMember } from '../../../lib/connectionsStore'
 import { memberPagePath } from '../../../lib/memberAuth'
 import { openTasks } from '../../../lib/memberHome'
+import { withOwnEvents } from '../../../lib/ownEvents'
 import { loadTaskEvents } from '../../../lib/taskEvents'
 import { berlinDay } from '../../../lib/tasks'
-import { assignedProjects, sessionActor } from '../../../lib/tasksStore'
+import { assignedProjects, eventProjects, sessionActor } from '../../../lib/tasksStore'
 import { logError } from '../../../lib/errorLog'
 
 // Refusals and failures stay out of every cache: a cached 404 would keep refusing a link for half an hour after an
@@ -19,8 +20,9 @@ const text = (status: number, body: string, headers: Record<string, string> = {}
   })
 
 /**
- * A member's calendar subscription: the club's events and their own open tasks with a deadline. Calendar apps cannot
- * sign in, so the secret token in the address is the access right, stored only as a hash (connectionsStore.ts).
+ * A member's calendar subscription: the club's events, own events of the tasks module included, and their own open
+ * tasks with a deadline. Calendar apps cannot sign in, so the secret token in the address is the access right, stored
+ * only as a hash (connectionsStore.ts).
  */
 export const GET: APIRoute = async ({ params, url }) => {
   try {
@@ -28,7 +30,11 @@ export const GET: APIRoute = async ({ params, url }) => {
     if (!member) return text(404, 'Not found')
     const actor = sessionActor(member)
 
-    const [{ events, complete }, projects] = await Promise.all([loadTaskEvents('de'), assignedProjects(actor)])
+    const [{ events, complete }, projects, eventPlans] = await Promise.all([
+      loadTaskEvents('de'),
+      assignedProjects(actor),
+      eventProjects(),
+    ])
     // A feed without the Luma events would delete them from the subscribed calendar until the next refresh.
     if (!complete) return text(503, 'Events are unavailable', { 'Retry-After': '900' })
 
@@ -36,7 +42,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     const tasks = openTasks(projects, actor.id, berlinDay(Date.now()), [])
       .filter((task) => task.due)
       .map((task) => ({ ...task, url: `${url.origin}${memberPagePath('tasks', 'de')}#${task.projectId}` }))
-    return new Response(calendarFeed(events, tasks, new Date()), {
+    return new Response(calendarFeed(withOwnEvents(events, eventPlans), tasks, new Date()), {
       headers: FEED_HEADERS,
     })
   } catch (err) {

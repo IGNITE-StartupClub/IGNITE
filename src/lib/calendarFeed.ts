@@ -1,8 +1,9 @@
 /**
- * The personal calendar subscription as iCalendar text (RFC 5545): the public events at their time and the member's
- * open tasks as all-day entries on their deadline. Without database access, so node --test can load it.
- * The route is pages/api/calendar/[token].ics.ts, the secret link comes from connectionsStore.ts.
+ * The personal calendar subscription as iCalendar text (RFC 5545): the public and own events (withOwnEvents) at their
+ * time and the member's open tasks as all-day entries on their deadline. Without database access, so node --test can
+ * load it. The route is pages/api/calendar/[token].ics.ts, the secret link comes from connectionsStore.ts.
  */
+import type { ListedEvent } from './ownEvents.ts'
 import { addDays } from './tasks.ts'
 
 /**
@@ -22,14 +23,10 @@ export const FEED_HEADERS = {
 const UID_DOMAIN = 'ignite-startupclub.de'
 const LINE_OCTETS = 75
 
-export interface FeedEvent {
-  id: string
-  title: string
-  startAt: Date
-  endAt: Date
-  location: string | null
-  url: string
-}
+export type FeedEvent = Pick<
+  ListedEvent,
+  'id' | 'title' | 'source' | 'day' | 'endDay' | 'startAt' | 'endAt' | 'location' | 'url'
+>
 
 export interface FeedTask {
   id: string
@@ -68,13 +65,23 @@ function fold(line: string): string {
 const utcTime = (date: Date): string => date.toISOString().replace(/[-:]|\.\d{3}/g, '')
 const dateValue = (day: string): string => day.replaceAll('-', '')
 
-function eventLines({ id, title, startAt, endAt, location, url }: FeedEvent, stamp: string): string[] {
+/**
+ * Start and end. Without a start time the event takes its whole days; without an end time it has no end line, which
+ * means it ends when it starts (RFC 5545, 3.6.1).
+ */
+function whenLines({ day, endDay, startAt, endAt }: FeedEvent): string[] {
+  if (!startAt) return [`DTSTART;VALUE=DATE:${dateValue(day)}`, `DTEND;VALUE=DATE:${dateValue(addDays(endDay, 1))}`]
+  return [`DTSTART:${utcTime(startAt)}`, ...(endAt ? [`DTEND:${utcTime(endAt)}`] : [])]
+}
+
+function eventLines(event: FeedEvent, stamp: string): string[] {
+  const { id, title, source, location, url } = event
   return [
     'BEGIN:VEVENT',
-    `UID:event-${escapeText(id)}@${UID_DOMAIN}`,
+    // An own event has a uid of its own: once merged with its Luma event (linkEvent), only the Luma entry stays.
+    `UID:${source === 'own' ? 'own' : 'event'}-${escapeText(id)}@${UID_DOMAIN}`,
     `DTSTAMP:${stamp}`,
-    `DTSTART:${utcTime(startAt)}`,
-    `DTEND:${utcTime(endAt)}`,
+    ...whenLines(event),
     `SUMMARY:${escapeText(title)}`,
     ...(location ? [`LOCATION:${escapeText(location)}`] : []),
     ...(url ? [`URL:${url}`] : []),

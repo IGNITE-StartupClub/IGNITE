@@ -21,7 +21,7 @@ export interface EventSeries {
 const WEEKS_AHEAD = 8
 
 /** The moment a clock in Berlin shows this time, summer time included. */
-function berlinMoment(day: string, time: string): Date {
+export function berlinMoment(day: string, time: string): Date {
   const asUtc = Date.parse(`${day}T${time}:00Z`)
   const shownInBerlin = Date.parse(`${berlinDay(asUtc)}T${berlinClock(asUtc)}:00Z`)
   return new Date(asUtc - (shownInBerlin - asUtc))
