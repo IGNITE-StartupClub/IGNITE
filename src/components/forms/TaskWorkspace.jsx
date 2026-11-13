@@ -1027,7 +1027,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         <EventDialog entry={shownEvent} copy={copy} locale={locale} membersById={membersById} onStart={startPlanning} onClose={() => setShownEvent(null)} />
       </Deferred>
       <Deferred open={completing}>
-        <CompleteDialog project={completing} copy={copy} run={run} onClose={() => setCompleting(null)} />
+        <CompleteDialog project={completing} copy={copy} membersById={membersById} run={run} onClose={() => setCompleting(null)} />
       </Deferred>
       <Deferred open={openPrivateTask}>
         <PrivateTaskDialog task={openPrivateTask} copy={copy} run={run} onClose={() => setOpenPrivateId(null)} />
