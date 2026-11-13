@@ -123,16 +123,24 @@ export default function PrivateTaskDialog({ task, copy, run, onClose, onShared }
             <label htmlFor={`${id}-repeat`} className="field-label">
               {copy.panel.repeat}
             </label>
-            <select id={`${id}-repeat`} className="input" value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+            <select
+              id={`${id}-repeat`}
+              className="input"
+              value={form.repeat}
+              onChange={set('repeat')}
+              aria-describedby={form.repeat ? `${id}-repeat-hint` : undefined}
+            >
               {REPEATS.map((repeat) => (
                 <option key={repeat} value={repeat}>
                   {copy.repeats[repeat]}
                 </option>
               ))}
             </select>
-            <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
-              {copy.panel.repeatHint}
-            </p>
+            {form.repeat && (
+              <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+                {copy.panel.repeatHint}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border bg-bg-subtle p-3">
             <p className="min-w-0 flex-[1_1_16rem] text-sm text-fg-muted">{text.shareHint}</p>

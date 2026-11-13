@@ -135,16 +135,24 @@ function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel 
         <label htmlFor={`${id}-repeat`} className={LABEL}>
           {copy.repeat}
         </label>
-        <select id={`${id}-repeat`} className={`${SELECT} h-10 w-full`} value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+        <select
+          id={`${id}-repeat`}
+          className={`${SELECT} h-10 w-full`}
+          value={form.repeat}
+          onChange={set('repeat')}
+          aria-describedby={form.repeat ? `${id}-repeat-hint` : undefined}
+        >
           {REPEATS.map((repeat) => (
             <option key={repeat} value={repeat}>
               {copy.repeats[repeat]}
             </option>
           ))}
         </select>
-        <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
-          {copy.repeatHint}
-        </p>
+        {form.repeat && (
+          <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+            {copy.repeatHint}
+          </p>
+        )}
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
