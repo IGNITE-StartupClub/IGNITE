@@ -4,10 +4,11 @@
  * Only reachable with a session: src/middleware.ts redirects everyone else to the login page and sets
  * Astro.locals.member. Without a team it shows the team choice; with ?team from the profile menu and the team chip the
  * same form is the settings page. The board has no team and never sees it.
- * Otherwise the dashboard (greeting, figures, next tasks, next event). The tools are in the header pill, account actions
- * (member management for admins, settings, mail signature, password, sign out) in its profile menu.
+ * Otherwise the dashboard (greeting, figures, next tasks, what a lead still has to hand out, next event with its
+ * planning). The tools are in the header pill, account actions (member management for admins, settings, mail
+ * signature, password, sign out) in its profile menu.
  * Data source: memberArea.home and openTeams via getCopy(), tasks via assignedProjects() and privateTasks(), events via
- * loadTaskEvents().
+ * loadTaskEvents() plus the own events and plannings of eventProjects().
  */
 import DefaultLayout from '../layouts/DefaultLayout.astro'
 import Section from '../components/ui/Section.astro'
@@ -19,12 +20,13 @@ import { teamNames } from '../data/openTeams'
 import { photoPath } from '../lib/emailSignature'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
-import { dayLabel, eventDate, nextEvent, openTasks, showsTeamChoice, splitName } from '../lib/memberHome'
+import { dayDate, dayLabel, nextEvent, openTasks, showsTeamChoice, splitName, unassignedCount } from '../lib/memberHome'
 import { displayName } from '../lib/members'
+import { withOwnEvents } from '../lib/ownEvents'
 import { loadTaskEvents } from '../lib/taskEvents'
-import { berlinDay, isEvent, type TeamId } from '../lib/tasks'
+import { berlinDay, isEvent, progress, type TeamId } from '../lib/tasks'
 import { privateTasks } from '../lib/privateTasksStore'
-import { assignedProjects, sessionActor } from '../lib/tasksStore'
+import { assignedProjects, eventProjects, sessionActor } from '../lib/tasksStore'
 
 const BOARD_ICON = teamIconPath('board')
 
@@ -51,23 +53,27 @@ const teamChoices = openTeams.map(({ id }) => ({
 
 const now = Date.now()
 const today = berlinDay(now)
-const [{ events, complete }, projects, ownTasks] = choosing
-  ? [{ events: [], complete: true }, [], []]
-  : await Promise.all([loadTaskEvents(locale), assignedProjects(actor), privateTasks(actor.id)])
+const [{ events, complete }, projects, ownTasks, eventPlans] = choosing
+  ? [{ events: [], complete: true }, [], [], []]
+  : await Promise.all([loadTaskEvents(locale), assignedProjects(actor), privateTasks(actor.id), eventProjects()])
 
 const tasks = openTasks(projects, actor.id, today, ownTasks).map((task) => ({
   ...task,
   dueLabel: task.due === today ? home.dashboard.next.today : task.due && dayLabel(task.due, locale),
+  nextDueLabel: task.nextDue && dayLabel(task.nextDue, locale),
 }))
-const upcoming = nextEvent(events.filter(isEvent), now)
-const upcomingDate = upcoming && eventDate(upcoming.startAt, locale)
+const upcoming = nextEvent(withOwnEvents(events, eventPlans).filter(isEvent), now)
+const plan = upcoming?.projectId ? eventPlans.find(({ id }) => id === upcoming.projectId) : undefined
+const upcomingDate = upcoming && dayDate(upcoming.day, locale)
 const event = upcoming &&
   upcomingDate && {
-    id: upcoming.id,
     title: upcoming.title,
     month: upcomingDate.month,
     day: upcomingDate.day,
-    when: `${upcomingDate.weekdayDay} · ${home.dashboard.event.time.replace('{time}', upcomingDate.time)}`,
+    when: upcoming.time
+      ? `${upcomingDate.weekdayDay} · ${home.dashboard.event.time.replace('{time}', upcoming.time)}`
+      : upcomingDate.weekdayDay,
+    planning: plan ? { id: plan.id, ...progress(plan.tasks) } : null,
   }
 
 const tasksUrl = memberPagePath('tasks', locale)
@@ -107,14 +113,18 @@ const tasksUrl = memberPagePath('tasks', locale)
               : { name: home.dashboard.board, icon: BOARD_ICON }
           }
           tasks={tasks}
+          unassigned={unassignedCount(projects, actor.id)}
           today={today}
           event={event}
           eventsComplete={complete}
           links={{
             team: board ? '' : `${homeUrl}?team`,
             mine: `${tasksUrl}?ansicht=meine`,
+            week: `${tasksUrl}?ansicht=woche`,
+            overdue: `${tasksUrl}?ansicht=ueberfaellig`,
             tasks: `${tasksUrl}?ansicht=aufgaben`,
-            events: `${tasksUrl}?ansicht=events`,
+            unassigned: `${tasksUrl}?ansicht=verteilen`,
+            calendar: `${tasksUrl}?ansicht=kalender`,
             project: tasksUrl,
           }}
         />

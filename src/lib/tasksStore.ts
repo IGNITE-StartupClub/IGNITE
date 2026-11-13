@@ -473,37 +473,42 @@ export async function projectFolders(): Promise<ProjectFolder[]> {
     .sort((a, b) => (a.day || '9999').localeCompare(b.day || '9999'))
 }
 
-/** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
+/**
+ * The open projects with a task of this member or led by them, all the start page and the calendar feed need of the
+ * workspace: the member's tasks, and for a lead the tasks nobody has taken yet (unassignedCount).
+ */
 export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
   const { projects } = await collections()
   const list = await projects
     .find(
-      { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
+      { archivedAt: null, status: { $ne: 'done' }, $or: [{ 'tasks.assignees': actor.id }, { leads: actor.id }] },
       {
-        // Only what openTasks reads: descriptions can be long, and the calendar feed asks this on every poll.
+        // Only what openTasks and unassignedCount read: descriptions can be long, and the calendar feed asks this on
+        // every poll.
         projection: {
           title: 1,
           type: 1,
           status: 1,
-          'event.id': 1,
+          leads: 1,
           'tasks.id': 1,
           'tasks.title': 1,
           'tasks.due': 1,
           'tasks.done': 1,
           'tasks.assignees': 1,
+          'tasks.repeat': 1,
           'tasks.position': 1,
         },
         sort: { updatedAt: -1 },
       },
     )
     .toArray()
-  return list.map(({ _id, title, type, status, event, tasks }) => ({
+  return list.map(({ _id, title, type, status, leads, tasks }) => ({
     id: _id,
     title,
     type,
     status: projectStatus(status),
     archived: false,
-    event: event ?? null,
+    leads,
     tasks: [...tasks].sort((a, b) => a.position - b.position),
   }))
 }
