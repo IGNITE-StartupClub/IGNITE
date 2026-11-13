@@ -183,8 +183,8 @@ export const dueLabel = (due: string, today: string, locale: Locale): string =>
   due.slice(0, 4) === today.slice(0, 4) ? dayLabel(due, locale) : `${dayLabel(due, locale)} ${due.slice(0, 4)}`
 
 // A named date spans several words. Its year needs four digits, so "bis 17. Mai 20 Flyer drucken" keeps the 20.
-// "bis 10.05 Uhr" is a time, not the 10 May.
-const DUE_WORD = /(?:^|\s)(?:bis|by)\s+(\d{1,2}\.?\s+\p{L}+\.?(?:\s+\d{4})?|\S+)(?=\s|$)(?!\s+uhr\b)/giu
+// "bis 10.05 Uhr" is a time, not the 10 May. "bis zum 20.11." is how many write it.
+const DUE_WORD = /(?:^|\s)(?:bis(?:\s+zum)?|by)\s+(\d{1,2}\.?\s+\p{L}+\.?(?:\s+\d{4})?|\S+)(?=\s|$)(?!\s+uhr\b)/giu
 // At the start of a word, so a mail address stays text, and with a letter first, so "#2" does too.
 const PERSON = /(?:^|\s)@(\p{L}\S*)/gu
 const TEAM = /(?:^|\s)#(\p{L}\S*)/gu
@@ -235,13 +235,15 @@ interface CaptureContext {
   teams: SearchTeam[]
   me: string
   today: string
+  /** The team on screen, which a line without # joins; without it the team of the first person. */
+  team?: TeamChoice
 }
 
 /**
  * Reads "+ Flyer drucken bis Mi @Lena #Marketing". Without a person the task is the member's own, without a team it
- * joins the team of its first person. An unclear @ or # is a problem to show, never a guess.
+ * joins the team on screen, else the team of its first person. An unclear @ or # is a problem to show, never a guess.
  */
-export function captureTask(text: string, { members, teams, me, today }: CaptureContext): CapturedTask {
+export function captureTask(text: string, { members, teams, me, today, team }: CaptureContext): CapturedTask {
   const problems: CaptureProblem[] = []
   const line = text.trimStart().replace(/^\+/, '')
 
@@ -275,7 +277,7 @@ export function captureTask(text: string, { members, teams, me, today }: Capture
   const title = withoutTeam.replace(LONE_MARKER, '').replace(/\s+/g, ' ').trim()
   if (title.length > TITLE_MAX) problems.push({ kind: 'tooLong', token: '' })
   const people = assignees.length ? assignees : members.filter(({ id }) => id === me)
-  return { title, due, assignees: people, team: (named || people[0]?.team || '') as TeamChoice, problems }
+  return { title, due, assignees: people, team: (named || team || people[0]?.team || '') as TeamChoice, problems }
 }
 
 export interface OpenToken {

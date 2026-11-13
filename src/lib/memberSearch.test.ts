@@ -94,11 +94,25 @@ test('captureTask takes a date behind bis out of the title', () => {
     ['+ Aufgabenbereich beenden bis 17.11.27', '2027-11-17'],
     ['+ Aufgabenbereich beenden bis 17. November', '2026-11-17'],
     ['+ Aufgabenbereich beenden bis 17. Nov 2027', '2027-11-17'],
+    ['+ Aufgabenbereich beenden bis zum 17.11.', '2026-11-17'],
+    ['Aufgabenbereich beenden bis zum 17. November', '2026-11-17'],
   ]) {
     const task = capture(text)
     assert.equal(task.title, 'Aufgabenbereich beenden', text)
     assert.equal(task.due, due, text)
   }
+})
+
+test('captureTask keeps "bis zum" in the title when no date follows', () => {
+  assert.equal(capture('+ Plan bis zum Ende bis Fr').title, 'Plan bis zum Ende')
+})
+
+test('captureTask puts a line without # into the team on screen, before the team of its person', () => {
+  const onScreen = (text: string) => captureTask(text, { members, teams, me: me.id, today: TODAY, team: 'ignite-hr' })
+  assert.equal(onScreen('Flyer drucken @Lena-Meyer').team, 'ignite-hr')
+  assert.equal(onScreen('Flyer drucken').team, 'ignite-hr')
+  assert.equal(onScreen('Flyer drucken #Relations').team, 'ignite-relations')
+  assert.equal(capture('Flyer drucken @Lena-Meyer').team, 'ignite-marketing', 'without a team on screen the person decides')
 })
 
 test('captureTask reads text after a named date as title', () => {
