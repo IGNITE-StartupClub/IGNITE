@@ -14,7 +14,7 @@
  * calendar on screen instead of opening the new project), copy (workspace copy), locale, me, members, membersById,
  * templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
  * archive (none, loading, loaded or failed: most earlier projects are archived, so choosing one loads it through
- * onPast()), run, onCreated(id, stay), onUseEntry(entry).
+ * onPast()), run, onCreated(id, stay), onOpen(id) for a project that exists already, onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
@@ -48,6 +48,7 @@ export default function CreateDialog({
   run,
   onPast,
   onCreated,
+  onOpen,
   onUseEntry,
 }) {
   const text = copy.createDialog
@@ -201,7 +202,7 @@ export default function CreateDialog({
             className={QUIET_LINK}
             onClick={() => {
               dialog.current.close()
-              onCreated(lumaImport.existing.id, false)
+              onOpen(lumaImport.existing.id)
             }}
           >
             {text.luma.openExisting}
@@ -211,7 +212,15 @@ export default function CreateDialog({
       {listedEntry && (
         <p>
           {text.luma.listed}{' '}
-          <button type="button" className={QUIET_LINK} onClick={() => onUseEntry(listedEntry)}>
+          <button
+            type="button"
+            className={QUIET_LINK}
+            onClick={() => {
+              // An existing planning opens in the panel; a new one turns this dialog into its own.
+              if (planOf(listedEntry)) dialog.current.close()
+              onUseEntry(listedEntry)
+            }}
+          >
             {planOf(listedEntry) ? text.openExisting : text.luma.usePlanning}
           </button>
         </p>

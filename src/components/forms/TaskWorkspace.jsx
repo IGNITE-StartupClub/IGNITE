@@ -989,6 +989,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           run={run}
           onPast={loadArchive}
           onCreated={created}
+          onOpen={open}
           onUseEntry={(entry) => {
             const project = planOf(entry)
             if (project) open(project.id)
