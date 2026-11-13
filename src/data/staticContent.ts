@@ -638,6 +638,8 @@ export const memberArea = {
         remove: 'Löschen',
         confirmRemove: '„{title}“ löschen?',
         withPeople: 'Eine private Aufgabe gehört nur dir. Nimm {token} heraus oder schalte „Nur für mich“ aus.',
+        share: 'Teilen',
+        shareHint: 'Soll noch jemand mitmachen? Geteilt wird daraus eine normale Aufgabe, die alle Mitglieder sehen und übernehmen können.',
       },
       archive: 'Archiv',
       teamPrompt: {
@@ -1061,6 +1063,7 @@ export const memberArea = {
         session: 'Deine Sitzung ist abgelaufen. Bitte melde dich neu an.',
         error: 'Das hat nicht geklappt, die Änderung ist zurückgenommen. Bitte versuch es noch einmal.',
         repeated: 'Erledigt. Nächste Deadline: {date}',
+        shared: 'Geteilt. Alle Mitglieder sehen die Aufgabe jetzt.',
       },
       undo: 'Rückgängig',
     },

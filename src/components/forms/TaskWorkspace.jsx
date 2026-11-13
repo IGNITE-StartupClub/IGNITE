@@ -1030,7 +1030,16 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
         <CompleteDialog project={completing} copy={copy} membersById={membersById} run={run} onClose={() => setCompleting(null)} />
       </Deferred>
       <Deferred open={openPrivateTask}>
-        <PrivateTaskDialog task={openPrivateTask} copy={copy} run={run} onClose={() => setOpenPrivateId(null)} />
+        <PrivateTaskDialog
+          task={openPrivateTask}
+          copy={copy}
+          run={run}
+          onClose={() => setOpenPrivateId(null)}
+          onShared={(id) => {
+            setNotice({ code: 'shared', at: Date.now() })
+            open(id)
+          }}
+        />
       </Deferred>
       <TaskContextMenu
         menu={taskMenu}

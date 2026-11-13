@@ -638,6 +638,8 @@ export const memberArea = {
         remove: 'Delete',
         confirmRemove: 'Delete “{title}”?',
         withPeople: 'A private task is yours alone. Take out {token} or switch off “Only for me”.',
+        share: 'Share',
+        shareHint: 'Should someone else join in? Shared, it becomes a normal task that all members can see and take on.',
       },
       archive: 'Archive',
       teamPrompt: {
@@ -1061,6 +1063,7 @@ export const memberArea = {
         session: 'Your session has expired. Please sign in again.',
         error: 'That did not work, the change was undone. Please try again.',
         repeated: 'Done. Next deadline: {date}',
+        shared: 'Shared. All members can see the task now.',
       },
       undo: 'Undo',
     },
