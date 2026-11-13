@@ -128,9 +128,10 @@ const tasksUrl = memberPagePath('tasks', locale)
             calendar: `${tasksUrl}?ansicht=kalender`,
             project: tasksUrl,
           }}
-        />
+        >
+          <FirstSteps />
+        </MemberDashboard>
       )
     }
-    {!choosing && <FirstSteps />}
   </Section>
 </DefaultLayout>

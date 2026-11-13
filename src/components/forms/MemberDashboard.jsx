@@ -7,7 +7,8 @@
  * tasks from openTasks(), each with a dueLabel and nextDueLabel), unassigned (unassignedCount()), today, event
  * ({ title, month, day, when, planning: the id and progress() of the project that plans it, or null } or null),
  * eventsComplete, links ({ team, mine, week, overdue, tasks, unassigned, calendar, project }; team is '' for the board,
- * which has nothing to change, and project is the task page, whose hash opens a project or private task).
+ * which has nothing to change, and project is the task page, whose hash opens a project or private task), children
+ * (FirstSteps.astro: the card "Erste Schritte", shown under the greeting so a new member sees it first).
  */
 import React, { useState } from 'react'
 import { ArrowRight, Check, ChevronDown, UserPlus } from 'lucide-react'
@@ -146,6 +147,7 @@ export default function MemberDashboard({
   event,
   eventsComplete,
   links,
+  children,
 }) {
   const [doneIds, setDoneIds] = useState(() => new Set())
   const [failed, setFailed] = useState(false)
@@ -217,6 +219,8 @@ export default function MemberDashboard({
           />
         </ul>
       </section>
+
+      {children}
 
       <div className="flex flex-wrap items-stretch gap-7">
         <section aria-labelledby="my-tasks" className="flex min-w-0 flex-[999_1_560px] flex-col overflow-hidden rounded-card border border-border bg-card">
