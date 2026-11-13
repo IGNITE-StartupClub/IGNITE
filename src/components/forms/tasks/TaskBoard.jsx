@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react'
 import { CalendarDays, GripVertical, Plus, Repeat } from 'lucide-react'
-import { ALL_TEAMS, boardColumns, memberChange, MINE, TASK_STATUSES, TITLE_MAX } from '../../../lib/tasks'
+import { ALL_TEAMS, BOARD_STATUSES, boardColumns, memberChange, MINE, TITLE_MAX } from '../../../lib/tasks'
 import { fill } from '../memberUi'
 import { ICON_BUTTON, INPUT, MemberPicker, PrivateBadge, PrivateToggle, shortDay, showRest, STATUS_TONE, teamName } from './taskUi'
 
@@ -150,7 +150,7 @@ export default function TaskBoard({ tasks, filter, searching, copy, locale, me, 
       )}
       {/* Phones scroll through the columns one by one; from lg on all three sit side by side. */}
       <div data-focus-scope className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
-        {TASK_STATUSES.map((status) => {
+        {BOARD_STATUSES.map((status) => {
           const label = copy.taskStatuses[status]
           const addLabel = fill(text.addIn, { status: label })
           const target = dragging && dragging.status !== status

@@ -8,7 +8,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { ALL_TEAMS, TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
+import { ALL_TEAMS, BOARD_STATUSES, TEAM_IDS } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
 
 /** Dot and progress colour per board column of projects and tasks. */
@@ -463,7 +463,7 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
             {copy.board.open}
           </button>
           <p className="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-fg-muted">{copy.board.moveTo}</p>
-          {TASK_STATUSES.filter((status) => status !== task.status).map((status) => (
+          {BOARD_STATUSES.filter((status) => status !== task.status).map((status) => (
             <button key={status} type="button" className={`${MENU_ITEM} flex items-center gap-2`} onClick={item(() => onPatch(task, { status }))}>
               <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_TONE[status]}`} />
               {copy.taskStatuses[status]}

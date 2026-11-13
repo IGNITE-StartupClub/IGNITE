@@ -669,7 +669,7 @@ export const memberArea = {
         noneLed: 'Du bist gerade für kein offenes Projekt verantwortlich.',
         noneMine: 'Dir ist gerade nichts zugewiesen.',
       },
-      taskStatuses: { backlog: 'Backlog', doing: 'In Arbeit', done: 'Erledigt' },
+      taskStatuses: { backlog: 'Backlog', doing: 'In Arbeit', done: 'Erledigt', dropped: 'Entfällt' },
       taskBoard: {
         addIn: 'Aufgabe in {status} anlegen',
         delete: 'Löschen',

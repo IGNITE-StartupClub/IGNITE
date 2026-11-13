@@ -669,7 +669,7 @@ export const memberArea = {
         noneLed: 'You are not leading an open project right now.',
         noneMine: 'Nothing is assigned to you right now.',
       },
-      taskStatuses: { backlog: 'Backlog', doing: 'In progress', done: 'Done' },
+      taskStatuses: { backlog: 'Backlog', doing: 'In progress', done: 'Done', dropped: 'Dropped' },
       taskBoard: {
         addIn: 'Add a task to {status}',
         delete: 'Delete',

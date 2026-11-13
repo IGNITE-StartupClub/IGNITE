@@ -33,9 +33,9 @@ import {
   calendarEntries,
   filterProjects,
   filterScope,
-  ledProjects,
   projectDeadlines,
   MINE,
+  myProjects,
   NAME_MAX,
   patchedProject,
   nextTurn,
@@ -496,7 +496,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const newTeam = teamFiltered ? filter : myTeam
   const askTeam = hasName && !myTeam && !teamLater && !board
   const offerTeam = filter !== myTeam && !board
-  const ledOpen = ledProjects(projects, me)
+  const ledOpen = myProjects(projects, me)
   const deadlines = useMemo(() => projectDeadlines(projects), [projects])
 
   const myTeamOption = myTeam ? [{ value: myTeam, label: fill(copy.filter.myTeam, { team: copy.teams[myTeam] }) }] : []
