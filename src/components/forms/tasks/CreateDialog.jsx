@@ -3,8 +3,7 @@
  * - an internal project: title and an optional deadline;
  * - an event, which is always a Luma event: the member pastes its link, public or private
  *   (/api/members/luma-import), and the dialog shows what Luma says. Without a Luma event it is a project;
- * - the planning of an event of the IGNITE calendar, which is about its tasks, so the template shows at once and comes
- *   preselected.
+ * - the planning of an event of the IGNITE calendar, which is about its tasks, so the choice of a template shows at once.
  * Everything else sits under "Mehr Optionen": description, team, leads, SharePoint folder, the template and, for an
  * imported event, the fields the import filled, which stay editable there. What Luma shows to guests alone (the
  * address until sign-up) is asked for right below the preview.
@@ -87,9 +86,8 @@ export default function CreateDialog({
     setMore(false)
     setLumaLink('')
     setLumaImport(NO_IMPORT)
-    const useTemplate = !!request.event && templates.length > 0
-    setStart(useTemplate ? 'template' : 'none')
-    setSourceId(useTemplate ? templates[0].id : '')
+    setStart('none')
+    setSourceId('')
     if (!dialog.current.open) dialog.current.showModal()
     // showModal focuses the first control, the close button; the planning of a calendar event has nothing to type first.
     first.current?.focus()
