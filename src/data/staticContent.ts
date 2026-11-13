@@ -908,6 +908,7 @@ export const memberArea = {
         taskAdded: '{actor} hat „{detail}“ hinzugefügt.',
         taskEdited: '{actor} hat „{detail}“ bearbeitet.',
         taskDone: '{actor} hat „{detail}“ abgeschlossen.',
+        taskDropped: '{actor} hat „{detail}“ als entfallen markiert.',
         taskReopened: '{actor} hat „{detail}“ wieder geöffnet.',
         taskRemoved: '{actor} hat „{detail}“ gelöscht.',
         taskRestored: '{actor} hat „{detail}“ wiederhergestellt.',
@@ -916,11 +917,23 @@ export const memberArea = {
         madeEvent: '{actor} hat das Projekt mit seinem Luma-Event zum Event gemacht.',
         assigned: '{actor} hat {member} „{detail}“ zugewiesen.',
         unassigned: '{actor} hat {member} von „{detail}“ abgezogen.',
+        // Someone assigning or removing themselves.
+        took: '{actor} hat „{detail}“ übernommen.',
+        gaveUp: '{actor} hat „{detail}“ abgegeben.',
+        promoted: '{actor} hat aus der Aufgabe ein Projekt gemacht.',
+        openClosed: '{actor} hat die offenen Aufgaben dabei als erledigt markiert.',
         due: '{actor} hat die Deadline von „{detail}“ geändert.',
         lessons: '{actor} hat Lessons Learned festgehalten.',
         template: '{actor} hat das Projekt als Vorlage „{detail}“ gespeichert.',
         someone: 'Ein ehemaliges Mitglied',
         system: 'IGNITE',
+        // The same entries in the log of a single task, which is no project.
+        single: {
+          created: '{actor} hat die Aufgabe angelegt.',
+          edited: '{actor} hat die Aufgabe geändert.',
+          archived: '{actor} hat die Aufgabe archiviert.',
+          restored: '{actor} hat die Aufgabe aus dem Archiv geholt.',
+        },
       },
       makeEvent: {
         heading: 'Luma-Link hinzufügen',

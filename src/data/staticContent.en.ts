@@ -908,6 +908,7 @@ export const memberArea = {
         taskAdded: '{actor} added “{detail}”.',
         taskEdited: '{actor} edited “{detail}”.',
         taskDone: '{actor} completed “{detail}”.',
+        taskDropped: '{actor} marked “{detail}” as dropped.',
         taskReopened: '{actor} reopened “{detail}”.',
         taskRemoved: '{actor} deleted “{detail}”.',
         taskRestored: '{actor} restored “{detail}”.',
@@ -916,11 +917,23 @@ export const memberArea = {
         madeEvent: '{actor} turned the project into an event with its Luma event.',
         assigned: '{actor} assigned “{detail}” to {member}.',
         unassigned: '{actor} took {member} off “{detail}”.',
+        // Someone assigning or removing themselves.
+        took: '{actor} took on “{detail}”.',
+        gaveUp: '{actor} handed back “{detail}”.',
+        promoted: '{actor} turned the task into a project.',
+        openClosed: '{actor} marked the open tasks as done along with it.',
         due: '{actor} changed the deadline of “{detail}”.',
         lessons: '{actor} recorded lessons learned.',
         template: '{actor} saved the project as template “{detail}”.',
         someone: 'A former member',
         system: 'IGNITE',
+        // The same entries in the log of a single task, which is no project.
+        single: {
+          created: '{actor} created the task.',
+          edited: '{actor} changed the task.',
+          archived: '{actor} archived the task.',
+          restored: '{actor} restored the task from the archive.',
+        },
       },
       makeEvent: {
         heading: 'Add Luma link',
