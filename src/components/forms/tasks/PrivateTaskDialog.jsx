@@ -30,11 +30,12 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
   }, [task])
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const patch = form ? changedFields(start, form) : {}
+  const dirty = Object.keys(patch).length > 0
+  const saveChanges = () => !dirty || run({ action: 'updatePrivate', taskId: task.id, patch })
   const save = async (e) => {
     e.preventDefault()
-    const patch = changedFields(start, form)
-    if (!Object.keys(patch).length) return dialog.current.close()
-    if (await run({ action: 'updatePrivate', taskId: task.id, patch })) dialog.current.close()
+    if (await saveChanges()) dialog.current.close()
   }
   const remove = async () => {
     if (!window.confirm(fill(text.confirmRemove, { title: task.title }))) return
@@ -42,7 +43,16 @@ export default function PrivateTaskDialog({ task, copy, run, onClose }) {
   }
 
   return (
-    <FormDialog dialogRef={dialog} id={`${id}-heading`} heading={text.heading} closeLabel={copy.panel.close} onClose={onClose} onSubmit={save}>
+    <FormDialog
+      dialogRef={dialog}
+      id={`${id}-heading`}
+      heading={text.heading}
+      closeLabel={copy.panel.close}
+      onClose={onClose}
+      onSubmit={save}
+      dirty={dirty}
+      discard={copy.discard}
+    >
       {form && (
         <>
           <p className="text-sm text-fg-muted">{text.hint}</p>

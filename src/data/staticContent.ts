@@ -876,6 +876,13 @@ export const memberArea = {
         noActivity: 'Noch nichts im Verlauf.',
         loadingActivity: 'Verlauf wird geladen …',
       },
+      // Asked before unsaved changes in a dialog are thrown away (DiscardDialog).
+      discard: {
+        question: 'Änderungen verwerfen?',
+        text: 'Was du hier geändert hast, ist noch nicht gespeichert.',
+        keep: 'Weiter bearbeiten',
+        discard: 'Verwerfen',
+      },
       activity: {
         created: '{actor} hat das Projekt angelegt.',
         edited: '{actor} hat die Projektdaten geändert.',

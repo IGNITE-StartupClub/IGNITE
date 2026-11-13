@@ -1,7 +1,7 @@
 /**
  * Building blocks shared by the members area islands (MemberAdmin, CrmBoard, AlumniDirectory): button and badge
  * classes, placeholder filling, the search field, toggle chips, initials avatars, form fields, the modal form dialog
- * the popover menu (browser popover API: Escape, outside clicks and focus order come for free) and the labelled on/off
+ * with its question before unsaved changes are thrown away, the popover menu (browser popover API: Escape, outside clicks and focus order come for free) and the labelled on/off
  * switch of the settings (AdminSettings, ErrorBoard).
  * Styles: ./forms.css plus Tailwind utilities.
  */
@@ -91,36 +91,100 @@ export function Field({ id, label, hint, children }) {
 }
 
 /**
- * A modal dialog around a form. `dialogRef` opens it (showModal) from the island; a click on the backdrop, the close
- * button and Escape close it, and `onClose` runs every time.
+ * Asks whether to throw away unsaved changes. "Weiter bearbeiten" comes first and gets the focus, so Enter and Escape
+ * keep what was typed. It is rendered beside the dialog it guards, not inside: a modal opened later lies above the
+ * earlier one in the top layer. `copy` is { question, text, keep, discard }.
  */
-export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubmit, children }) {
+export function DiscardDialog({ dialogRef, copy, onDiscard }) {
+  const id = useId()
   return (
     <dialog
       ref={dialogRef}
-      aria-labelledby={id}
-      onClose={onClose}
-      // A click on the backdrop lands on the dialog element itself.
+      role="alertdialog"
+      aria-labelledby={`${id}-question`}
+      aria-describedby={`${id}-text`}
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className="w-[min(40rem,calc(100vw-2rem))] rounded-card border border-border bg-bg p-0 text-fg backdrop:bg-black/60"
+      className="w-[min(26rem,calc(100vw-2rem))] rounded-card border border-border bg-bg p-6 text-fg backdrop:bg-black/60"
     >
-      <form onSubmit={onSubmit} className="form p-6">
-        <div className="flex items-start justify-between gap-4">
-          <h2 id={id} className="text-display-sm">
-            {heading}
-          </h2>
-          <button
-            type="button"
-            className="rounded-md border-0 p-1 text-fg-muted hover:text-fg"
-            onClick={() => dialogRef.current.close()}
-            aria-label={closeLabel}
-          >
-            <X aria-hidden="true" className="h-5 w-5" />
-          </button>
-        </div>
-        {children}
-      </form>
+      <h2 id={`${id}-question`} className="text-lg font-semibold">
+        {copy.question}
+      </h2>
+      <p id={`${id}-text`} className="mt-2 text-sm text-fg-muted">
+        {copy.text}
+      </p>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <button type="button" className={TOOL_BUTTON} onClick={() => dialogRef.current.close()}>
+          {copy.keep}
+        </button>
+        <button
+          type="button"
+          className={DANGER_BUTTON}
+          onClick={() => {
+            dialogRef.current.close()
+            onDiscard()
+          }}
+        >
+          {copy.discard}
+        </button>
+      </div>
     </dialog>
+  )
+}
+
+/**
+ * Lets a dialog with unsaved changes ask before they are lost: render a DiscardDialog with `confirm` and `discard`.
+ * `ask(action)` runs the action at once without changes and otherwise after "Verwerfen". The close button and the
+ * backdrop call `requestClose`, and `onCancel` catches Escape.
+ */
+export function useDiscardGuard(dialogRef, dirty) {
+  const confirm = useRef(null)
+  const pending = useRef(null)
+  const ask = (action) => {
+    if (!dirty) return action()
+    pending.current = action
+    confirm.current.showModal()
+  }
+  const requestClose = () => ask(() => dialogRef.current.close())
+  const onCancel = (e) => {
+    if (!dirty) return
+    e.preventDefault()
+    requestClose()
+  }
+  return { confirm, ask, requestClose, onCancel, discard: () => pending.current?.() }
+}
+
+/**
+ * A modal dialog around a form. `dialogRef` opens it (showModal) from the island; a click on the backdrop, the close
+ * button and Escape close it, and `onClose` runs every time. With `discard` (DiscardDialog copy), a dialog that is
+ * `dirty` asks before those three throw its changes away; its own cancel button closes without asking.
+ */
+export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubmit, dirty = false, discard, children }) {
+  const guard = useDiscardGuard(dialogRef, dirty && !!discard)
+  return (
+    <>
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={id}
+        onClose={onClose}
+        onCancel={guard.onCancel}
+        // A click on the backdrop lands on the dialog element itself.
+        onClick={(e) => e.target === e.currentTarget && guard.requestClose()}
+        className="w-[min(40rem,calc(100vw-2rem))] rounded-card border border-border bg-bg p-0 text-fg backdrop:bg-black/60"
+      >
+        <form onSubmit={onSubmit} className="form p-6">
+          <div className="flex items-start justify-between gap-4">
+            <h2 id={id} className="text-display-sm">
+              {heading}
+            </h2>
+            <button type="button" className="rounded-md border-0 p-1 text-fg-muted hover:text-fg" onClick={guard.requestClose} aria-label={closeLabel}>
+              <X aria-hidden="true" className="h-5 w-5" />
+            </button>
+          </div>
+          {children}
+        </form>
+      </dialog>
+      {discard && <DiscardDialog dialogRef={guard.confirm} copy={discard} onDiscard={guard.discard} />}
+    </>
   )
 }
 

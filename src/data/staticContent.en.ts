@@ -876,6 +876,13 @@ export const memberArea = {
         noActivity: 'Nothing in the history yet.',
         loadingActivity: 'Loading the history …',
       },
+      // Asked before unsaved changes in a dialog are thrown away (DiscardDialog).
+      discard: {
+        question: 'Discard changes?',
+        text: 'What you changed here is not saved yet.',
+        keep: 'Keep editing',
+        discard: 'Discard',
+      },
       activity: {
         created: '{actor} created the project.',
         edited: '{actor} changed the project details.',

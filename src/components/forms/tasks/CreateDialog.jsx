@@ -9,7 +9,9 @@
  * address until sign-up) is asked for right below the preview.
  * Projects start empty, from a standard template or from an earlier project; the preview lists the tasks to take over,
  * each with a checkbox, its relative deadline and, for earlier projects, whether it was done back then. Only titles,
- * descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server).
+ * descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server). Nothing is preselected:
+ * a template the member did not pick would fill the project with tasks nobody asked for. Closing with something typed
+ * asks first (DiscardDialog).
  * Props: request ({ kind, team, event?, due?, stay? } or null = closed; team and due are preselected, stay keeps the
  * calendar on screen instead of opening the new project), copy (workspace copy), locale, me, members, membersById,
  * templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
@@ -18,6 +20,7 @@
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { changedFields } from '../../../lib/liveUpdates'
 import { addDays, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
@@ -56,6 +59,8 @@ export default function CreateDialog({
   const first = useRef(null)
   const id = useId()
   const [form, setForm] = useState(EMPTY)
+  // Where the form started, so closing asks only when something was typed or chosen since.
+  const [initial, setInitial] = useState(EMPTY)
   const [start, setStart] = useState('none')
   const [sourceId, setSourceId] = useState('')
   const [include, setInclude] = useState([])
@@ -83,7 +88,9 @@ export default function CreateDialog({
 
   useEffect(() => {
     if (!request) return
-    setForm({ ...EMPTY, title: request.event?.title ?? '', due: request.due ?? '', team: request.team, leads: [me] })
+    const fresh = { ...EMPTY, title: request.event?.title ?? '', due: request.due ?? '', team: request.team, leads: [me] }
+    setForm(fresh)
+    setInitial(fresh)
     setMore(false)
     setLumaLink('')
     setLumaImport(NO_IMPORT)
@@ -388,9 +395,19 @@ export default function CreateDialog({
   const heading = request?.event ? fill(text.eventHeading, { title: request.event.title }) : kind ? text.headings[kind] : ''
   // An event exists only with its Luma event, so there is nothing to add before the import.
   const incomplete = request?.event ? false : ownEvent ? !imported || !form.title.trim() || !form.due : !form.title.trim()
+  const dirty = !!request && (!!lumaLink.trim() || start !== 'none' || Object.keys(changedFields(initial, form)).length > 0)
 
   return (
-    <FormDialog dialogRef={dialog} id={`${id}-heading`} heading={heading} closeLabel={copy.panel.close} onClose={() => setBusy(false)} onSubmit={submit}>
+    <FormDialog
+      dialogRef={dialog}
+      id={`${id}-heading`}
+      heading={heading}
+      closeLabel={copy.panel.close}
+      onClose={() => setBusy(false)}
+      onSubmit={submit}
+      dirty={dirty}
+      discard={copy.discard}
+    >
       {request && (
         <>
           {request.event && (
