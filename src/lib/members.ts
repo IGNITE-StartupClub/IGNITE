@@ -168,6 +168,10 @@ async function collections() {
     feeds: db.collection<{ _id: string }>('member_calendar_feeds'),
     // Its documents and all other access live in feedbackStore.ts.
     feedback: db.collection<{ _id: string; memberId?: string }>('feedback'),
+    // Its documents and all other access live in tasksStore.ts.
+    taskProjects: db.collection<{ _id: string; leads: string[]; tasks: { assignees: string[] }[]; updatedAt: Date }>(
+      'task_projects',
+    ),
   }
 }
 
@@ -272,11 +276,24 @@ export async function ensureInitialAdmin(email: string): Promise<void> {
 /**
  * Removes a member together with their sessions, connections, open codes and signature photo, so access ends at once,
  * and with their private tasks and digest data. Their named website feedback loses the name and stays like an
- * anonymous entry until it expires.
+ * anonymous entry until it expires. Projects drop them as lead and as assignee of their tasks, so no card names someone
+ * who left; `createdBy`, `doneBy` and the activity log keep the id as history. scripts/members.mjs does the same.
  */
 export async function removeMember(email: string): Promise<boolean> {
-  const { members, sessions, codes, photos, privateTasks, taskTrash, taskNotifications, taskDigests, connections, feeds, feedback } =
-    await collections()
+  const {
+    members,
+    sessions,
+    codes,
+    photos,
+    privateTasks,
+    taskTrash,
+    taskNotifications,
+    taskDigests,
+    connections,
+    feeds,
+    feedback,
+    taskProjects,
+  } = await collections()
   const member = await members.findOneAndDelete({ email })
   const memberId = member?._id.toHexString()
   await Promise.all([
@@ -290,6 +307,14 @@ export async function removeMember(email: string): Promise<boolean> {
           taskNotifications.deleteMany({ memberId }),
           taskDigests.deleteMany({ memberId }),
           feedback.updateMany({ memberId }, { $unset: { memberId: '' } }),
+          // updatedAt makes open task pages fetch the change with their next check. Two writes, because MongoDB refuses
+          // the array filter on a project without `tasks`, which would stop the lead's removal too.
+          taskProjects.updateMany({ leads: memberId }, { $pull: { leads: memberId }, $set: { updatedAt: new Date() } }),
+          taskProjects.updateMany(
+            { 'tasks.assignees': memberId },
+            { $pull: { 'tasks.$[assigned].assignees': memberId }, $set: { updatedAt: new Date() } },
+            { arrayFilters: [{ 'assigned.assignees': memberId }] },
+          ),
         ]
       : []),
     connections.deleteMany({ email }),

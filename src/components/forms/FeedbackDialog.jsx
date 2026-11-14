@@ -64,7 +64,7 @@ export default function FeedbackDialog({ copy, area: firstArea, here, text: firs
       onClose={onClose}
       // A click on the backdrop lands on the dialog element itself.
       onClick={(e) => e.target === e.currentTarget && close()}
-      className="max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto rounded-card border border-border bg-card p-0 text-fg shadow-[var(--shadow-card)] backdrop:bg-black/60"
+      className="max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto rounded-card border border-border bg-card p-0 text-fg shadow-[shadow:var(--shadow-card)] backdrop:bg-black/60"
     >
       {sent ? (
         <div className="flex flex-col items-start gap-3 p-6">

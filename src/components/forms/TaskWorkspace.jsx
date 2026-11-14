@@ -376,15 +376,19 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
     setRoute({ view: nextView, projectId: nextProject })
   }
   const open = (id) => go(view, id, { replace: !!projectId })
-  const closePanel = () => {
-    if (!projectId) return
+  // A dialog also closes when the route moves on: to a single task, to a project still on its way from the archive, or
+  // through the history. So each passes the project it showed (set below), and only the one the route names steps back.
+  const shownPanel = useRef(null)
+  const shownSingle = useRef(null)
+  const closePanel = (shownId) => {
+    if (!projectId || projectId !== shownId) return
     if (window.history.state?.panel) window.history.back()
     else go(view, null, { replace: true })
   }
   // A card made a project closes the task dialog and stays open, now in the panel.
   const closeTaskDialog = () => {
     const card = projects.find((project) => project.id === projectId)
-    if (!card || isSingleTask(card)) closePanel()
+    if (!card || isSingleTask(card)) closePanel(shownSingle.current)
   }
   // Every page starts at its top, also when the tab bar or a link sits further down on a phone.
   const goTo = (next) => {
@@ -525,6 +529,12 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   // A single task opens in its own dialog, everything else in the panel.
   const openSingle = openProject && isSingleTask(openProject) ? openProject : null
   const openPanel = openProject && !openSingle ? openProject : null
+  useEffect(() => {
+    if (openPanel) shownPanel.current = openPanel.id
+  }, [openPanel?.id])
+  useEffect(() => {
+    if (openSingle) shownSingle.current = openSingle.id
+  }, [openSingle?.id])
   const openEventPlace = openProject?.event ? events.find((event) => event.id === openProject.event.id)?.location : undefined
   const openPrivateTask = privateTasks.find((task) => task.id === openPrivateId) ?? null
   const { entries, twins } = useMemo(() => calendarEntries(events, projects), [events, projects])
@@ -995,7 +1005,7 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           members={members}
           membersById={membersById}
           run={run}
-          onClose={closePanel}
+          onClose={() => closePanel(shownPanel.current)}
           onStatus={(project, status) => move(project.id, status)}
           eventPlace={openEventPlace}
         />

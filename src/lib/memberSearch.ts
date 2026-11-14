@@ -306,10 +306,10 @@ export function openToken(text: string): OpenToken | null {
 
 const SUGGESTION_LIMIT = 5
 
-/** The word without spaces that resolves to exactly this name. */
 /** The id of a member's entry on the team tab of the Netzwerk. */
 export const personAnchor = (id: string): string => `person-${id}`
 
+/** The word without spaces that resolves to exactly this name. */
 export const personHandle = (name: string): string => `@${name.trim().replace(/\s+/g, '-')}`
 
 /** What may complete the token. A word that already names its one match needs no completion. */

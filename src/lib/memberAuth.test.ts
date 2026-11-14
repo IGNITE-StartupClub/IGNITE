@@ -15,6 +15,7 @@ import {
   isAdminPath,
   isConnectionPath,
   isCrossSiteForm,
+  isFormRequest,
   isListedAddress,
   isJsonRequest,
   isMemberPosition,
@@ -198,6 +199,15 @@ test('isJsonRequest requires an application/json content type', () => {
   assert.equal(isJsonRequest('text/plain'), false)
   assert.equal(isJsonRequest('application/x-www-form-urlencoded'), false)
   assert.equal(isJsonRequest(null), false)
+})
+
+test('isFormRequest accepts only the types request.formData() can read', () => {
+  assert.equal(isFormRequest('application/x-www-form-urlencoded'), true)
+  assert.equal(isFormRequest('multipart/form-data; boundary=----x'), true)
+  assert.equal(isFormRequest('Application/X-WWW-Form-Urlencoded;charset=UTF-8'), true)
+  assert.equal(isFormRequest('application/json'), false)
+  assert.equal(isFormRequest('text/plain'), false)
+  assert.equal(isFormRequest(null), false)
 })
 
 test('decodePhoto accepts only PNG data URLs up to PHOTO_MAX_BYTES', () => {
