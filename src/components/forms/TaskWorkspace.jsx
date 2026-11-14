@@ -62,6 +62,7 @@ import ProjectBoard from './tasks/ProjectBoard'
 import TaskBoard from './tasks/TaskBoard'
 import TaskList from './tasks/TaskList'
 import TaskOverview from './tasks/TaskOverview'
+import TasksTour from './tasks/TasksTour'
 import TeamCheck from './tasks/TeamCheck'
 import { dayPart, FilterMenu, focusTask, INPUT, LABEL, SELECT, Segmented, shortDay, SURFACE, TaskContextMenu } from './tasks/taskUi'
 import './forms.css'
@@ -210,8 +211,8 @@ function PageHead({ title, subtitle, back, onBack, children }) {
 /** The pages of the module as tabs; they replace the links back to the overview. */
 function Tabs({ copy, view, onView }) {
   return (
-    <nav aria-label={copy.views.label} className="-mt-2 overflow-x-auto border-0 border-b border-solid border-border">
-      <ul role="list" className="flex gap-1">
+    <nav data-tour="tabs" aria-label={copy.views.label} className="-mt-2 overflow-x-auto border-0 border-b border-solid border-border">
+      <ul role="list" className="flex w-fit gap-1">
         {TABS.map((tab) => (
           <li key={tab}>
             <button
@@ -238,8 +239,9 @@ function Tabs({ copy, view, onView }) {
   )
 }
 
-export default function TaskWorkspace({ copy, initialState, events, eventsComplete, me, named, admin, board, teamlead, locale, today }) {
+export default function TaskWorkspace({ copy, initialState, events, eventsComplete, me, named, admin, board, teamlead, locale, today, tour }) {
   const [state, setState] = useState(initialState)
+  const [touring, setTouring] = useState(tour)
   const base = useRef(initialState)
   const pending = useRef([])
   const inFlight = useRef(0)
@@ -277,6 +279,10 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
   const { projectId } = route
   // The Team-Check is the teamleads' page; a link to it opens the overview for everybody else.
   const view = route.view === 'teamcheck' && !teamlead ? 'overview' : route.view
+  // Leaving the overview ends the tour, so it never starts over on the way back.
+  useEffect(() => {
+    if (view !== 'overview') setTouring(false)
+  }, [view])
 
   useEffect(() => {
     try {
@@ -843,6 +849,10 @@ export default function TaskWorkspace({ copy, initialState, events, eventsComple
           deadlines={deadlines}
           onAddOnDay={addOnDay}
         />
+      )}
+
+      {touring && view === 'overview' && !projectId && (
+        <TasksTour copy={copy.tour} captureId={CAPTURE_ID} onDone={() => setTouring(false)} />
       )}
 
       {view === 'tasks' && (

@@ -789,6 +789,18 @@ export const memberArea = {
     workspace: {
       views: { label: 'View', overview: 'Tasks', tasks: 'All tasks', projects: 'Projects', events: 'Events', teamcheck: 'Team check' },
       tabs: { overview: 'Overview', tasks: 'All tasks', tasksShort: 'All', projects: 'Projects', events: 'Events' },
+      tour: {
+        label: 'Short introduction',
+        progress: '{step} of {total}',
+        next: 'Next',
+        finish: 'Got it',
+        skip: 'Skip',
+        steps: {
+          capture: { title: 'A task in one line', text: 'Type it here. “by Fri” sets the deadline, “@Name” gives it to someone.' },
+          tabs: { title: 'Everything in one place', text: 'All tasks as a board or a list, plus projects and events.' },
+          calendar: { title: 'The next two weeks', text: 'Events and deadlines at a glance, as a list or a calendar.' },
+        },
+      },
       layouts: { label: 'Layout', board: 'Board', list: 'List' },
       create: 'Project or event',
       addTask: 'Task',

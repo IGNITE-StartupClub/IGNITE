@@ -13,6 +13,7 @@ import { getCopy } from '../data/copy'
 import { teamNames } from '../data/openTeams'
 import { resolveLocale } from '../lib/i18n'
 import { memberPagePath } from '../lib/memberAuth'
+import { showsTasksTour } from '../lib/onboarding'
 import { berlinClock, berlinDay } from '../lib/tasks'
 import { loadTaskEvents } from '../lib/taskEvents'
 import { sessionActor, syncEvents, workspaceState } from '../lib/tasksStore'
@@ -57,6 +58,7 @@ const now = Date.now()
       teamlead={Astro.locals.member!.position === 'teamlead'}
       locale={locale}
       today={berlinDay(now)}
+      tour={showsTasksTour(Astro.locals.member!.onboarding)}
     />
   </Section>
 </DefaultLayout>

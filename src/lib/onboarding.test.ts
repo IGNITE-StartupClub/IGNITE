@@ -9,13 +9,14 @@ import {
   opensIntro,
   showsChecklist,
   showsSearchHint,
+  showsTasksTour,
   startStep,
   withChange,
   type OnboardingState,
 } from './onboarding.ts'
 
 const fresh: OnboardingState = {
-  marks: { intro: false, checklist: false, searchHint: false, searchTask: false },
+  marks: { intro: false, checklist: false, searchHint: false, searchTask: false, tasksTour: false },
   calendar: false,
   apps: [],
   mayConnect: true,
@@ -28,8 +29,10 @@ test('onboardingMarks turns the stored dates into flags', () => {
     checklist: false,
     searchHint: false,
     searchTask: true,
+    tasksTour: false,
   })
   assert.equal(isOnboardingMark('intro'), true)
+  assert.equal(isOnboardingMark('tasksTour'), true)
   assert.equal(isOnboardingMark('introSeenAt'), false)
   assert.equal(isOnboardingMark({ $set: 1 }), false)
 })
@@ -93,4 +96,10 @@ test('the dialog opens at the first step still to do', () => {
   assert.equal(startStep(withChange(searched, { calendar: true })), 'assistant')
   assert.equal(startStep(withChange(searched, { calendar: true, apps: ['claude'] })), 'search')
   assert.equal(startStep({ ...searched, mayConnect: false }), 'search')
+})
+
+test('showsTasksTour shows the tour of the tasks page until it was seen once', () => {
+  assert.equal(showsTasksTour(fresh), true)
+  assert.equal(showsTasksTour(withChange(fresh, { mark: 'tasksTour' })), false)
+  assert.equal(showsTasksTour(withChange(fresh, { mark: 'intro' })), true)
 })

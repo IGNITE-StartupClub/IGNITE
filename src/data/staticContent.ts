@@ -789,6 +789,19 @@ export const memberArea = {
     workspace: {
       views: { label: 'Ansicht', overview: 'Aufgaben', tasks: 'Alle Aufgaben', projects: 'Projekte', events: 'Events', teamcheck: 'Team-Check' },
       tabs: { overview: 'Übersicht', tasks: 'Alle Aufgaben', tasksShort: 'Alle', projects: 'Projekte', events: 'Events' },
+      // Speech bubbles on the first visit of the overview (TasksTour.jsx). {step} and {total} are replaced.
+      tour: {
+        label: 'Kurze Einführung',
+        progress: '{step} von {total}',
+        next: 'Weiter',
+        finish: 'Alles klar',
+        skip: 'Überspringen',
+        steps: {
+          capture: { title: 'Aufgabe in einer Zeile', text: 'Tipp sie hier ein. „bis Fr“ setzt die Deadline, „@Name“ gibt sie jemandem.' },
+          tabs: { title: 'Alles an einem Ort', text: 'Hier findest du alle Aufgaben als Board oder Liste, dazu Projekte und Events.' },
+          calendar: { title: 'Die nächsten zwei Wochen', text: 'Events und Deadlines auf einen Blick, als Liste oder Kalender.' },
+        },
+      },
       layouts: { label: 'Darstellung', board: 'Board', list: 'Liste' },
       create: 'Projekt oder Event',
       addTask: 'Aufgabe',

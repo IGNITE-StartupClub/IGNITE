@@ -6,7 +6,7 @@
  * islands import it too.
  */
 
-export const ONBOARDING_MARKS = ['intro', 'checklist', 'searchHint', 'searchTask'] as const
+export const ONBOARDING_MARKS = ['intro', 'checklist', 'searchHint', 'searchTask', 'tasksTour'] as const
 export type OnboardingMark = (typeof ONBOARDING_MARKS)[number]
 export const isOnboardingMark = (value: unknown): value is OnboardingMark =>
   ONBOARDING_MARKS.includes(value as OnboardingMark)
@@ -17,6 +17,7 @@ export const MARK_FIELDS = {
   checklist: 'checklistHiddenAt',
   searchHint: 'searchHintSeenAt',
   searchTask: 'searchTaskAt',
+  tasksTour: 'tasksTourSeenAt',
 } as const satisfies Record<OnboardingMark, string>
 
 export type OnboardingDates = Partial<Record<(typeof MARK_FIELDS)[OnboardingMark], Date>>
@@ -76,6 +77,9 @@ export const opensIntro = (state: OnboardingState): boolean => !state.marks.intr
  */
 export const showsSearchHint = (state: OnboardingState): boolean =>
   state.marks.intro && !state.marks.searchHint && !state.marks.searchTask
+
+/** The speech bubbles on the overview of the tasks page show on the first visit; seen once is enough. */
+export const showsTasksTour = (state: OnboardingState): boolean => !state.marks.tasksTour
 
 export type IntroStep = FirstStepId | 'feedback'
 

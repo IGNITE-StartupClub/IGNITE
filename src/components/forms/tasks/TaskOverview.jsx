@@ -126,7 +126,7 @@ function Calendar({ entries, projects, tasks, activeDay, today, copy, locale, to
   const monday = weekStart(today)
   const days = Array.from({ length: CALENDAR_DAYS }, (_, index) => addDays(monday, index))
   return (
-    <section aria-labelledby="task-calendar" className={`${CARD} px-5 pb-5 pt-5 sm:px-6`}>
+    <section data-tour="days" aria-labelledby="task-calendar" className={`${CARD} px-5 pb-5 pt-5 sm:px-6`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id="task-calendar" className={HEADING}>
           {text.days}
@@ -175,10 +175,10 @@ function Calendar({ entries, projects, tasks, activeDay, today, copy, locale, to
   )
 }
 
-function OverviewCard({ title, aside, link, onLink, children }) {
+function OverviewCard({ title, aside, link, onLink, tour, children }) {
   const id = useId()
   return (
-    <section aria-labelledby={id} className={`${CARD} flex min-w-0 flex-col overflow-hidden`}>
+    <section data-tour={tour} aria-labelledby={id} className={`${CARD} flex min-w-0 flex-col overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 pb-4 pt-5 sm:px-6">
         <h2 id={id} className={HEADING}>
           {title}
@@ -399,7 +399,7 @@ function Agenda({ entries, deadlines, tasks, planOf, complete, today, copy, loca
   const days = [...new Set(shown.map((item) => item.day))]
 
   return (
-    <OverviewCard title={text.agenda} aside={toggle}>
+    <OverviewCard title={text.agenda} aside={toggle} tour="days">
       {!items.length && (
         <p className={`${ROW_LINE} px-5 py-4 text-sm text-fg-muted sm:px-6`}>{complete ? text.agendaEmpty : copy.calendar.unavailable}</p>
       )}
