@@ -608,7 +608,7 @@ export const memberArea = {
     kicker: 'Neu im Mitgliederbereich',
     title: 'Erste Schritte',
     stepsLabel: 'Schritte',
-    duration: 'Dauert etwa drei Minuten. Du findest alles später im Profilmenü unter „Erste Schritte“.',
+    duration: 'Etwa drei Minuten. Später findest du alles im Profilmenü unter „Erste Schritte“.',
     progress: 'Schritt {step} von {total}',
     close: 'Schließen',
     later: 'Später',
@@ -616,42 +616,33 @@ export const memberArea = {
     next: 'Weiter',
     finish: 'Fertig',
     steps: {
-      search: { label: 'Aufgaben über die Suche', open: 'Noch nicht ausprobiert', done: 'Ausprobiert' },
-      calendar: { label: 'Termine im Kalender', open: 'Noch kein Abo', done: 'Abo läuft' },
-      assistant: { label: 'Claude oder ChatGPT', open: 'Noch nicht verbunden', done: 'Verbunden' },
-      feedback: { label: 'Feedback zur Website', open: 'Jederzeit, auch anonym', done: 'Jederzeit, auch anonym' },
+      search: { label: 'Aufgaben über die Suche', done: 'Ausprobiert' },
+      calendar: { label: 'Termine im Kalender', done: 'Abo läuft' },
+      assistant: { label: 'Claude oder ChatGPT', done: 'Verbunden' },
+      feedback: { label: 'Feedback zur Website', done: '' },
     },
     search: {
       title: 'Aufgaben in einer Zeile anlegen',
-      lead: 'Die Suche oben im Menü legt auch Aufgaben an. Du öffnest sie mit der Lupe oder auf jeder Seite mit ⌘ K, unter Windows mit Strg K.',
-      // The example as { token, text } pairs, so the island can mark the tokens. `due` is the weekday after „bis“; the
-      // island shows the date the search reads from it. {line} and {due} are replaced.
+      lead: 'Die Suche oben im Menü legt auch Aufgaben an. Du öffnest sie mit der Lupe oder mit ⌘ K, unter Windows mit Strg K.',
+      // The line the field starts with. Typing changes the chips below it; the island reads the line with capturePreview.
       example: {
-        line: [
-          { token: '+', text: ' Flyer drucken ' },
-          { token: 'bis Mi', text: ' ' },
-          { token: '@Paul', text: ' ' },
-          { token: '#Marketing', text: '' },
-        ],
-        due: 'Mi',
-        label: 'Beispiel: Aus „{line}“ wird eine Aufgabe mit Deadline {due}, für Paul, im Team Marketing.',
-        kind: 'Neue Aufgabe',
-        chips: { due: 'Fällig {due}', person: 'Für Paul', team: 'Team Marketing' },
-        create: 'Anlegen',
+        text: '+ Flyer drucken bis Mi @Paul #Marketing',
+        inputLabel: 'Beispielzeile zum Ausprobieren',
+        // {due} and {name} are replaced.
+        chips: { due: 'Fällig {due}', person: 'Für {name}', mine: 'Für dich', team: 'Team {name}' },
+        search: 'Ohne + vorne sucht das Feld nur.',
       },
       legend: [
-        { token: '+', text: 'am Anfang macht aus der Suche eine neue Aufgabe.' },
-        { token: 'bis Mi', text: 'setzt die Deadline. Auch „bis 20.11.“ oder „bis morgen“.' },
-        { token: '@Paul', text: 'gibt die Aufgabe Paul. Ohne @ ist sie deine.' },
-        { token: '#Marketing', text: 'ordnet sie einem Team zu. Ohne # gilt das Team der ersten Person.' },
+        { token: '+', text: 'macht daraus eine Aufgabe' },
+        { token: 'bis Mi', text: 'setzt die Deadline, auch „bis 20.11.“' },
+        { token: '@Paul', text: 'gibt sie Paul, sonst ist sie deine' },
+        { token: '#Marketing', text: 'legt das Team fest' },
       ],
-      try: 'Jetzt ausprobieren',
-      tryNote: 'Öffnet die Suche mit einem + vorne.',
-      note: 'Ohne + sucht das Feld in Aufgaben, Events, Guide und im Netzwerk. Mit @ findest du Menschen.',
+      try: 'In der Suche anlegen',
     },
     calendar: {
       title: 'Termine im eigenen Kalender',
-      lead: 'Abonniere die Events des Clubs und deine offenen Aufgaben mit Deadline. Sie stehen dann in Apple Kalender, Google Kalender oder Outlook neben deinen anderen Terminen.',
+      lead: 'Abonniere die Events des Clubs und deine offenen Aufgaben mit Deadline. Dann stehen sie in Apple Kalender, Google Kalender oder Outlook.',
       includes: ['Die Events des Clubs', 'Deine offenen Aufgaben mit Deadline'],
       excludes: 'Private Aufgaben bleiben draußen',
       createNote: 'Das Abo zeigt die Termine nur an. Ändern kannst du sie weiter hier im Mitgliederbereich.',
@@ -676,7 +667,7 @@ export const memberArea = {
     },
     assistant: {
       title: 'Claude oder ChatGPT verbinden',
-      lead: 'Dann fragst du im Chat nach deinen Aufgaben oder lässt neue anlegen, auch für andere Mitglieder. Löschen kann der Assistent nichts.',
+      lead: 'Frag im Chat nach deinen Aufgaben oder lass neue anlegen, auch für andere. Löschen kann der Assistent nichts.',
       appsLabel: 'Assistent',
       copyAddress: 'Adresse kopieren',
       claude: {
@@ -689,6 +680,7 @@ export const memberArea = {
         connect: 'Das Plugin installieren. Wenn ChatGPT nach der Anmeldung fragt, mit deinem Mitgliedskonto anmelden und auf der IGNITE-Seite „Verbinden“ bestätigen.',
         ask: 'In einem neuen Chat @ tippen, IGNITE wählen und fragen, zum Beispiel: „Was steht diese Woche bei mir an?“',
       },
+      labelsSummary: 'Menüs heißen anders?',
       labels: 'Die Menüs heißen hier wie in der englischen Oberfläche und ändern sich öfter. Im kostenlosen Claude-Tarif ist ein eigener Connector möglich, in Team- und Enterprise-Arbeitsbereichen fügt ihn ein Owner hinzu. Ob ChatGPT eigene Server erlaubt, hängt von Tarif und Arbeitsbereich ab.',
       none: 'Noch keine App verbunden. Der Schritt hakt sich ab, sobald die Verbindung steht.',
       // {apps} is replaced with the names of the connected apps.
@@ -697,12 +689,11 @@ export const memberArea = {
     },
     feedback: {
       title: 'Fehlt dir etwas?',
-      lead: 'Wenn dir auf der Website etwas fehlt, etwas nervt oder nicht funktioniert, sag es uns. Das geht auch anonym. Es geht dabei nur um die Website, nicht um den Club.',
+      lead: 'Wenn auf der Website etwas fehlt, nervt oder nicht funktioniert, sag es uns, gern auch anonym. Es geht nur um die Website, nicht um den Club.',
       cardTitle: 'Feedback zur Website',
       cardText: 'Liegt im Profilmenü und in der Suche, wenn sie nichts findet.',
       action: 'Feedback geben',
-      laterTitle: 'Was noch offen ist, wartet auf der Startseite',
-      laterText: 'Die Karte „Erste Schritte“ zeigt, was du noch nicht eingerichtet hast. Sie verschwindet, wenn alles erledigt ist oder du sie ausblendest.',
+      laterText: 'Was noch offen ist, zeigt dir die Karte „Erste Schritte“ auf der Startseite.',
     },
   },
   // The card "Erste Schritte" on the start page (FirstStepsCard.jsx). {placeholders} are filled by the island.

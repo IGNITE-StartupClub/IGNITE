@@ -280,6 +280,19 @@ export function captureTask(text: string, { members, teams, me, today, team }: C
   return { title, due, assignees: people, team: (named || team || people[0]?.team || '') as TeamChoice, problems }
 }
 
+/**
+ * What a capture line sets, read without members or teams: the example in the onboarding dialog has no index, so it
+ * shows the words as typed ("@Lena-Meyer" as "Lena Meyer") and leaves resolving them to the search. null for a search.
+ */
+export function capturePreview(text: string, today: string): { due: string; people: string[]; teams: string[] } | null {
+  if (searchMode(text) !== 'task') return null
+  const days = [...text.matchAll(DUE_WORD)].map(([, word]) => dueFrom(word, today)).filter(Boolean)
+  const words = (pattern: RegExp) => [
+    ...new Set([...text.matchAll(pattern)].map(([, token]) => token.replace(/-/g, ' '))),
+  ]
+  return { due: days[0] ?? '', people: words(PERSON), teams: words(TEAM) }
+}
+
 export interface OpenToken {
   marker: '@' | '#'
   word: string

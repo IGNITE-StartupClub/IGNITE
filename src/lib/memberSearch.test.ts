@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  capturePreview,
   buildSearchIndex,
   captureTask,
   completeToken,
@@ -424,4 +425,21 @@ test('buildSearchIndex opens the planning project of an event when there is one'
   assert.equal(events[1].url, '/mitglieder/aufgaben?ansicht=events')
   assert.equal(events[1].meta, 'Do, 19. Nov. · Hörsaal 1')
   assert.equal(events[1].done, false)
+})
+
+test('capturePreview reads a capture line without the member list', () => {
+  const today = '2026-11-14'
+  assert.deepEqual(capturePreview('+ Flyer drucken bis Mi @Paul #Marketing', today), {
+    due: '2026-11-18',
+    people: ['Paul'],
+    teams: ['Marketing'],
+  })
+  assert.deepEqual(capturePreview('  + Pitch üben @Lena-Meyer @Paul bis 20.11.', today), {
+    due: '2026-11-20',
+    people: ['Lena Meyer', 'Paul'],
+    teams: [],
+  })
+  assert.deepEqual(capturePreview('+ Mail an max@leuphana.de #2', today), { due: '', people: [], teams: [] })
+  assert.equal(capturePreview('Flyer bis Mi', today), null)
+  assert.equal(capturePreview('', today), null)
 })

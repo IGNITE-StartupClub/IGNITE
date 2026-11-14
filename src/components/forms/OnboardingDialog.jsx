@@ -10,7 +10,7 @@
  */
 import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { Check, MessageCircle, Minus, Plus, Search, X } from 'lucide-react'
-import { dueFrom, dueLabel } from '../../lib/memberSearch'
+import { capturePreview, dueLabel } from '../../lib/memberSearch'
 import { introSteps, showsChecklist, stepDone } from '../../lib/onboarding'
 import { berlinDay } from '../../lib/tasks'
 import { emit, FEEDBACK_EVENT, ONBOARDING_CHANGE, saveMark, SEARCH_EVENT } from './memberHelp'
@@ -25,59 +25,67 @@ const ASSISTANTS = ['claude', 'chatgpt']
 // Coming back to the tab fires both focus and visibilitychange; one check covers both.
 const RECHECK_GAP_MS = 2000
 
-function Tokens({ parts }) {
-  return parts.map(({ token, text }) => (
-    <Fragment key={token}>
-      <span className="font-semibold text-accent">{token}</span>
-      {text}
-    </Fragment>
-  ))
-}
-
 function SearchStep({ copy, locale, onTry }) {
   const { example } = copy
+  const [text, setText] = useState(example.text)
   const today = berlinDay(Date.now())
-  // The date the search itself reads from „bis Mi“, so the example stays true every week.
-  const due = dueLabel(dueFrom(example.due, today), today, locale)
-  const line = example.line.map(({ token, text }) => token + text).join('')
+  const preview = capturePreview(text, today)
+  const chips = preview
+    ? [
+        ...(preview.due ? [fill(example.chips.due, { due: dueLabel(preview.due, today, locale) })] : []),
+        ...(preview.people.length
+          ? preview.people.map((name) => fill(example.chips.person, { name }))
+          : [example.chips.mine]),
+        ...preview.teams.map((name) => fill(example.chips.team, { name })),
+      ]
+    : []
   return (
     <>
-      <div role="img" aria-label={fill(example.label, { line, due })} className="overflow-hidden rounded-card border border-border-strong bg-bg">
-        <div className="flex h-[52px] items-center gap-2.5 border-b border-border px-3.5">
+      {/* A form, so Enter hands the line to the search like the button. */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          onTry(text)
+        }}
+        className="overflow-hidden rounded-card border border-border-strong bg-bg focus-within:border-accent"
+      >
+        <label className="flex h-[52px] items-center gap-2.5 border-b border-border px-3.5">
           <Search aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-fg-muted" />
-          <p className="min-w-0 truncate text-[16px]">
-            <Tokens parts={example.line} />
-          </p>
+          <span className="sr-only">{example.inputLabel}</span>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            className="min-h-11 min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-[16px] font-medium text-fg shadow-none outline-none"
+          />
+        </label>
+        <div aria-live="polite" className="flex min-h-[52px] flex-wrap items-center gap-2 px-3.5 py-3">
+          {preview ? (
+            chips.map((chip) => (
+              <span key={chip} className="surface-brand inline-flex h-7 items-center rounded-full px-2.5 text-2xs">
+                {chip}
+              </span>
+            ))
+          ) : (
+            <span className="text-2xs text-fg-muted">{example.search}</span>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 px-3.5 py-3">
-          <span className="text-2xs font-semibold text-fg-muted">{example.kind}</span>
-          {[fill(example.chips.due, { due }), example.chips.person, example.chips.team].map((chip) => (
-            <span key={chip} className="surface-brand inline-flex h-7 items-center rounded-full px-2.5 text-2xs">
-              {chip}
-            </span>
-          ))}
-          <span className="flex-1" />
-          <span className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-2xs font-semibold text-primary-fg">
-            {example.create}
-          </span>
-        </div>
-      </div>
-      <ul className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
-        {copy.legend.map(({ token, text }) => (
-          <li key={token} className="flex items-baseline gap-2.5 text-xs">
-            <code className={`flex-none rounded-md px-2 py-0.5 font-mono text-2xs text-accent ${ACCENT_TINT}`}>{token}</code>
-            <span>{text}</span>
-          </li>
+      </form>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-2 text-xs">
+        {copy.legend.map(({ token, text: meaning }) => (
+          <Fragment key={token}>
+            <dt>
+              <code className={`rounded-md px-2 py-0.5 font-mono text-2xs text-accent ${ACCENT_TINT}`}>{token}</code>
+            </dt>
+            <dd className="m-0 text-fg-muted">{meaning}</dd>
+          </Fragment>
         ))}
-      </ul>
-      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-        <button type="button" onClick={onTry} className={ACCENT_BUTTON}>
-          <Search aria-hidden="true" className="h-4 w-4" />
-          {copy.try}
-        </button>
-        <span className="text-2xs text-fg-muted">{copy.tryNote}</span>
-      </div>
-      <p className="text-2xs text-fg-muted">{copy.note}</p>
+      </dl>
+      <button type="button" onClick={() => onTry(text)} className={`${ACCENT_BUTTON} w-fit`}>
+        <Search aria-hidden="true" className="h-4 w-4" />
+        {copy.try}
+      </button>
     </>
   )
 }
@@ -124,7 +132,7 @@ function CalendarStep({ copy, panel, calendar, feedUrl, busy, failed, onCreate, 
           <p className="text-2xs text-fg-muted">{copy.delay}</p>
         </>
       ) : calendar ? (
-        <div className={`flex flex-col items-start gap-2.5 p-4 ${BOX}`}>
+        <div className="flex flex-col items-start gap-2.5">
           <p className="text-xs">{copy.existing}</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={onCreate} disabled={busy} className={`${TOOL_BUTTON} disabled:opacity-50`}>
@@ -137,7 +145,7 @@ function CalendarStep({ copy, panel, calendar, feedUrl, busy, failed, onCreate, 
           <p className="text-2xs text-fg-muted">{panel.calendar.renewNote}</p>
         </div>
       ) : (
-        <div className={`flex flex-col items-start gap-2.5 p-4 ${BOX}`}>
+        <div className="flex flex-col items-start gap-2.5">
           <button type="button" onClick={onCreate} disabled={busy} className={`${PRIMARY_BUTTON} disabled:opacity-50`}>
             <Plus aria-hidden="true" className="h-4 w-4" />
             {panel.calendar.create}
@@ -197,7 +205,10 @@ function AssistantStep({ copy, panel, appNames, apps, mcpUrl }) {
         <Numbered n={3}>{copy[app].connect}</Numbered>
         <Numbered n={4}>{copy[app].ask}</Numbered>
       </ol>
-      <p className="text-2xs text-fg-muted">{copy.labels}</p>
+      <details className="text-2xs text-fg-muted">
+        <summary className="w-fit cursor-pointer">{copy.labelsSummary}</summary>
+        <p className="mt-1.5 box-border">{copy.labels}</p>
+      </details>
       <div
         className={`flex items-center gap-2.5 rounded-card border px-3.5 py-3 ${
           apps.length ? `border-transparent ${SUCCESS_TINT}` : 'border-dashed border-border-strong'
@@ -230,12 +241,7 @@ function FeedbackStep({ copy, later, onFeedback }) {
           {copy.action}
         </button>
       </div>
-      {later && (
-        <div className={`p-4 ${BOX}`}>
-          <p className="text-caption font-semibold">{copy.laterTitle}</p>
-          <p className="mt-1 text-xs text-fg-muted">{copy.laterText}</p>
-        </div>
-      )}
+      {later && <p className="text-2xs text-fg-muted">{copy.laterText}</p>}
     </>
   )
 }
@@ -339,7 +345,7 @@ export default function OnboardingDialog({ copy, panel, appNames, state, start, 
                     type="button"
                     aria-current={current ? 'step' : undefined}
                     onClick={() => go(position)}
-                    className={`flex min-h-14 w-full items-center gap-3 rounded-[10px] border-0 px-2.5 py-2 text-left ${
+                    className={`flex min-h-11 w-full items-center gap-3 rounded-[10px] border-0 px-2.5 py-2 text-left ${
                       current ? 'bg-bg' : 'bg-transparent hover:bg-bg'
                     }`}
                   >
@@ -349,11 +355,9 @@ export default function OnboardingDialog({ copy, panel, appNames, state, start, 
                     >
                       {done ? <Check className="h-3.5 w-3.5" /> : position + 1}
                     </span>
-                    <span className="flex min-w-0 flex-col gap-0.5 leading-snug">
-                      <span className="text-xs font-semibold">{copy.steps[option].label}</span>
-                      <span className={`text-2xs ${done ? 'text-success' : 'text-fg-muted'}`}>
-                        {done ? copy.steps[option].done : copy.steps[option].open}
-                      </span>
+                    <span className={`min-w-0 text-xs leading-snug ${current ? 'font-semibold' : 'text-fg-muted'}`}>
+                      {copy.steps[option].label}
+                      {done && <span className="sr-only"> · {copy.steps[option].done}</span>}
                     </span>
                   </button>
                 </li>
@@ -374,17 +378,16 @@ export default function OnboardingDialog({ copy, panel, appNames, state, start, 
           </button>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5 pt-7 sm:px-8">
-            <p className="pr-10 text-2xs font-semibold text-fg-muted">
-              <span className="sm:hidden">{copy.title} · </span>
-              {fill(copy.progress, { step: index + 1, total: steps.length })}
+            <p className="mb-1.5 pr-10 text-2xs font-semibold text-fg-muted sm:hidden">
+              {copy.title} · {fill(copy.progress, { step: index + 1, total: steps.length })}
             </p>
-            <h3 ref={heading} tabIndex={-1} className="mt-1.5 text-[26px] font-bold leading-tight tracking-tight">
+            <h3 ref={heading} tabIndex={-1} className="pr-10 text-[26px] font-bold leading-tight tracking-tight">
               {copy[step].title}
             </h3>
             <p className="mt-2 text-caption text-fg-muted">{copy[step].lead}</p>
-            <div className="mt-4 flex flex-col gap-4">
+            <div className="mt-5 flex flex-col gap-5">
               {step === 'search' && (
-                <SearchStep copy={copy.search} locale={locale} onTry={() => leaveFor(SEARCH_EVENT, { text: '+ ' })} />
+                <SearchStep copy={copy.search} locale={locale} onTry={(text) => leaveFor(SEARCH_EVENT, { text })} />
               )}
               {step === 'calendar' && (
                 <CalendarStep
