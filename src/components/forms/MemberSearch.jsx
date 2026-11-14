@@ -52,15 +52,16 @@ const ROW =
   'flex min-h-[52px] w-full items-center gap-3 rounded-none border-0 px-5 py-1.5 text-left text-sm text-fg no-underline'
 const ICON = 'flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-bg-subtle text-fg'
 
-// Module scope, so the index survives closing the field.
+// Module scope, so the index survives closing the field. The island also stays across a language switch, and an index
+// holds the links and team names of one language, so it only counts for the locale it was loaded in.
 let cachedIndex = null
 
 async function loadIndex(locale) {
-  if (cachedIndex && Date.now() - cachedIndex.at < INDEX_TTL_MS) return cachedIndex.data
+  if (cachedIndex?.locale === locale && Date.now() - cachedIndex.at < INDEX_TTL_MS) return cachedIndex.data
   const res = await fetch(`/api/members/search?locale=${locale}`)
   if (!res.ok) throw new Error(`Search index failed with ${res.status}`)
   const data = await res.json()
-  cachedIndex = { at: Date.now(), data }
+  cachedIndex = { at: Date.now(), locale, data }
   return data
 }
 
@@ -168,7 +169,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
   const [opened, setOpened] = useState(false)
   const [hintGone, setHintGone] = useState(false)
   const [text, setText] = useState('')
-  const [index, setIndex] = useState(null)
+  const [loaded, setLoaded] = useState(null)
   const [failed, setFailed] = useState(false)
   const [active, setActive] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -178,10 +179,13 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
 
   const load = () => {
     setFailed(false)
-    loadIndex(locale).then(setIndex, (err) => {
-      console.error(err)
-      setFailed(true)
-    })
+    loadIndex(locale).then(
+      (data) => setLoaded({ locale, data }),
+      (err) => {
+        console.error(err)
+        setFailed(true)
+      },
+    )
   }
   const open = () => {
     if (dialog.current.open) return
@@ -191,6 +195,8 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
     load()
   }
 
+  // Bound again with each locale: the island stays across a language switch, open() loads the index of the current one,
+  // and the shortcut's label follows the copy.
   useEffect(() => {
     setShortcut(/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : copy.shortcut)
     const onKey = (e) => {
@@ -201,7 +207,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [locale])
 
   const change = (value) => {
     setText(value)
@@ -253,6 +259,8 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
   }
 
   const mode = searchMode(text)
+  // An index loaded before a language switch has the other language's links, so none shows until open() loads this one.
+  const index = loaded?.locale === locale ? loaded.data : null
   const items = index?.items ?? []
   const teams = index?.teams ?? []
   const members = items
