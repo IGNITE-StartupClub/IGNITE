@@ -281,3 +281,7 @@ export function isCrossSiteForm(request: Pick<Request, 'method' | 'headers'>, pa
  * only send that after a CORS preflight, which these endpoints never answer.
  */
 export const isJsonRequest = (contentType: string | null): boolean => /^application\/json\b/i.test(contentType ?? '')
+
+/** Whether request.formData() can read the body. It throws for every other type, JSON and a missing type included. */
+export const isFormRequest = (contentType: string | null): boolean =>
+  /^(application\/x-www-form-urlencoded|multipart\/form-data)\b/i.test(contentType ?? '')
