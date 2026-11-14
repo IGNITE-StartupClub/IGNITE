@@ -33,7 +33,10 @@ export const pageMeta = {
     title: 'Your startup week',
     description: "This week's startup events in Lüneburg and Hamburg, with a direct link to register.",
   },
-  materials: { title: 'Materials and resources' },
+  materials: {
+    title: 'Guide: knowledge packages for founders',
+    description: 'Pick knowledge packages on ideas, business models, registration, funding, pitching, team and marketing. We email them to you for free.',
+  },
   notFound: { title: '404', description: 'Page not found' },
 }
 
@@ -1518,6 +1521,53 @@ export const memberArea = {
         rolePlaceholder: 'Role',
         emailPlaceholder: 'first.last@stud.leuphana.de',
       },
+    },
+  },
+}
+
+// English copy of guidePage in staticContent.ts.
+export const guidePage = {
+  title: 'Knowledge that <em>moves you forward</em>',
+  notice: {
+    title: 'This page is still under construction',
+    text: 'Knowledge packages cannot be requested yet. If you need knowledge on a topic right now, write to us using the contact form.',
+    linkLabel: 'Go to the contact form',
+    href: '/en/contact',
+  },
+  lead: 'Pick the topics on your mind right now. We email you the matching knowledge packages with guides, checklists and templates, for free and without a membership.',
+  form: {
+    packagesHeading: 'Choose your packages',
+    packagesHint: 'Pick as many as you like',
+    selectedCount: '{n} of {total} selected',
+    noPackageError: 'Please choose at least one package.',
+    detailsHeading: 'Your details',
+    nameLabel: 'Name',
+    emailLabel: 'Email address',
+    optional: '(optional)',
+    occupationLabel: 'What are you doing right now?',
+    occupations: { study: 'Studying', work: 'Working', other: 'Something else' },
+    companyLabel: 'Company',
+    fieldLabel: 'Field of work',
+    fieldPlaceholder: 'e.g. sales, IT, research',
+    universityLabel: 'University',
+    universityPlaceholder: 'e.g. Leuphana University Lüneburg',
+    programLabel: 'Degree programme',
+    programPlaceholder: 'e.g. Business Administration',
+    whatsappLabel: 'Yes, I would like a link to the IGNITE WhatsApp newsletter.',
+    consentLabel: 'I agree that my details are used to handle my request.',
+    privacyLink: 'Read the privacy policy',
+    privacyHref: '/en/privacy',
+    submit: 'Request packages',
+    sending: 'Sending …',
+    success: {
+      title: 'Thank you, {name}!',
+      text: 'We have received your request and will email you your packages in the next few days. A confirmation is already on its way.',
+    },
+    errors: {
+      400: 'Please check your details.',
+      409: 'We already received requests for this address today. We will get back to you.',
+      429: 'We are receiving a lot of requests right now. Please try again in an hour.',
+      default: 'Something went wrong. Please try again later or write to us at stud.initiative.ignite@leuphana.de.',
     },
   },
 }

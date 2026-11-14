@@ -34,7 +34,10 @@ export const pageMeta = {
     title: 'Deine Startup-Woche',
     description: 'Die Startup-Events der Woche in Lüneburg und Hamburg, mit direktem Link zur Anmeldung.',
   },
-  materials: { title: 'Materialien und Ressourcen' },
+  materials: {
+    title: 'Guide: Wissens-Pakete fürs Gründen',
+    description: 'Wähle Wissens-Pakete zu Idee, Geschäftsmodell, Gründung, Finanzierung, Pitch, Team und Marketing. Wir schicken sie dir kostenlos per Mail.',
+  },
   notFound: { title: '404', description: 'Seite nicht gefunden' },
 }
 
@@ -1520,6 +1523,55 @@ export const memberArea = {
         rolePlaceholder: 'Rolle',
         emailPlaceholder: 'vorname.nachname@stud.leuphana.de',
       },
+    },
+  },
+}
+
+// Guide (/materialien, menu item "Guide"): knowledge packages to request by mail. The packages live in guidePackages.ts.
+// `form` goes to the GuideRequestForm island; {n}, {total} and {name} are filled in there.
+export const guidePage = {
+  title: 'Wissen, das dich <em>weiterbringt</em>',
+  // Banner while the Guide is being built; remove `notice` (and the banner in GuidePage.astro) once it goes live.
+  notice: {
+    title: 'Diese Seite ist noch in Bearbeitung',
+    text: 'Die Wissens-Pakete können noch nicht angefordert werden. Wenn du schon jetzt Wissen zu einem Thema brauchst, schreib uns über das Kontaktformular.',
+    linkLabel: 'Zum Kontaktformular',
+    href: '/kontakt',
+  },
+  lead: 'Wähle die Themen, die dich gerade beschäftigen. Wir schicken dir die passenden Wissens-Pakete mit Leitfäden, Checklisten und Vorlagen per Mail, kostenlos und ohne Mitgliedschaft.',
+  form: {
+    packagesHeading: 'Wähle deine Pakete',
+    packagesHint: 'Mehrere Themen möglich',
+    selectedCount: '{n} von {total} ausgewählt',
+    noPackageError: 'Bitte wähle mindestens ein Paket aus.',
+    detailsHeading: 'Deine Angaben',
+    nameLabel: 'Name',
+    emailLabel: 'E-Mail-Adresse',
+    optional: '(freiwillig)',
+    occupationLabel: 'Was machst du gerade?',
+    occupations: { study: 'Studium', work: 'Beruf', other: 'Etwas anderes' },
+    companyLabel: 'Unternehmen',
+    fieldLabel: 'Tätigkeitsbereich',
+    fieldPlaceholder: 'z. B. Vertrieb, IT, Forschung',
+    universityLabel: 'Hochschule',
+    universityPlaceholder: 'z. B. Leuphana Universität Lüneburg',
+    programLabel: 'Studiengang',
+    programPlaceholder: 'z. B. BWL',
+    whatsappLabel: 'Ja, ich möchte einen Link zum WhatsApp-Newsletter von IGNITE erhalten.',
+    consentLabel: 'Ich bin einverstanden, dass meine Daten verwendet werden, um meine Anfrage zu bearbeiten.',
+    privacyLink: 'Zur Datenschutzerklärung',
+    privacyHref: '/datenschutz',
+    submit: 'Pakete anfordern',
+    sending: 'Wird gesendet …',
+    success: {
+      title: 'Danke, {name}!',
+      text: 'Wir haben deine Anfrage erhalten und schicken dir deine Pakete in den nächsten Tagen per Mail. Eine Bestätigung ist schon unterwegs.',
+    },
+    errors: {
+      400: 'Bitte prüfe deine Angaben.',
+      409: 'Für diese Adresse sind heute schon Anfragen eingegangen. Wir melden uns bei dir.',
+      429: 'Gerade gehen sehr viele Anfragen ein. Bitte versuche es in einer Stunde erneut.',
+      default: 'Das hat leider nicht geklappt. Bitte versuche es später erneut oder schreib uns an stud.initiative.ignite@leuphana.de.',
     },
   },
 }

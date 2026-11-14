@@ -15,11 +15,13 @@ import { externalEvents as deExternalEvents } from './externalEvents'
 import { externalEvents as enExternalEvents } from './externalEvents.en'
 import { questionnaireConfig as deQuestionnaire } from './questionnaireConfig'
 import { questionnaireConfig as enQuestionnaire } from './questionnaireConfig.en'
+import { guidePackages as deGuidePackages } from './guidePackages'
+import { guidePackages as enGuidePackages } from './guidePackages.en'
 
-const de = { ...deStatic, advisoryMembers: deAdvisoryMembers, openTeams: deOpenTeams, externalEvents: deExternalEvents, questionnaireConfig: deQuestionnaire }
+const de = { ...deStatic, advisoryMembers: deAdvisoryMembers, openTeams: deOpenTeams, externalEvents: deExternalEvents, questionnaireConfig: deQuestionnaire, guidePackages: deGuidePackages }
 export type Copy = typeof de
 
-const en: Copy = { ...enStatic, advisoryMembers: enAdvisoryMembers, openTeams: enOpenTeams, externalEvents: enExternalEvents, questionnaireConfig: enQuestionnaire }
+const en: Copy = { ...enStatic, advisoryMembers: enAdvisoryMembers, openTeams: enOpenTeams, externalEvents: enExternalEvents, questionnaireConfig: enQuestionnaire, guidePackages: enGuidePackages }
 
 const copy: Record<Locale, Copy> = { de, en }
 

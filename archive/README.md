@@ -13,6 +13,7 @@ Hier liegen Seiten und Bausteine, die nicht mehr gebaut werden (Ordner liegt auÃ
 | `components/stakeholder-map/` | Komponenten der Journey Map |
 | `components/LiquidEther/` | WebGL-Hintergrund der Journey Map (three.js) |
 | `types/stakeholder-map.ts` | Typen der Journey Map |
+| `views/MaterialsListPage.astro` | Liste der Materialien (Artikel); `/materialien` ist seit 2026-11-14 der Guide mit den Wissens-Paketen. Die Detailseiten `materialien/[material].astro` bleiben fÃ¼r Artikel in `src/content/materials/` |
 
 Grund: Die Seiten sind nirgends verlinkt und nicht Teil des Redesigns. Sie sind nicht im neuen Design gestaltet.
 

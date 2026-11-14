@@ -1,0 +1,275 @@
+/*
+ * Guide request (GuideRequestForm.jsx): package cards on the left, details on the right from 1024 px on.
+ * Builds on forms.css (.form, .field, .input, .choice, .form-submit). Tokens only, works in both themes.
+ */
+.guide {
+  display: grid;
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .guide {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 4rem;
+  }
+
+  .guide-details {
+    position: sticky;
+    top: 6.5rem;
+  }
+}
+
+.guide-packages {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.guide-title {
+  float: left; /* lets the legend sit in the flow like a heading */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.guide-meta {
+  clear: both;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0 1.5rem;
+  padding-top: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+}
+
+.guide-count {
+  font-weight: 600;
+  color: var(--color-accent-text);
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr));
+  gap: 1rem;
+}
+
+.guide-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 11rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.guide-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+.guide-card[data-checked] {
+  background: linear-gradient(var(--color-card-spotlight), var(--color-card-spotlight)), var(--color-card);
+  border-color: var(--color-primary);
+}
+
+.guide-card:has(.guide-card-input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Visually hidden, still the control for keyboards and screen readers. */
+.guide-card-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.guide-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--color-icon-fg);
+  background: var(--color-icon-bg);
+  border-radius: 0.75rem;
+}
+
+.guide-card-box {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--color-primary-fg);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 0.375rem;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.guide-card[data-checked] .guide-card-box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.guide-card-title {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  font-size: var(--text-base);
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--color-fg);
+}
+
+.guide-card-subtitle {
+  margin-top: 0.375rem;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--color-fg-muted);
+}
+
+.guide-packages > .form-error {
+  margin-top: 1rem;
+}
+
+.guide-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.75rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+@media (max-width: 639px) {
+  .guide-details {
+    padding: 1.25rem;
+  }
+}
+
+/* Segmented toggle for the optional occupation. */
+.guide-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-button);
+}
+
+.guide-toggle-option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.guide-toggle-option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.guide-toggle-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.375rem 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-fg-muted);
+  border-radius: var(--radius-button);
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.guide-toggle-option:hover span {
+  color: var(--color-fg);
+}
+
+.guide-toggle-option input:checked + span {
+  color: var(--color-primary-fg);
+  background: var(--color-primary);
+}
+
+.guide-toggle-option input:focus-visible + span {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.guide-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.guide-link {
+  color: var(--color-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.guide-submit {
+  align-self: stretch;
+}
+
+.guide-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.guide-success-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-success-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.guide-success-list svg {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-card,
+  .guide-card-box,
+  .guide-toggle-option span {
+    transition: none;
+  }
+}
