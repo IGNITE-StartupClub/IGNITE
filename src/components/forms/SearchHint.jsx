@@ -44,7 +44,7 @@ export default function SearchHint({ copy, shortcut, anchor, id, onTry, onDismis
     <div
       role="note"
       style={{ left: place.left, width: place.width }}
-      className="absolute top-[calc(100%+12px)] whitespace-normal rounded-card border border-border-strong bg-card p-4 text-left text-fg shadow-[var(--shadow-card)]"
+      className="absolute top-[calc(100%+12px)] whitespace-normal rounded-card border border-border-strong bg-card p-4 text-left text-fg shadow-[shadow:var(--shadow-card)]"
     >
       <span
         aria-hidden="true"

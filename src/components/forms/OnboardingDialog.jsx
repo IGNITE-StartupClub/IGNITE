@@ -319,7 +319,7 @@ export default function OnboardingDialog({ copy, panel, appNames, state, start, 
       onClose={onClose}
       // A click on the backdrop lands on the dialog element itself.
       onClick={(e) => e.target === e.currentTarget && close()}
-      className="h-[min(43.5rem,calc(100dvh-2rem))] max-h-none w-[min(51rem,calc(100vw-2rem))] max-w-none overflow-hidden rounded-card border border-border bg-card p-0 text-fg shadow-[var(--shadow-card)] backdrop:bg-black/60"
+      className="h-[min(43.5rem,calc(100dvh-2rem))] max-h-none w-[min(51rem,calc(100vw-2rem))] max-w-none overflow-hidden rounded-card border border-border bg-card p-0 text-fg shadow-[shadow:var(--shadow-card)] backdrop:bg-black/60"
     >
       <div className="grid h-full sm:grid-cols-[14.75rem_minmax(0,1fr)]">
         <aside className="hidden min-h-0 flex-col gap-4 border-r border-border bg-bg-subtle px-3.5 pb-5 pt-6 sm:flex">

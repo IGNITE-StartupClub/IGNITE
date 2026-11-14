@@ -447,7 +447,7 @@ export default function MemberSearch({ copy, locale, me, tasksUrl, homeUrl, hint
           )}
         </div>
 
-        <div className="mx-auto mt-2 max-w-[760px] overflow-hidden rounded-[20px] border border-border-strong bg-card text-sm shadow-card">
+        <div className="mx-auto mt-2 max-w-[760px] overflow-hidden rounded-[20px] border border-border-strong bg-card text-sm shadow-[shadow:var(--shadow-card)]">
           {saved && (
             <p
               role="status"
