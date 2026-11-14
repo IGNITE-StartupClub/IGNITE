@@ -3,22 +3,24 @@
  * - an internal project: title and an optional deadline;
  * - an event, which is always a Luma event: the member pastes its link, public or private
  *   (/api/members/luma-import), and the dialog shows what Luma says. Without a Luma event it is a project;
- * - the planning of an event of the IGNITE calendar, which is about its tasks, so the template shows at once and comes
- *   preselected.
+ * - the planning of an event of the IGNITE calendar, which is about its tasks, so the choice of a template shows at once.
  * Everything else sits under "Mehr Optionen": description, team, leads, SharePoint folder, the template and, for an
  * imported event, the fields the import filled, which stay editable there. What Luma shows to guests alone (the
  * address until sign-up) is asked for right below the preview.
  * Projects start empty, from a standard template or from an earlier project; the preview lists the tasks to take over,
  * each with a checkbox, its relative deadline and, for earlier projects, whether it was done back then. Only titles,
- * descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server).
+ * descriptions, priorities and relative deadlines carry over (tasksFromTemplate on the server). Nothing is preselected:
+ * a template the member did not pick would fill the project with tasks nobody asked for. Closing with something typed
+ * asks first (DiscardDialog).
  * Props: request ({ kind, team, event?, due?, stay? } or null = closed; team and due are preselected, stay keeps the
  * calendar on screen instead of opening the new project), copy (workspace copy), locale, me, members, membersById,
  * templates, projects, entries (calendarEntries), planOf(entry) → its project or undefined, admin,
  * archive (none, loading, loaded or failed: most earlier projects are archived, so choosing one loads it through
- * onPast()), run, onCreated(id, stay), onUseEntry(entry).
+ * onPast()), run, onCreated(id, stay), onOpen(id) for a project that exists already, onUseEntry(entry).
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { changedFields } from '../../../lib/liveUpdates'
 import { addDays, projectDay, SHAREPOINT_PATTERN, templateFromTasks, TEXT_MAX, TITLE_MAX } from '../../../lib/tasks'
 import { fill, FormDialog, TOOL_BUTTON } from '../memberUi'
 import { longDay, MemberPicker, shortDay, TeamSelect } from './taskUi'
@@ -49,6 +51,7 @@ export default function CreateDialog({
   run,
   onPast,
   onCreated,
+  onOpen,
   onUseEntry,
 }) {
   const text = copy.createDialog
@@ -56,6 +59,8 @@ export default function CreateDialog({
   const first = useRef(null)
   const id = useId()
   const [form, setForm] = useState(EMPTY)
+  // Where the form started, so closing asks only when something was typed or chosen since.
+  const [initial, setInitial] = useState(EMPTY)
   const [start, setStart] = useState('none')
   const [sourceId, setSourceId] = useState('')
   const [include, setInclude] = useState([])
@@ -83,13 +88,14 @@ export default function CreateDialog({
 
   useEffect(() => {
     if (!request) return
-    setForm({ ...EMPTY, title: request.event?.title ?? '', due: request.due ?? '', team: request.team, leads: [me] })
+    const fresh = { ...EMPTY, title: request.event?.title ?? '', due: request.due ?? '', team: request.team, leads: [me] }
+    setForm(fresh)
+    setInitial(fresh)
     setMore(false)
     setLumaLink('')
     setLumaImport(NO_IMPORT)
-    const useTemplate = !!request.event && templates.length > 0
-    setStart(useTemplate ? 'template' : 'none')
-    setSourceId(useTemplate ? templates[0].id : '')
+    setStart('none')
+    setSourceId('')
     if (!dialog.current.open) dialog.current.showModal()
     // showModal focuses the first control, the close button; the planning of a calendar event has nothing to type first.
     first.current?.focus()
@@ -203,7 +209,7 @@ export default function CreateDialog({
             className={QUIET_LINK}
             onClick={() => {
               dialog.current.close()
-              onCreated(lumaImport.existing.id, false)
+              onOpen(lumaImport.existing.id)
             }}
           >
             {text.luma.openExisting}
@@ -213,7 +219,15 @@ export default function CreateDialog({
       {listedEntry && (
         <p>
           {text.luma.listed}{' '}
-          <button type="button" className={QUIET_LINK} onClick={() => onUseEntry(listedEntry)}>
+          <button
+            type="button"
+            className={QUIET_LINK}
+            onClick={() => {
+              // An existing planning opens in the panel; a new one turns this dialog into its own.
+              if (planOf(listedEntry)) dialog.current.close()
+              onUseEntry(listedEntry)
+            }}
+          >
             {planOf(listedEntry) ? text.openExisting : text.luma.usePlanning}
           </button>
         </p>
@@ -381,9 +395,19 @@ export default function CreateDialog({
   const heading = request?.event ? fill(text.eventHeading, { title: request.event.title }) : kind ? text.headings[kind] : ''
   // An event exists only with its Luma event, so there is nothing to add before the import.
   const incomplete = request?.event ? false : ownEvent ? !imported || !form.title.trim() || !form.due : !form.title.trim()
+  const dirty = !!request && (!!lumaLink.trim() || start !== 'none' || Object.keys(changedFields(initial, form)).length > 0)
 
   return (
-    <FormDialog dialogRef={dialog} id={`${id}-heading`} heading={heading} closeLabel={copy.panel.close} onClose={() => setBusy(false)} onSubmit={submit}>
+    <FormDialog
+      dialogRef={dialog}
+      id={`${id}-heading`}
+      heading={heading}
+      closeLabel={copy.panel.close}
+      onClose={() => setBusy(false)}
+      onSubmit={submit}
+      dirty={dirty}
+      discard={copy.discard}
+    >
       {request && (
         <>
           {request.event && (

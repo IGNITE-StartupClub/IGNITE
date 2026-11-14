@@ -16,7 +16,15 @@ export const PROJECT_STATUSES = ['planned', 'active', 'done'] as const
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 
 /** The columns of the task board, in order. */
-export const TASK_STATUSES = ['backlog', 'doing', 'done'] as const
+export const BOARD_STATUSES = ['backlog', 'doing', 'done'] as const
+export type BoardStatus = (typeof BOARD_STATUSES)[number]
+
+/**
+ * Every status of a task: the board columns plus "dropped" (Entfällt), for work nobody needs any more. A dropped task is
+ * stored with done = true, so everything that reads `done` (lists, start page, digest, calendar feed, MCP) treats it as
+ * closed. Only progress leaves it out, because it was never done.
+ */
+export const TASK_STATUSES = [...BOARD_STATUSES, 'dropped'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
 /** A fourth column of both boards until 2026-11. Records may still hold it; taskStatus and projectStatus read it as "doing". */
@@ -478,10 +486,14 @@ export function weekEnd(today: string): string {
 /** Monday of the week (Monday to Sunday) that contains `today`. */
 export const weekStart = (today: string): string => addDays(weekEnd(today), -6)
 
-/** Done tasks against all tasks; `percent` is null without tasks, so an empty project shows no made-up value. */
-export function progress(tasks: Pick<TaskState, 'done'>[]): { done: number; total: number; percent: number | null } {
-  const done = tasks.filter((task) => task.done).length
-  return { done, total: tasks.length, percent: tasks.length ? Math.round((done / tasks.length) * 100) : null }
+/**
+ * Done tasks against all tasks, both without dropped ones; `percent` is null without tasks, so an empty project shows no
+ * made-up value.
+ */
+export function progress(tasks: (Pick<TaskState, 'done'> & { status?: StoredStatus<TaskStatus> })[]): { done: number; total: number; percent: number | null } {
+  const counted = tasks.filter((task) => task.status !== 'dropped')
+  const done = counted.filter((task) => task.done).length
+  return { done, total: counted.length, percent: counted.length ? Math.round((done / counted.length) * 100) : null }
 }
 
 /** The people on a project's tasks without its leads, who are named on a line of their own. */
@@ -512,12 +524,15 @@ export const mayRemoveTask = (
 
 type Standing = Pick<TaskState, 'done' | 'status'>
 
+/** A done or dropped task is closed: it counts as done and leaves the open lists. */
+export const isClosed = (status: TaskStatus): boolean => status === 'done' || status === 'dropped'
+
 /**
  * Where a task stands after a change. The board moves the status and checkboxes set done, so both always agree: the
- * last column is done, and a task checked open again returns to the backlog.
+ * last column and "dropped" are done, and a task checked open again returns to the backlog.
  */
 export function nextStanding(task: Standing, patch: TaskPatch): Standing {
-  if (patch.status) return { status: patch.status, done: patch.status === 'done' }
+  if (patch.status) return { status: patch.status, done: isClosed(patch.status) }
   if (patch.done === undefined || patch.done === task.done) return { status: task.status, done: task.done }
   return { status: patch.done ? 'done' : 'backlog', done: patch.done }
 }
@@ -606,24 +621,27 @@ export function patchedProject<
 }
 
 
-export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done'] as const
+export const TASK_GROUPS = ['overdue', 'week', 'later', 'none', 'done', 'dropped'] as const
 export type TaskGroup = (typeof TASK_GROUPS)[number]
 
 /** The one group of the task list a task belongs to. */
-export function taskGroup(task: Pick<TaskState, 'done' | 'due'>, today: string): TaskGroup {
+export function taskGroup(task: Pick<TaskState, 'done' | 'due'> & { status?: StoredStatus<TaskStatus> }, today: string): TaskGroup {
+  if (task.status === 'dropped') return 'dropped'
   if (task.done) return 'done'
   if (!task.due) return 'none'
   if (task.due < today) return 'overdue'
   return task.due <= weekEnd(today) ? 'week' : 'later'
 }
 
-/** What the workspace shows: the selected tab plus "Nur meine" and the search. */
+/** What the workspace shows: the selected filter and the search. */
 export interface Scope {
-  /** A team id or ALL_TEAMS. */
+  /** A team id, ALL_TEAMS, or NO_TEAM for the tasks of no team. */
   team: string
   /** The member's own team, '' without one. Its tab also shows what they are assigned to in other teams. */
   myTeam: string
   onlyMine: boolean
+  /** Only open tasks nobody is assigned to (the filter "Noch zu verteilen"). */
+  unassigned?: boolean
   query: string
 }
 
@@ -663,17 +681,65 @@ export function scopedTasks(projects: ProjectState[], scope: Scope, me: string, 
         }))
         .filter((task) => {
           const assigned = task.assignees.includes(me)
-          const inTab = scope.team === ALL_TEAMS || task.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned)
-          return inTab && (!scope.onlyMine || assigned) && (!query || contains(task.title, query) || contains(task.projectTitle, query))
+          const inTab =
+            scope.team === ALL_TEAMS ||
+            (scope.team === NO_TEAM
+              ? !task.team
+              : task.team === ALL_TEAMS || task.team === scope.team || (scope.team === scope.myTeam && assigned))
+          return (
+            inTab &&
+            (!scope.onlyMine || assigned) &&
+            (!scope.unassigned || (!task.done && !task.assignees.length)) &&
+            (!query || contains(task.title, query) || contains(task.projectTitle, query))
+          )
         }),
     )
 }
 
+const EVERYWHERE: Scope = { team: ALL_TEAMS, myTeam: '', onlyMine: false, query: '' }
+
+/**
+ * Open tasks nobody has taken yet in the open projects the member leads. "Meine Aufgaben" shows only what a member is
+ * assigned to, so the hub lists these for the leads to hand out.
+ */
+export const unassignedTasks = (projects: ProjectState[], me: string, today: string): ListTask[] =>
+  scopedTasks(
+    projects.filter((project) => project.leads.includes(me)),
+    { ...EVERYWHERE, unassigned: true },
+    me,
+    today,
+  )
+
+export interface TeamCheck<T> {
+  overdue: T[]
+  unassigned: T[]
+  undated: T[]
+}
+
+/**
+ * The Team-Check of a teamlead: the open tasks of one team that are overdue, that nobody has taken, or that have no
+ * deadline. A task can stand in more than one list. Tasks of projects for all teams belong to no single team's check.
+ */
+export function teamCheck(projects: ProjectState[], team: string, me: string, today: string): TeamCheck<ListTask> {
+  const open = scopedTasks(projects, { ...EVERYWHERE, team }, me, today).filter((task) => !task.done && task.team === team)
+  return {
+    overdue: sortTasks(open.filter((task) => task.group === 'overdue')),
+    unassigned: sortTasks(open.filter((task) => !task.assignees.length)),
+    undated: open.filter((task) => !task.due),
+  }
+}
+
+/** Another task of the list with a similar title: a hint that one of the two may be a duplicate. */
+export const similarTask = <T extends { id: string; title: string }>(task: T, tasks: T[]): T | null =>
+  tasks.find((other) => other.id !== task.id && similarTitles(other.title, task.title)) ?? null
+
 /**
  * The member's private tasks in the shape of the task list, so board and list show them between the others. They count
- * as assigned to the member, which puts them on the member's own tab and under "Nur meine".
+ * as assigned to the member, which puts them on the member's own tab and under "Nur meine". They need neither a team nor
+ * anybody else, so the filters for those leave them out.
  */
 export function scopedPrivateTasks(tasks: PrivateTaskState[], scope: Scope, me: string, today: string): (ListTask & PrivateTaskState)[] {
+  if (scope.unassigned || scope.team === NO_TEAM) return []
   const query = scope.query.trim().toLowerCase()
   return tasks
     .filter((task) => {
@@ -698,13 +764,18 @@ const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 }
 export const sortTasks = <T extends Pick<TaskState, 'due' | 'priority'>>(tasks: T[]): T[] =>
   [...tasks].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority])
 
-/** The tasks of each board column: earliest deadline first, the done column with the last finished task on top. */
+/**
+ * The tasks of each board column: earliest deadline first, the done column with the last finished task on top. Dropped
+ * tasks get no column; the board lists them below, the last one first.
+ */
 export function boardColumns<T extends TaskState & { doneAt: string }>(tasks: T[]): Record<TaskStatus, T[]> {
   const inColumn = (status: TaskStatus) => tasks.filter((task) => task.status === status)
+  const lastFirst = (list: T[]) => list.sort((a, b) => b.doneAt.localeCompare(a.doneAt))
   return {
     backlog: sortTasks(inColumn('backlog')),
     doing: sortTasks(inColumn('doing')),
-    done: inColumn('done').sort((a, b) => b.doneAt.localeCompare(a.doneAt)),
+    done: lastFirst(inColumn('done')),
+    dropped: lastFirst(inColumn('dropped')),
   }
 }
 
@@ -736,10 +807,13 @@ export function filterProjects<T extends ProjectState>(projects: T[], filters: S
 /** Day a project is about: the event start, else its own date. */
 export const projectDay = (project: Pick<ProjectState, 'eventDay' | 'due'>): string => project.eventDay || project.due
 
-/** The projects card on the hub: open projects the member leads, soonest first. The projects page still shows all. */
-export const ledProjects = <T extends ProjectState>(projects: T[], me: string): T[] =>
+/**
+ * The projects card on the hub: open projects the member leads or has a task in, soonest first. The projects page still
+ * shows all.
+ */
+export const myProjects = <T extends ProjectState>(projects: T[], me: string): T[] =>
   projects
-    .filter((project) => !project.archived && project.type !== 'task' && project.status !== 'done' && project.leads.includes(me))
+    .filter((project) => !project.archived && project.type !== 'task' && project.status !== 'done' && involves(project, me))
     .sort((a, b) => (projectDay(a) || '9999').localeCompare(projectDay(b) || '9999'))
 
 /**
@@ -860,20 +934,26 @@ export function calendarEntries<E extends CalendarEvent>(events: E[], projects: 
 /** The Weekly is the club's meeting, not an event: it shows in the calendars only, never in event lists, search or planning. */
 export const isEvent = (entry: { source: string }): boolean => entry.source !== 'series'
 
-/** The filters of the task board: the member's own tasks, a team, or every team. */
+/**
+ * The filters of the task board besides a team or every team: the member's own tasks, the open tasks nobody took, and
+ * the tasks of no team.
+ */
 export const MINE = 'mine'
+export const UNASSIGNED = 'unassigned'
+export const NO_TEAM = 'none'
 
 export const filterScope = (filter: string, myTeam: string, query: string): Scope => ({
-  team: filter === MINE ? ALL_TEAMS : filter,
+  team: filter === MINE || filter === UNASSIGNED ? ALL_TEAMS : filter,
   myTeam,
   onlyMine: filter === MINE,
+  ...(filter === UNASSIGNED && { unassigned: true }),
   query,
 })
 
-export const TASK_VIEWS = ['overview', 'tasks', 'projects', 'events'] as const
+export const TASK_VIEWS = ['overview', 'tasks', 'projects', 'events', 'teamcheck'] as const
 export type TaskView = (typeof TASK_VIEWS)[number]
 
-const VIEW_SLUGS: Record<Exclude<TaskView, 'overview'>, string> = { tasks: 'board', projects: 'projekte', events: 'events' }
+const VIEW_SLUGS: Record<Exclude<TaskView, 'overview'>, string> = { tasks: 'board', projects: 'projekte', events: 'events', teamcheck: 'team-check' }
 
 /**
  * The URL hash of a view and an open project, "#board/<id>". A hash and not a query, because Astro's router takes a

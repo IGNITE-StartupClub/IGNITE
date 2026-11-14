@@ -3,15 +3,17 @@
  * apart from `task_projects` on purpose: that collection reaches every member (workspaceState), while every query here
  * carries the member's id, so no other member and no admin gets at them. Title and description are sealed
  * (fieldCrypto.ts) with the member bound in, so a record moved to another member fails to open. There is no activity
- * log, digest or template for them, and they go with the account (removeMember).
+ * log, digest or template for them, and they go with the account (removeMember). A TTL index deletes them DONE_DAYS
+ * after they were finished (or dropped), as the privacy policy says; reopening one clears `doneAt` and keeps it.
  */
 import { randomUUID } from 'node:crypto'
 import { fieldKeys, open, seal, type FieldKeys } from './fieldCrypto'
 import { database, setUpInBackground } from './members'
-import { MAX_TASKS, berlinDay, nextTurn, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
+import { MAX_TASKS, berlinDay, isClosed, nextTurn, taskStatus, type PrivateTaskState, type StoredStatus, type TaskFields, type TaskPatch, type TaskStatus } from './tasks'
 import { putInTrash, takeFromTrash } from './taskTrash'
 
 const COLLECTION = 'private_tasks'
+const DONE_DAYS = 30
 const SEALED = ['title', 'description'] as const
 const PLAIN = ['due', 'priority', 'team', 'repeat'] as const
 
@@ -36,27 +38,48 @@ async function collection() {
   const tasks = (await database()).collection<PrivateTaskDoc>(COLLECTION)
   if (!indexed) {
     indexed = true
-    setUpInBackground('private tasks', () => tasks.createIndex({ memberId: 1 }))
+    setUpInBackground('private tasks', () =>
+      Promise.all([
+        tasks.createIndex({ memberId: 1 }),
+        // Documents without a date in doneAt (open tasks) never expire.
+        tasks.createIndex({ doneAt: 1 }, { expireAfterSeconds: DONE_DAYS * 86_400 }),
+      ]),
+    )
   }
   return tasks
 }
+
+const shaped = (task: PrivateTaskDoc, memberId: string): PrivateTaskState => ({
+  id: task._id,
+  title: opened(task.title, memberId, task._id, 'title'),
+  description: opened(task.description, memberId, task._id, 'description'),
+  done: task.done,
+  status: taskStatus(task),
+  doneAt: task.doneAt?.toISOString() ?? '',
+  due: task.due,
+  repeat: task.repeat ?? '',
+  priority: task.priority,
+  team: task.team,
+})
 
 /** The private tasks of one member, oldest first. */
 export async function privateTasks(memberId: string): Promise<PrivateTaskState[]> {
   const tasks = await collection()
   const list = await tasks.find({ memberId }, { sort: { createdAt: 1 } }).toArray()
-  return list.map((task) => ({
-    id: task._id,
-    title: opened(task.title, memberId, task._id, 'title'),
-    description: opened(task.description, memberId, task._id, 'description'),
-    done: task.done,
-    status: taskStatus(task),
-    doneAt: task.doneAt?.toISOString() ?? '',
-    due: task.due,
-    repeat: task.repeat ?? '',
-    priority: task.priority,
-    team: task.team,
-  }))
+  return list.map((task) => shaped(task, memberId))
+}
+
+/** One private task of the member, opened; null for an unknown or foreign id. */
+export async function privateTask(memberId: string, id: string): Promise<PrivateTaskState | null> {
+  const tasks = await collection()
+  const task = await tasks.findOne({ _id: id, memberId })
+  return task && shaped(task, memberId)
+}
+
+/** Deletes a private task without the trash, after sharing moved it into a shared task (sharePrivateTask). */
+export async function dropPrivateTask(memberId: string, id: string): Promise<void> {
+  const tasks = await collection()
+  await tasks.deleteOne({ _id: id, memberId })
 }
 
 export async function addPrivateTask(memberId: string, fields: TaskFields): Promise<'ok' | 'privateFull'> {
@@ -64,7 +87,7 @@ export async function addPrivateTask(memberId: string, fields: TaskFields): Prom
   if ((await tasks.countDocuments({ memberId })) >= MAX_TASKS) return 'privateFull'
   const id = randomUUID()
   const now = new Date()
-  const done = fields.status === 'done'
+  const done = isClosed(fields.status)
   await tasks.insertOne({
     _id: id,
     memberId,

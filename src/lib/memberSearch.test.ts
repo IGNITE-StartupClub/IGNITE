@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  capturePreview,
   buildSearchIndex,
   captureTask,
   completeToken,
@@ -94,11 +95,25 @@ test('captureTask takes a date behind bis out of the title', () => {
     ['+ Aufgabenbereich beenden bis 17.11.27', '2027-11-17'],
     ['+ Aufgabenbereich beenden bis 17. November', '2026-11-17'],
     ['+ Aufgabenbereich beenden bis 17. Nov 2027', '2027-11-17'],
+    ['+ Aufgabenbereich beenden bis zum 17.11.', '2026-11-17'],
+    ['Aufgabenbereich beenden bis zum 17. November', '2026-11-17'],
   ]) {
     const task = capture(text)
     assert.equal(task.title, 'Aufgabenbereich beenden', text)
     assert.equal(task.due, due, text)
   }
+})
+
+test('captureTask keeps "bis zum" in the title when no date follows', () => {
+  assert.equal(capture('+ Plan bis zum Ende bis Fr').title, 'Plan bis zum Ende')
+})
+
+test('captureTask puts a line without # into the team on screen, before the team of its person', () => {
+  const onScreen = (text: string) => captureTask(text, { members, teams, me: me.id, today: TODAY, team: 'ignite-hr' })
+  assert.equal(onScreen('Flyer drucken @Lena-Meyer').team, 'ignite-hr')
+  assert.equal(onScreen('Flyer drucken').team, 'ignite-hr')
+  assert.equal(onScreen('Flyer drucken #Relations').team, 'ignite-relations')
+  assert.equal(capture('Flyer drucken @Lena-Meyer').team, 'ignite-marketing', 'without a team on screen the person decides')
 })
 
 test('captureTask reads text after a named date as title', () => {
@@ -410,4 +425,21 @@ test('buildSearchIndex opens the planning project of an event when there is one'
   assert.equal(events[1].url, '/mitglieder/aufgaben?ansicht=events')
   assert.equal(events[1].meta, 'Do, 19. Nov. · Hörsaal 1')
   assert.equal(events[1].done, false)
+})
+
+test('capturePreview reads a capture line without the member list', () => {
+  const today = '2026-11-14'
+  assert.deepEqual(capturePreview('+ Flyer drucken bis Mi @Paul #Marketing', today), {
+    due: '2026-11-18',
+    people: ['Paul'],
+    teams: ['Marketing'],
+  })
+  assert.deepEqual(capturePreview('  + Pitch üben @Lena-Meyer @Paul bis 20.11.', today), {
+    due: '2026-11-20',
+    people: ['Lena Meyer', 'Paul'],
+    teams: [],
+  })
+  assert.deepEqual(capturePreview('+ Mail an max@leuphana.de #2', today), { due: '', people: [], teams: [] })
+  assert.equal(capturePreview('Flyer bis Mi', today), null)
+  assert.equal(capturePreview('', today), null)
 })

@@ -4,13 +4,15 @@
  * assign, edit, order), the project details and the activity log the server writes. A task
  * follows the team of its project unless its editor gives it another one.
  * Every change goes through `run` (TaskWorkspace), which shows most of them at once and rolls them back on failure; the
- * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Rows carry
- * data-task-item and their checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus).
+ * task editor and the details form keep what was typed until the answer, so a refusal loses nothing. Closing the panel
+ * or switching its tab while something typed is unsaved asks first (DiscardDialog). Rows carry data-task-item and their
+ * checkboxes data-control, so focus stays in the list when a task moves or goes (keepFocus). Single tasks open in
+ * TaskDialog instead.
  * Props: project (summary or null = closed), copy (workspace copy), locale, today, me, members, membersById, run,
  * onClose(), onStatus(project, status) (the board's move, which asks before "done"), eventPlace (the public event's
  * place in the page's language; the stored snapshot keeps the German one).
  */
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, ExternalLink, FolderOpen, MoreHorizontal, Plus, Repeat, X } from 'lucide-react'
 import {
   applyMemberChange,
@@ -21,7 +23,6 @@ import {
   PROJECT_STATUSES,
   progress,
   projectDay,
-  projectStatus,
   REPEATS,
   SHAREPOINT_PATTERN,
   TASK_STATUSES,
@@ -29,10 +30,10 @@ import {
   TITLE_MAX,
 } from '../../../lib/tasks'
 import { changedFields } from '../../../lib/liveUpdates'
+import ActivityLog from './ActivityLog'
 import MakeEventDialog from './MakeEventDialog'
-import { BADGE, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
+import { BADGE, DiscardDialog, fill, FormDialog, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON, useDiscardGuard } from '../memberUi'
 import {
-  Avatar,
   AvatarStack,
   berlinTime,
   dateTime,
@@ -134,16 +135,24 @@ function TaskEditor({ form, busy, projectTeam, copy, onChange, onSave, onCancel 
         <label htmlFor={`${id}-repeat`} className={LABEL}>
           {copy.repeat}
         </label>
-        <select id={`${id}-repeat`} className={`${SELECT} h-10 w-full`} value={form.repeat} onChange={set('repeat')} aria-describedby={`${id}-repeat-hint`}>
+        <select
+          id={`${id}-repeat`}
+          className={`${SELECT} h-10 w-full`}
+          value={form.repeat}
+          onChange={set('repeat')}
+          aria-describedby={form.repeat ? `${id}-repeat-hint` : undefined}
+        >
           {REPEATS.map((repeat) => (
             <option key={repeat} value={repeat}>
               {copy.repeats[repeat]}
             </option>
           ))}
         </select>
-        <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
-          {copy.repeatHint}
-        </p>
+        {form.repeat && (
+          <p id={`${id}-repeat-hint`} className="mt-1 text-xs text-fg-muted">
+            {copy.repeatHint}
+          </p>
+        )}
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" checked={form.required} onChange={set('required')} />
@@ -275,12 +284,15 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
   )
 }
 
-function TasksTab({ project, copy, locale, today, me, members, membersById, run, change }) {
+function TasksTab({ project, copy, locale, today, me, members, membersById, run, change, onDirty }) {
   const [draft, setDraft] = useState('')
   const [sort, setSort] = useState('manual')
   // The open editor ({ taskId, start, form, busy }) lives here and not in its row, because a row remounts when its task
   // moves between the open and the done list, and a live update can do that while someone types.
   const [editor, setEditor] = useState(null)
+  const typing = !!draft.trim() || (!!editor && Object.keys(changedFields(editor.start, editor.form)).length > 0)
+  useEffect(() => onDirty('tasks', typing), [typing])
+  useEffect(() => () => onDirty('tasks', false), [])
   const sorted = [...project.tasks].sort(SORTS[sort])
   const open = sorted.filter((task) => !task.done)
   const done = sorted.filter((task) => task.done)
@@ -427,7 +439,7 @@ const trimmed = (form) => ({
   folderUrl: form.folderUrl.trim(),
 })
 
-function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder, onMakeEvent }) {
+function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder, onMakeEvent, onDirty }) {
   const id = useId()
   const [busy, setBusy] = useState(false)
   const publicPlace = eventPlace ?? project.event?.location
@@ -453,6 +465,8 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder, onMak
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const patch = changedFields(fields(), trimmed(form))
   const changed = Object.keys(patch).length > 0
+  useEffect(() => onDirty('details', changed), [changed])
+  useEffect(() => () => onDirty('details', false), [])
 
   // Without an optimistic change: the fields keep what was typed until the answer, and after a refusal too. The server
   // copies title, description and deadline of a single task to its task (tasksStore.ts), and the answer brings both.
@@ -588,60 +602,6 @@ function DetailsTab({ project, copy, locale, run, eventPlace, focusFolder, onMak
   )
 }
 
-function ActivityTab({ project, copy, locale, membersById }) {
-  const [entries, setEntries] = useState(null) // null while the first answer is on its way
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    let current = true
-    fetch(`/api/members/tasks?activity=${encodeURIComponent(project.id)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`Activity failed with ${res.status}`))))
-      .then((data) => {
-        if (!current) return
-        setEntries(data.activity)
-        setFailed(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        if (current) setFailed(true)
-      })
-    return () => {
-      current = false
-    }
-  }, [project.id, project.updatedAt])
-  const name = (memberId) => (memberId === 'system' ? copy.activity.system : (membersById.get(memberId)?.name ?? copy.activity.someone))
-  // The server stores ids and days; names and dates follow the reader's language.
-  const details = {
-    status: (status) => copy.statuses[projectStatus(status)] ?? status,
-    dated: (day) => longDay(day, locale),
-    teamed: (team) => teamName(copy, team) ?? team,
-  }
-  if (failed) return <p className="text-sm text-fg-muted">{copy.results.error}</p>
-  if (!entries) return <p className="text-sm text-fg-muted">{copy.panel.loadingActivity}</p>
-  if (!entries.length) return <p className="text-sm text-fg-muted">{copy.panel.noActivity}</p>
-  return (
-    <ol className="flex flex-col gap-4">
-      {entries.map((entry, index) => {
-        const actor = membersById.get(entry.actor)
-        const detail = details[entry.action]?.(entry.detail) ?? entry.detail
-        const action = entry.action === 'dated' && project.type === 'event' ? 'eventDated' : entry.action
-        return (
-          <li key={`${entry.at}-${index}`} className="flex gap-3 text-sm">
-            {actor ? (
-              <Avatar member={actor} size="md" decorative />
-            ) : (
-              <span aria-hidden="true" className="h-8 w-8 shrink-0 rounded-full bg-bg-subtle" />
-            )}
-            <div>
-              <p>{fill(copy.activity[action] ?? '', { actor: name(entry.actor), detail, member: name(entry.member) })}</p>
-              <p className="text-xs text-fg-muted">{dateTime(entry.at, locale)}</p>
-            </div>
-          </li>
-        )
-      })}
-    </ol>
-  )
-}
-
 export default function ProjectPanel({ project, copy, locale, today, me, members, membersById, run, onClose, onStatus, eventPlace }) {
   const dialog = useRef(null)
   const closeButton = useRef(null)
@@ -653,6 +613,18 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
   const [templateName, setTemplateName] = useState('')
   const [templateSaved, setTemplateSaved] = useState(false)
   const [makingEvent, setMakingEvent] = useState(false)
+  // Unsaved input per tab: the details form, an open task editor or a typed new task.
+  const [dirtyParts, setDirtyParts] = useState({})
+  const markDirty = useCallback((part, value) => setDirtyParts((current) => (!!current[part] === value ? current : { ...current, [part]: value })), [])
+  const guard = useDiscardGuard(dialog, Object.values(dirtyParts).some(Boolean))
+  // Another tab unmounts this one, and with it what was typed there.
+  const showTab = (key, folder = false) => {
+    if (key === tab) return setFocusFolder(folder)
+    guard.ask(() => {
+      setFocusFolder(folder)
+      setTab(key)
+    })
+  }
   const projectId = project?.id
   // The server repeats this check (makeEvent in tasksStore.ts).
   const canMakeEvent = project?.type === 'internal' && project.mayArchive && !project.archived
@@ -668,6 +640,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
     setTab('tasks')
     setFocusFolder(false)
     setTemplateSaved(false)
+    setDirtyParts({})
   }, [projectId])
 
   // Applies fn to this project in the project list: the optimistic version of a change.
@@ -706,7 +679,8 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
         ref={dialog}
         aria-labelledby={`${id}-title`}
         onClose={onClose}
-        onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+        onCancel={guard.onCancel}
+        onClick={(e) => e.target === e.currentTarget && guard.requestClose()}
         className="fixed inset-0 m-0 ml-auto h-dvh max-h-none w-full max-w-none border-0 bg-bg p-0 text-fg backdrop:bg-black/50 md:w-[36rem] md:border-l md:border-solid md:border-border"
       >
         {project && (
@@ -793,7 +767,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     </>
                   )}
                 </Menu>
-                <button ref={closeButton} type="button" className={ICON_BUTTON} aria-label={copy.panel.close} onClick={() => dialog.current.close()}>
+                <button ref={closeButton} type="button" className={ICON_BUTTON} aria-label={copy.panel.close} onClick={guard.requestClose}>
                   <X aria-hidden="true" className="h-5 w-5" />
                 </button>
               </div>
@@ -857,10 +831,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                     <button
                       type="button"
                       className="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-accent underline"
-                      onClick={() => {
-                        setFocusFolder(true)
-                        setTab('details')
-                      }}
+                      onClick={() => showTab('details', true)}
                     >
                       <FolderOpen aria-hidden="true" className="h-4 w-4" />
                       {copy.panel.linkFolder}
@@ -890,10 +861,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   id={`${id}-tab-${key}`}
                   aria-selected={tab === key}
                   aria-controls={`${id}-panel`}
-                  onClick={() => {
-                    setFocusFolder(false)
-                    setTab(key)
-                  }}
+                  onClick={() => showTab(key)}
                   className={`-mb-px rounded-none border-0 border-b-2 border-solid bg-transparent px-3 py-2.5 text-sm font-medium ${
                     tab === key ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg'
                   }`}
@@ -917,6 +885,7 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   membersById={membersById}
                   run={run}
                   change={change}
+                  onDirty={markDirty}
                 />
               )}
               {tab === 'details' && (
@@ -929,13 +898,15 @@ export default function ProjectPanel({ project, copy, locale, today, me, members
                   eventPlace={eventPlace}
                   focusFolder={focusFolder}
                   onMakeEvent={canMakeEvent ? () => setMakingEvent(true) : null}
+                  onDirty={markDirty}
                 />
               )}
-              {tab === 'activity' && <ActivityTab project={project} copy={copy} locale={locale} membersById={membersById} />}
+              {tab === 'activity' && <ActivityLog project={project} copy={copy} locale={locale} membersById={membersById} />}
             </div>
           </div>
         )}
       </dialog>
+      <DiscardDialog dialogRef={guard.confirm} copy={copy.discard} onDiscard={guard.discard} />
 
       <FormDialog
         dialogRef={templateDialog}

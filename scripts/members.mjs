@@ -10,7 +10,8 @@
  *
  * `add` sends no invitation: the member requests a code on the login page ("Neu im Team?" → "Code anfordern").
  * `remove` also ends the open sessions and codes of that address and deletes the member's private tasks, their undo
- * entries, pending digest entries and sent digests.
+ * entries, pending digest entries and sent digests. Their named website feedback loses the name, like on the admin page,
+ * and projects drop them as lead and as assignee of their tasks (removeMember in src/lib/members.ts).
  */
 
 import { MongoClient } from 'mongodb'
@@ -85,11 +86,19 @@ try {
       await db.collection('member_codes').deleteMany({ email })
       if (member) {
         const memberId = member._id.toHexString()
+        const projects = db.collection('task_projects')
         await Promise.all([
           db.collection('private_tasks').deleteMany({ memberId }),
           db.collection('task_trash').deleteMany({ deletedBy: memberId }),
           db.collection('task_notifications').deleteMany({ memberId }),
           db.collection('task_digests').deleteMany({ memberId }),
+          db.collection('feedback').updateMany({ memberId }, { $unset: { memberId: '' } }),
+          projects.updateMany({ leads: memberId }, { $pull: { leads: memberId }, $set: { updatedAt: new Date() } }),
+          projects.updateMany(
+            { 'tasks.assignees': memberId },
+            { $pull: { 'tasks.$[assigned].assignees': memberId }, $set: { updatedAt: new Date() } },
+            { arrayFilters: [{ 'assigned.assignees': memberId }] },
+          ),
         ])
       }
       console.log(member ? `removed  ${email} (${sessions.deletedCount} sessions ended)` : `unknown  ${email}`)

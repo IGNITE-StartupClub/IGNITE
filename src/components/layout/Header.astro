@@ -5,7 +5,8 @@
  * Inside the members area (signed in; the login page has no header) the pill switches: "IGNITE Member" logo linking to
  * the members home (below sm only the mark, so the pill fits on phones), the member navigation (memberArea.nav) and a
  * profile menu with photo instead of the members link and "Mitmachen". The menu also carries the legal links, because
- * the members area has no footer. The search field (MemberSearch) sits right of the links.
+ * the members area has no footer, and opens the website feedback and the onboarding of MemberHelp. The search field
+ * (MemberSearch) sits right of the links.
  * Props: switchHref (URL of the equivalent page in the other language, target of the language toggle).
  * The pill gets slightly more compact after scrolling (data-scrolled). The header is fixed and takes no layout space;
  * `main` reserves the room (global.css). Active page gets aria-current="page".
@@ -22,10 +23,12 @@ import MemberLink from '../ui/MemberLink.astro'
 import ExitDoor from '../ui/ExitDoor.astro'
 import MobileNav from './MobileNav.astro'
 import MemberSearch from '../forms/MemberSearch.jsx'
+import MemberHelp from './MemberHelp.astro'
 import { getCopy } from '../../data/copy'
 import { photoPath } from '../../lib/emailSignature'
 import { resolveLocale } from '../../lib/i18n'
 import { memberAreaLocale, memberHomePath, memberPagePath } from '../../lib/memberAuth'
+import { menuBadge, showsSearchHint } from '../../lib/onboarding'
 
 interface Props {
   switchHref: string
@@ -47,6 +50,7 @@ const member = memberAreaLocale(Astro.url.pathname) ? Astro.locals.member : unde
 const photoId = member?.photoId
 const memberHome = memberHomePath(locale)
 const badge = member && memberNav.badges[member.position]
+const firstStepsOpen = member ? menuBadge(member.onboarding) : 0
 const items: NavItem[] = member
   ? [
       { label: memberNav.home, url: memberHome },
@@ -146,11 +150,14 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
             me={member.id}
             tasksUrl={memberPagePath('tasks', locale)}
             homeUrl={memberHome}
+            hint={showsSearchHint(member.onboarding)}
+            searchTask={member.onboarding.marks.searchTask}
           >
             <Logo slot="logo" markOnly color="currentColor" name={navigation.logoText} />
           </MemberSearch>
         )
       }
+      {member && <MemberHelp />}
       <div class="hidden items-center gap-1 lg:flex">
         <LanguageToggle href={switchHref} />
         <ThemeToggle />
@@ -184,6 +191,11 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                       {memberNav.system}
                     </a>
                   </li>
+                  <li style="--i: 1">
+                    <a class="panel-link" href={memberPagePath('feedback', locale)} aria-current={isCurrent(memberPagePath('feedback', locale)) ? 'page' : undefined}>
+                      {memberNav.feedbackAdmin}
+                    </a>
+                  </li>
                 </>
               )}
               {member.position !== 'board' && (
@@ -206,6 +218,21 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                   </a>
                 </li>
               )}
+              <li style="--i: 5">
+                {/* The HelpDialogs island opens the dialog and keeps the number current. */}
+                <button type="button" class="panel-link panel-button" data-member-help="onboarding">
+                  {memberNav.firstSteps}
+                  {firstStepsOpen > 0 && (
+                    <span class="panel-badge" data-onboarding-badge>
+                      {memberNav.firstStepsOpen.replace('{count}', String(firstStepsOpen))}
+                    </span>
+                  )}
+                </button>
+              </li>
+              <li style="--i: 5">
+                {/* Opened by the HelpDialogs island (MemberHelp.astro). */}
+                <button type="button" class="panel-link panel-button" data-member-help="feedback">{memberNav.feedback}</button>
+              </li>
               <li style="--i: 6">
                 <a class="panel-link" href={navigation.homeUrl}>{memberNav.website}</a>
               </li>
@@ -724,7 +751,8 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     color: var(--color-fg);
   }
   /* The site's base styles give every button a border, padding and line-height 1. */
-  .logout {
+  .logout,
+  .panel-button {
     width: 100%;
     font: inherit;
     font-size: var(--text-sm);
@@ -733,6 +761,17 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
     background: transparent;
     border: 0;
     cursor: pointer;
+  }
+  .panel-badge {
+    flex-shrink: 0;
+    padding: 0.0625rem 0.5rem;
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--color-accent-text);
+    background-color: color-mix(in srgb, var(--color-accent-text) 16%, transparent);
+    border-radius: 999px;
   }
   .pill :global(.btn) {
     transition:

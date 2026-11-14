@@ -1,15 +1,15 @@
 /**
  * Small building blocks of the tasks module (TaskWorkspace and its parts): member avatars and stacks, the line of a
  * project's leads, the member picker popover, the team select, the marks of private tasks, the progress bar, the filter
- * menu, the menu of a task, keyboard focus around changing lists, status and type styles and date formatting. Members are
- * { id, name, photo, team }.
+ * menu, the menu of a task, setting a deadline in place, keyboard focus around changing lists, status and type styles
+ * and date formatting. Members are { id, name, photo, team }.
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { ALL_TEAMS, TASK_STATUSES, TEAM_IDS } from '../../../lib/tasks'
-import { fill, Menu, MENU_ITEM, TOOL_BUTTON } from '../memberUi'
+import { ALL_TEAMS, BOARD_STATUSES, memberChange, TEAM_IDS } from '../../../lib/tasks'
+import { fill, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 
 /** Dot and progress colour per board column of projects and tasks. */
 export const STATUS_TONE = {
@@ -18,6 +18,7 @@ export const STATUS_TONE = {
   active: 'bg-brand-bright',
   doing: 'bg-brand-bright',
   done: 'bg-success',
+  dropped: 'bg-fg-subtle',
 }
 export const TYPE_TEXT = { event: 'text-accent', internal: 'text-fg-muted', task: 'text-[#f2b35a]' }
 
@@ -123,9 +124,10 @@ export function AvatarStack({ ids, membersById, copy, max = 3, size = 'sm' }) {
  * A button that opens a searchable member list with checkboxes; every toggle calls onChange with the new id list.
  * The popover is placed under its button and closes on Escape and outside clicks (browser popover API). Members of
  * `team`, the team the work belongs to, come right after the member themselves. The list exists only while it is open:
- * every card and row has a picker, and their closed lists made up most of the page's elements.
+ * every card and row has a picker, and their closed lists made up most of the page's elements. With `addLabel` the
+ * button always reads "+ addLabel", for forms that list the chosen people themselves.
  */
-export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false }) {
+export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false, addLabel }) {
   const id = useId()
   const button = useRef(null)
   const panel = useRef(null)
@@ -158,17 +160,17 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
         ref={button}
         type="button"
         popoverTarget={id}
-        aria-label={`${label}: ${selected.map((memberId) => membersById.get(memberId)?.name).filter(Boolean).join(', ') || copy.nobody}`}
-        className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dashed border-border-strong bg-transparent px-1.5 py-0.5 text-xs text-fg-muted hover:border-fg-muted hover:text-fg ${
-          selected.length ? 'border-solid border-transparent' : ''
-        }`}
+        aria-label={addLabel ? undefined : `${label}: ${selected.map((memberId) => membersById.get(memberId)?.name).filter(Boolean).join(', ') || copy.nobody}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border border-dashed border-border-strong bg-transparent py-0.5 text-fg-muted hover:border-fg-muted hover:text-fg ${
+          addLabel ? 'min-h-9 px-3 text-sm' : 'min-h-8 px-1.5 text-xs'
+        } ${selected.length && !addLabel ? 'border-solid border-transparent' : ''}`}
       >
-        {selected.length ? (
+        {selected.length && !addLabel ? (
           <AvatarStack ids={selected} membersById={membersById} copy={copy} max={compact ? 2 : 4} />
         ) : (
           <>
             <UserPlus aria-hidden="true" className="h-4 w-4" />
-            {!compact && copy.assign}
+            {addLabel ?? (!compact && copy.assign)}
           </>
         )}
       </button>
@@ -253,6 +255,12 @@ export function PrivateToggle({ pressed, onChange, label }) {
       {label}
     </button>
   )
+}
+
+/** "Lena Meyer" → "Lena M.", so several people fit in a line. */
+export const shortName = (name) => {
+  const words = name.trim().split(/\s+/)
+  return words.length > 1 ? `${words[0]} ${words[words.length - 1][0]}.` : name
 }
 
 /** The name of a team; a project of all teams (ALL_TEAMS) reads as the tab that shows them all. */
@@ -404,9 +412,9 @@ export function showRest(show, firstNew) {
  * toast offers to undo it. `menu` is { task, x, y } or null. The popover is manual: on a Mac the right click opens it
  * while the button is still down, and the browser's own dismissal would close it again on release. So it closes itself
  * on outside clicks, Escape, scrolling and focus moving elsewhere; Escape and every action give keyboard focus back to
- * the card it came from (keepFocus).
+ * the card it came from (keepFocus). A shared task can be taken or handed back here, and any task dropped.
  */
-export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove }) {
+export function TaskContextMenu({ menu, copy, me, onClose, onOpen, onPatch, onRemove }) {
   const panel = useRef(null)
   const invoker = useRef(null)
   const restore = useRef(() => {})
@@ -463,12 +471,30 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
             {copy.board.open}
           </button>
           <p className="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-fg-muted">{copy.board.moveTo}</p>
-          {TASK_STATUSES.filter((status) => status !== task.status).map((status) => (
+          {BOARD_STATUSES.filter((status) => status !== task.status).map((status) => (
             <button key={status} type="button" className={`${MENU_ITEM} flex items-center gap-2`} onClick={item(() => onPatch(task, { status }))}>
               <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_TONE[status]}`} />
               {copy.taskStatuses[status]}
             </button>
           ))}
+          <div className="my-1 border-0 border-t border-solid border-border" />
+          {!task.private && (
+            <button
+              type="button"
+              className={MENU_ITEM}
+              onClick={item(() => {
+                const mine = task.assignees.includes(me)
+                onPatch(task, { assignees: memberChange(task.assignees, mine ? task.assignees.filter((id) => id !== me) : [...task.assignees, me]) })
+              })}
+            >
+              {task.assignees.includes(me) ? copy.board.giveBack : copy.board.take}
+            </button>
+          )}
+          {task.status !== 'dropped' && (
+            <button type="button" className={MENU_ITEM} onClick={item(() => onPatch(task, { status: 'dropped' }))}>
+              {copy.taskStatuses.dropped}
+            </button>
+          )}
           {(task.private || task.mayRemove) && (
             <button type="button" className={`${MENU_ITEM} mt-1 text-danger`} onClick={item(() => onRemove(task))}>
               {copy.taskBoard.delete}
@@ -477,6 +503,35 @@ export function TaskContextMenu({ menu, copy, onClose, onOpen, onPatch, onRemove
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * "Datum setzen" in a row: a menu with a date field, so a deadline is one step away without opening the task.
+ * onSet(day) gets YYYY-MM-DD.
+ */
+export function DueSetter({ label, saveLabel, onSet, className = '' }) {
+  const [day, setDay] = useState('')
+  return (
+    <Menu label={label} className={`${TOOL_BUTTON} h-8 shrink-0 px-2.5 text-xs ${className}`}>
+      {(close) => (
+        <form
+          className="flex items-center gap-2 p-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!day) return
+            close()
+            onSet(day)
+            setDay('')
+          }}
+        >
+          <input type="date" aria-label={label} className={`${INPUT} h-9 w-40`} value={day} onChange={(e) => setDay(e.target.value)} />
+          <button type="submit" className={`${PRIMARY_BUTTON} h-9`} disabled={!day}>
+            {saveLabel}
+          </button>
+        </form>
+      )}
+    </Menu>
   )
 }
 
