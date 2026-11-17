@@ -6,9 +6,9 @@
  */
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus } from 'lucide-react'
+import { Check, ChevronDown, ListFilter, Lock, Search, UserPlus, Users } from 'lucide-react'
 import { initials } from '../../../lib/contacts'
-import { ALL_TEAMS, BOARD_STATUSES, memberChange, TEAM_IDS } from '../../../lib/tasks'
+import { ALL_TEAMS, BOARD_STATUSES, memberChange, TEAM_IDS, toggleShown } from '../../../lib/tasks'
 import { fill, Menu, MENU_ITEM, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 
 /** Dot and progress colour per board column of projects and tasks. */
@@ -125,9 +125,10 @@ export function AvatarStack({ ids, membersById, copy, max = 3, size = 'sm' }) {
  * The popover is placed under its button and closes on Escape and outside clicks (browser popover API). Members of
  * `team`, the team the work belongs to, come right after the member themselves. The list exists only while it is open:
  * every card and row has a picker, and their closed lists made up most of the page's elements. With `addLabel` the
- * button always reads "+ addLabel", for forms that list the chosen people themselves.
+ * button always reads "+ addLabel", for forms that list the chosen people themselves. With `everyone` a first row
+ * selects or clears every member the search shows; pickers for leads leave it out, because leads may archive.
  */
-export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false, addLabel }) {
+export function MemberPicker({ members, selected, onChange, copy, me, label, membersById, team = '', compact = false, addLabel, everyone = false }) {
   const id = useId()
   const button = useRef(null)
   const panel = useRef(null)
@@ -153,6 +154,8 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
   }
   const toggle = (memberId) =>
     onChange(selected.includes(memberId) ? selected.filter((item) => item !== memberId) : [...selected, memberId])
+  const allChecked = ordered.length > 0 && ordered.every((member) => selected.includes(member.id))
+  const toggleAll = () => onChange(toggleShown(selected, ordered.map((member) => member.id)))
 
   return (
     <>
@@ -197,6 +200,21 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
               />
             </label>
             <ul className="mt-2 max-h-64 overflow-y-auto" role="list">
+              {everyone && ordered.length > 1 && (
+                <li className="mb-1 border-b border-border pb-1">
+                  <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-bg-subtle">
+                    <input type="checkbox" className="sr-only" checked={allChecked} onChange={toggleAll} />
+                    <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-subtle text-fg-muted">
+                      <Users className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {query.trim() ? copy.allMatches : copy.everyone}
+                      <span className="text-fg-muted"> · {ordered.length}</span>
+                    </span>
+                    <CheckMark checked={allChecked} />
+                  </label>
+                </li>
+              )}
               {ordered.map((member) => {
                 const checked = selected.includes(member.id)
                 return (
@@ -208,14 +226,7 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
                         {member.name}
                         {member.id === me && <span className="text-fg-muted"> · {copy.me}</span>}
                       </span>
-                      <span
-                        aria-hidden="true"
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          checked ? 'border-brand-bright bg-brand-bright text-white' : 'border-border-strong'
-                        }`}
-                      >
-                        {checked && <Check className="h-3.5 w-3.5" />}
-                      </span>
+                      <CheckMark checked={checked} />
                     </label>
                   </li>
                 )
@@ -226,6 +237,19 @@ export function MemberPicker({ members, selected, onChange, copy, me, label, mem
         )}
       </div>
     </>
+  )
+}
+
+function CheckMark({ checked }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+        checked ? 'border-brand-bright bg-brand-bright text-white' : 'border-border-strong'
+      }`}
+    >
+      {checked && <Check className="h-3.5 w-3.5" />}
+    </span>
   )
 }
 

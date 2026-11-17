@@ -1006,7 +1006,7 @@ export const memberArea = {
         archiveFailed: 'Das Archiv ließ sich nicht laden.',
         retry: 'Erneut versuchen',
       },
-      people: { more: '+{count}', nobody: 'Niemand', assign: 'Zuweisen', searchMembers: 'Mitglied suchen', noMatch: 'Kein Mitglied gefunden', me: 'Ich' },
+      people: { more: '+{count}', nobody: 'Niemand', assign: 'Zuweisen', searchMembers: 'Mitglied suchen', noMatch: 'Kein Mitglied gefunden', me: 'Ich', everyone: 'Alle', allMatches: 'Alle Treffer' },
       panel: {
         close: 'Schließen',
         tabs: { tasks: 'Aufgaben', details: 'Details', activity: 'Verlauf' },
@@ -1250,7 +1250,7 @@ export const memberArea = {
         duplicate: 'Dieses Event gibt es schon oder es hat schon eine Planung.',
         full: 'Ein Projekt hat höchstens 300 Aufgaben.',
         privateFull: 'Du hast schon 300 private Aufgaben. Lösch erst welche.',
-        crowded: 'Hier können höchstens 30 Personen eingetragen sein.',
+        crowded: 'Hier können höchstens 100 Personen eingetragen sein.',
         session: 'Deine Sitzung ist abgelaufen. Bitte melde dich neu an.',
         error: 'Das hat nicht geklappt, die Änderung ist zurückgenommen. Bitte versuch es noch einmal.',
         repeated: 'Erledigt. Nächste Deadline: {date}',

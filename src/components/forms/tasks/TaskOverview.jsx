@@ -241,6 +241,7 @@ function MyTaskRow({ task, group, today, copy, locale, me, members, membersById,
           copy={copy.people}
           me={me}
           label={fill(text.assignFor, { title: task.title })}
+          everyone
         />
       ) : group === 'none' && !task.done ? (
         <DueSetter label={text.setDue} saveLabel={text.saveDue} onSet={(due) => onPatch(task, { due })} />

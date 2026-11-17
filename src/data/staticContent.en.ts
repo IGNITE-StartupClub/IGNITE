@@ -1005,7 +1005,7 @@ export const memberArea = {
         archiveFailed: 'The archive could not be loaded.',
         retry: 'Try again',
       },
-      people: { more: '+{count}', nobody: 'Nobody', assign: 'Assign', searchMembers: 'Search members', noMatch: 'No member found', me: 'Me' },
+      people: { more: '+{count}', nobody: 'Nobody', assign: 'Assign', searchMembers: 'Search members', noMatch: 'No member found', me: 'Me', everyone: 'Everyone', allMatches: 'All matches' },
       panel: {
         close: 'Close',
         tabs: { tasks: 'Tasks', details: 'Details', activity: 'History' },
@@ -1249,7 +1249,7 @@ export const memberArea = {
         duplicate: 'This event already exists or already has a planning project.',
         full: 'A project holds at most 300 tasks.',
         privateFull: 'You already have 300 private tasks. Delete some first.',
-        crowded: 'At most 30 people can be listed here.',
+        crowded: 'At most 100 people can be listed here.',
         session: 'Your session has expired. Please sign in again.',
         error: 'That did not work, the change was undone. Please try again.',
         repeated: 'Done. Next deadline: {date}',
