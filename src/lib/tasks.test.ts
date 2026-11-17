@@ -32,6 +32,8 @@ import {
   mayRemoveTask,
   nameFromEmail,
   memberChange,
+  MAX_ASSIGNEES,
+  toggleShown,
   mirroredFields,
   isClosed,
   nextStanding,
@@ -691,6 +693,23 @@ test('memberChange says who a picker added or removed, and applyMemberChange rep
   assert.deepEqual(applyMemberChange([ME], { add: [BEN], remove: [] }), [ME, BEN])
   assert.deepEqual(applyMemberChange([ME, BEN], { add: [BEN], remove: [] }), [ME, BEN])
   assert.deepEqual(applyMemberChange([ME, BEN], { add: [], remove: [ME] }), [BEN])
+})
+
+test('toggleShown selects every shown member and clears them once all are selected', () => {
+  const CARA = 'c'.repeat(24)
+  assert.deepEqual(toggleShown([ME], [ME, BEN, CARA]), [ME, BEN, CARA])
+  assert.deepEqual(toggleShown([ME, BEN, CARA], [ME, BEN, CARA]), [])
+  // A search that shows only Ben and Cara leaves Me assigned either way.
+  assert.deepEqual(toggleShown([ME], [BEN, CARA]), [ME, BEN, CARA])
+  assert.deepEqual(toggleShown([ME, BEN, CARA], [BEN, CARA]), [ME])
+  assert.deepEqual(toggleShown([ME], []), [ME])
+})
+
+test('a task takes up to MAX_ASSIGNEES people, enough to assign the whole club', () => {
+  const ids = (count: number) => Array.from({ length: count }, (_, i) => i.toString(16).padStart(24, '0'))
+  assert.equal(MAX_ASSIGNEES, 100)
+  assert.deepEqual(parseTaskPatch({ assignees: { add: ids(100), remove: [] } }), { assignees: { add: ids(100), remove: [] } })
+  assert.equal(parseTaskPatch({ assignees: { add: ids(101), remove: [] } }), null)
 })
 
 test('patchedTask applies people as a step and leaves the rest of the task alone', () => {

@@ -50,7 +50,7 @@ export type ProjectTeam = TeamChoice | typeof ALL_TEAMS
 export const TITLE_MAX = 200
 export const TEXT_MAX = 4000
 export const NAME_MAX = 60
-export const MAX_ASSIGNEES = 30
+export const MAX_ASSIGNEES = 100
 export const MAX_TASKS = 300
 /** Relative deadlines reach at most a year before or after the event. */
 export const OFFSET_MAX = 366
@@ -1078,6 +1078,15 @@ export function projectEdits(
 export function memberChange(previous: string[], next: string[]): MemberChange {
   const { added, removed } = assigneeChanges(previous, next)
   return { add: added, remove: removed }
+}
+
+/**
+ * The "Alle" row of the member picker: selects every shown member, or clears them all when every one is selected
+ * already. People hidden by the search stay as they are.
+ */
+export function toggleShown(selected: string[], shown: string[]): string[] {
+  const allSelected = shown.length > 0 && shown.every((id) => selected.includes(id))
+  return allSelected ? selected.filter((id) => !shown.includes(id)) : [...new Set([...selected, ...shown])]
 }
 
 export const applyMemberChange = (list: string[], { add, remove }: MemberChange): string[] => [

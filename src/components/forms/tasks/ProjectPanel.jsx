@@ -232,6 +232,7 @@ function TaskRow({ task, projectTeam, copy, locale, today, me, members, membersB
           copy={copy.people}
           me={me}
           label={copy.createDialog.assignees}
+          everyone
         />
         <Menu
           label={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}

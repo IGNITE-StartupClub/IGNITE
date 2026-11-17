@@ -256,6 +256,7 @@ export default function TaskDialog({ project, copy, locale, me, members, members
                     me={me}
                     label={text.who}
                     addLabel={text.addPerson}
+                    everyone
                   />
                 </li>
               </ul>

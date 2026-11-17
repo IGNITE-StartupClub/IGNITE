@@ -42,6 +42,7 @@ function CheckRow({ task, group, all, today, copy, locale, me, members, membersB
       copy={{ ...copy.people, assign: group === 'unassigned' ? text.pick : copy.people.assign }}
       me={me}
       label={fill(text.pickFor, { title: task.title })}
+      everyone
     />
   )
   const thisWeek = weekEnd(today)

@@ -62,6 +62,7 @@ export function TaskPeople({ task, copy, me, members, membersById, onPatch }) {
         copy={copy.people}
         me={me}
         label={copy.createDialog.assignees}
+        everyone
       />
     </span>
   )
