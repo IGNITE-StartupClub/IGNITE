@@ -3,7 +3,8 @@
  * Base page shell: head (SEO, hreflang alternates, favicons, analytics, theme bootstrap), skip link,
  * Header, <main id="main-content">, Footer (not in the members area, whose profile menu carries the legal links).
  * Locale: taken from the URL (Astro.currentLocale); sets <html lang>, defaults and the language toggle target.
- * Props: title, description, url, image, author, noindex (all optional, defaults from siteMeta),
+ * Props: title, description, image, author, noindex (all optional, defaults from siteMeta),
+ * jsonLd (schema.org objects for search engines, see src/lib/seo.ts),
  * alternatePath (the equivalent page in the other language: omitted = derived from the URL, null = no counterpart,
  * so the toggle links to the other home page and no hreflang tags are written), bare (no Header and Footer, for pages
  * that bring their own slim top bar, such as the members login).
@@ -21,14 +22,15 @@ import MemberSkeletons from '../components/ui/MemberSkeletons.astro'
 import { getCopy } from '../data/copy'
 import { localizePath, resolveLocale, switchLocalePath } from '../lib/i18n'
 import { memberAreaLocale } from '../lib/memberAuth'
+import { canonicalUrl, jsonLdScript, metaDescription } from '../lib/seo'
 
 interface Props {
   title?: string
   description?: string
-  url?: string | URL
   image?: string
   author?: string
   noindex?: boolean
+  jsonLd?: object[]
   alternatePath?: string | null
   bare?: boolean
 }
@@ -38,19 +40,22 @@ const { navigation, siteMeta } = getCopy(locale)
 const {
   title = siteMeta.title,
   description = siteMeta.description,
-  url = Astro.site,
   image = '/og-image.jpg',
   author = siteMeta.author,
   noindex = false,
+  jsonLd = [],
   alternatePath,
   bare = false,
 } = Astro.props
 
+if (!Astro.site) throw new Error('astro.config.mjs must set site: canonical and hreflang links need it')
+const site = Astro.site
+const canonical = canonicalUrl(Astro.url.pathname, site)
 const otherLocale = locale === 'de' ? 'en' : 'de'
 const otherPath = alternatePath === undefined ? switchLocalePath(Astro.url.pathname, otherLocale) : alternatePath
 const alternates = otherPath === null ? [] : [
-  { hreflang: locale, href: new URL(Astro.url.pathname, Astro.site).href },
-  { hreflang: otherLocale, href: new URL(otherPath, Astro.site).href },
+  { hreflang: locale, href: canonical },
+  { hreflang: otherLocale, href: canonicalUrl(otherPath, site) },
 ]
 const germanAlternate = alternates.find((alternate) => alternate.hreflang === 'de')
 const memberLocale = memberAreaLocale(Astro.url.pathname)
@@ -94,9 +99,10 @@ const memberLocale = memberAreaLocale(Astro.url.pathname)
     </script>
 
     <Seo keywords={siteMeta.keywords} />
-    <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
+    <SiteMeta title={title} description={metaDescription(description)} url={canonical} image={image} author={author} />
 
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {noindex ? <meta name="robots" content="noindex, nofollow" /> : <link rel="canonical" href={canonical} />}
+    {jsonLd.map((data) => <script type="application/ld+json" set:html={jsonLdScript(data)} />)}
     {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
     {germanAlternate && <link rel="alternate" hreflang="x-default" href={germanAlternate.href} />}
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

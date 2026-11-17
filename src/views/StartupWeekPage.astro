@@ -36,7 +36,7 @@ const shortDate = (day: string) => (locale === 'de' ? format(day, { day: '2-digi
 const clock = (time: string) => (locale === 'de' ? `${time} Uhr` : time)
 ---
 
-<DefaultLayout title={pageMeta.startupWeek.title} description={pageMeta.startupWeek.description} url={localizePath('/startup-woche', locale)}>
+<DefaultLayout title={pageMeta.startupWeek.title} description={pageMeta.startupWeek.description}>
   <PageHeader title={copy.title} lead={copy.lead} compact>
     {edition && <p class="week-range">{weekRange}</p>}
   </PageHeader>

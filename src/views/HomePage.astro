@@ -12,11 +12,21 @@ import LatestNews from '../components/sections/LatestNews.astro'
 import Faq from '../components/sections/Faq.astro'
 import FinalCta from '../components/sections/FinalCta.astro'
 import { getCopy } from '../data/copy'
+import { organizationJsonLd } from '../lib/seo'
 
-const { pageMeta } = getCopy(Astro.currentLocale)
+const { pageMeta, globalConfig, siteMeta, footer } = getCopy(Astro.currentLocale)
+// Google reads the organization from the home page; the other pages do not repeat it.
+const organization = organizationJsonLd({
+  name: globalConfig.siteName,
+  url: new URL('/', Astro.site).href,
+  logo: new URL('/favicon-512.png', Astro.site).href,
+  description: siteMeta.description,
+  email: globalConfig.contactEmail,
+  sameAs: footer.socialLinks.map((link) => link.url),
+})
 ---
 
-<DefaultLayout title={pageMeta.home.title} description={pageMeta.home.description}>
+<DefaultLayout title={pageMeta.home.title} description={pageMeta.home.description} jsonLd={[organization]}>
   <Hero />
   <Expect />
   <Why />
