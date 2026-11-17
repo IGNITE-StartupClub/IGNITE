@@ -6,12 +6,14 @@ import react from '@astrojs/react';
 import vercel from '@astrojs/vercel';
 
 import sitemap from '@astrojs/sitemap';
+import { isListed } from './src/lib/seo.ts';
 
 // https://astro.build/config
 export default defineConfig({
   compressHTML: true,
   output: 'server',
-  site: 'https://ignite-startupclub.de',
+  // With www: the apex domain redirects there, so sitemap, canonical and hreflang links must not point at the apex.
+  site: 'https://www.ignite-startupclub.de',
 
   // isCrossSiteForm (src/lib/memberAuth.ts, run by src/middleware.ts) does this check instead. Astro's own has no
   // exceptions and would refuse the OAuth token endpoint, which gets form posts without an Origin from other servers.
@@ -47,7 +49,7 @@ export default defineConfig({
     tailwind({
     applyBaseStyles: false,
   }),
-  sitemap()
+  sitemap({ filter: (page) => isListed(new URL(page).pathname) })
 ],
 
   vite: {

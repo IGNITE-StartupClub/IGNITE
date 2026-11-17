@@ -18,7 +18,7 @@ let subtitle = 'IGNITE Startup Club Lüneburg'
 <meta property="og:description" content={description} />
 <meta property="og:type" content="website" />
 <meta property="og:url" content={url} />
-<meta property="og:image" content={`${Astro.site}${image}`} />
+<meta property="og:image" content={new URL(image, Astro.site).href} />
 
 <!-- twitter card -->
 

@@ -20,6 +20,7 @@ import { lumaCalendarUrl, type LumaEvent } from '../lib/luma'
 import type { ExternalEvent } from '../data/externalEvents'
 import { dateLocales, resolveLocale } from '../lib/i18n'
 import { getCopy } from '../data/copy'
+import { eventsJsonLd } from '../lib/seo'
 
 interface Props {
   events: LumaEvent[] | null
@@ -30,7 +31,7 @@ type ListedEvent = LumaEvent | ExternalEvent
 
 const { events, pastEvents } = Astro.props
 const locale = resolveLocale(Astro.currentLocale)
-const { eventsPage: copy, pageMeta, externalEvents } = getCopy(locale)
+const { eventsPage: copy, pageMeta, externalEvents, globalConfig } = getCopy(locale)
 
 const now = new Date()
 const byStart = (a: ListedEvent, b: ListedEvent) => a.startAt.getTime() - b.startAt.getTime()
@@ -42,6 +43,9 @@ const groups = [
   { headingId: 'events-heading', heading: copy.heading, events: listed, past: false },
   ...(past.length > 0 ? [{ headingId: 'past-events-heading', heading: copy.pastHeading, events: past, past: true }] : []),
 ]
+
+// Only upcoming events: Google shows event results for future dates.
+const structuredEvents = eventsJsonLd(listed, { name: globalConfig.siteName, url: new URL('/', Astro.site).href }, Astro.site!)
 
 const format = (event: ListedEvent, options: Intl.DateTimeFormatOptions, date = event.startAt) =>
   date.toLocaleString(dateLocales[locale], { timeZone: event.timezone, ...options })
@@ -62,7 +66,7 @@ const formatTime = (event: ListedEvent) => {
 }
 ---
 
-<DefaultLayout title={pageMeta.events.title} description={pageMeta.events.description} url="events">
+<DefaultLayout title={pageMeta.events.title} description={pageMeta.events.description} jsonLd={structuredEvents}>
   <PageHeader title={copy.title} lead={copy.lead} />
   {
     groups.map((group) => (

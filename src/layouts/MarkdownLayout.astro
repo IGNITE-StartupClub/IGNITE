@@ -18,7 +18,7 @@ const { siteMeta } = getCopy(Astro.currentLocale)
 
 <DefaultLayout
   title={frontmatter.title}
-  description={frontmatter.description?.substring(0, 160) ?? siteMeta.shortName}
+  description={frontmatter.description ?? siteMeta.shortName}
 >
   <Section spacing="md" width="text">
     <div class="prose">

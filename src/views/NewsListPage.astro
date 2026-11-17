@@ -24,7 +24,7 @@ const { listingPages, pageMeta, commonUi } = getCopy(locale)
 const copy = listingPages.news
 ---
 
-<DefaultLayout title={pageMeta.news.title} description={copy.lead} url="news">
+<DefaultLayout title={pageMeta.news.title} description={copy.lead}>
   <PageHeader title={copy.title} lead={copy.lead} />
   <Section tone="subtle" labelledby="page-title">
     {
