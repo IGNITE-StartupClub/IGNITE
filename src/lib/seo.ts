@@ -10,9 +10,15 @@ export const DESCRIPTION_MAX = 160
 /**
  * The one address search engines should index for a page. Vercel answers both "/events" and "/events/", so the
  * canonical always ends in a slash, the form of the sitemap and of the navigation links.
+ * The path is set on a copy of the site instead of resolved against it: a request for "//evil.example/" would
+ * otherwise resolve to another host and land in og:url.
  */
 export function canonicalUrl(pathname: string, site: URL | string): string {
-  return new URL(pathname.replace(/\/*$/, '/'), site).href
+  const url = new URL(site)
+  url.pathname = `/${pathname.replace(/^\/+/, '')}`.replace(/\/*$/, '/')
+  url.search = ''
+  url.hash = ''
+  return url.href
 }
 
 /** The members area needs a session and the styleguide is internal: neither belongs in the sitemap. */

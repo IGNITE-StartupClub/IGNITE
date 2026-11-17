@@ -16,6 +16,13 @@ test('canonicalUrl keeps the host of the configured site', () => {
   assert.equal(canonicalUrl('/kontakt', 'https://www.ignite-startupclub.de/'), 'https://www.ignite-startupclub.de/kontakt/')
 })
 
+test('canonicalUrl never leaves the site host', () => {
+  assert.equal(canonicalUrl('//evil.example/', site), 'https://www.ignite-startupclub.de/evil.example/')
+  assert.equal(canonicalUrl('///evil.example/x', site), 'https://www.ignite-startupclub.de/evil.example/x/')
+  assert.equal(new URL(canonicalUrl('/\\evil.example', site)).host, 'www.ignite-startupclub.de')
+  assert.equal(canonicalUrl('', site), 'https://www.ignite-startupclub.de/')
+})
+
 test('isListed leaves the members area and the styleguide out of the sitemap', () => {
   for (const path of ['/mitglieder/', '/mitglieder', '/mitglieder/login/', '/en/members/tasks/', '/styleguide/']) {
     assert.equal(isListed(path), false, path)
