@@ -36,7 +36,7 @@ export const pageMeta = {
   },
   materials: {
     title: 'Guide: Wissens-Pakete fürs Gründen',
-    description: 'Wähle Wissens-Pakete zu Idee, Geschäftsmodell, Gründung, Finanzierung, Pitch, Team und Marketing. Wir schicken sie dir kostenlos per Mail.',
+    description: 'Wähle Wissens-Pakete von der Idee über Gründung und Wachstum bis zu Finanzierung, Pitch und Netzwerk. Wir schicken sie dir kostenlos per Mail.',
   },
   notFound: { title: '404', description: 'Seite nicht gefunden' },
 }
@@ -1530,7 +1530,7 @@ export const memberArea = {
 // Guide (/materialien, menu item "Guide"): knowledge packages to request by mail. The packages live in guidePackages.ts.
 // `form` goes to the GuideRequestForm island; {n}, {total} and {name} are filled in there.
 export const guidePage = {
-  title: 'Wissen, das dich <em>weiterbringt</em>',
+  title: 'Materialien für den <em>nächsten Schritt</em>',
   // Banner while the Guide is being built; remove `notice` (and the banner in GuidePage.astro) once it goes live.
   notice: {
     title: 'Diese Seite ist noch in Bearbeitung',
@@ -1538,7 +1538,7 @@ export const guidePage = {
     linkLabel: 'Zum Kontaktformular',
     href: '/kontakt',
   },
-  lead: 'Wähle die Themen, die dich gerade beschäftigen. Wir schicken dir die passenden Wissens-Pakete mit Leitfäden, Checklisten und Vorlagen per Mail, kostenlos und ohne Mitgliedschaft.',
+  lead: 'Klarer denken, besser testen, mutiger loslegen: Guides und Frameworks für deinen Gründerweg.',
   form: {
     packagesHeading: 'Wähle deine Pakete',
     packagesHint: 'Mehrere Themen möglich',

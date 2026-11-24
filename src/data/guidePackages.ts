@@ -5,17 +5,16 @@
  */
 export interface GuidePackage {
   id: string
-  icon: 'lightbulb' | 'layout' | 'scale' | 'coins' | 'presentation' | 'users' | 'megaphone'
+  icon: 'lightbulb' | 'rocket' | 'trendingUp' | 'coins' | 'presentation' | 'network'
   title: string
   subtitle: string
 }
 
 export const guidePackages: GuidePackage[] = [
-  { id: 'idee', icon: 'lightbulb', title: 'Ideenfindung & Validierung', subtitle: 'Problem finden, Annahmen testen, Interviews führen' },
-  { id: 'geschaeftsmodell', icon: 'layout', title: 'Geschäftsmodell', subtitle: 'Business Model Canvas, Zielgruppe, Wettbewerb' },
-  { id: 'gruendung', icon: 'scale', title: 'Rechtsform & Gründung', subtitle: 'GbR, UG oder GmbH, Anmeldung, Steuern' },
-  { id: 'finanzierung', icon: 'coins', title: 'Finanzierung & Förderung', subtitle: 'EXIST, Stipendien, Business Angels' },
-  { id: 'pitch', icon: 'presentation', title: 'Pitch & Präsentation', subtitle: 'Pitch Deck, Storytelling, Fragen der Jury' },
-  { id: 'team', icon: 'users', title: 'Team & Mitgründung', subtitle: 'Mitgründende finden, Rollen, Anteile' },
-  { id: 'marketing', icon: 'megaphone', title: 'Marketing & Markteintritt', subtitle: 'Positionierung, erste Kundschaft, Kanäle' },
+  { id: 'idee', icon: 'lightbulb', title: 'Von der Idee zum Konzept', subtitle: 'Ideen finden und validieren, Startup-Basics und Startup-ABC' },
+  { id: 'gruendung', icon: 'rocket', title: 'Vom Konzept zum Startup', subtitle: 'Team, Geschäftsmodell, Rechtsform und Gründung, erstes MVP' },
+  { id: 'wachstum', icon: 'trendingUp', title: 'Vom Startup zum Wachstum', subtitle: 'Markteintritt, erste Kunden, Vertrieb und Marketing, Skalierung' },
+  { id: 'finanzierung', icon: 'coins', title: 'Finanzierung & Förderung', subtitle: 'Bootstrapping, EXIST und Stipendien, Business Angels, VC' },
+  { id: 'pitch', icon: 'presentation', title: 'Pitch & Präsentation', subtitle: 'Pitch Deck, überzeugend präsentieren, Wettbewerbe und Investoren' },
+  { id: 'netzwerk', icon: 'network', title: 'Netzwerk & Ökosystem', subtitle: 'Inkubatoren, Acceleratoren, Events, Mitgründer:innen finden' },
 ]

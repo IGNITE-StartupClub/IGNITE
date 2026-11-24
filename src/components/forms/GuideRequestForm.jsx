@@ -4,11 +4,11 @@
  * Props: copy (guidePage), packages (guidePackages), locale, all in the page language. Styles: ./forms.css, ./guide.css.
  */
 import React, { useId, useState } from 'react'
-import { Coins, LayoutGrid, Lightbulb, Megaphone, Presentation, Scale, Users, Check } from 'lucide-react'
+import { Coins, Lightbulb, Network, Presentation, Rocket, TrendingUp, Check } from 'lucide-react'
 import './forms.css'
 import './guide.css'
 
-const ICONS = { lightbulb: Lightbulb, layout: LayoutGrid, scale: Scale, coins: Coins, presentation: Presentation, users: Users, megaphone: Megaphone }
+const ICONS = { lightbulb: Lightbulb, rocket: Rocket, trendingUp: TrendingUp, coins: Coins, presentation: Presentation, network: Network }
 
 const INITIAL = {
   name: '',

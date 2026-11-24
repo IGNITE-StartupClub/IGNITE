@@ -35,7 +35,7 @@ export const pageMeta = {
   },
   materials: {
     title: 'Guide: knowledge packages for founders',
-    description: 'Pick knowledge packages on ideas, business models, registration, funding, pitching, team and marketing. We email them to you for free.',
+    description: 'Pick knowledge packages from idea to founding and growth, plus funding, pitching and networking. We email them to you for free.',
   },
   notFound: { title: '404', description: 'Page not found' },
 }
@@ -1527,14 +1527,14 @@ export const memberArea = {
 
 // English copy of guidePage in staticContent.ts.
 export const guidePage = {
-  title: 'Knowledge that <em>moves you forward</em>',
+  title: 'Materials for your <em>next step</em>',
   notice: {
     title: 'This page is still under construction',
     text: 'Knowledge packages cannot be requested yet. If you need knowledge on a topic right now, write to us using the contact form.',
     linkLabel: 'Go to the contact form',
     href: '/en/contact',
   },
-  lead: 'Pick the topics on your mind right now. We email you the matching knowledge packages with guides, checklists and templates, for free and without a membership.',
+  lead: 'Think clearer, test better, start bolder: guides and frameworks for your founder journey.',
   form: {
     packagesHeading: 'Choose your packages',
     packagesHint: 'Pick as many as you like',
