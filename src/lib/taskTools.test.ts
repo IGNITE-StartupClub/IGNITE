@@ -230,6 +230,62 @@ test('upcoming_events skips past events and the Weekly and links the planning pr
   assert.equal(events[0].project_id, projectId)
 })
 
+test('upcoming_events lists open own events among the public ones and marks them', async () => {
+  const ownEvent = (id: string, overrides = {}) =>
+    project({
+      id,
+      title: 'Sommer-Dinner',
+      type: 'event',
+      due: '2026-11-12',
+      time: '18:00',
+      endTime: '21:00',
+      place: 'Mensa',
+      ...overrides,
+    })
+  const { events } = await setup([
+    ownEvent('own-dinner', { luma: { id: 'evt-dinner', url: 'https://luma.com/dinner' } }),
+    ownEvent('own-all-day', { title: 'Klausur', due: '2026-11-21', time: '', endTime: '' }),
+    ownEvent('own-done', { status: 'done' }),
+    ownEvent('own-past', { due: '2026-11-01' }),
+  ]).run('upcoming_events')
+  assert.deepEqual(
+    events.map((event: { title: string; project_id: string | null; own?: true }) => [
+      event.title,
+      event.project_id,
+      event.own ?? false,
+    ]),
+    [
+      ['Sommer-Dinner', 'own-dinner', true],
+      ['Demo Day', null, false],
+      ['Klausur', 'own-all-day', true],
+    ],
+  )
+  assert.deepEqual(events[0], {
+    title: 'Sommer-Dinner',
+    start: '2026-11-12T17:00:00.000Z',
+    end: '2026-11-12T20:00:00.000Z',
+    location: 'Mensa',
+    url: 'https://luma.com/dinner',
+    project_id: 'own-dinner',
+    own: true,
+  })
+  assert.deepEqual([events[2].start, events[2].end], ['2026-11-21', '2026-11-21'])
+})
+
+test('upcoming_events shows an own event in place of the same event from Luma until members merge them', async () => {
+  const { events } = await setup([
+    project({ id: 'own-demo', title: 'Demo Day', type: 'event', due: '2026-11-20', time: '18:00' }),
+  ]).run('upcoming_events')
+  assert.deepEqual(
+    events.map((event: { title: string; project_id: string | null; end: string | null }) => [
+      event.title,
+      event.project_id,
+      event.end,
+    ]),
+    [['Demo Day', 'own-demo', null]],
+  )
+})
+
 test('upcoming_events refuses an incomplete calendar instead of leaving events out', async () => {
   await assert.rejects(setup([project()], 'ok', false).run('upcoming_events'), ToolError)
 })

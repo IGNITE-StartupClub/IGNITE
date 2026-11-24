@@ -2,12 +2,13 @@
  * The calendar of the events page: a month or week grid of the public events (Luma and externalEvents, loaded by the
  * page, never copied), the Weekly and the own events, and cards for the upcoming events or the selected day. The Weekly shows in the grid and on its day, never among the upcoming events, and has nothing to plan. Each card
  * either starts the planning project of its event or opens it. A click on a title in the grid opens that event. The
- * grid also shows the deadlines of the open projects, outlined, and a selected day lists them below its events. A
- * selected day from today on offers to add a project, a task or an event; a task shows on the hub and the board, the
- * grid has no tasks.
- * Props: events (calendarEntries), deadlines (projectDeadlines), planOf(event) → its project or undefined, complete
- * (false when the calendar could not be loaded), today, copy (workspace copy), locale, membersById, onStart(event),
- * onOpen(projectId), onOpenEvent(event), onAddOnDay(kind, day) with kind internal, task or event.
+ * grid also shows the deadlines of the open projects, outlined, and those of the member's own open tasks, filled like on
+ * the hub, so a task added on a day shows where it was added; a selected day lists both below its events. A selected
+ * day from today on offers to add a project, a task or an event.
+ * Props: events (calendarEntries), deadlines (projectDeadlines), tasks (the member's open tasks with a deadline, private
+ * ones included), planOf(event) → its project or undefined, complete (false when the calendar could not be loaded),
+ * today, copy (workspace copy), locale, membersById, onStart(event), onOpen(projectId), onOpenEvent(event),
+ * onOpenTask(task), onAddOnDay(kind, day) with kind internal, task or event.
  */
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react'
@@ -16,6 +17,8 @@ import { fill, PRIMARY_BUTTON, TOOL_BUTTON } from '../memberUi'
 import { AvatarStack, eventDayLabel, ICON_BUTTON, LeadLine, longDay, ProgressBar, Segmented, SURFACE } from './taskUi'
 
 const UPCOMING_MAX = 4
+// Visible on the cell's own hover and selection background, which bg-bg-subtle would not be.
+const TASK_TONE = 'bg-[color-mix(in_srgb,var(--color-fg)_14%,transparent)]'
 
 const weekday = (day) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7
 const mondayOf = (day) => addDays(day, -weekday(day))
@@ -83,7 +86,22 @@ function EventCard({ event, project, copy, locale, membersById, onStart, onOpen 
   )
 }
 
-export default function EventCalendar({ events, deadlines, planOf, complete, today, copy, locale, membersById, onStart, onOpen, onOpenEvent, onAddOnDay }) {
+export default function EventCalendar({
+  events,
+  deadlines,
+  tasks,
+  planOf,
+  complete,
+  today,
+  copy,
+  locale,
+  membersById,
+  onStart,
+  onOpen,
+  onOpenEvent,
+  onOpenTask,
+  onAddOnDay,
+}) {
   const text = copy.calendar
   const [mode, setMode] = useState('month')
   const [cursor, setCursor] = useState(today)
@@ -91,6 +109,8 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
 
   const byDay = new Map()
   for (const event of events) byDay.set(event.day, [...(byDay.get(event.day) ?? []), event])
+  const tasksByDay = new Map()
+  for (const task of tasks) tasksByDay.set(task.due, [...(tasksByDay.get(task.due) ?? []), task])
   const days = gridDays(mode, cursor)
   const shift = (step) => setCursor(mode === 'week' ? addDays(cursor, 7 * step) : addMonths(cursor, step))
   const heading =
@@ -100,6 +120,7 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
           new Date(`${monthStart(cursor)}T00:00:00Z`),
         )
   const selectedProjects = selected ? deadlines.filter((project) => project.due === selected) : []
+  const selectedTasks = selected ? (tasksByDay.get(selected) ?? []) : []
   const listed = selected ? (byDay.get(selected) ?? []) : events.filter((event) => isEvent(event) && event.day >= today).slice(0, UPCOMING_MAX)
 
   return (
@@ -140,6 +161,8 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
             {days.map((day) => {
               const dayEvents = byDay.get(day) ?? []
               const dayProjects = deadlines.filter((project) => project.due === day)
+              const dayTasks = tasksByDay.get(day) ?? []
+              const dayItems = [...dayEvents, ...dayProjects, ...dayTasks]
               const outside = mode === 'month' && day.slice(0, 7) !== monthStart(cursor).slice(0, 7)
               const isToday = day === today
               const isSelected = day === selected
@@ -154,7 +177,7 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    aria-label={`${longDay(day, locale)}${dayEvents.length + dayProjects.length ? `: ${[...dayEvents, ...dayProjects].map((item) => item.title).join(', ')}` : ''}`}
+                    aria-label={`${longDay(day, locale)}${dayItems.length ? `: ${dayItems.map((item) => item.title).join(', ')}` : ''}`}
                     onClick={() => setSelected(isSelected ? null : day)}
                     className="absolute inset-0 rounded-md border-0 bg-transparent p-0"
                   />
@@ -165,7 +188,7 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
                   >
                     {Number(day.slice(8))}
                   </span>
-                  {dayEvents.length + dayProjects.length > 0 && (
+                  {dayItems.length > 0 && (
                     <>
                       {/* Phones only get dots: titles do not fit into a seventh of the screen. */}
                       <span className={`pointer-events-none relative flex justify-center gap-0.5 ${mode === 'week' ? 'hidden' : 'sm:hidden'}`}>
@@ -177,6 +200,9 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
                         ))}
                         {dayProjects.map((project) => (
                           <span key={project.id} className="h-1.5 w-1.5 rounded-full border border-solid border-fg-muted" />
+                        ))}
+                        {dayTasks.map((task) => (
+                          <span key={task.id} className="h-1.5 w-1.5 rounded-full bg-fg-subtle" />
                         ))}
                       </span>
                       <span className={`relative flex-col gap-0.5 ${mode === 'week' ? 'flex' : 'hidden sm:flex'}`}>
@@ -206,6 +232,17 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
                             {project.title}
                           </button>
                         ))}
+                        {dayTasks.map((task) => (
+                          <button
+                            key={task.id}
+                            type="button"
+                            title={task.title}
+                            onClick={() => onOpenTask(task)}
+                            className={`block w-full truncate rounded border-0 px-1 py-0.5 text-left text-2xs leading-tight text-fg ${TASK_TONE}`}
+                          >
+                            {task.title}
+                          </button>
+                        ))}
                       </span>
                     </>
                   )}
@@ -225,6 +262,10 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
             <span className="inline-flex items-center gap-1">
               <span aria-hidden="true" className="h-2 w-2 rounded-full border border-solid border-fg-muted" />
               {copy.overview.legendProject}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-fg-subtle" />
+              {copy.overview.legendDeadline}
             </span>
           </p>
         </div>
@@ -253,7 +294,9 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
                 onOpen={onOpen}
               />
             ))}
-            {!listed.length && !selectedProjects.length && <p className="text-sm text-fg-muted">{selected ? text.noEvents : text.noUpcoming}</p>}
+            {!listed.length && !selectedProjects.length && !selectedTasks.length && (
+              <p className="text-sm text-fg-muted">{selected ? text.noEvents : text.noUpcoming}</p>
+            )}
             {selectedProjects.map((project) => (
               <button
                 key={project.id}
@@ -263,6 +306,17 @@ export default function EventCalendar({ events, deadlines, planOf, complete, tod
               >
                 <span className="block text-xs text-fg-muted">{copy.overview.legendProject}</span>
                 <span className="block text-sm font-medium">{project.title}</span>
+              </button>
+            ))}
+            {selectedTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                className={`rounded-lg border-0 p-3 text-left text-fg hover:opacity-90 ${TASK_TONE}`}
+                onClick={() => onOpenTask(task)}
+              >
+                <span className="block text-xs text-fg-muted">{copy.overview.legendDeadline}</span>
+                <span className="block text-sm font-medium">{task.title}</span>
               </button>
             ))}
             {selected && selected >= today && (

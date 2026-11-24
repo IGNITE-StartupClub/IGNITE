@@ -25,10 +25,11 @@ import { randomUUID } from 'node:crypto'
 import { ObjectId, type Filter } from 'mongodb'
 import type { MemberRole } from './memberAuth'
 import type { HomeProject } from './memberHome'
+import type { EventProject } from './ownEvents'
 import { database, displayName, setUpInBackground, type Member, type SessionMember } from './members'
 import { photoPath } from './emailSignature'
 import { changedSince, collectionRevision, listRevision, markUnsettled } from './liveUpdates'
-import { privateTasks } from './privateTasksStore'
+import { dropPrivateTask, privateTask, privateTasks } from './privateTasksStore'
 import { putInTrash, takeFromTrash } from './taskTrash'
 import { standardTemplates } from '../data/taskTemplates'
 import type { TaskEvent } from './taskEvents'
@@ -55,9 +56,12 @@ import {
   type TaskStatus,
   type TeamChoice,
   type TemplateTask,
+  isClosed,
   mayRemoveTask,
   mirroredFields,
   nextTurn,
+  parseProject,
+  parseTask,
   projectEdits,
   projectStatus,
   sameTitle,
@@ -105,12 +109,17 @@ export type ActivityAction =
   | 'taskAdded'
   | 'taskEdited'
   | 'taskDone'
+  | 'taskDropped'
   | 'taskReopened'
   | 'taskRemoved'
   | 'taskRestored'
   | 'eventLinked'
   | 'eventUnlinked'
   | 'madeEvent'
+  // A single task became a project with that task as its first step (promoteTask, or a second task added to it).
+  | 'promoted'
+  // The project was finished together with its open tasks (setStatus with closeOpen).
+  | 'openClosed'
   | 'assigned'
   | 'unassigned'
   | 'due'
@@ -472,38 +481,97 @@ export async function projectFolders(): Promise<ProjectFolder[]> {
     .sort((a, b) => (a.day || '9999').localeCompare(b.day || '9999'))
 }
 
-/** The open projects with a task of this member, all the start page and the calendar feed need of the workspace. */
+/**
+ * The open projects with a task of this member or led by them, all the start page and the calendar feed need of the
+ * workspace: the member's tasks, and for a lead the tasks nobody has taken yet (unassignedCount).
+ */
 export async function assignedProjects(actor: TaskActor): Promise<HomeProject[]> {
   const { projects } = await collections()
   const list = await projects
     .find(
-      { archivedAt: null, status: { $ne: 'done' }, 'tasks.assignees': actor.id },
+      { archivedAt: null, status: { $ne: 'done' }, $or: [{ 'tasks.assignees': actor.id }, { leads: actor.id }] },
       {
-        // Only what openTasks reads: descriptions can be long, and the calendar feed asks this on every poll.
+        // Only what openTasks and unassignedCount read: descriptions can be long, and the calendar feed asks this on
+        // every poll.
         projection: {
           title: 1,
           type: 1,
           status: 1,
-          'event.id': 1,
+          leads: 1,
           'tasks.id': 1,
           'tasks.title': 1,
           'tasks.due': 1,
           'tasks.done': 1,
           'tasks.assignees': 1,
+          'tasks.repeat': 1,
           'tasks.position': 1,
         },
         sort: { updatedAt: -1 },
       },
     )
     .toArray()
-  return list.map(({ _id, title, type, status, event, tasks }) => ({
+  return list.map(({ _id, title, type, status, leads, tasks }) => ({
     id: _id,
     title,
     type,
     status: projectStatus(status),
     archived: false,
-    event: event ?? null,
+    leads,
     tasks: [...tasks].sort((a, b) => a.position - b.position),
+  }))
+}
+
+/**
+ * The event projects that are not archived, own events and the plannings of public events, with what withOwnEvents
+ * (ownEvents.ts) and progress() read: the start page and the calendar feed list own events beside the public ones,
+ * and the start page shows how far the next event's planning is.
+ */
+export async function eventProjects(): Promise<EventProject[]> {
+  const { projects } = await collections()
+  const list = await projects
+    .find(
+      { type: 'event', archivedAt: null },
+      {
+        projection: {
+          title: 1,
+          type: 1,
+          status: 1,
+          due: 1,
+          time: 1,
+          place: 1,
+          endDue: 1,
+          endTime: 1,
+          luma: 1,
+          distinctFrom: 1,
+          leads: 1,
+          team: 1,
+          'event.id': 1,
+          'event.startAt': 1,
+          'event.location': 1,
+          'event.missing': 1,
+          'tasks.done': 1,
+        },
+      },
+    )
+    .toArray()
+  return list.map((project) => ({
+    id: project._id,
+    title: project.title,
+    type: project.type,
+    status: projectStatus(project.status),
+    due: project.due,
+    time: project.time ?? '',
+    place: project.place ?? '',
+    endDue: project.endDue ?? '',
+    endTime: project.endTime ?? '',
+    luma: project.luma ?? null,
+    distinctFrom: project.distinctFrom ?? [],
+    leads: project.leads,
+    team: project.team ?? '',
+    archived: false,
+    eventDay: project.event ? berlinDay(project.event.startAt.getTime()) : '',
+    event: project.event && { id: project.event.id, missing: project.event.missing, location: project.event.location },
+    tasks: project.tasks,
   }))
 }
 
@@ -574,7 +642,7 @@ async function unnotify(taskId: string, memberIds?: string[]) {
 }
 
 function newTask(fields: TaskFields, position: number, actor: TaskActor, now: Date): TaskDoc {
-  const done = fields.status === 'done'
+  const done = isClosed(fields.status)
   return {
     ...fields,
     id: randomUUID(),
@@ -688,6 +756,31 @@ export async function createProject(actor: TaskActor, input: NewProject): Promis
 
 type Outcome = 'ok' | 'unknown' | 'forbidden' | 'full' | 'crowded' | 'invalid'
 
+/**
+ * Moves a private task into a shared single task that its member leads and is assigned to ("Teilen"), so others can be
+ * added. The shared task is written before the private one goes: a failure in between leaves a copy, never a loss.
+ */
+export async function sharePrivateTask(actor: TaskActor, id: string): Promise<{ id: string } | 'unknown' | 'invalid'> {
+  const task = await privateTask(actor.id, id)
+  if (!task) return 'unknown'
+  const fields = parseProject({ title: task.title, description: task.description, type: 'task', due: task.due, leads: [actor.id], team: task.team })
+  const shared = parseTask({
+    title: task.title,
+    description: task.description,
+    due: task.due,
+    priority: task.priority,
+    assignees: [actor.id],
+    status: task.status,
+    repeat: task.repeat ?? '',
+  })
+  if (!fields || !shared) return 'invalid'
+  const created = await createProject(actor, { fields, status: 'planned', event: null, template: null, task: shared })
+  // Only events can collide, and this is a single task.
+  if (created === 'duplicate') return 'invalid'
+  await dropPrivateTask(actor.id, id)
+  return created
+}
+
 /** The update for one step on a list of people; parsePatch lets only one direction through. */
 const memberUpdate = (path: string, { add, remove }: MemberChange) =>
   add.length ? { $addToSet: { [path]: { $each: add } } } : { $pull: { [path]: { $in: remove } } }
@@ -737,17 +830,49 @@ export async function updateProject(actor: TaskActor, id: string, patch: Project
   return matchedCount ? 'ok' : 'unknown'
 }
 
-export async function setStatus(actor: TaskActor, id: string, status: ProjectStatus): Promise<Outcome> {
+/**
+ * Moves a project to another column. Finishing it with `closeOpen` also finishes its open tasks, because tasks of a
+ * finished project leave every list (scopedTasks) and would otherwise stay open where nobody sees them.
+ */
+export async function setStatus(actor: TaskActor, id: string, status: ProjectStatus, { closeOpen = false } = {}): Promise<Outcome> {
   const { projects } = await collections()
   const now = new Date()
+  const closing = closeOpen && status === 'done'
+  const closed = {
+    'tasks.$[open].done': true,
+    'tasks.$[open].status': 'done',
+    'tasks.$[open].doneAt': now,
+    'tasks.$[open].doneBy': actor.id,
+    'tasks.$[open].updatedAt': now,
+  }
   const { matchedCount } = await projects.updateOne(
     { _id: id },
     {
-      $set: { status, completedAt: status === 'done' ? now : null, updatedAt: now },
-      $push: pushActivity([activity(actor, 'status', status)]),
+      $set: { status, completedAt: status === 'done' ? now : null, updatedAt: now, ...(closing && closed) },
+      $push: pushActivity([activity(actor, 'status', status), ...(closing ? [activity(actor, 'openClosed')] : [])]),
     },
+    closing ? { arrayFilters: [{ 'open.done': false }] } : {},
   )
   return matchedCount ? 'ok' : 'unknown'
+}
+
+/**
+ * Turns a single task into a project with that task as its first step ("Zum Projekt machen"). Every member may do so, as
+ * they may edit the task; a card without leads gets the member who asked, so the new project has someone responsible.
+ */
+export async function promoteTask(actor: TaskActor, id: string): Promise<Outcome> {
+  const { projects } = await collections()
+  const now = new Date()
+  const card: Filter<ProjectDoc> = { _id: id, type: 'task', archivedAt: null }
+  const change = (extra: Partial<ProjectDoc>) => ({
+    $set: { type: 'internal' as const, updatedAt: now, ...extra },
+    $push: pushActivity([activity(actor, 'promoted')]),
+  })
+  // Two writes without a read: the first only matches a card nobody leads, so a lead added in between stays alone.
+  const { matchedCount } = await projects.updateOne({ ...card, leads: { $size: 0 } }, change({ leads: [actor.id] }))
+  if (matchedCount) return 'ok'
+  const second = await projects.updateOne(card, change({}))
+  return second.matchedCount ? 'ok' : 'unknown'
 }
 
 /**
@@ -786,17 +911,20 @@ export async function deleteProject(actor: TaskActor, id: string): Promise<Outco
 
 export async function addTask(actor: TaskActor, id: string, fields: TaskFields): Promise<Outcome> {
   const { projects } = await collections()
-  const project = await projects.findOne({ _id: id }, { projection: { 'tasks.position': 1 } })
+  const project = await projects.findOne({ _id: id }, { projection: { type: 1, 'tasks.position': 1 } })
   if (!project) return 'unknown'
   if (project.tasks.length >= MAX_TASKS) return 'full'
   const now = new Date()
   const task = newTask(fields, Math.max(-1, ...project.tasks.map((item) => item.position)) + 1, actor, now)
+  // A card of type 'task' shows one task; with a second one it is a project, or the second task would hide in a card
+  // that looks like a single task (the MCP tools can add to any project).
+  const promoted = project.type === 'task' && project.tasks.length > 0
   // A card goes with its last task, so it can be gone since the read above.
   const { matchedCount } = await projects.updateOne(
     { _id: id },
     {
-      $push: { tasks: task, ...pushActivity([activity(actor, 'taskAdded', task.title)]) },
-      $set: { updatedAt: now },
+      $push: { tasks: task, ...pushActivity([...(promoted ? [activity(actor, 'promoted')] : []), activity(actor, 'taskAdded', task.title)]) },
+      $set: { updatedAt: now, ...(promoted && { type: 'internal' as const }) },
     },
   )
   if (!matchedCount) return 'unknown'
@@ -828,13 +956,17 @@ export async function updateTask(actor: TaskActor, id: string, taskId: string, p
   const moved = patch.done !== undefined || patch.status !== undefined
   for (const [key, value] of Object.entries({ ...fields, ...(moved && { done, status }), ...(repeated && { due }) })) set[`tasks.$[t].${key}`] = value
   const entries: Activity[] = []
+  // Dropping a finished task, or finishing a dropped one, keeps it done but is still worth a line in the log.
+  const dropped = status === 'dropped'
   if (done !== task.done) {
     set['tasks.$[t].doneBy'] = done ? actor.id : null
     set['tasks.$[t].doneAt'] = done ? now : null
-    entries.push(activity(actor, done ? 'taskDone' : 'taskReopened', task.title))
   }
-  // A repeating task is done for this round and open for the next: the log keeps the completion and the new deadline.
-  if (repeated) entries.push(activity(actor, 'taskDone', task.title), activity(actor, 'due', task.title))
+  if (done !== task.done || dropped !== (turn.status === 'dropped')) {
+    entries.push(activity(actor, dropped ? 'taskDropped' : done ? 'taskDone' : 'taskReopened', task.title))
+  }
+  // A repeating task is done (or dropped) for this round and open for the next: the log keeps that and the new deadline.
+  if (repeated) entries.push(activity(actor, patch.status === 'dropped' ? 'taskDropped' : 'taskDone', task.title), activity(actor, 'due', task.title))
   // The card of a single task shows the task's deadline (MIRRORED_FIELDS), so it moves along.
   if (repeated && single) set.due = due
   const { added, removed } = assigneeChanges(task.assignees, assignees)

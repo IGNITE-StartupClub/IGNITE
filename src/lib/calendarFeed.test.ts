@@ -6,10 +6,23 @@ const now = new Date('2026-11-06T10:00:00.000Z')
 const event: FeedEvent = {
   id: 'evt-1',
   title: 'Open Weekly',
+  source: 'luma',
+  day: '2026-11-10',
+  endDay: '2026-11-10',
   startAt: new Date('2026-11-10T17:00:00.000Z'),
   endAt: new Date('2026-11-10T19:00:00.000Z'),
   location: 'Lüneburg, Campus',
   url: 'https://luma.com/open-weekly',
+}
+const ownEvent: FeedEvent = {
+  ...event,
+  id: '11111111-1111-4111-8111-111111111111',
+  title: 'Sommer-Dinner',
+  source: 'own',
+  day: '2026-11-24',
+  endDay: '2026-11-24',
+  startAt: new Date('2026-11-24T17:00:00.000Z'),
+  endAt: new Date('2026-11-24T21:00:00.000Z'),
 }
 const task: FeedTask = {
   id: 'task-1',
@@ -35,6 +48,30 @@ test('writes events in UTC with a stable uid', () => {
   assert.ok(result.includes('DTSTAMP:20261106T100000Z'))
   assert.ok(result.includes('DTSTART:20261110T170000Z'))
   assert.ok(result.includes('DTEND:20261110T190000Z'))
+})
+
+test('gives own events a uid apart from the public events', () => {
+  const result = lines(calendarFeed([event, ownEvent], [], now))
+  assert.ok(result.includes('UID:own-11111111-1111-4111-8111-111111111111@ignite-startupclub.de'))
+  assert.ok(result.includes('DTSTART:20261124T170000Z'))
+  assert.ok(result.includes('DTEND:20261124T210000Z'))
+  assert.equal(result.filter((line) => line.startsWith('UID:event-')).length, 1)
+})
+
+test('writes an own event without a start time as all-day entry over its days', () => {
+  const result = lines(calendarFeed([{ ...ownEvent, endDay: '2026-11-25', startAt: null, endAt: null }], [], now))
+  assert.ok(result.includes('DTSTART;VALUE=DATE:20261124'))
+  // The end of an all-day entry is exclusive.
+  assert.ok(result.includes('DTEND;VALUE=DATE:20261126'))
+})
+
+test('writes no end for an own event without an end time', () => {
+  const result = lines(calendarFeed([{ ...ownEvent, endAt: null }], [], now))
+  assert.ok(result.includes('DTSTART:20261124T170000Z'))
+  assert.equal(
+    result.some((line) => line.startsWith('DTEND')),
+    false,
+  )
 })
 
 test('leaves out a missing location', () => {

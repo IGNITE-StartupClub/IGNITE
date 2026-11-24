@@ -32,6 +32,7 @@ import {
   linkEvent,
   makeEvent,
   projectActivity,
+  promoteTask,
   removeTask,
   reorderTasks,
   restoreTask,
@@ -39,6 +40,7 @@ import {
   sessionActor,
   setArchived,
   setStatus,
+  sharePrivateTask,
   templateTasks,
   unlinkEvent,
   updateProject,
@@ -147,8 +149,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         break
       }
       case 'status':
-        if (!id || !status) return invalid()
-        code = await setStatus(actor, id, status)
+        if (!id || !status || (body.closeOpen !== undefined && typeof body.closeOpen !== 'boolean')) return invalid()
+        code = await setStatus(actor, id, status, { closeOpen: body.closeOpen === true })
+        break
+      case 'promote':
+        if (!id) return invalid()
+        code = await promoteTask(actor, id)
         break
       case 'archive':
         if (!id || typeof body.archived !== 'boolean') return invalid()
@@ -237,6 +243,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (!taskId) return invalid()
         code = await restorePrivateTask(actor.id, taskId)
         break
+      case 'sharePrivate': {
+        if (!taskId) return invalid()
+        const shared = await sharePrivateTask(actor, taskId)
+        if (typeof shared === 'string') {
+          code = shared
+          break
+        }
+        code = 'created'
+        createdId = shared.id
+        break
+      }
       case 'name': {
         const name = parseName(body)
         if (!name) return invalid()

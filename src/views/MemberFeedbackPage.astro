@@ -1,0 +1,47 @@
+---
+/**
+ * The admin page "Feedback zur Website", rendered on demand by pages/mitglieder/verwaltung/feedback.astro and
+ * pages/en/members/admin/feedback.astro. src/middleware.ts lets only admins in (isAdminPath); /api/members/feedback
+ * checks the role again. Reads every entry in one query after the session and hands them to the FeedbackBoard island.
+ * Data source: memberArea.feedbackAdmin and memberArea.feedback via getCopy(), feedbackStore.ts.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import FeedbackBoard from '../components/forms/FeedbackBoard.jsx'
+import { getCopy } from '../data/copy'
+import { feedbackDay } from '../lib/feedback'
+import { feedbackList } from '../lib/feedbackStore'
+import { resolveLocale } from '../lib/i18n'
+import { memberPagePath } from '../lib/memberAuth'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { feedbackAdmin, feedback } = getCopy(locale).memberArea
+const entries = await feedbackList()
+
+// Formatted here, so server render and hydration show the same text. The year only shows when it is not this one.
+const thisYear = feedbackDay(Date.now()).slice(0, 4)
+const dayLabel = (day: string) =>
+  new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    ...(day.startsWith(thisYear) ? {} : { year: 'numeric' }),
+    timeZone: 'UTC',
+  }).format(new Date(`${day}T00:00:00Z`))
+---
+
+<DefaultLayout title={feedbackAdmin.pageTitle} alternatePath={memberPagePath('feedback', locale === 'de' ? 'en' : 'de')} noindex>
+  <PageHeader compact title={feedbackAdmin.title} lead={feedbackAdmin.lead}>
+    <p class="form-note"><a href={memberPagePath('admin', locale)}>{feedbackAdmin.back}</a></p>
+  </PageHeader>
+  <Section tone="subtle" spacing="xs" labelledby="page-title">
+    <FeedbackBoard
+      client:load
+      copy={feedbackAdmin.board}
+      labels={{ kinds: feedback.kinds, areas: feedback.areas }}
+      entries={entries.map((entry) => ({ ...entry, dayLabel: dayLabel(entry.day) }))}
+      tasksUrl={memberPagePath('tasks', locale)}
+    />
+  </Section>
+</DefaultLayout>
