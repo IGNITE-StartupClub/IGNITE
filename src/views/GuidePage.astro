@@ -1,0 +1,93 @@
+---
+/**
+ * Guide (menu item "Guide"): visitors pick knowledge packages and request them by mail.
+ * Rendered by pages/materialien/index.astro and pages/en/materials/index.astro.
+ * Copy in guidePage and guidePackages (getCopy()); the form is the GuideRequestForm island, which posts to /api/guide.
+ */
+import DefaultLayout from '../layouts/DefaultLayout.astro'
+import PageHeader from '../components/ui/PageHeader.astro'
+import Section from '../components/ui/Section.astro'
+import GuideRequestForm from '../components/forms/GuideRequestForm.jsx'
+import { getCopy } from '../data/copy'
+import { resolveLocale } from '../lib/i18n'
+import { Icon } from 'astro-icon/components'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { guidePage, guidePackages, pageMeta } = getCopy(locale)
+---
+
+<DefaultLayout title={pageMeta.materials.title} description={pageMeta.materials.description} url="materialien">
+  <Section spacing="xs">
+    <aside class="guide-notice surface-brand" role="note" aria-labelledby="guide-notice-title">
+      <span class="guide-notice-icon" aria-hidden="true"><Icon name="ion:construct-outline" /></span>
+      <div class="guide-notice-body">
+        <p class="guide-notice-title" id="guide-notice-title">{guidePage.notice.title}</p>
+        <p class="guide-notice-text">{guidePage.notice.text}</p>
+      </div>
+      <a class="guide-notice-link" href={guidePage.notice.href}>{guidePage.notice.linkLabel} <span aria-hidden="true">→</span></a>
+    </aside>
+  </Section>
+  <PageHeader title={guidePage.title} lead={guidePage.lead} />
+  <Section tone="subtle" spacing="sm" labelledby="page-title">
+    <GuideRequestForm client:load copy={guidePage.form} packages={guidePackages} locale={locale} />
+  </Section>
+</DefaultLayout>
+
+<style>
+  .guide-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    color: var(--color-fg);
+    background: var(--color-bg);
+    border: 2px solid var(--color-brand-bright);
+    border-radius: var(--radius-card);
+    box-shadow: 0 0 0 6px rgb(82 39 255 / 0.18);
+  }
+  .guide-notice-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.5rem;
+    color: #ffffff;
+    background: var(--color-brand-bright);
+    border-radius: 999px;
+  }
+  .guide-notice-body {
+    flex: 1 1 20rem;
+    min-width: 0;
+  }
+  .guide-notice-title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: 700;
+  }
+  .guide-notice-text {
+    margin: 0.25rem 0 0;
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+  }
+  .guide-notice-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    color: var(--color-brand-deep);
+    white-space: nowrap;
+    background: #ffffff;
+    border-radius: var(--radius-button);
+  }
+  .guide-notice-link:hover {
+    background: hsl(261 60% 92%);
+  }
+  .guide-notice-link:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 3px;
+  }
+</style>
