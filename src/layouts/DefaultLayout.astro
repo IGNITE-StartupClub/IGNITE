@@ -7,7 +7,8 @@
  * jsonLd (schema.org objects for search engines, see src/lib/seo.ts),
  * alternatePath (the equivalent page in the other language: omitted = derived from the URL, null = no counterpart,
  * so the toggle links to the other home page and no hreflang tags are written), bare (no Header and Footer, for pages
- * that bring their own slim top bar, such as the members login).
+ * that bring their own slim top bar, such as the members login), footerSignup (false on pages with their own community
+ * form, so it is not there twice).
  * Data source: getCopy() in src/data/copy.ts.
  */
 import '../styles/global.css'
@@ -33,6 +34,7 @@ interface Props {
   jsonLd?: object[]
   alternatePath?: string | null
   bare?: boolean
+  footerSignup?: boolean
 }
 
 const locale = resolveLocale(Astro.currentLocale)
@@ -46,6 +48,7 @@ const {
   jsonLd = [],
   alternatePath,
   bare = false,
+  footerSignup = true,
 } = Astro.props
 
 if (!Astro.site) throw new Error('astro.config.mjs must set site: canonical and hreflang links need it')
@@ -143,7 +146,7 @@ const memberLocale = memberAreaLocale(Astro.url.pathname)
     <main id="main-content" tabindex="-1" class:list={[bare && 'pt-0']}>
       <slot />
     </main>
-    {!bare && !memberLocale && <Footer />}
+    {!bare && !memberLocale && <Footer signup={footerSignup} />}
     <MemberPortal />
     {!bare && memberLocale && <MemberSkeletons />}
   </body>

@@ -1,6 +1,6 @@
 /**
  * Community signup (React island) for the footer and the Community page. Posts { email } to /api/community,
- * which mails the WhatsApp invite link. Props: copy (communityForm in the page language), compact (input and button only,
+ * which mails the WhatsApp invite link. Props: copy (communityForm in the page language), compact (input and button side by side,
  * no heading or note; the Community page sets it). Styles: ./forms.css.
  */
 import React, { useState } from 'react'
@@ -40,7 +40,7 @@ export default function CommunityForm({ copy, compact = false }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="form">
+    <form onSubmit={handleSubmit} className={compact ? 'form form-inline' : 'form'}>
       <div className="field">
         {!compact && (
           <>

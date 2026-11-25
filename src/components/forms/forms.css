@@ -2,6 +2,7 @@
  * Shared form styles for every React form (Contact, Subscribe, Newsletter, Questionnaire).
  * Tokens only (see src/styles/global.css). Import once per form component.
  * Classes: .form, .field, .field-label, .field-hint, .input (input/select/textarea),
+ * .form-inline (short form: field and button in one row from 640px, everything else below),
  * .choice (checkbox/radio row), .form-error, .form-success, .form-submit, .form-secondary, .form-note.
  */
 .form {
@@ -21,6 +22,22 @@
 @media (min-width: 640px) {
   .form-row {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 640px) {
+  .form-inline {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+  }
+
+  .form-inline > .form-submit {
+    align-self: stretch;
+  }
+
+  .form-inline > :not(.field, .form-submit) {
+    grid-column: 1 / -1;
   }
 }
 

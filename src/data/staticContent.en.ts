@@ -393,6 +393,9 @@ export const startupWeekPage = {
 }
 
 export const subscribePage = {
+  teamHeading: 'Team',
+  joinPrompt: 'And you?',
+  joinLink: 'Join us',
   title: 'Stay in the <em>loop</em>',
   lead: 'Our newsletter runs on WhatsApp. Sign up and we will send you the invitation link to the community.',
   submit: 'Ship the dam thing!',

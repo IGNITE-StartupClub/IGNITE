@@ -1,0 +1,46 @@
+---
+/**
+ * Team portraits side by side: one tile per file in src/assets/photos/team, in file name order, and a tile that links to
+ * the join page. It spans two columns, so 22 portraits fill the 3, 4 and 6 columns without a gap.
+ * The photos carry no names, so they have an empty alt text and the section heading describes them.
+ * Props: none. Data: subscribePage via getCopy().
+ */
+import { Image } from 'astro:assets'
+import Section from '../ui/Section.astro'
+import { getCopy } from '../../data/copy'
+import { localizePath, resolveLocale } from '../../lib/i18n'
+
+const locale = resolveLocale(Astro.currentLocale)
+const { subscribePage } = getCopy(locale)
+const photos = import.meta.glob<{ default: ImageMetadata }>('../../assets/photos/team/*.jpg', { eager: true })
+const portraits = Object.keys(photos).sort().map((path) => photos[path].default)
+---
+
+<Section spacing="xs" labelledby="page-title">
+  <h1 id="page-title" class="text-xl font-semibold">{subscribePage.teamHeading}</h1>
+  <div class="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
+    {
+      portraits.map((src, index) => (
+        <Image
+          src={src}
+          alt=""
+          widths={[200, src.width]}
+          sizes="(min-width: 1280px) 187px, (min-width: 1024px) 15vw, (min-width: 640px) 22vw, 30vw"
+          format="webp"
+          quality={82}
+          loading={index < 6 ? 'eager' : 'lazy'}
+          class="aspect-[6/7] w-full rounded-card object-cover"
+        />
+      ))
+    }
+    <a
+      href={localizePath('/mitmachen', locale)}
+      class="surface-brand group col-span-2 flex flex-col justify-end gap-1 rounded-card p-4 hover:text-fg sm:p-6"
+    >
+      <span class="text-xl font-semibold">{subscribePage.joinPrompt}</span>
+      <span class="text-fg-muted">
+        {subscribePage.joinLink} <span aria-hidden="true" class="inline-block transition-transform group-hover:translate-x-1">→</span>
+      </span>
+    </a>
+  </div>
+</Section>
