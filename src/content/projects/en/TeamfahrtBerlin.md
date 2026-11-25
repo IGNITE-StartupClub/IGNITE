@@ -18,6 +18,8 @@ We gained exciting insights into the startup scene. At [One Thousand](https://ww
 
 Next we visited [encentive](https://www.linkedin.com/company/encentive/) and the [Merantix AI Campus](https://www.linkedin.com/in/merantix-ai-campus-4b5755450/), where [Moritz Zimmermann](https://www.linkedin.com/in/mo-zimmermann/) gave us a tour and we talked to representatives of [Briink](https://www.linkedin.com/company/briinkedin/) and [Vara](https://www.linkedin.com/company/vara-ai/).
 
+![The IGNITE team talking at a table at encentive, with "How to build a business in the energy system" on the screen](../../../assets/optimized-sources/news/teamfahrt-berlin-encentive.jpeg)
+
 #### What we took away
 
 One thing above all: **Just do it!**

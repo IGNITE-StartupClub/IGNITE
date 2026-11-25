@@ -18,6 +18,8 @@ Fachlich durften wir spannende Einblicke in die Startup-Szene gewinnen. Bei [One
 
 Anschließend besuchten wir [encentive](https://www.linkedin.com/company/encentive/) und den [Merantix AI Campus](https://www.linkedin.com/in/merantix-ai-campus-4b5755450/), wo uns [Moritz Zimmermann](https://www.linkedin.com/in/mo-zimmermann/) eine Führung gab und wir mit Vertretern von [Briink](https://www.linkedin.com/company/briinkedin/) und [Vara](https://www.linkedin.com/company/vara-ai/) ins Gespräch kamen.
 
+![Das IGNITE-Team bei encentive im Gespräch am Tisch, auf dem Bildschirm steht „How to build a business in the energy system“](../../assets/optimized-sources/news/teamfahrt-berlin-encentive.jpeg)
+
 #### Was wir mitgenommen haben
 
 Vor allem eins: **Einfach machen!**
