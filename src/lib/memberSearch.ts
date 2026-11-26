@@ -9,7 +9,7 @@ import { addDays, TITLE_MAX, type TeamChoice } from './tasks.ts'
 
 type Locale = 'de' | 'en'
 
-export const SEARCH_KINDS = ['task', 'project', 'event', 'guide', 'member', 'alumni', 'contact'] as const
+export const SEARCH_KINDS = ['task', 'project', 'event', 'guide', 'member', 'alumni', 'contact', 'organization'] as const
 export type SearchKind = (typeof SEARCH_KINDS)[number]
 const PEOPLE_KINDS: SearchKind[] = ['member', 'alumni', 'contact']
 
@@ -306,8 +306,8 @@ export function openToken(text: string): OpenToken | null {
 
 const SUGGESTION_LIMIT = 5
 
-/** The id of a member's entry on the team tab of the Netzwerk. */
-export const personAnchor = (id: string): string => `person-${id}`
+/** The id of a member's profile in the Netzwerk (networkStore.ts), which `#<id>` opens there. */
+export const memberProfileId = (id: string): string => `m-${id}`
 
 /** The word without spaces that resolves to exactly this name. */
 export const personHandle = (name: string): string => `@${name.trim().replace(/\s+/g, '-')}`
@@ -369,15 +369,16 @@ interface IndexSources {
   projects: IndexProject[]
   privateTasks: { id: string; title: string; done: boolean; due: string }[]
   members: (SearchMember & { photo: string })[]
-  contacts: { id: string; name: string; organization: string; role: string }[]
-  alumni: { id: string; name: string; now: string; city: string }[]
+  /** Alumni and external contacts of the Netzwerk; active members come as `members`. */
+  people: { id: string; kind: 'member' | 'alumni' | 'external'; name: string; line: string }[]
+  orgs: { id: string; name: string; city: string }[]
   events: { id: string; title: string; startAt: Date; endAt: Date; location: string | null }[]
   guides: { id: string; title: string; description: string }[]
 }
 
 interface IndexContext {
   locale: Locale
-  paths: { tasks: string; crm: string; alumni: string; guide: string; team: string }
+  paths: { tasks: string; network: string; organisations: string; guide: string }
   teamNames: Record<string, string>
   privateLabel: string
   now?: number
@@ -459,28 +460,29 @@ export function buildSearchIndex(
         id,
         title: name,
         meta: teamNames[team] ?? '',
-        // A member has no profile page yet, so the entry on the team tab stands in for one.
-        url: `${paths.team}#${personAnchor(id)}`,
+        url: `${paths.network}#${memberProfileId(id)}`,
         photo,
         team,
       }),
     ),
-    ...sources.alumni.map(
-      ({ id, name, now: position, city }): SearchItem => ({
-        kind: 'alumni',
+    ...sources.people
+      .filter(({ kind }) => kind !== 'member')
+      .map(
+        ({ id, kind, name, line: meta }): SearchItem => ({
+          kind: kind === 'alumni' ? 'alumni' : 'contact',
+          id,
+          title: name,
+          meta,
+          url: `${paths.network}#${encodeURIComponent(id)}`,
+        }),
+      ),
+    ...sources.orgs.map(
+      ({ id, name, city }): SearchItem => ({
+        kind: 'organization',
         id,
         title: name,
-        meta: line(position, city),
-        url: `${paths.alumni}#${encodeURIComponent(id)}`,
-      }),
-    ),
-    ...sources.contacts.map(
-      ({ id, name, organization, role }): SearchItem => ({
-        kind: 'contact',
-        id,
-        title: name,
-        meta: line(organization, role),
-        url: `${paths.crm}#${encodeURIComponent(id)}`,
+        meta: city,
+        url: `${paths.organisations}#${encodeURIComponent(id)}`,
       }),
     ),
   ]

@@ -1,7 +1,8 @@
 /**
  * Guards the members area (/mitglieder/*, /en/members/*) and its endpoints (/api/members/*). Pages without a valid
  * session cookie go to the login page, endpoints answer 401; valid requests get `locals.member`. Admin pages send
- * members without the admin role to the members home. Every response of the area gets SECURITY_HEADERS.
+ * members without the admin role to the members home. Alumni logins reach only the Netzwerk (isAlumniPath) and its
+ * endpoints (isAlumniApiPath); other pages send them to the Netzwerk, other endpoints answer 403. Every response of the area gets SECURITY_HEADERS.
  * Every other path passes through untouched, which keeps the prerendered pages free of cookie access at build time.
  * An error no route caught (a page that fails to render, the session lookup) goes to the error log (errorLog.ts) before
  * Astro answers 500.
@@ -12,6 +13,8 @@ import { refusedRequestUrl } from './lib/connectionsStore'
 import { logError } from './lib/errorLog'
 import {
   isAdminPath,
+  isAlumniApiPath,
+  isAlumniPath,
   isConnectionPath,
   isCrossSiteForm,
   isProtectedApiPath,
@@ -19,6 +22,7 @@ import {
   loginPath,
   memberAreaLocale,
   memberHomePath,
+  memberPagePath,
   SESSION_COOKIE,
 } from './lib/memberAuth'
 import { findSession } from './lib/members'
@@ -67,6 +71,18 @@ async function guard(context: APIContext, next: MiddlewareNext): Promise<Respons
             })
           : context.redirect(loginPath(pathname, search, locale!), 303),
       )
+    }
+    // Alumni keep a login for the Netzwerk and their own profile, without the initiative's current work.
+    if (member.position === 'alumni') {
+      if (isApi && !isAlumniApiPath(pathname)) {
+        return secure(
+          new Response(JSON.stringify({ code: 'forbidden', message: 'Nicht verfügbar.' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+      if (!isApi && !isAlumniPath(pathname)) return secure(context.redirect(memberPagePath('network', locale!), 303))
     }
     if (isAdminPath(pathname) && member.role !== 'admin') {
       return secure(context.redirect(memberHomePath(locale!), 303))

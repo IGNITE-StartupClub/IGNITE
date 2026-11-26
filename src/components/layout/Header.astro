@@ -51,13 +51,18 @@ const photoId = member?.photoId
 const memberHome = memberHomePath(locale)
 const badge = member && memberNav.badges[member.position]
 const firstStepsOpen = member ? menuBadge(member.onboarding) : 0
+// Alumni keep a login for the Netzwerk only (middleware.ts), so their pill links nothing else.
+const alumni = member?.position === 'alumni'
+const networkUrl = memberPagePath('network', locale)
 const items: NavItem[] = member
-  ? [
-      { label: memberNav.home, url: memberHome },
-      { label: memberNav.tasks, url: memberPagePath('tasks', locale) },
-      { label: memberNav.network, url: memberPagePath('crm', locale) },
-      { label: memberNav.storage, url: memberPagePath('storage', locale) },
-    ]
+  ? alumni
+    ? [{ label: memberNav.network, url: networkUrl }]
+    : [
+        { label: memberNav.home, url: memberHome },
+        { label: memberNav.tasks, url: memberPagePath('tasks', locale) },
+        { label: memberNav.network, url: networkUrl },
+        { label: memberNav.storage, url: memberPagePath('storage', locale) },
+      ]
   : [...navigation.menuItems].sort((a, b) => a.order - b.order)
 const trim = (path: string) => (path.length > 1 ? path.replace(/\/$/, '') : path)
 const currentPath = trim(Astro.url.pathname)
@@ -68,7 +73,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
 <header class="site-header" data-site-header transition:animate="none">
   <div class="pill">
     <a
-      href={member ? memberHome : navigation.homeUrl}
+      href={member ? (alumni ? networkUrl : memberHome) : navigation.homeUrl}
       class="logo-link"
       aria-label={badge ? `${navigation.logoText} ${badge}` : navigation.logoText}
     >
@@ -141,7 +146,7 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
         // client:idle: the search sits on every member page, but nobody needs it in the first moment. Hydrating it at
         // load put its 19 KB (brotli) and React's start on the critical path beside the page's own island, and on
         // pages without one (Team, Partner, Ablage) loaded React at load for the search alone.
-        member && (
+        member && !alumni && (
           <MemberSearch
             client:idle
             transition:persist="member-search"
@@ -198,16 +203,22 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                   </li>
                 </>
               )}
-              {member.position !== 'board' && (
+              <li style="--i: 2">
+                {/* The NetworkDirectory island opens the own profile form for this hash. */}
+                <a class="panel-link" href={`${networkUrl}#profil`}>{memberNav.myProfile}</a>
+              </li>
+              {member.position !== 'board' && !alumni && (
                 <li style="--i: 2">
                   <a class="panel-link" href={`${memberHome}?team`}>{memberNav.settings}</a>
                 </li>
               )}
-              <li style="--i: 3">
-                <a class="panel-link" href={memberPagePath('signature', locale)} aria-current={isCurrent(memberPagePath('signature', locale)) ? 'page' : undefined}>
-                  {memberNav.signature}
-                </a>
-              </li>
+              {!alumni && (
+                <li style="--i: 3">
+                  <a class="panel-link" href={memberPagePath('signature', locale)} aria-current={isCurrent(memberPagePath('signature', locale)) ? 'page' : undefined}>
+                    {memberNav.signature}
+                  </a>
+                </li>
+              )}
               <li style="--i: 4">
                 <a class="panel-link" href={`${memberPagePath('login', locale)}?reset`}>{memberNav.password}</a>
               </li>
@@ -218,17 +229,19 @@ const isCurrent = (url: string) => url !== '#' && (currentPath === trim(url) || 
                   </a>
                 </li>
               )}
-              <li style="--i: 5">
-                {/* The HelpDialogs island opens the dialog and keeps the number current. */}
-                <button type="button" class="panel-link panel-button" data-member-help="onboarding">
-                  {memberNav.firstSteps}
-                  {firstStepsOpen > 0 && (
-                    <span class="panel-badge" data-onboarding-badge>
-                      {memberNav.firstStepsOpen.replace('{count}', String(firstStepsOpen))}
-                    </span>
-                  )}
-                </button>
-              </li>
+              {!alumni && (
+                <li style="--i: 5">
+                  {/* The HelpDialogs island opens the dialog and keeps the number current. */}
+                  <button type="button" class="panel-link panel-button" data-member-help="onboarding">
+                    {memberNav.firstSteps}
+                    {firstStepsOpen > 0 && (
+                      <span class="panel-badge" data-onboarding-badge>
+                        {memberNav.firstStepsOpen.replace('{count}', String(firstStepsOpen))}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )}
               <li style="--i: 5">
                 {/* Opened by the HelpDialogs island (MemberHelp.astro). */}
                 <button type="button" class="panel-link panel-button" data-member-help="feedback">{memberNav.feedback}</button>

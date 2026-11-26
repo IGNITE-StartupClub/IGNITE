@@ -1,7 +1,8 @@
 ---
-import MemberAlumniPage from '../../../../views/MemberAlumniPage.astro'
+/** The former alumni tab of the Netzwerk; the people database shows them with a filter now. */
+import { memberPagePath } from '../../../../lib/memberAuth'
 
 export const prerender = false
----
 
-<MemberAlumniPage />
+return Astro.redirect(`${memberPagePath('network', 'en')}?gruppe=alumni`, 301)
+---

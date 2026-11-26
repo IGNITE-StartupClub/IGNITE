@@ -292,7 +292,11 @@ export default function MemberAdmin({ copy, initialMembers, teams, currentEmail,
                         className={`${SELECT} h-8 text-xs`}
                         value={member.position}
                         disabled={busy}
-                        onChange={(e) => run({ action: 'position', email: member.email, position: e.target.value })}
+                        onChange={(e) => {
+                          // Becoming alumni frees the member's tasks and limits the login to the Netzwerk.
+                          if (e.target.value === 'alumni' && !window.confirm(fill(copy.confirmAlumni, { email: member.email }))) return
+                          run({ action: 'position', email: member.email, position: e.target.value })
+                        }}
                       >
                         {Object.entries(copy.positions).map(([position, label]) => (
                           <option key={position} value={position}>

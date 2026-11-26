@@ -1,10 +1,10 @@
 ---
 /**
- * Frame of the Netzwerk section in the members area: one heading and a tab bar over CRM, alumni, teams and partners. Each tab is
- * a page of its own, so it loads only its own data and the CRM keeps the URL hash for the open contact.
- * Props: tab (the active tab, which also selects the page title and lead).
+ * Frame of the Netzwerk in the members area: one heading and a tab bar over the people and the organisations. Both tabs
+ * show the same island (NetworkDirectory), which opens profiles and organisations from the URL hash.
+ * Props: tab ('network' | 'organisations', which also selects the page title and lead).
  * Slots: default (the content of the tab).
- * Data source: memberArea.network and memberArea[tab] via getCopy().
+ * Data source: memberArea.network via getCopy().
  */
 import DefaultLayout from './DefaultLayout.astro'
 import PageHeader from '../components/ui/PageHeader.astro'
@@ -13,7 +13,7 @@ import { getCopy } from '../data/copy'
 import { resolveLocale } from '../lib/i18n'
 import { memberHomePath, memberPagePath } from '../lib/memberAuth'
 
-const TABS = ['crm', 'alumni', 'team', 'partners'] as const
+const TABS = ['network', 'organisations'] as const
 
 interface Props {
   tab: (typeof TABS)[number]
@@ -21,14 +21,15 @@ interface Props {
 
 const { tab } = Astro.props
 const locale = resolveLocale(Astro.currentLocale)
-const { memberArea } = getCopy(locale)
-const { network } = memberArea
-const { pageTitle, lead } = memberArea[tab]
+const { network } = getCopy(locale).memberArea
+const { pageTitle, lead } = tab === 'network' ? network.people : network.organisations
+// Alumni reach only the Netzwerk, so the way back to the members home would only bring them here again.
+const alumni = Astro.locals.member?.position === 'alumni'
 ---
 
 <DefaultLayout title={pageTitle} alternatePath={memberPagePath(tab, locale === 'de' ? 'en' : 'de')} noindex>
   <PageHeader compact title={network.title} lead={lead}>
-    <p class="form-note"><a href={memberHomePath(locale)}>{network.back}</a></p>
+    {!alumni && <p class="form-note"><a href={memberHomePath(locale)}>{network.back}</a></p>}
     <nav aria-label={network.tabsLabel} class="mt-4 flex gap-1 border-0 border-b border-solid border-border">
       {
         TABS.map((key) => (

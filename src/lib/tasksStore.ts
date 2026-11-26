@@ -246,12 +246,13 @@ export const sessionActor = (member: Pick<SessionMember, 'id' | 'email' | 'role'
   named: !!(member.firstName && member.lastName),
 })
 
-/** Name, photo and team of every member, the only personal data the board shows. */
+/** Name, photo and team of every active member, the only personal data the board shows. */
 async function directory() {
   const { members } = await collections()
   const db = await database()
   const [list, photos] = await Promise.all([
-    members.find({}, { projection: { _id: 1, email: 1, firstName: 1, lastName: 1, signature: 1, team: 1 } }).toArray(),
+    // Alumni keep a login for the Netzwerk only, so nobody assigns them work.
+    members.find({ position: { $ne: 'alumni' } }, { projection: { _id: 1, email: 1, firstName: 1, lastName: 1, signature: 1, team: 1 } }).toArray(),
     db.collection<{ _id: string; email: string }>('member_photos').find({}, { projection: { _id: 1, email: 1 }, sort: { createdAt: 1 } }).toArray(),
   ])
   const photoIds = new Map(photos.map(({ _id, email }) => [email, _id]))

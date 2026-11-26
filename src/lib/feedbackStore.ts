@@ -4,7 +4,7 @@
  *   entries carry no member id, and no entry carries a time finer than its Berlin day.
  * - `feedback_quota`: one counter per member and Berlin day under a keyed id (feedbackQuotaId), removed after the day.
  *   It points to no entry, so it does not tell which entries a member sent.
- * Not revision-polled like tasks or the CRM, so status changes need no `updatedAt`.
+ * Not revision-polled like tasks or the Netzwerk, so status changes need no `updatedAt`.
  */
 import { randomUUID } from 'node:crypto'
 import type { ObjectId } from 'mongodb'

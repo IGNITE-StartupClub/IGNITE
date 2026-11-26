@@ -324,6 +324,34 @@ export async function removeMember(email: string): Promise<boolean> {
 }
 
 /**
+ * A member became an alumnus: the login stays, but only for the Netzwerk (middleware.ts), so everything that ties them
+ * to the current work goes, as on removal: they leave the leads and assignees of projects, their private tasks, undo
+ * entries, pending digests, app connections and calendar link are deleted. Name, photo and profile stay.
+ */
+export async function retireToAlumni(email: string): Promise<string | null> {
+  const { members, privateTasks, taskTrash, taskNotifications, taskDigests, connections, feeds, taskProjects } = await collections()
+  const member = await members.findOneAndUpdate({ email }, { $set: { position: 'alumni' } }, { projection: { _id: 1 } })
+  if (!member) return null
+  const memberId = member._id.toHexString()
+  const now = new Date()
+  await Promise.all([
+    privateTasks.deleteMany({ memberId }),
+    taskTrash.deleteMany({ deletedBy: memberId }),
+    taskNotifications.deleteMany({ memberId }),
+    taskDigests.deleteMany({ memberId }),
+    taskProjects.updateMany({ leads: memberId }, { $pull: { leads: memberId }, $set: { updatedAt: now } }),
+    taskProjects.updateMany(
+      { 'tasks.assignees': memberId },
+      { $pull: { 'tasks.$[assigned].assignees': memberId }, $set: { updatedAt: now } },
+      { arrayFilters: [{ 'assigned.assignees': memberId }] },
+    ),
+    connections.deleteMany({ email }),
+    feeds.deleteOne({ _id: email }),
+  ])
+  return memberId
+}
+
+/**
  * Stores `image` as the member's signature photo and returns its id. Every upload gets a new id and the previous photo
  * is deleted, so a photo URL never changes its content and stops working once replaced.
  */
@@ -648,7 +676,9 @@ export async function findSession(token: string): Promise<SessionMember | null> 
     .toArray()
   const member = session?.member[0]
   if (!member) return null
-  const connects = mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections)
+  // Alumni keep no connections: apps and the calendar feed show the initiative's tasks.
+  const connects =
+    member.position !== 'alumni' && mayConnect(member.email, session.connections[0]?.enabled ?? SETTING_DEFAULTS.connections)
   return {
     id: member._id.toHexString(),
     email: member.email,

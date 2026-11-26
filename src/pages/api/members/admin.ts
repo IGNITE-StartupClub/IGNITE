@@ -2,7 +2,8 @@ export const prerender = false
 
 import type { APIRoute } from 'astro'
 import { isJsonRequest, isMemberPosition, isMemberRole, type MemberPosition, normalizeEmail } from '../../../lib/memberAuth'
-import { addMember, findMember, isOwner, logAdminAction, memberSummaries, removeMember, savePosition, saveTeam, setRole } from '../../../lib/members'
+import { addMember, findMember, isOwner, logAdminAction, memberSummaries, removeMember, retireToAlumni, savePosition, saveTeam, setRole } from '../../../lib/members'
+import { becameAlumni, forgetAccount } from '../../../lib/networkStore'
 import { sendInvite } from '../../../lib/memberMail'
 import { currentMember, reply } from '../../../lib/memberSession'
 import { parseTeam, type TeamChoice } from '../../../lib/tasks'
@@ -46,9 +47,9 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       return reply(409, { code: 'owner', message: 'Diese Änderung ist nicht möglich.' })
     }
 
-    const code = await perform(action as Action, email, role, team, position, admin.email, locale === 'en' ? 'en' : 'de', url.origin)
+    const code = await perform(action as Action, email, role, team, position, admin.email, admin.id, locale === 'en' ? 'en' : 'de', url.origin)
     const members = await memberSummaries()
-    return reply(code === 'unknown' || code === 'exists' ? 409 : 200, { code, members })
+    return reply(['unknown', 'exists', 'adminAlumni'].includes(code) ? 409 : 200, { code, members })
   } catch (err) {
     await logError('Member admin action failed', err)
     return reply(500, { code: 'error', message: 'Fehler in der Mitgliederverwaltung' })
@@ -62,6 +63,7 @@ async function perform(
   team: TeamChoice,
   position: unknown,
   actor: string,
+  actorId: string,
   locale: 'de' | 'en',
   origin: string,
 ) {
@@ -81,16 +83,28 @@ async function perform(
     return 'teamChanged'
   }
   if (action === 'position') {
+    const member = await findMember(email)
+    // An alumni login reaches only the Netzwerk, so it cannot hold the rights of an admin.
+    if (position === 'alumni' && member?.role === 'admin') return 'adminAlumni'
+    if (position === 'alumni') {
+      const memberId = await retireToAlumni(email)
+      if (memberId) await becameAlumni(memberId, actorId)
+      await logAdminAction({ actor, action, email, position: 'alumni' })
+      return 'becameAlumni'
+    }
     await savePosition(email, position as MemberPosition)
     await logAdminAction({ actor, action, email, position: position as MemberPosition })
     return 'positionChanged'
   }
   if (action === 'role') {
+    if (role === 'admin' && (await findMember(email))?.position === 'alumni') return 'adminAlumni'
     await setRole(email, role as 'member' | 'admin')
     await logAdminAction({ actor, action, email, role: role as 'member' | 'admin' })
     return 'roleChanged'
   }
+  const removed = await findMember(email)
   await removeMember(email)
+  if (removed) await forgetAccount(removed._id.toHexString())
   await logAdminAction({ actor, action, email })
   return 'removed'
 }

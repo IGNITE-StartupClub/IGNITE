@@ -4,7 +4,7 @@ import type { APIRoute } from 'astro'
 import { getCollection } from 'astro:content'
 import { getCopy } from '../../../data/copy'
 import { teamNames } from '../../../data/openTeams'
-import { alumniState, contactState } from '../../../lib/contactsStore'
+import { networkSearchSources } from '../../../lib/networkStore'
 import { resolveLocale } from '../../../lib/i18n'
 import { memberPagePath } from '../../../lib/memberAuth'
 import { buildSearchIndex } from '../../../lib/memberSearch'
@@ -23,10 +23,9 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const member = locals.member!
     const locale = resolveLocale(url.searchParams.get('locale') ?? undefined)
     const { memberArea, openTeams, listingPages } = getCopy(locale)
-    const [workspace, { contacts }, { alumni }, { events }, materials] = await Promise.all([
+    const [workspace, { people, orgs }, { events }, materials] = await Promise.all([
       workspaceState(sessionActor(member)),
-      contactState(member),
-      alumniState(member),
+      networkSearchSources({ id: member.id, role: member.role, position: member.position }),
       loadTaskEvents(locale),
       getCollection('materials'),
     ])
@@ -36,8 +35,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
         projects: workspace.projects,
         privateTasks: workspace.privateTasks,
         members: workspace.members,
-        contacts,
-        alumni,
+        people,
+        orgs,
         events: events.filter(isEvent),
         guides: materials.map(({ id, data }) => ({ id, title: data.title, description: data.description })),
       },
@@ -45,9 +44,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
         locale,
         paths: {
           tasks: memberPagePath('tasks', locale),
-          crm: memberPagePath('crm', locale),
-          alumni: memberPagePath('alumni', locale),
-          team: memberPagePath('team', locale),
+          network: memberPagePath('network', locale),
+          organisations: memberPagePath('organisations', locale),
           guide: listingPages.materials.path,
         },
         teamNames: names,

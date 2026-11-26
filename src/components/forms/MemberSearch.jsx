@@ -13,6 +13,7 @@ import React, { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { navigate } from 'astro:transitions/client'
 import {
   BookOpen,
+  Building2,
   Briefcase,
   CalendarDays,
   Check,
@@ -29,7 +30,6 @@ import {
   completeToken,
   dueLabel,
   openToken,
-  personAnchor,
   searchGroups,
   searchMode,
   suggestions,
@@ -47,6 +47,7 @@ const KIND_ICONS = {
   guide: BookOpen,
   alumni: GraduationCap,
   contact: Briefcase,
+  organization: Building2,
 }
 const ROW =
   'flex min-h-[52px] w-full items-center gap-3 rounded-none border-0 px-5 py-1.5 text-left text-sm text-fg no-underline'
@@ -74,10 +75,7 @@ function refresh() {
 /** Astro's router also handles such links without an event, so the page's islands get their popstate here. */
 function go(url, stale) {
   const target = new URL(url, window.location.href)
-  // A person on the team tab is a plain anchor of that page, which only a real jump scrolls to and marks.
-  if (target.hash.startsWith(`#${personAnchor('')}`) && target.pathname === window.location.pathname) {
-    window.location.hash = target.hash
-  } else if (target.hash && target.pathname === window.location.pathname) {
+  if (target.hash && target.pathname === window.location.pathname) {
     window.history.pushState(null, '', target.pathname + target.search + target.hash)
     if (stale) refresh()
     else window.dispatchEvent(new PopStateEvent('popstate'))

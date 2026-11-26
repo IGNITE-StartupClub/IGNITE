@@ -1,0 +1,49 @@
+---
+/**
+ * The Netzwerk of the members area, rendered on demand by pages/mitglieder/netzwerk/index.astro and
+ * organisationen.astro (and their English twins): everyone around IGNITE and the organisations they belong to. Every
+ * signed-in member sees it, alumni logins too (src/middleware.ts); networkState cuts every profile to what the viewer
+ * may see before it reaches the page. The NetworkDirectory island talks to /api/members/network.
+ * Props: view ('people' | 'orgs').
+ * Data source: memberArea.network via getCopy(), the state via networkState().
+ */
+import MemberNetworkLayout from '../layouts/MemberNetworkLayout.astro'
+import NetworkDirectory from '../components/forms/network/NetworkDirectory.jsx'
+import { getCopy } from '../data/copy'
+import { teamNames } from '../data/openTeams'
+import { berlinDay } from '../lib/contacts'
+import { resolveLocale } from '../lib/i18n'
+import { memberPagePath } from '../lib/memberAuth'
+import { DIVISIONS } from '../lib/network'
+import { networkState } from '../lib/networkStore'
+
+interface Props {
+  view: 'people' | 'orgs'
+}
+
+const { view } = Astro.props
+const locale = resolveLocale(Astro.currentLocale)
+const { memberArea, openTeams } = getCopy(locale)
+const member = Astro.locals.member!
+const viewer = { id: member.id, role: member.role, position: member.position }
+const { revision, ...state } = await networkState(viewer)
+const names = teamNames(openTeams)
+const teams = openTeams.map(({ id }) => ({ id, name: names[id], division: DIVISIONS[id] ?? '' }))
+---
+
+<MemberNetworkLayout tab={view === 'people' ? 'network' : 'organisations'}>
+  <NetworkDirectory
+    client:load
+    copy={memberArea.network.directory}
+    photoCopy={memberArea.signature.generator.photo}
+    optional={memberArea.signature.generator.optional}
+    initialState={state}
+    initialRevision={revision}
+    viewer={viewer}
+    view={view}
+    teams={teams}
+    paths={{ people: memberPagePath('network', locale), orgs: memberPagePath('organisations', locale) }}
+    locale={locale}
+    today={berlinDay(Date.now())}
+  />
+</MemberNetworkLayout>

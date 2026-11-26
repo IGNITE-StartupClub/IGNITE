@@ -13,6 +13,8 @@ import {
   hashPassword,
   hashToken,
   isAdminPath,
+  isAlumniApiPath,
+  isAlumniPath,
   isConnectionPath,
   isCrossSiteForm,
   isFormRequest,
@@ -141,6 +143,7 @@ test('isMemberPosition accepts only known positions', () => {
   assert.equal(isMemberPosition('member'), true)
   assert.equal(isMemberPosition('teamlead'), true)
   assert.equal(isMemberPosition('board'), true)
+  assert.equal(isMemberPosition('alumni'), true)
   assert.equal(isMemberPosition('admin'), false)
   assert.equal(isMemberPosition(undefined), false)
 })
@@ -188,9 +191,20 @@ test('memberAreaLocale and memberPagePath map both languages', () => {
   assert.equal(memberPagePath('login', 'de'), '/mitglieder/login')
   assert.equal(memberPagePath('signature', 'en'), '/en/members/signature')
   assert.equal(memberPagePath('admin', 'de'), '/mitglieder/verwaltung')
-  assert.equal(memberPagePath('crm', 'de'), '/mitglieder/netzwerk')
-  assert.equal(memberPagePath('alumni', 'en'), '/en/members/network/alumni')
-  assert.equal(memberPagePath('team', 'de'), '/mitglieder/netzwerk/team')
+  assert.equal(memberPagePath('network', 'de'), '/mitglieder/netzwerk')
+  assert.equal(memberPagePath('organisations', 'en'), '/en/members/network/organisations')
+})
+
+test('an alumni login reaches only the Netzwerk', () => {
+  assert.equal(isAlumniPath('/mitglieder/netzwerk'), true)
+  assert.equal(isAlumniPath('/en/members/network/organisations/'), true)
+  assert.equal(isAlumniPath('/mitglieder/'), false)
+  assert.equal(isAlumniPath('/mitglieder/aufgaben'), false)
+  assert.equal(isAlumniApiPath('/api/members/network'), true)
+  assert.equal(isAlumniApiPath('/api/members/photo'), true)
+  assert.equal(isAlumniApiPath('/api/members/tasks'), false)
+  assert.equal(isAlumniApiPath('/api/members/search'), false)
+  assert.equal(isAlumniApiPath('/api/members/connections'), false)
 })
 
 test('isJsonRequest requires an application/json content type', () => {

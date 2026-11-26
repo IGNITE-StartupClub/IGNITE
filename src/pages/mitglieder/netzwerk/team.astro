@@ -1,7 +1,8 @@
 ---
-import MemberTeamPage from '../../../views/MemberTeamPage.astro'
+/** The former team tab of the Netzwerk; the people database shows them with a filter now. */
+import { memberPagePath } from '../../../lib/memberAuth'
 
 export const prerender = false
----
 
-<MemberTeamPage />
+return Astro.redirect(`${memberPagePath('network', 'de')}?gruppe=member&ansicht=team`, 301)
+---

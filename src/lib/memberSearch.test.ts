@@ -341,8 +341,8 @@ const sources: IndexInput = {
   projects: [],
   privateTasks: [],
   members: [],
-  contacts: [],
-  alumni: [],
+  people: [],
+  orgs: [],
   events: [],
   guides: [],
 }
@@ -350,10 +350,9 @@ const context = {
   locale: 'de' as const,
   paths: {
     tasks: '/mitglieder/aufgaben',
-    crm: '/mitglieder/netzwerk',
-    alumni: '/mitglieder/netzwerk/alumni',
+    network: '/mitglieder/netzwerk',
+    organisations: '/mitglieder/netzwerk/organisationen',
     guide: '/materialien',
-    team: '/mitglieder/netzwerk/team',
   },
   teamNames: { 'ignite-marketing': 'Marketing' },
   privateLabel: 'Nur für mich',
@@ -375,7 +374,7 @@ test('buildSearchIndex links tasks to their project and names people and deadlin
   )
   const row = items.find(({ kind }) => kind === 'task')
   assert.equal(row?.url, '/mitglieder/aufgaben#p1')
-  assert.equal(items.find(({ kind }) => kind === 'member')?.url, '/mitglieder/netzwerk/team#person-m1')
+  assert.equal(items.find(({ kind }) => kind === 'member')?.url, '/mitglieder/netzwerk#m-m1')
   assert.equal(row?.meta, 'Open Weekly · Di, 10. Nov. · Lena Meyer')
   assert.ok(items.some(({ kind, title }) => kind === 'project' && title === 'Open Weekly'))
 })
@@ -391,14 +390,19 @@ test('buildSearchIndex shows a single task once, without a project row', () => {
   )
 })
 
-test('buildSearchIndex sends no email address of contacts, alumni or members', () => {
+test('buildSearchIndex sends no email address and links people and organisations into the Netzwerk', () => {
   const member = { id: 'm1', name: 'Lena', photo: '', team: '', email: 'lena@example.com' }
-  const contact = { id: 'c1', name: 'Eva', organization: 'Sparkasse', role: 'Leitung', email: 'eva@example.com' }
-  const person = { id: 'a1', name: 'Moritz', now: 'Gründer', city: 'Hamburg', email: 'moritz@example.com' }
-  const items = buildSearchIndex({ ...sources, members: [member], contacts: [contact], alumni: [person] }, context)
+  const people = [
+    { id: 'c1', kind: 'external' as const, name: 'Eva', line: 'Sparkasse', email: 'eva@example.com' },
+    { id: 'a1', kind: 'alumni' as const, name: 'Moritz', line: 'Gründer · Hamburg' },
+    { id: 'm-m1', kind: 'member' as const, name: 'Lena', line: '' },
+  ]
+  const items = buildSearchIndex({ ...sources, members: [member], people, orgs: [{ id: 'o1', name: 'Sparkasse', city: 'Lüneburg' }] }, context)
   assert.equal(JSON.stringify(items).includes('example.com'), false)
   assert.equal(items.find(({ kind }) => kind === 'contact')?.url, '/mitglieder/netzwerk#c1')
-  assert.equal(items.find(({ kind }) => kind === 'alumni')?.url, '/mitglieder/netzwerk/alumni#a1')
+  assert.equal(items.find(({ kind }) => kind === 'alumni')?.url, '/mitglieder/netzwerk#a1')
+  assert.equal(items.find(({ kind }) => kind === 'organization')?.url, '/mitglieder/netzwerk/organisationen#o1')
+  assert.equal(items.filter(({ kind }) => kind === 'member').length, 1)
 })
 
 test('buildSearchIndex marks private tasks and leads them to the own list', () => {

@@ -1,5 +1,5 @@
 /**
- * Field encryption for personal data in the members area (CRM contacts and alumni profiles, contactsStore.ts).
+ * Field encryption for personal data in the members area (the people of the Netzwerk, networkStore.ts).
  * Each value is sealed with AES-256-GCM under a key derived from ENCRYPTION_SECRET for this purpose only, so the
  * applicant data key (submit.ts) is never used directly. The record id and the field name are bound into the
  * ciphertext as additional data: a value copied into another record or field fails to open instead of showing up

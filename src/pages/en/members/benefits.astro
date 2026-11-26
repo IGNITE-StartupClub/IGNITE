@@ -4,5 +4,5 @@ import { memberPagePath } from '../../../lib/memberAuth'
 export const prerender = false
 
 // Old address of a page that moved; bookmarks and links in chats keep working.
-return Astro.redirect(memberPagePath('partners', 'en'), 301)
+return Astro.redirect(`${memberPagePath('organisations', 'en')}?beziehung=partner`, 301)
 ---

@@ -33,3 +33,6 @@ yarn-error.log*
 
 # Vercel
 .vercel
+
+# Local test database of npm run dev:local (scripts/dev-local.mjs)
+.local-dev/

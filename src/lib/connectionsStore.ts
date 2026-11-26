@@ -103,7 +103,8 @@ export type ConnectedMember = Pick<SessionMember, 'id' | 'email' | 'role' | 'fir
  */
 async function allowedMember(email: string): Promise<ConnectedMember | null> {
   const [found, open] = await Promise.all([findMember(email), settingEnabled('connections')])
-  const member = found && mayConnect(email, open) ? found : null
+  // Alumni keep a login for the Netzwerk only, so no app or calendar reaches the tasks through them.
+  const member = found && found.position !== 'alumni' && mayConnect(email, open) ? found : null
   return (
     member && {
       id: member._id.toHexString(),

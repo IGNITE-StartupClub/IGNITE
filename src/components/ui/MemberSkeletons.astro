@@ -20,8 +20,8 @@ const paths = (...pages: MemberPage[]) =>
 const layouts = [
   { layout: 'home', paths: `${memberHomePath('de')} ${memberHomePath('en')}` },
   { layout: 'tasks', paths: paths('tasks') },
-  { layout: 'table', paths: paths('crm', 'admin', 'system', 'feedback', 'connections') },
-  { layout: 'cards', paths: paths('alumni', 'team', 'partners', 'storage') },
+  { layout: 'table', paths: paths('admin', 'system', 'feedback', 'connections') },
+  { layout: 'cards', paths: paths('network', 'organisations', 'storage') },
   { layout: 'form', paths: paths('signature') },
 ]
 const CARD = 'rounded-card border border-border bg-card'

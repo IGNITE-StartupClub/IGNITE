@@ -1,7 +1,8 @@
 ---
-import MemberPartnersPage from '../../../views/MemberPartnersPage.astro'
+/** The former partner tab of the Netzwerk; the people database shows them with a filter now. */
+import { memberPagePath } from '../../../lib/memberAuth'
 
 export const prerender = false
----
 
-<MemberPartnersPage />
+return Astro.redirect(`${memberPagePath('organisations', 'de')}?beziehung=partner`, 301)
+---

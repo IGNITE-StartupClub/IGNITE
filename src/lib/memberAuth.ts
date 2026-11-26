@@ -25,8 +25,12 @@ export const MEMBER_ROLES = ['member', 'admin'] as const
 export type MemberRole = (typeof MEMBER_ROLES)[number]
 export const isMemberRole = (value: unknown): value is MemberRole => MEMBER_ROLES.includes(value as MemberRole)
 
-/** A member's place in the club, set by admins. Unlike the role it grants no rights. */
-export const MEMBER_POSITIONS = ['member', 'teamlead', 'board'] as const
+/**
+ * A member's place in the club, set by admins. Unlike the role it grants no rights in the tasks module; in the
+ * Netzwerk it decides which contact data someone sees (network.ts viewerRank). `alumni` is a former member whose login
+ * only reaches the Netzwerk and their own profile (isAlumniPath, isAlumniApiPath).
+ */
+export const MEMBER_POSITIONS = ['member', 'teamlead', 'board', 'alumni'] as const
 export type MemberPosition = (typeof MEMBER_POSITIONS)[number]
 export const isMemberPosition = (value: unknown): value is MemberPosition => MEMBER_POSITIONS.includes(value as MemberPosition)
 
@@ -191,12 +195,10 @@ const PAGES = {
   system: { de: 'verwaltung/system', en: 'admin/system' },
   // Website feedback of the members, below the member management for the same reason.
   feedback: { de: 'verwaltung/feedback', en: 'admin/feedback' },
-  // The Netzwerk section opens on its CRM tab.
-  crm: { de: 'netzwerk', en: 'network' },
+  // The Netzwerk: everyone around IGNITE, and the organisations they belong to.
+  network: { de: 'netzwerk', en: 'network' },
+  organisations: { de: 'netzwerk/organisationen', en: 'network/organisations' },
   tasks: { de: 'aufgaben', en: 'tasks' },
-  alumni: { de: 'netzwerk/alumni', en: 'network/alumni' },
-  team: { de: 'netzwerk/team', en: 'network/team' },
-  partners: { de: 'netzwerk/partner', en: 'network/partners' },
   storage: { de: 'ablage', en: 'files' },
   connections: { de: 'verbindungen', en: 'connections' },
   connect: { de: 'verbinden', en: 'connect' },
@@ -238,6 +240,16 @@ export function isProtectedApiPath(pathname: string): boolean {
 
 /** Pages only admins may open. */
 export const isAdminPath = (pathname: string): boolean => isPage(pathname, ['admin', 'system', 'feedback'])
+
+/** The pages an alumni login may open: the Netzwerk with their own profile. Everything else sends them there. */
+export const isAlumniPath = (pathname: string): boolean => isPage(pathname, ['network', 'organisations', 'login'])
+
+// The endpoints an alumni login may use: the Netzwerk, their photo, signing out and website feedback. Tasks, search,
+// connections and the calendar feed stay closed, because they show the initiative's current work.
+const ALUMNI_API = ['network', 'photo', 'logout', 'feedback', 'login', 'code', 'password']
+
+export const isAlumniApiPath = (pathname: string): boolean =>
+  ALUMNI_API.includes(pathname.slice('/api/members/'.length).replace(/\/$/, ''))
 
 /** Pages only members on the connection list may open. */
 export const isConnectionPath = (pathname: string): boolean => isPage(pathname, ['connect', 'connections'])

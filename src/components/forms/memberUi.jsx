@@ -157,9 +157,10 @@ export function useDiscardGuard(dialogRef, dirty) {
 /**
  * A modal dialog around a form. `dialogRef` opens it (showModal) from the island; a click on the backdrop, the close
  * button and Escape close it, and `onClose` runs every time. With `discard` (DiscardDialog copy), a dialog that is
- * `dirty` asks before those three throw its changes away; its own cancel button closes without asking.
+ * `dirty` asks before those three throw its changes away; its own cancel button closes without asking. `wide` makes
+ * room for two columns (the Netzwerk's profile form).
  */
-export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubmit, dirty = false, discard, children }) {
+export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubmit, dirty = false, discard, wide = false, children }) {
   const guard = useDiscardGuard(dialogRef, dirty && !!discard)
   return (
     <>
@@ -170,7 +171,7 @@ export function FormDialog({ dialogRef, id, heading, closeLabel, onClose, onSubm
         onCancel={guard.onCancel}
         // A click on the backdrop lands on the dialog element itself.
         onClick={(e) => e.target === e.currentTarget && guard.requestClose()}
-        className="w-[min(40rem,calc(100vw-2rem))] rounded-card border border-border bg-bg p-0 text-fg backdrop:bg-black/60"
+        className={`${wide ? 'w-[min(56rem,calc(100vw-2rem))]' : 'w-[min(40rem,calc(100vw-2rem))]'} rounded-card border border-border bg-bg p-0 text-fg backdrop:bg-black/60`}
       >
         <form onSubmit={onSubmit} className="form p-6">
           <div className="flex items-start justify-between gap-4">
